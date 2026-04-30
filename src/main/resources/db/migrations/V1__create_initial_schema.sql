@@ -1,5 +1,4 @@
--- V1__create_initial_schema.sql
--- Script de inicialização do banco de dados (Poder Financeiro)
+-- Script de inicialização do banco de dados (Poder Financeiro) - Multi-Usuário
 
 -- ==========================================
 -- 1. TIPOS E ENUMS
@@ -19,6 +18,7 @@ CREATE TYPE public.status_proposta AS ENUM (
 -- ==========================================
 -- 2. SEQUÊNCIAS
 -- ==========================================
+CREATE SEQUENCE public.usuarios_usuario_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.bancos_banco_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.comissoes_comissao_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.documentos_proponente_documento_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
@@ -31,6 +31,17 @@ CREATE SEQUENCE public.tabelas_juros_tabela_id_seq START WITH 1 INCREMENT BY 1 N
 -- ==========================================
 -- 3. TABELAS
 -- ==========================================
+CREATE TABLE public.usuarios (
+    usuario_id bigint DEFAULT nextval('public.usuarios_usuario_id_seq'::regclass) NOT NULL,
+    nome character varying(255) NOT NULL,
+    email character varying(255) NOT NULL,
+    senha_hash character varying(255) NOT NULL,
+    papel character varying(50) DEFAULT 'CONSULTOR'::character varying,
+    ativo boolean DEFAULT true,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    ultimo_acesso timestamp without time zone
+);
+
 CREATE TABLE public.bancos (
     banco_id bigint DEFAULT nextval('public.bancos_banco_id_seq'::regclass) NOT NULL,
     nome_banco character varying(100) NOT NULL,
@@ -49,6 +60,7 @@ CREATE TABLE public.bancos (
 CREATE TABLE public.comissoes (
     comissao_id integer DEFAULT nextval('public.comissoes_comissao_id_seq'::regclass) NOT NULL,
     proposta_id integer NOT NULL,
+    usuario_id bigint NOT NULL, -- Qual consultor recebe esta comissão
     valor_bruto_comissao numeric(12,2) NOT NULL,
     impostos_retidos numeric(12,2) DEFAULT 0.00,
     valor_liquido_consultor numeric(12,2) NOT NULL,
@@ -61,6 +73,7 @@ CREATE TABLE public.comissoes (
 CREATE TABLE public.documentos_proponente (
     documento_id integer DEFAULT nextval('public.documentos_proponente_documento_id_seq'::regclass) NOT NULL,
     proponente_id integer,
+    usuario_id bigint NOT NULL, -- Quem fez o upload
     tipo_documento character varying(50) NOT NULL,
     arquivo_path text NOT NULL,
     hash_sha256 character varying(64),
@@ -71,6 +84,7 @@ CREATE TABLE public.documentos_proponente (
 CREATE TABLE public.historico_status_proposta (
     historico_id integer DEFAULT nextval('public.historico_status_proposta_historico_id_seq'::regclass) NOT NULL,
     proposta_id integer,
+    usuario_id bigint, -- Quem mudou o status
     status_anterior character varying(50),
     status_novo character varying(50) NOT NULL,
     data_mudanca timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
@@ -80,6 +94,7 @@ CREATE TABLE public.historico_status_proposta (
 CREATE TABLE public.interacoes_contato (
     interacao_id integer DEFAULT nextval('public.interacoes_contato_interacao_id_seq'::regclass) NOT NULL,
     proponente_id integer,
+    usuario_id bigint NOT NULL, -- Qual consultor atendeu/enviou
     canal character varying(20) DEFAULT 'WhatsApp'::character varying,
     mensagem_texto text,
     direcao character varying(10),
@@ -88,6 +103,7 @@ CREATE TABLE public.interacoes_contato (
 
 CREATE TABLE public.proponentes (
     proponente_id bigint DEFAULT nextval('public.proponentes_proponente_id_seq'::regclass) NOT NULL,
+    usuario_id bigint NOT NULL, -- Dono da carteira do cliente
     nome_completo character varying(255) NOT NULL,
     cpf character varying(14) NOT NULL,
     telefone character varying(20),
@@ -105,6 +121,7 @@ CREATE TABLE public.propostas (
     proposta_id integer DEFAULT nextval('public.propostas_proposta_id_seq'::regclass) NOT NULL,
     proponente_id integer NOT NULL,
     banco_id integer NOT NULL,
+    usuario_id bigint NOT NULL, -- Consultor responsável pela proposta
     valor_solicitado numeric(12,2) NOT NULL,
     valor_aprovado numeric(12,2),
     taxa_aplicada numeric(5,2),
@@ -122,7 +139,8 @@ CREATE TABLE public.propostas (
     data_solicitacao date DEFAULT CURRENT_DATE,
     observacoes text,
     ultima_atualizacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    tabela_id integer
+    tabela_id integer,
+    usuario_atualizacao_id bigint -- Necessário para a trigger de histórico saber quem alterou
 );
 
 CREATE TABLE public.tabelas_juros (
@@ -141,6 +159,7 @@ CREATE TABLE public.tabelas_juros (
 -- ==========================================
 -- 4. VÍNCULOS DE SEQUÊNCIAS (OWNERSHIP)
 -- ==========================================
+ALTER SEQUENCE public.usuarios_usuario_id_seq OWNED BY public.usuarios.usuario_id;
 ALTER SEQUENCE public.bancos_banco_id_seq OWNED BY public.bancos.banco_id;
 ALTER SEQUENCE public.comissoes_comissao_id_seq OWNED BY public.comissoes.comissao_id;
 ALTER SEQUENCE public.documentos_proponente_documento_id_seq OWNED BY public.documentos_proponente.documento_id;
@@ -153,12 +172,16 @@ ALTER SEQUENCE public.tabelas_juros_tabela_id_seq OWNED BY public.tabelas_juros.
 -- ==========================================
 -- 5. CHAVES PRIMÁRIAS E ÚNICAS
 -- ==========================================
+ALTER TABLE ONLY public.usuarios ADD CONSTRAINT usuarios_pkey PRIMARY KEY (usuario_id);
+ALTER TABLE ONLY public.usuarios ADD CONSTRAINT usuarios_email_key UNIQUE (email);
 ALTER TABLE ONLY public.bancos ADD CONSTRAINT bancos_pkey PRIMARY KEY (banco_id);
 ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_pkey PRIMARY KEY (comissao_id);
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_pkey PRIMARY KEY (documento_id);
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_pkey PRIMARY KEY (historico_id);
 ALTER TABLE ONLY public.interacoes_contato ADD CONSTRAINT interacoes_contato_pkey PRIMARY KEY (interacao_id);
-ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_cpf_key UNIQUE (cpf);
+-- Removido o UNIQUE global do CPF. Agora é único POR CONSULTOR, permitindo que consultores diferentes tentem o mesmo lead.
+-- Se preferir que um CPF pertença a apenas 1 consultor na plataforma inteira, mantenha: UNIQUE (cpf)
+ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_cpf_usuario_key UNIQUE (cpf, usuario_id); 
 ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_pkey PRIMARY KEY (proponente_id);
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_pkey PRIMARY KEY (proposta_id);
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_pkey PRIMARY KEY (tabela_id);
@@ -170,17 +193,32 @@ CREATE INDEX idx_comissoes_status_data ON public.comissoes USING btree (status_p
 CREATE INDEX idx_interacoes_contexto ON public.interacoes_contato USING btree (proponente_id, data_interacao DESC);
 CREATE INDEX idx_proponentes_cpf_ativo ON public.proponentes USING btree (cpf) WHERE (deletado_em IS NULL);
 CREATE INDEX idx_propostas_status_busca ON public.propostas USING btree (status);
+CREATE INDEX idx_propostas_usuario ON public.propostas USING btree (usuario_id);
+CREATE INDEX idx_proponentes_usuario ON public.proponentes USING btree (usuario_id);
 
 -- ==========================================
 -- 7. CHAVES ESTRANGEIRAS (FOREIGN KEYS)
 -- ==========================================
 ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_proposta_id_fkey FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT;
+
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
+
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_proposta_id_fkey FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
+
 ALTER TABLE ONLY public.interacoes_contato ADD CONSTRAINT interacoes_contato_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.interacoes_contato ADD CONSTRAINT interacoes_contato_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT;
+
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_banco_id_fkey FOREIGN KEY (banco_id) REFERENCES public.bancos(banco_id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_tabela_id_fkey FOREIGN KEY (tabela_id) REFERENCES public.tabelas_juros(tabela_id);
+ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_usuario_atualizacao_id_fkey FOREIGN KEY (usuario_atualizacao_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
+
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_banco_id_fkey FOREIGN KEY (banco_id) REFERENCES public.bancos(banco_id) ON DELETE CASCADE;
 
 -- ==========================================
@@ -190,9 +228,10 @@ CREATE FUNCTION public.trg_log_status_change() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
+    -- O Spring/Hibernate deve enviar o usuario_atualizacao_id no momento do UPDATE
     IF (OLD.status IS DISTINCT FROM NEW.status) THEN
-        INSERT INTO public.historico_status_proposta(proposta_id, status_anterior, status_novo)
-        VALUES (NEW.proposta_id, OLD.status::text, NEW.status::text);
+        INSERT INTO public.historico_status_proposta(proposta_id, usuario_id, status_anterior, status_novo)
+        VALUES (NEW.proposta_id, NEW.usuario_atualizacao_id, OLD.status::text, NEW.status::text);
     END IF;
     NEW.ultima_atualizacao = CURRENT_TIMESTAMP;
     RETURN NEW;

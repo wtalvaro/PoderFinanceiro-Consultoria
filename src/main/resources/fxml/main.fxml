@@ -75,10 +75,11 @@
        <left>
               <ScrollPane fitToWidth="true" fitToHeight="true"
                      style="-fx-background-color: transparent;"
-                     styleClass="edge-to-edge" hbarPolicy="NEVER" minHeight="0">
+                     styleClass="edge-to-edge" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                     minHeight="0">
                      <VBox spacing="10" prefWidth="250"
                             style="-fx-background-color: -color-bg-default; -fx-padding: 15 10; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;"
-                            minHeight="0">
+                     >
 
                             <VBox spacing="5"
                                    style="-fx-padding: 0 0 10 0; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
@@ -109,8 +110,9 @@
                             <Button text="💰 Tabela de Comissões" maxWidth="Infinity"
                                    alignment="BASELINE_LEFT" styleClass="flat" />
 
-                            <Region prefHeight="20" />
-                            <!-- Botão de Configurações foi removido daqui! -->
+                            <!-- 3. ESPAÇADOR: Agora ele vai funcionar como uma mola empurrando o
+                            resto pra baixo -->
+                            <Region VBox.vgrow="ALWAYS" />
                      </VBox>
               </ScrollPane>
        </left>
