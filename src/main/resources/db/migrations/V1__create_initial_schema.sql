@@ -1,7 +1,9 @@
 -- V1__create_initial_schema.sql
 -- Script de inicialização do banco de dados (Poder Financeiro)
 
+-- ==========================================
 -- 1. TIPOS E ENUMS
+-- ==========================================
 CREATE TYPE public.status_proposta AS ENUM (
     'Lead',
     'Digitada',
@@ -14,21 +16,9 @@ CREATE TYPE public.status_proposta AS ENUM (
     'Cancelado'
 );
 
--- 2. FUNÇÕES
-CREATE FUNCTION public.trg_log_status_change() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    IF (OLD.status IS DISTINCT FROM NEW.status) THEN
-        INSERT INTO public.historico_status_proposta(proposta_id, status_anterior, status_novo)
-        VALUES (NEW.proposta_id, OLD.status::text, NEW.status::text);
-    END IF;
-    NEW.ultima_atualizacao = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$;
-
--- 3. SEQUÊNCIAS
+-- ==========================================
+-- 2. SEQUÊNCIAS
+-- ==========================================
 CREATE SEQUENCE public.bancos_banco_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.comissoes_comissao_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.documentos_proponente_documento_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
@@ -38,7 +28,9 @@ CREATE SEQUENCE public.proponentes_proponente_id_seq START WITH 1 INCREMENT BY 1
 CREATE SEQUENCE public.propostas_proposta_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.tabelas_juros_tabela_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 
--- 4. TABELAS
+-- ==========================================
+-- 3. TABELAS
+-- ==========================================
 CREATE TABLE public.bancos (
     banco_id bigint DEFAULT nextval('public.bancos_banco_id_seq'::regclass) NOT NULL,
     nome_banco character varying(100) NOT NULL,
@@ -146,7 +138,21 @@ CREATE TABLE public.tabelas_juros (
     criado_em timestamp(6) without time zone
 );
 
--- 5. CHAVES PRIMÁRIAS E ÚNICAS (CONSTRAINTS)
+-- ==========================================
+-- 4. VÍNCULOS DE SEQUÊNCIAS (OWNERSHIP)
+-- ==========================================
+ALTER SEQUENCE public.bancos_banco_id_seq OWNED BY public.bancos.banco_id;
+ALTER SEQUENCE public.comissoes_comissao_id_seq OWNED BY public.comissoes.comissao_id;
+ALTER SEQUENCE public.documentos_proponente_documento_id_seq OWNED BY public.documentos_proponente.documento_id;
+ALTER SEQUENCE public.historico_status_proposta_historico_id_seq OWNED BY public.historico_status_proposta.historico_id;
+ALTER SEQUENCE public.interacoes_contato_interacao_id_seq OWNED BY public.interacoes_contato.interacao_id;
+ALTER SEQUENCE public.proponentes_proponente_id_seq OWNED BY public.proponentes.proponente_id;
+ALTER SEQUENCE public.propostas_proposta_id_seq OWNED BY public.propostas.proposta_id;
+ALTER SEQUENCE public.tabelas_juros_tabela_id_seq OWNED BY public.tabelas_juros.tabela_id;
+
+-- ==========================================
+-- 5. CHAVES PRIMÁRIAS E ÚNICAS
+-- ==========================================
 ALTER TABLE ONLY public.bancos ADD CONSTRAINT bancos_pkey PRIMARY KEY (banco_id);
 ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_pkey PRIMARY KEY (comissao_id);
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_pkey PRIMARY KEY (documento_id);
@@ -157,13 +163,17 @@ ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_pkey PRIMARY KEY 
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_pkey PRIMARY KEY (proposta_id);
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_pkey PRIMARY KEY (tabela_id);
 
+-- ==========================================
 -- 6. ÍNDICES
+-- ==========================================
 CREATE INDEX idx_comissoes_status_data ON public.comissoes USING btree (status_pagamento, data_previsao_pagamento);
 CREATE INDEX idx_interacoes_contexto ON public.interacoes_contato USING btree (proponente_id, data_interacao DESC);
 CREATE INDEX idx_proponentes_cpf_ativo ON public.proponentes USING btree (cpf) WHERE (deletado_em IS NULL);
 CREATE INDEX idx_propostas_status_busca ON public.propostas USING btree (status);
 
+-- ==========================================
 -- 7. CHAVES ESTRANGEIRAS (FOREIGN KEYS)
+-- ==========================================
 ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_proposta_id_fkey FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_proposta_id_fkey FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
@@ -173,5 +183,20 @@ ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_proponente_id_fkey FO
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_tabela_id_fkey FOREIGN KEY (tabela_id) REFERENCES public.tabelas_juros(tabela_id);
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_banco_id_fkey FOREIGN KEY (banco_id) REFERENCES public.bancos(banco_id) ON DELETE CASCADE;
 
--- 8. TRIGGERS
+-- ==========================================
+-- 8. FUNÇÕES E TRIGGERS
+-- ==========================================
+CREATE FUNCTION public.trg_log_status_change() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (OLD.status IS DISTINCT FROM NEW.status) THEN
+        INSERT INTO public.historico_status_proposta(proposta_id, status_anterior, status_novo)
+        VALUES (NEW.proposta_id, OLD.status::text, NEW.status::text);
+    END IF;
+    NEW.ultima_atualizacao = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
 CREATE TRIGGER trigger_status_update BEFORE UPDATE ON public.propostas FOR EACH ROW EXECUTE FUNCTION public.trg_log_status_change();
