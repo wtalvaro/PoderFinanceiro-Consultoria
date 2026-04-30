@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+
+<BorderPane prefHeight="768.0" prefWidth="1024.0" xmlns:fx="http://javafx.com/fxml"
+       fx:controller="br.com.poderfinanceiro.app.MainController">
+
+       <top>
+              <HBox alignment="CENTER_LEFT" spacing="20"
+                     style="-fx-background-color: -color-bg-subtle; -fx-padding: 15; -fx-border-color: -color-border-default; -fx-border-width: 0 0 1 0;">
+                     <Label text="Poder Financeiro"
+                            style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;" />
+                     <Region HBox.hgrow="ALWAYS" />
+                     <TextField promptText="Buscar CPF ou Nome..." prefWidth="250" />
+                     <Button text="Perfil" styleClass="accent" />
+              </HBox>
+       </top>
+
+       <left>
+              <VBox spacing="10"
+                     style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-color: -color-border-default; -fx-border-width: 0 1 0 0;"
+                     prefWidth="220">
+                     <Label text="MENU"
+                            style="-fx-text-fill: -color-fg-muted; -fx-font-size: 12px; -fx-font-weight: bold;" />
+                     <Button text="Dashboard" maxWidth="Infinity" alignment="BASELINE_LEFT"
+                            styleClass="flat" />
+                     <Button text="Leads &amp; Clientes" maxWidth="Infinity"
+                            alignment="BASELINE_LEFT" styleClass="flat, accent" />
+                     <Button text="Tabelas de Juros" maxWidth="Infinity" alignment="BASELINE_LEFT"
+                            styleClass="flat" />
+                     <Button text="Comissões" maxWidth="Infinity" alignment="BASELINE_LEFT"
+                            styleClass="flat" />
+                     <Region VBox.vgrow="ALWAYS" />
+                     <Button text="Configurações" maxWidth="Infinity" alignment="BASELINE_LEFT"
+                            styleClass="flat" />
+              </VBox>
+       </left>
+
+       <center>
+              <TabPane tabClosingPolicy="UNAVAILABLE"
+                     style="-fx-background-color: -color-bg-canvas;">
+
+                     <Tab text="Painel de Leads">
+                            <VBox spacing="15" style="-fx-padding: 20;">
+                                   <HBox alignment="CENTER_LEFT" spacing="10">
+                                          <Label text="Clientes Cadastrados" styleClass="title-3" />
+                                          <Region HBox.hgrow="ALWAYS" />
+                                          <Button text="Atualizar Lista" onAction="#atualizarTabela"
+                                                 styleClass="flat" />
+                                   </HBox>
+
+                                   <TableView fx:id="tabelaProponentes" VBox.vgrow="ALWAYS"
+                                          styleClass="striped">
+                                          <columns>
+                                                 <TableColumn text="Nome" prefWidth="250">
+                                                        <cellValueFactory>
+                                                               <PropertyValueFactory
+                                                                      property="nomeCompleto" />
+                                                        </cellValueFactory>
+                                                 </TableColumn>
+                                                 <TableColumn text="CPF" prefWidth="130">
+                                                        <cellValueFactory>
+                                                               <PropertyValueFactory property="cpf" />
+                                                        </cellValueFactory>
+                                                 </TableColumn>
+                                                 <TableColumn text="Órgão/Convênio" prefWidth="150">
+                                                        <cellValueFactory>
+                                                               <PropertyValueFactory
+                                                                      property="convenioOrgao" />
+                                                        </cellValueFactory>
+                                                 </TableColumn>
+                                                 <TableColumn text="Renda" prefWidth="120">
+                                                        <cellValueFactory>
+                                                               <PropertyValueFactory
+                                                                      property="rendaMensal" />
+                                                        </cellValueFactory>
+                                                 </TableColumn>
+                                          </columns>
+                                   </TableView>
+                            </VBox>
+                     </Tab>
+
+                     <Tab text="Novo Lead">
+                            <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;">
+                                   <VBox spacing="20" style="-fx-padding: 40 100 40 100;">
+                                          <Label text="Cadastro de Potencial Cliente"
+                                                 styleClass="title-2" />
+                                          <Separator />
+
+                                          <GridPane hgap="20" vgap="15">
+                                                 <columnConstraints>
+                                                        <ColumnConstraints percentWidth="50" />
+                                                        <ColumnConstraints percentWidth="50" />
+                                                 </columnConstraints>
+
+                                                 <VBox GridPane.columnIndex="0">
+                                                        <Label text="Nome Completo"
+                                                               styleClass="caption" />
+                                                        <TextField fx:id="fldNome"
+                                                               promptText="Ex: Marcos Oliveira" />
+                                                 </VBox>
+                                                 <VBox GridPane.columnIndex="1">
+                                                        <Label text="CPF" styleClass="caption" />
+                                                        <TextField fx:id="fldCpf"
+                                                               promptText="000.000.000-00" />
+                                                 </VBox>
+
+                                                 <VBox GridPane.rowIndex="1"
+                                                        GridPane.columnIndex="0">
+                                                        <Label text="Data de Nascimento"
+                                                               styleClass="caption" />
+                                                        <DatePicker fx:id="fldDataNascimento"
+                                                               maxWidth="Infinity" />
+                                                 </VBox>
+                                                 <VBox GridPane.rowIndex="1"
+                                                        GridPane.columnIndex="1">
+                                                        <Label text="Telefone/WhatsApp"
+                                                               styleClass="caption" />
+                                                        <TextField fx:id="fldTelefone"
+                                                               promptText="(21) 99999-9999" />
+                                                 </VBox>
+
+                                                 <VBox GridPane.rowIndex="2"
+                                                        GridPane.columnIndex="0">
+                                                        <Label text="Renda Mensal (R$)"
+                                                               styleClass="caption" />
+                                                        <TextField fx:id="fldRenda"
+                                                               promptText="5000.00" />
+                                                 </VBox>
+                                                 <VBox GridPane.rowIndex="2"
+                                                        GridPane.columnIndex="1">
+                                                        <Label text="Convênio/Órgão"
+                                                               styleClass="caption" />
+                                                        <ComboBox fx:id="fldConvenio"
+                                                               maxWidth="Infinity"
+                                                               promptText="Selecione..." />
+                                                 </VBox>
+
+                                                 <VBox GridPane.rowIndex="3"
+                                                        GridPane.columnIndex="0">
+                                                        <Label text="Matrícula" styleClass="caption" />
+                                                        <TextField fx:id="fldMatricula" />
+                                                 </VBox>
+                                          </GridPane>
+
+                                          <HBox spacing="10" alignment="CENTER_RIGHT"
+                                                 style="-fx-padding: 20 0 0 0;">
+                                                 <Button text="Limpar Campos"
+                                                        onAction="#limparFormulario"
+                                                        styleClass="flat" />
+                                                 <Button text="Salvar Cliente"
+                                                        onAction="#salvarLead"
+                                                        styleClass="success, large" prefWidth="200" />
+                                          </HBox>
+                                   </VBox>
+                            </ScrollPane>
+                     </Tab>
+              </TabPane>
+       </center>
+</BorderPane>
