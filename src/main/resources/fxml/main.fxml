@@ -4,10 +4,15 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 
+<!-- Alterado: Substituído MAX_VALUE pelo valor numérico real de
+Double.MAX_VALUE -->
 <StackPane fx:id="rootStackPane" xmlns:fx="http://javafx.com/fxml"
+       maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
        fx:controller="br.com.poderfinanceiro.app.controller.MainController">
-       <!-- Sua interface principal -->
-       <BorderPane fx:id="mainContainer">
+
+       <!-- Removido prefHeight e prefWidth fixos. Adicionado prefHeight="-1.0" e prefWidth="-1.0" -->
+       <BorderPane fx:id="mainContainer"
+              style="-fx-background-color: #ffffff;">
 
               <!-- ÁREA SUPERIOR: FIXA NO TOPO -->
               <top>

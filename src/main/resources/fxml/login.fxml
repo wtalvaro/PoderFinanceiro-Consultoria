@@ -4,8 +4,8 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
 
-<StackPane fx:id="rootPane" prefHeight="768.0" prefWidth="1024.0"
-    style="-fx-background-color: white;"
+<!-- Alterado: prefHeight e prefWidth para -1.0 -->
+<StackPane fx:id="rootPane" style="-fx-background-color: white;"
     xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.LoginController">
     <children>

@@ -1,11 +1,9 @@
 package br.com.poderfinanceiro.app;
 
-import javafx.animation.FadeTransition;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
@@ -27,9 +25,12 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
     @Override
     public void onApplicationEvent(StageReadyEvent event) {
         this.stage = event.getStage();
-        // Na primeira vez, carregamos a cena e centralizamos
+
+        // Deixa o JavaFX decidir o tamanho inicial com base no login.fxml
         showScene("/fxml/login.fxml", "Poder Financeiro - Acesso");
-        stage.centerOnScreen(); // Centraliza APENAS na abertura inicial
+
+        // Centraliza apenas na primeira abertura
+        stage.centerOnScreen();
     }
 
     public void showScene(String fxmlPath, String title) {
@@ -40,33 +41,24 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             Parent root = fxmlLoader.load();
 
             if (stage.getScene() == null) {
-                // Se for a primeira cena (Login), criamos a Scene com o tamanho padrão
-                stage.setScene(new Scene(root, 1024, 768));
+                // O JavaFX lerá o prefWidth/Height do FXML automaticamente
+                stage.setScene(new Scene(root));
             } else {
-                // Para trocas (Login -> Cadastro ou Dashboard -> Login), apenas trocamos o
-                // Root.
-                // Isso mantém a janela na mesma posição X e Y atual
                 stage.getScene().setRoot(root);
             }
 
             stage.setTitle(title);
-            aplicarTransicaoSuave(root);
+
+            // DELEGAÇÃO TOTAL: O Java pergunta ao sistema gráfico o espaço necessário
+            stage.sizeToScene();
+
+            // Mantém a janela estável no centro após o redimensionamento automático
+            stage.centerOnScreen();
+
             stage.show();
-
-            // REMOVIDO: stage.centerOnScreen();
-            // Ao remover daqui, a janela não "pula" mais ao trocar de tela
-
         } catch (IOException e) {
             throw new RuntimeException("Erro ao carregar a interface: " + fxmlPath, e);
         }
-    }
-
-    private void aplicarTransicaoSuave(Parent root) {
-        root.setOpacity(0);
-        FadeTransition ft = new FadeTransition(Duration.millis(600), root);
-        ft.setFromValue(0.0);
-        ft.setToValue(1.0);
-        ft.play();
     }
 
     /**
