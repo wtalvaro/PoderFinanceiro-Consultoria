@@ -1,14 +1,20 @@
 package br.com.poderfinanceiro.app.controller;
 
-import org.springframework.stereotype.Component;
+import br.com.poderfinanceiro.app.StageInitializer;
 import javafx.fxml.FXML;
+import org.springframework.stereotype.Component;
 
 @Component
 public class ToolbarController {
 
+    private final StageInitializer stageInitializer;
+
+    public ToolbarController(StageInitializer stageInitializer) {
+        this.stageInitializer = stageInitializer;
+    }
+
     @FXML
-    public void initialize() {
-        // Lógica dos botões da barra de ferramentas (Novo Lead, HISCON, etc.)
-        System.out.println("ToolbarController carregado com sucesso!");
+    private void handleLogout() {
+        stageInitializer.logout(); // Chama a lógica centralizada
     }
 }

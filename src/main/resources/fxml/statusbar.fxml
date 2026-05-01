@@ -15,7 +15,9 @@
         style="-fx-font-size: 11px; -fx-text-fill: -color-warning-emphasis; -fx-font-weight: bold; -fx-cursor: hand;" />
     <Separator orientation="VERTICAL" />
 
-    <Label text="👤 Usuário Logado" style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted;" />
+    <!-- Trecho do seu statusbar.fxml -->
+    <Label fx:id="lblUsuario" text="👤 Usuário Logado"
+        style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted;" />
 
     <Region HBox.hgrow="ALWAYS" />
 

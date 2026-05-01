@@ -22,4 +22,7 @@
     <Region HBox.hgrow="ALWAYS" />
 
     <Button text="⚙️ Parâmetros" styleClass="flat" style="-fx-text-fill: -color-fg-muted;" />
+    <Separator orientation="VERTICAL" />
+    <Button text="🚪 Sair" onAction="#handleLogout" styleClass="flat, danger"
+        style="-fx-text-fill: -color-danger-emphasis; -fx-font-weight: bold;" />
 </ToolBar>

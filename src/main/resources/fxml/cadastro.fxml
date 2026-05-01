@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+
+<StackPane fx:id="rootPane" prefHeight="768.0" prefWidth="1024.0"
+    style="-fx-background-color: white;"
+    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.CadastroController">
+    <children>
+        <!-- Borda removida: mantivemos apenas o padding e o maxWidth -->
+        <VBox alignment="CENTER" maxWidth="450.0" spacing="25.0"
+            style="-fx-background-color: white; -fx-padding: 40;">
+            <children>
+                <VBox alignment="CENTER" spacing="10.0">
+                    <children>
+                        <Label text="👤" style="-fx-font-size: 50;" />
+                        <Label styleClass="title-2" text="Novo Consultor"
+                            style="-fx-font-weight: bold; -fx-font-size: 22;" />
+                        <Text fill="#727272" text="Crie sua conta local no Poder Financeiro" />
+                    </children>
+                </VBox>
+
+                <VBox spacing="12.0">
+                    <children>
+                        <VBox spacing="5.0">
+                            <Label text="Nome Completo" />
+                            <TextField fx:id="txtNome" prefHeight="35.0" />
+                        </VBox>
+                        <VBox spacing="5.0">
+                            <Label text="E-mail" />
+                            <TextField fx:id="txtEmail" prefHeight="35.0" />
+                        </VBox>
+                        <VBox spacing="5.0">
+                            <Label text="Senha (Mínimo 8 caracteres)" />
+                            <PasswordField fx:id="txtSenha" prefHeight="35.0" />
+                        </VBox>
+                        <VBox spacing="5.0">
+                            <Label text="Confirmar Senha" />
+                            <PasswordField fx:id="txtConfirmarSenha" prefHeight="35.0" />
+                        </VBox>
+                    </children>
+                </VBox>
+
+                <VBox alignment="CENTER" spacing="15.0">
+                    <children>
+                        <Button fx:id="btnCadastrar" maxWidth="Infinity" onAction="#handleCadastrar"
+                            prefHeight="40.0" styleClass="accent" text="Finalizar Cadastro" />
+                        <Label fx:id="lblMensagem" styleClass="danger" visible="false"
+                            wrapText="true" />
+                        <Separator prefWidth="200.0" />
+                        <Button onAction="#handleVoltarLogin" styleClass="flat"
+                            text="Já tem conta? Voltar ao Login" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+    </children>
+</StackPane>

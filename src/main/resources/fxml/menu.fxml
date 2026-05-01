@@ -13,7 +13,7 @@
                 <SeparatorMenuItem />
                 <MenuItem text="Sincronizar Matriz de Taxas" />
                 <SeparatorMenuItem />
-                <MenuItem text="Sair" accelerator="Ctrl+Q" />
+                <MenuItem text="Sair" accelerator="Ctrl+Q" onAction="#handleMenuSair" />
             </items>
         </Menu>
         <Menu text="_Operacional">

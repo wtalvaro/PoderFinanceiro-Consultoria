@@ -46,25 +46,34 @@ public class AuthService {
     }
 
     /**
-     * Cria um novo consultor aplicando o Hash BCrypt na senha antes de salvar.[cite: 1]
+     * Cria um novo consultor, aplica BCrypt e já o define como usuário logado na
+     * sessão.
      */
     @Transactional
     public Usuario cadastrar(String nome, String email, String senha) {
+        // 1. Verificação de unicidade de e-mail
         if (usuarioRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Este e-mail já está em uso no Poder Financeiro.");
         }
 
+        // 2. Mapeamento dos dados para a entidade
         Usuario novo = new Usuario();
         novo.setNome(nome);
         novo.setEmail(email);
-        
+
         // Aplica o algoritmo de Hash BCrypt com Salting automático
-        novo.setSenhaHash(passwordEncoder.encode(senha)); 
-        
-        novo.setPapel("CONSULTOR"); // Padrão conforme seu script SQL[cite: 1]
+        novo.setSenhaHash(passwordEncoder.encode(senha));
+
+        novo.setPapel("CONSULTOR"); // Padrão conforme o script SQL do sistema
         novo.setAtivo(true);
 
-        return usuarioRepository.save(novo);
+        // 3. Persistência no PostgreSQL
+        Usuario salvo = usuarioRepository.save(novo);
+
+        // 4. Autenticação Automática: Define a sessão para o novo usuário imediatamente
+        this.usuarioLogado = salvo;
+
+        return salvo;
     }
 
     public void logout() {

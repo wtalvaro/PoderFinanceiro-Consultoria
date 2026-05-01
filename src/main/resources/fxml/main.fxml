@@ -4,42 +4,62 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 
-<BorderPane prefHeight="800.0" prefWidth="1280.0" style="-fx-background-color: -color-bg-canvas;"
-       xmlns:fx="http://javafx.com/fxml"
+<StackPane fx:id="rootStackPane" xmlns:fx="http://javafx.com/fxml"
        fx:controller="br.com.poderfinanceiro.app.controller.MainController">
+       <!-- Sua interface principal -->
+       <BorderPane fx:id="mainContainer">
 
-       <!-- ÁREA SUPERIOR: FIXA NO TOPO -->
-       <top>
-              <VBox>
-                     <fx:include source="menu.fxml" />
-                     <fx:include source="toolbar.fxml" />
+              <!-- ÁREA SUPERIOR: FIXA NO TOPO -->
+              <top>
+                     <VBox>
+                            <fx:include source="menu.fxml" />
+                            <fx:include source="toolbar.fxml" />
+                     </VBox>
+              </top>
+
+              <!-- SIDEBAR LEFT: MAIS LIMPA SEM O BOTÃO DE CONFIGURAÇÕES -->
+              <left>
+                     <fx:include source="panel.fxml" />
+              </left>
+
+              <!-- MAIN CONTENT: MINHEIGHT=0 É CRÍTICO AQUI -->
+              <center>
+                     <TabPane tabClosingPolicy="UNAVAILABLE" styleClass="classic" minHeight="0">
+
+                            <!-- ABA 1: DASHBOARD -->
+                            <Tab text="Painel de Controle">
+                                   <fx:include source="dashboard.fxml" />
+                            </Tab>
+
+                            <!-- ABA 2: ORIGINAÇÃO E SIMULADOR -->
+                            <Tab text="Originação / Simulador">
+                                   <fx:include source="simulator.fxml" />
+                            </Tab>
+
+                     </TabPane>
+              </center>
+
+              <!-- STATUS BAR OTIMIZADA E BLINDADA -->
+              <bottom>
+                     <fx:include source="statusbar.fxml" />
+              </bottom>
+       </BorderPane>
+
+       <!-- Camada de Overlay (Invisível por padrão) -->
+       <VBox fx:id="overlaySair" alignment="CENTER" spacing="20" visible="false"
+              style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
+              <VBox alignment="CENTER" spacing="20" maxWidth="400"
+                     style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10;">
+                     <Label text="🚪 Encerrar Sessão"
+                            style="-fx-font-size: 20px; -fx-font-weight: bold;" />
+                     <Label
+                            text="Deseja realmente sair do sistema? Alterações não salvas serão perdidas."
+                            wrapText="true" textAlignment="CENTER" />
+                     <HBox spacing="15" alignment="CENTER">
+                            <Button text="Cancelar" onAction="#cancelarLogout" styleClass="flat" />
+                            <Button text="Sair Agora" onAction="#confirmarLogout"
+                                   styleClass="danger" />
+                     </HBox>
               </VBox>
-       </top>
-
-       <!-- SIDEBAR LEFT: MAIS LIMPA SEM O BOTÃO DE CONFIGURAÇÕES -->
-       <left>
-              <fx:include source="panel.fxml" />
-       </left>
-
-       <!-- MAIN CONTENT: MINHEIGHT=0 É CRÍTICO AQUI -->
-       <center>
-              <TabPane tabClosingPolicy="UNAVAILABLE" styleClass="classic" minHeight="0">
-
-                     <!-- ABA 1: DASHBOARD -->
-                     <Tab text="Painel de Controle">
-                            <fx:include source="dashboard.fxml" />
-                     </Tab>
-
-                     <!-- ABA 2: ORIGINAÇÃO E SIMULADOR -->
-                     <Tab text="Originação / Simulador">
-                            <fx:include source="simulator.fxml" />
-                     </Tab>
-
-              </TabPane>
-       </center>
-
-       <!-- STATUS BAR OTIMIZADA E BLINDADA -->
-       <bottom>
-              <fx:include source="statusbar.fxml" />
-       </bottom>
-</BorderPane>
+       </VBox>
+</StackPane>

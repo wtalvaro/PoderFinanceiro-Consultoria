@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+
+<StackPane fx:id="rootPane" prefHeight="768.0" prefWidth="1024.0"
+    style="-fx-background-color: white;"
+    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.LoginController">
+    <children>
+        <VBox alignment="CENTER" maxWidth="400.0" spacing="30.0"
+            style="-fx-background-color: white; -fx-padding: 40;">
+            <children>
+                <VBox alignment="CENTER" spacing="10.0">
+                    <children>
+                        <!-- Emoji no lugar do ícone -->
+                        <Label text="🏦" style="-fx-font-size: 60;" />
+                        <Label styleClass="title-2" text="Poder Financeiro"
+                            style="-fx-font-weight: bold; -fx-font-size: 24;" />
+                        <Text fill="#727272"
+                            text="Entre com suas credenciais para acessar a consultoria" />
+                    </children>
+                </VBox>
+
+                <VBox spacing="15.0">
+                    <children>
+                        <VBox spacing="5.0">
+                            <Label text="E-mail" />
+                            <TextField fx:id="txtEmail" prefHeight="40.0"
+                                promptText="consultor@poderfinanceiro.com.br" />
+                        </VBox>
+                        <VBox spacing="5.0">
+                            <Label text="Senha" />
+                            <PasswordField fx:id="txtSenha" prefHeight="40.0"
+                                promptText="sua senha segura" />
+                        </VBox>
+                    </children>
+                </VBox>
+
+                <VBox alignment="CENTER" spacing="20.0">
+                    <children>
+                        <Button fx:id="btnLogin" defaultButton="true" maxWidth="Infinity"
+                            onAction="#handleLogin" prefHeight="45.0" styleClass="accent"
+                            text="Acessar Sistema">
+                            <graphic>
+                                <ProgressIndicator fx:id="progress" maxHeight="20.0" maxWidth="20.0"
+                                    visible="false" />
+                            </graphic>
+                        </Button>
+                        <Label fx:id="lblMensagem" styleClass="danger" text="" visible="false" />
+                        <Separator prefWidth="200.0" />
+                        <Button onAction="#handleIrParaCadastro" styleClass="flat"
+                            text="Ainda não tem conta? Cadastre-se" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+    </children>
+</StackPane>
