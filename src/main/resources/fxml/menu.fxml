@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<MenuBar xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.MenuController">
+    <menus>
+        <Menu text="_Arquivo">
+            <items>
+                <MenuItem text="Novo Cliente (Lead)..." accelerator="Ctrl+N" />
+                <MenuItem text="Nova Simulação..." accelerator="Ctrl+S" />
+                <SeparatorMenuItem />
+                <MenuItem text="Sincronizar Matriz de Taxas" />
+                <SeparatorMenuItem />
+                <MenuItem text="Sair" accelerator="Ctrl+Q" />
+            </items>
+        </Menu>
+        <Menu text="_Operacional">
+            <items>
+                <MenuItem text="Consultar HISCON (INSS)" />
+                <MenuItem text="Cálculo de Portabilidade (DCC)" />
+                <MenuItem text="Esteira de Digitação (Bancos)" />
+            </items>
+        </Menu>
+        <Menu text="_Financeiro">
+            <items>
+                <MenuItem text="Controle de Comissões (RV)" />
+                <MenuItem text="Repasses a Parceiros" />
+            </items>
+        </Menu>
+        <Menu text="Siste_ma">
+            <items>
+                <MenuItem text="Configurações Gerais..." />
+                <MenuItem text="Gerenciar Usuários" />
+                <SeparatorMenuItem />
+                <MenuItem text="Backup do Banco de Dados" />
+            </items>
+        </Menu>
+    </menus>
+</MenuBar>

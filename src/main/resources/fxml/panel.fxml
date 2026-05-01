@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ScrollPane fitToWidth="true" fitToHeight="true"
+    style="-fx-background-color: transparent;"
+    styleClass="edge-to-edge" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+    minHeight="0"
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.PanelController">
+
+    <VBox spacing="10" prefWidth="250"
+        style="-fx-background-color: -color-bg-default; -fx-padding: 15 10; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;">
+
+        <VBox spacing="5"
+            style="-fx-padding: 0 0 10 0; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+            <Label text="BUSCA RÁPIDA"
+                style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+            <TextField promptText="CPF, Nome ou ADE..."
+                style="-fx-font-size: 13px;" />
+        </VBox>
+
+        <Label text="ESTEIRA DE CRÉDITO"
+            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 10 0 0 5;" />
+        <Button text="📊 Dashboard" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat, accent" />
+        <Button text="👥 Base de Clientes" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat" />
+        <Button text="📄 Propostas (Digitadas)" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat" />
+        <Button text="⏳ Pendências / Exigências" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat"
+            style="-fx-text-fill: -color-danger-fg;" />
+
+        <Label text="PARAMETRIZAÇÃO"
+            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
+        <Button text="🏦 Bancos e Convênios" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat" />
+        <Button text="📈 Tabelas de Juros" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat" />
+        <Button text="💰 Tabela de Comissões" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat" />
+
+        <Region VBox.vgrow="ALWAYS" />
+    </VBox>
+</ScrollPane>

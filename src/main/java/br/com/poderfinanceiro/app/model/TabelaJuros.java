@@ -1,20 +1,18 @@
 package br.com.poderfinanceiro.app.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tabelas_juros")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class TabelaJuros {
 
     @Id
@@ -33,22 +31,25 @@ public class TabelaJuros {
     private BigDecimal taxaMensal;
 
     @Column(name = "idade_minima")
-    private Integer idadeMinima;
+    private Integer idadeMinima = 18; // Alinhado com o DEFAULT do banco
 
     @Column(name = "idade_maxima")
-    private Integer idadeMaxima;
+    private Integer idadeMaxima = 100;
 
     @Column(name = "renda_minima", precision = 12, scale = 2)
-    private BigDecimal rendaMinima;
+    private BigDecimal rendaMinima = BigDecimal.ZERO;
 
     @Column(name = "prazo_maximo")
-    private Integer prazoMaximo;
+    private Integer prazoMaximo = 96;
 
-    @Builder.Default
-    @Column(name = "ativo")
+    @Column(nullable = false)
     private Boolean ativo = true;
 
-    @Builder.Default
     @Column(name = "criado_em", updatable = false)
-    private LocalDateTime criadoEm = LocalDateTime.now();
+    private LocalDateTime criadoEm;
+
+    @PrePersist
+    protected void onCreate() {
+        this.criadoEm = LocalDateTime.now();
+    }
 }

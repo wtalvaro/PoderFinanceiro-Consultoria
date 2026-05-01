@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ToolBar
+    style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;"
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.ToolbarController">
+
+    <Button text="➕ Novo Lead" styleClass="flat" />
+    <Button text="📄 Nova Operação" styleClass="flat" />
+    <Separator />
+    <Button text="📥 Baixar HISCON" styleClass="flat, accent" />
+    <Button text="🖩 Calc. Portabilidade" styleClass="flat" />
+    <Button text="🖩 Calc. Price" styleClass="flat" />
+    <Separator />
+    <Button text="🖨️ Gerar CCB" styleClass="flat" />
+    <Button text="📎 Upload Docs" styleClass="flat" />
+
+    <!-- ESPAÇADOR -->
+    <Region HBox.hgrow="ALWAYS" />
+
+    <Button text="⚙️ Parâmetros" styleClass="flat" style="-fx-text-fill: -color-fg-muted;" />
+</ToolBar>

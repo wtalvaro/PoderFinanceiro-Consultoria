@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+
+<!-- ADICIONADOS OS NAMESPACES ABAIXO E O CONTROLLER -->
+<VBox spacing="20" style="-fx-padding: 30;" minHeight="0"
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.DashboardController">
+
+    <HBox spacing="20">
+        <VBox HBox.hgrow="ALWAYS"
+            style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
+            <Label text="Aguardando Digitação"
+                styleClass="text-muted" />
+            <Label text="18" styleClass="title-2"
+                style="-fx-text-fill: -color-warning-emphasis;" />
+        </VBox>
+        <VBox HBox.hgrow="ALWAYS"
+            style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
+            <Label text="Produção (Aprovadas)"
+                styleClass="text-muted" />
+            <Label text="R$ 215.300,00" styleClass="title-2"
+                style="-fx-text-fill: -color-success-emphasis;" />
+        </VBox>
+        <VBox HBox.hgrow="ALWAYS"
+            style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
+            <Label text="Previsão de Receita"
+                styleClass="text-muted" />
+            <Label text="R$ 18.420,00" styleClass="title-2"
+                style="-fx-text-fill: -color-accent-emphasis;" />
+        </VBox>
+    </HBox>
+
+    <VBox VBox.vgrow="ALWAYS"
+        style="-fx-background-color: -color-bg-default; -fx-border-radius: 8; -fx-border-color: -color-border-muted;"
+        minHeight="0">
+        <HBox alignment="CENTER_LEFT" spacing="15"
+            style="-fx-padding: 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+            <Label text="Monitor de Esteira"
+                styleClass="title-4" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Button text="Atualizar Tabela" styleClass="flat" />
+        </HBox>
+        <TableView fx:id="tabelaPropostas" VBox.vgrow="ALWAYS"
+            styleClass="striped, bordered"
+            style="-fx-background-insets: 0;" minHeight="50">
+            <columns>
+                <TableColumn text="ADE/Proposta"
+                    prefWidth="120" />
+                <TableColumn text="Cliente" prefWidth="250" />
+                <TableColumn text="Convênio" prefWidth="100" />
+                <TableColumn text="Banco" prefWidth="120" />
+                <TableColumn text="Operação" prefWidth="120" />
+                <TableColumn text="Valor (R$)"
+                    prefWidth="100" />
+                <TableColumn text="Status" prefWidth="120" />
+            </columns>
+        </TableView>
+    </VBox>
+</VBox>

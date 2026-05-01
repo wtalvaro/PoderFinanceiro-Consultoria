@@ -5,18 +5,25 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BancoRepository extends JpaRepository<Banco, Long> {
 
     /**
-     * Retorna todos os bancos que estão marcados como ativos.
-     * Útil para exibir no formulário da Solange.
+     * Retorna todos os bancos que estão ativos, ideal para popular comboboxes no
+     * FXML.
+     */
+    List<Banco> findByAtivoTrue();
+
+    /**
+     * Retorna todos os bancos ativos, ordenados por nome para facilitar a busca do
+     * usuário.
      */
     List<Banco> findByAtivoTrueOrderByNomeBancoAsc();
 
     /**
-     * Busca um banco pelo nome exato (Ex: 'Real Grandeza').
+     * Busca um banco específico pelo nome (ignorando maiúsculas e minúsculas).
      */
-    Banco findByNomeBancoIgnoreCase(String nomeBanco);
+    Optional<Banco> findByNomeBancoIgnoreCase(String nomeBanco);
 }

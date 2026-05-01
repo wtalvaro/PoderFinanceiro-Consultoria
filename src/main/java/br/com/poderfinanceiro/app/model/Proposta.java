@@ -1,21 +1,18 @@
 package br.com.poderfinanceiro.app.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-
+import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "propostas")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Proposta {
 
     @Id
@@ -23,7 +20,6 @@ public class Proposta {
     @Column(name = "proposta_id")
     private Long id;
 
-    // Relacionamentos Fortes (Chaves Estrangeiras)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proponente_id", nullable = false)
     private Proponente proponente;
@@ -33,35 +29,30 @@ public class Proposta {
     private Banco banco;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tabela_id")
-    private TabelaJuros tabela;
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario; // Consultor responsável
 
-    // Dados da Operação
     @Column(name = "valor_solicitado", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorSolicitado;
 
     @Column(name = "valor_aprovado", precision = 12, scale = 2)
     private BigDecimal valorAprovado;
 
-    @Column(name = "quantidade_parcelas", nullable = false)
+    @Column(name = "taxa_aplicada", precision = 5, scale = 2)
+    private BigDecimal taxaAplicada;
+
+    @Column(name = "quantidade_parcelas")
     private Integer quantidadeParcelas;
+
+    @Column(columnDefinition = "status_proposta")
+    private String status = "Lead"; // Alinhado com o DEFAULT do banco
+
+    @Column(precision = 10, scale = 6)
+    private BigDecimal coeficiente;
 
     @Column(name = "valor_parcela", precision = 12, scale = 2)
     private BigDecimal valorParcela;
 
-    @Column(name = "taxa_aplicada", precision = 5, scale = 2)
-    private BigDecimal taxaAplicada;
-
-    @Column(name = "coeficiente", precision = 10, scale = 6)
-    private BigDecimal coeficiente;
-
-    // Status mapeado como String para bater com o Enum do PostgreSQL
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private StatusProposta status = StatusProposta.Lead;
-
-    @Builder.Default
     @Column(name = "modalidade_juros", length = 20)
     private String modalidadeJuros = "Prefixado";
 
@@ -71,30 +62,35 @@ public class Proposta {
     @Column(name = "margem_utilizada", precision = 12, scale = 2)
     private BigDecimal margemUtilizada;
 
-    @Builder.Default
     @Column(name = "eh_novacao")
     private Boolean ehNovacao = false;
 
-    @Builder.Default
     @Column(name = "saldo_quitacao_anterior", precision = 12, scale = 2)
     private BigDecimal saldoQuitacaoAnterior = BigDecimal.ZERO;
 
-    @Builder.Default
-    @Column(name = "valor_iof", precision = 12, scale = 2)
-    private BigDecimal valorIof = BigDecimal.ZERO;
+    @Column(name = "data_solicitacao")
+    private LocalDate dataSolicitacao;
 
-    @Builder.Default
-    @Column(name = "taxa_administracao", precision = 12, scale = 2)
-    private BigDecimal taxaAdministracao = BigDecimal.ZERO;
-
-    @Column(name = "observacoes", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String observacoes;
 
-    @Builder.Default
-    @Column(name = "data_solicitacao")
-    private LocalDate dataSolicitacao = LocalDate.now();
+    @Column(name = "ultima_atualizacao")
+    private LocalDateTime ultimaAtualizacao;
 
-    @Builder.Default
-    @Column(name = "ultima_atualizacao", updatable = false)
-    private LocalDateTime ultimaAtualizacao = LocalDateTime.now();
+    @Column(name = "tabela_id")
+    private Integer tabelaId;
+
+    @Column(name = "usuario_atualizacao_id")
+    private Long usuarioAtualizacaoId; // Para controle da trigger de histórico
+
+    @PrePersist
+    protected void onCreate() {
+        this.dataSolicitacao = LocalDate.now();
+        this.ultimaAtualizacao = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.ultimaAtualizacao = LocalDateTime.now();
+    }
 }

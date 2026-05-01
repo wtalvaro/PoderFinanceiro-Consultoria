@@ -1,21 +1,18 @@
 package br.com.poderfinanceiro.app.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "bancos")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Banco {
 
     @Id
@@ -44,23 +41,20 @@ public class Banco {
     @Column(name = "link_portal_banco", columnDefinition = "TEXT")
     private String linkPortalBanco;
 
-    @Builder.Default
     @Column(name = "sistema_amortizacao", length = 50)
     private String sistemaAmortizacao = "Price";
 
-    @Builder.Default
     @Column(name = "permite_pos_fixado")
     private Boolean permitePosFixado = false;
 
-    @Builder.Default
-    @Column(name = "ativo")
+    @Column(nullable = false)
     private Boolean ativo = true;
 
-    @Builder.Default
     @Column(name = "criado_em", updatable = false)
-    private LocalDateTime criadoEm = LocalDateTime.now();
+    private LocalDateTime criadoEm;
 
-    // Relacionamento inverso (opcional, ajuda na navegação do objeto)
-    @OneToMany(mappedBy = "banco", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<TabelaJuros> tabelasJuros;
+    @PrePersist
+    protected void onCreate() {
+        this.criadoEm = LocalDateTime.now();
+    }
 }
