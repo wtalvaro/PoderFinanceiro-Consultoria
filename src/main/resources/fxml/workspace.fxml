@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<TabPane tabClosingPolicy="UNAVAILABLE" styleClass="classic" minHeight="0"
+    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+
+    <!-- ABA 1: DASHBOARD -->
+    <Tab text="Painel de Controle">
+        <fx:include source="dashboard.fxml" />
+    </Tab>
+
+    <!-- ABA 2: ORIGINAÇÃO E SIMULADOR -->
+    <Tab text="Originação / Simulador">
+        <fx:include source="simulator.fxml" />
+    </Tab>
+
+</TabPane>

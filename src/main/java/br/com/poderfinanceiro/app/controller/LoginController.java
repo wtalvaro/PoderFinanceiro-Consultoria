@@ -1,6 +1,5 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.StageInitializer;
 import br.com.poderfinanceiro.app.service.AuthService;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -11,7 +10,9 @@ import org.springframework.stereotype.Component;
 public class LoginController {
 
     private final AuthService authService;
-    private final StageInitializer stageInitializer;
+    private final MainController mainController;
+    // 1. Adicionado o StatusBarController aqui
+    private final StatusBarController statusBarController;
 
     @FXML
     private TextField txtEmail;
@@ -24,14 +25,16 @@ public class LoginController {
     @FXML
     private Label lblMensagem;
 
-    public LoginController(AuthService authService, StageInitializer stageInitializer) {
+    // 2. Injetado no construtor
+    public LoginController(AuthService authService, MainController mainController,
+            StatusBarController statusBarController) {
         this.authService = authService;
-        this.stageInitializer = stageInitializer;
+        this.mainController = mainController;
+        this.statusBarController = statusBarController; // Inicializou!
     }
 
     @FXML
     public void initialize() {
-        // Garante que a mensagem de erro comece escondida
         lblMensagem.setVisible(false);
     }
 
@@ -45,23 +48,22 @@ public class LoginController {
             return;
         }
 
-        // Inicia o estado de carregamento (Loading State)
         setLoading(true);
 
-        // Task para evitar que a UI trave durante a consulta ao Postgres
         Task<Boolean> loginTask = new Task<>() {
             @Override
             protected Boolean call() throws Exception {
-                // Simulação opcional de delay de 1s para o usuário perceber o loading
-                // Thread.sleep(1000);
                 return authService.login(email, senha);
             }
         };
 
         loginTask.setOnSucceeded(event -> {
             if (loginTask.getValue()) {
-                // Redireciona para a cena principal se o login for sucesso
-                stageInitializer.showScene("/fxml/main.fxml", "Poder Financeiro - Consultoria");
+                // 3. O SEGREDO ESTÁ AQUI: Atualiza a barra ANTES de mostrar a tela
+                statusBarController.atualizarStatusUsuario();
+
+                // Redireciona para a cena principal
+                mainController.navegarPara("/fxml/workspace.fxml", true);
             } else {
                 setLoading(false);
                 exibirErro("E-mail ou senha incorretos.");
@@ -79,8 +81,7 @@ public class LoginController {
 
     @FXML
     private void handleIrParaCadastro() {
-        // Redireciona para a tela de cadastro (implementaremos a seguir)
-        stageInitializer.showScene("/fxml/cadastro.fxml", "Poder Financeiro - Novo Cadastro");
+        mainController.navegarPara("/fxml/cadastro.fxml", false);
     }
 
     private void setLoading(boolean loading) {

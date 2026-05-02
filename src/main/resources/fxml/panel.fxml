@@ -2,7 +2,9 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
+<!-- 1. Adicionado maxHeight aqui na raiz para o painel descer até o rodapé -->
 <ScrollPane fitToWidth="true" fitToHeight="true"
+    maxHeight="1.7976931348623157E308"
     style="-fx-background-color: transparent;"
     styleClass="edge-to-edge" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
     minHeight="0"
@@ -10,7 +12,8 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.PanelController">
 
-    <VBox spacing="10" prefWidth="250"
+    <!-- 2. Adicionado maxHeight no VBox interno também por garantia -->
+    <VBox spacing="10" prefWidth="250" maxHeight="1.7976931348623157E308"
         style="-fx-background-color: -color-bg-default; -fx-padding: 15 10; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;">
 
         <VBox spacing="5"
@@ -42,6 +45,7 @@
         <Button text="💰 Tabela de Comissões" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
 
+        <!-- Esse Region já está correto! Ele joga o menu para cima e preenche o vazio embaixo -->
         <Region VBox.vgrow="ALWAYS" />
     </VBox>
 </ScrollPane>

@@ -2,55 +2,46 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
 
-<!-- Alterado: Substituído MAX_VALUE pelo valor numérico real de
-Double.MAX_VALUE -->
 <StackPane fx:id="rootStackPane" xmlns:fx="http://javafx.com/fxml"
        maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
        fx:controller="br.com.poderfinanceiro.app.controller.MainController">
 
-       <!-- Removido prefHeight e prefWidth fixos. Adicionado prefHeight="-1.0" e prefWidth="-1.0" -->
-       <BorderPane fx:id="mainContainer"
-              style="-fx-background-color: #ffffff;">
+       <BorderPane fx:id="mainContainer" style="-fx-background-color: #ffffff;">
 
-              <!-- ÁREA SUPERIOR: FIXA NO TOPO -->
+              <!-- ÁREA SUPERIOR (com fx:id para controle) -->
               <top>
-                     <VBox>
+                     <VBox fx:id="topBar">
                             <fx:include source="menu.fxml" />
                             <fx:include source="toolbar.fxml" />
                      </VBox>
               </top>
 
-              <!-- SIDEBAR LEFT: MAIS LIMPA SEM O BOTÃO DE CONFIGURAÇÕES -->
+              <!-- SIDEBAR LEFT -->
               <left>
-                     <fx:include source="panel.fxml" />
+                     <!-- Adicionado maxHeight para garantir que a área da esquerda ocupe tudo -->
+                     <VBox fx:id="sideBar" maxHeight="1.7976931348623157E308">
+                            <!-- VBox.vgrow="ALWAYS" empurra o painel até o rodapé -->
+                            <fx:include source="panel.fxml" VBox.vgrow="ALWAYS" />
+                     </VBox>
               </left>
 
-              <!-- MAIN CONTENT: MINHEIGHT=0 É CRÍTICO AQUI -->
+              <!-- MAIN CONTENT: A ÁREA DE INJEÇÃO VAZIA -->
               <center>
-                     <TabPane tabClosingPolicy="UNAVAILABLE" styleClass="classic" minHeight="0">
-
-                            <!-- ABA 1: DASHBOARD -->
-                            <Tab text="Painel de Controle">
-                                   <fx:include source="dashboard.fxml" />
-                            </Tab>
-
-                            <!-- ABA 2: ORIGINAÇÃO E SIMULADOR -->
-                            <Tab text="Originação / Simulador">
-                                   <fx:include source="simulator.fxml" />
-                            </Tab>
-
-                     </TabPane>
+                     <StackPane fx:id="contentArea" minHeight="0" />
               </center>
 
-              <!-- STATUS BAR OTIMIZADA E BLINDADA -->
+              <!-- STATUS BAR -->
               <bottom>
-                     <fx:include source="statusbar.fxml" />
+                     <!-- Trocado de HBox para StackPane. O StackPane obriga o filho a preencher
+                     100% da largura -->
+                     <StackPane fx:id="bottomBar" maxWidth="1.7976931348623157E308">
+                            <fx:include source="statusbar.fxml" />
+                     </StackPane>
               </bottom>
        </BorderPane>
 
-       <!-- Camada de Overlay (Invisível por padrão) -->
+       <!-- Camada de Overlay (Permanece igual) -->
        <VBox fx:id="overlaySair" alignment="CENTER" spacing="20" visible="false"
               style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
               <VBox alignment="CENTER" spacing="20" maxWidth="400"

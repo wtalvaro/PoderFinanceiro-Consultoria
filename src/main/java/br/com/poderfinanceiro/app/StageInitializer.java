@@ -7,10 +7,8 @@ import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
-
 import br.com.poderfinanceiro.app.controller.MainController;
 import java.io.IOException;
-import java.net.URL;
 
 @Component
 public class StageInitializer implements ApplicationListener<StageReadyEvent> {
@@ -26,48 +24,28 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
     public void onApplicationEvent(StageReadyEvent event) {
         this.stage = event.getStage();
 
-        // Deixa o JavaFX decidir o tamanho inicial com base no login.fxml
-        showScene("/fxml/login.fxml", "Poder Financeiro - Acesso");
-
-        // Centraliza apenas na primeira abertura
-        stage.centerOnScreen();
-    }
-
-    public void showScene(String fxmlPath, String title) {
         try {
-            URL fxmlUrl = getClass().getResource(fxmlPath);
-            FXMLLoader fxmlLoader = new FXMLLoader(fxmlUrl);
-            fxmlLoader.setControllerFactory(applicationContext::getBean);
-            Parent root = fxmlLoader.load();
+            // 1. Carrega o CONTAINER MESTRE apenas uma vez na vida do App
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main.fxml"));
+            loader.setControllerFactory(applicationContext::getBean);
+            Parent root = loader.load();
 
-            if (stage.getScene() == null) {
-                // O JavaFX lerá o prefWidth/Height do FXML automaticamente
-                stage.setScene(new Scene(root));
-            } else {
-                stage.getScene().setRoot(root);
-            }
-
-            stage.setTitle(title);
-
-            // DELEGAÇÃO TOTAL: O Java pergunta ao sistema gráfico o espaço necessário
-            stage.sizeToScene();
-
-            // Mantém a janela estável no centro após o redimensionamento automático
+            // 2. Trava a geometria da janela para o KDE/Wayland ficar estável (1280x800)
+            stage.setScene(new Scene(root, 1280, 800));
+            stage.setTitle("Poder Financeiro - Consultoria");
+            stage.show();
             stage.centerOnScreen();
 
-            stage.show();
+            // 3. Pede ao MainController para injetar o Login e Ocultar a Sidebar
+            MainController mainController = applicationContext.getBean(MainController.class);
+            mainController.navegarPara("/fxml/login.fxml", false);
+
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao carregar a interface: " + fxmlPath, e);
+            throw new RuntimeException("Falha catastrófica ao inicializar o layout mestre.", e);
         }
     }
 
-    /**
-     * Método centralizado de saída do sistema.
-     * Pode ser chamado por qualquer Controller.
-     */
     public void logout() {
-        // Em vez de Alert, buscamos o Controller da Main para mostrar o Overlay
-        // Isso garante que NENHUMA nova janela seja criada no Fedora
         MainController mainController = applicationContext.getBean(MainController.class);
         mainController.mostrarOverlaySair();
     }

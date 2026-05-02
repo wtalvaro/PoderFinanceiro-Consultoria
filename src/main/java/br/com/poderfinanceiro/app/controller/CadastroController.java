@@ -1,6 +1,5 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.StageInitializer;
 import br.com.poderfinanceiro.app.service.AuthService;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -12,7 +11,7 @@ import org.springframework.stereotype.Component;
 public class CadastroController {
 
     private final AuthService authService;
-    private final StageInitializer stageInitializer;
+    private final MainController mainController;
 
     @FXML
     private TextField txtNome;
@@ -27,9 +26,9 @@ public class CadastroController {
     @FXML
     private Button btnCadastrar;
 
-    public CadastroController(AuthService authService, StageInitializer stageInitializer) {
-        this.authService = authService;
-        this.stageInitializer = stageInitializer;
+    public CadastroController(AuthService authService, MainController mainController) {
+        this.authService = authService; // Inicializou!
+        this.mainController = mainController; // Inicializou!
     }
 
     @FXML
@@ -56,7 +55,7 @@ public class CadastroController {
         cadastroTask.setOnSucceeded(e -> {
             // Como o cadastro no AuthService já seta o 'usuarioLogado',
             // podemos ir direto para a tela principal
-            stageInitializer.showScene("/fxml/main.fxml", "Poder Financeiro - Consultoria");
+            mainController.navegarPara("/fxml/login.fxml", false);
         });
 
         cadastroTask.setOnFailed(e -> {
@@ -71,7 +70,7 @@ public class CadastroController {
 
     @FXML
     private void handleVoltarLogin() {
-        stageInitializer.showScene("/fxml/login.fxml", "Poder Financeiro - Acesso");
+        mainController.navegarPara("/fxml/login.fxml", false);
     }
 
     private boolean validarEntradas() {
