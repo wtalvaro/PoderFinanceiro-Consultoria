@@ -3,214 +3,409 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<ScrollPane fitToWidth="true" fitToHeight="true"
-    style="-fx-background-color: transparent;" styleClass="edge-to-edge"
-    xmlns="http://javafx.com/javafx/21"
-    xmlns:fx="http://javafx.com/fxml/1"
+<!-- O Root agora é um StackPane para permitir a sobreposição do
+Overlay -->
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.LeadController">
+    <BorderPane style="-fx-background-color: #f4f4f4;">
 
-    <VBox spacing="20" style="-fx-background-color: #ffffff; -fx-padding: 30;">
+        <!-- TOPO FIXO -->
+        <top>
+            <ToolBar
+                style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+                <items>
+                    <Button onAction="#abrirWhatsappRapido" text="💬" styleClass="flat"
+                        style="-fx-font-weight: bold;"
+                        prefWidth="45" prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Abrir Conversa no WhatsApp" />
+                        </tooltip>
+                    </Button>
 
-        <!-- Cabeçalho Dinâmico -->
-        <VBox spacing="5">
-            <Label fx:id="lblTituloTela" text="Cadastrar Novo Contato"
-                style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
-            <Label
-                text="Preencha o que tiver disponível. Conforme a conversa evoluir, você pode voltar e editar."
-                style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;" />
-        </VBox>
+                    <Button onAction="#verDocumentosNecessarios" text="📄" styleClass="flat"
+                        style="-fx-font-weight: bold;"
+                        prefWidth="45" prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Checklist de Documentação" />
+                        </tooltip>
+                    </Button>
 
-        <Label fx:id="lblMensagem" visible="false" managed="false" wrapText="true" />
+                    <Button onAction="#copiarResumoLead" text="📋" styleClass="flat"
+                        style="-fx-font-weight: bold;" prefWidth="45"
+                        prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Copiar Resumo para Área de Transferência" />
+                        </tooltip>
+                    </Button>
 
-        <!-- SEÇÃO 1: O Quebra-Gelo -->
-        <Label text="1. Contato Inicial (Obrigatório)"
-            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
-        <Separator />
+                    <Button onAction="#abrirCentralMensagens" text="📢" styleClass="flat"
+                        style="-fx-padding: 0; -fx-font-size: 18px;"
+                        prefWidth="45" prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Textos Padrão de Atendimento" />
+                        </tooltip>
+                    </Button>
 
-        <GridPane hgap="15" vgap="15">
-            <columnConstraints>
-                <ColumnConstraints minWidth="130" />
-                <ColumnConstraints hgrow="ALWAYS" minWidth="200" maxWidth="400" />
-            </columnConstraints>
+                    <Pane HBox.hgrow="ALWAYS" /> <!-- Empurra as ações principais para a direita -->
 
-            <Label text="Nome Completo: *" GridPane.columnIndex="0" GridPane.rowIndex="0"
-                style="-fx-font-weight: bold;" />
-            <TextField fx:id="txtNome" promptText="Ex: João da Silva" GridPane.columnIndex="1"
-                GridPane.rowIndex="0" />
+                    <!-- Ações de Fechamento (Mantendo o destaque no Salvar) -->
+                    <Button fx:id="btnSalvarTopo" text="💾" onAction="#handleSalvar"
+                        styleClass="accent"
+                        style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;"
+                        prefWidth="45" prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Salvar Informações" />
+                        </tooltip>
+                    </Button>
+                </items>
+            </ToolBar>
+        </top>
 
-            <Label text="CPF: *" GridPane.columnIndex="0" GridPane.rowIndex="1"
-                style="-fx-font-weight: bold;" />
-            <TextField fx:id="txtCpf" promptText="000.000.000-00" GridPane.columnIndex="1"
-                GridPane.rowIndex="1" />
+        <!-- CONTEÚDO ROLÁVEL -->
+        <center>
+            <ScrollPane fx:id="scrollPrincipal" fitToWidth="true" fitToHeight="true"
+                style="-fx-background-color: transparent;" styleClass="edge-to-edge">
+                <content>
+                    <VBox spacing="20" style="-fx-background-color: #ffffff; -fx-padding: 30;">
 
-            <Label text="WhatsApp:" GridPane.columnIndex="0" GridPane.rowIndex="2"
-                style="-fx-font-weight: bold;" />
-            <TextField fx:id="txtTelefone" promptText="(00) 00000-0000" GridPane.columnIndex="1"
-                GridPane.rowIndex="2" />
+                        <!-- Cabeçalho Dinâmico -->
+                        <VBox spacing="5">
+                            <Label fx:id="lblTituloTela" text="Cadastrar Novo Contato"
+                                style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                            <Label
+                                text="Preencha o que tiver disponível. Conforme a conversa evoluir, você pode voltar e editar."
+                                style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;" />
+                        </VBox>
 
-            <Label text="Origem:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
-            <ComboBox fx:id="cbOrigem" promptText="Onde o cliente te achou?" maxWidth="Infinity"
-                GridPane.columnIndex="1" GridPane.rowIndex="3" />
-        </GridPane>
+                        <Label fx:id="lblMensagem" visible="false" managed="false" wrapText="true" />
 
-        <!-- SEÇÃO 2: Aprofundamento -->
-        <VBox spacing="10" style="-fx-padding: 20 0 0 0;">
-            <Label text="2. Perfil Operacional"
-                style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
+                        <!-- SEÇÃO 1: O Quebra-Gelo -->
+                        <Label text="1. Contato Inicial (Obrigatório)"
+                            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
+                        <Separator />
+
+                        <GridPane hgap="15" vgap="15">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="130" />
+                                <ColumnConstraints hgrow="ALWAYS" minWidth="200" maxWidth="400" />
+                            </columnConstraints>
+
+                            <Label text="Nome Completo: *" GridPane.columnIndex="0"
+                                GridPane.rowIndex="0"
+                                style="-fx-font-weight: bold;" />
+                            <TextField fx:id="txtNome" promptText="Ex: João da Silva"
+                                GridPane.columnIndex="1"
+                                GridPane.rowIndex="0" />
+
+                            <Label text="CPF: *" GridPane.columnIndex="0" GridPane.rowIndex="1"
+                                style="-fx-font-weight: bold;" />
+                            <TextField fx:id="txtCpf" promptText="000.000.000-00"
+                                GridPane.columnIndex="1"
+                                GridPane.rowIndex="1" />
+
+                            <Label text="WhatsApp:" GridPane.columnIndex="0" GridPane.rowIndex="2"
+                                style="-fx-font-weight: bold;" />
+                            <TextField fx:id="txtTelefone" promptText="(00) 00000-0000"
+                                GridPane.columnIndex="1"
+                                GridPane.rowIndex="2" />
+
+                            <Label text="Origem:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                            <ComboBox fx:id="cbOrigem" promptText="Onde o cliente te achou?"
+                                maxWidth="Infinity"
+                                GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                        </GridPane>
+
+                        <!-- SEÇÃO 2: Aprofundamento -->
+                        <VBox spacing="10" style="-fx-padding: 20 0 0 0;">
+                            <Label text="2. Perfil Operacional"
+                                style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
+                            <Separator />
+
+                            <GridPane hgap="15" vgap="15">
+                                <columnConstraints>
+                                    <ColumnConstraints minWidth="130" />
+                                    <ColumnConstraints hgrow="ALWAYS" minWidth="200" maxWidth="400" />
+                                </columnConstraints>
+
+                                <Label text="Data de Nascimento:" GridPane.columnIndex="0"
+                                    GridPane.rowIndex="0" />
+                                <DatePicker fx:id="dpDataNascimento" promptText="DD/MM/AAAA"
+                                    maxWidth="Infinity"
+                                    GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                                <Label text="Convênio / Órgão:" GridPane.columnIndex="0"
+                                    GridPane.rowIndex="1" />
+                                <ComboBox fx:id="cbConvenio"
+                                    promptText="Ex: INSS, SIAPE, Exército..."
+                                    maxWidth="Infinity" GridPane.columnIndex="1"
+                                    GridPane.rowIndex="1" />
+
+                                <Label text="Tipo de Vínculo:" GridPane.columnIndex="0"
+                                    GridPane.rowIndex="2" />
+                                <ComboBox fx:id="cbVinculo"
+                                    promptText="Ex: Aposentado, Pensionista..."
+                                    maxWidth="Infinity" GridPane.columnIndex="1"
+                                    GridPane.rowIndex="2" />
+
+                                <Label text="Matrícula/Benefício:" GridPane.columnIndex="0"
+                                    GridPane.rowIndex="3" />
+                                <TextField fx:id="txtMatricula" promptText="Número do benefício"
+                                    GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                                <Label text="Renda Mensal (R$):" GridPane.columnIndex="0"
+                                    GridPane.rowIndex="4" />
+                                <TextField fx:id="txtRenda" promptText="0,00"
+                                    GridPane.columnIndex="1"
+                                    GridPane.rowIndex="4" />
+                            </GridPane>
+                        </VBox>
+
+                        <!-- SEÇÃO 3: Intenção de Negócio (Novo) -->
+                        <VBox spacing="10" style="-fx-padding: 20 0 0 0;">
+                            <Label text="3. Produtos de Interesse (Intenção)"
+                                style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
+                            <Separator />
+
+                            <!-- Grid para acomodar as modalidades em duas colunas -->
+                            <GridPane hgap="20" vgap="10">
+                                <columnConstraints>
+                                    <ColumnConstraints percentWidth="50" />
+                                    <ColumnConstraints percentWidth="50" />
+                                </columnConstraints>
+
+                                <!-- Coluna 1 -->
+                                <CheckBox fx:id="chkFgts" text="Antecipação FGTS"
+                                    GridPane.columnIndex="0"
+                                    GridPane.rowIndex="0">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Aprovação rápida e sem burocracia. Atinge público CLT negativado." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkInss" text="Consignado INSS"
+                                    GridPane.columnIndex="0"
+                                    GridPane.rowIndex="1">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="O Rei do mercado. Menores taxas, focado em aposentados e pensionistas." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkSiape"
+                                    text="Consignado Público (SIAPE/Gov/Pref)"
+                                    GridPane.columnIndex="0" GridPane.rowIndex="2">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Para Servidores Federais, Estaduais e Municipais. Margens costumam ser mais altas." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkForcas" text="Consignado Forças Armadas"
+                                    GridPane.columnIndex="0" GridPane.rowIndex="3">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Exército, Marinha e Aeronáutica. Público excelente com ótima retenção." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkBolsaFamilia"
+                                    text="Consig. Auxílio/Bolsa Família"
+                                    GridPane.columnIndex="0" GridPane.rowIndex="4">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Descontado direto do benefício social. Atenção às regras do governo que mudam frequentemente." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkContaLuz" text="Débito na Conta de Luz"
+                                    GridPane.columnIndex="0"
+                                    GridPane.rowIndex="5">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Excelente para quem não tem margem, não tem FGTS e está negativado. Parcela vem na conta de energia." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <!-- Coluna 2 -->
+                                <CheckBox fx:id="chkCartao" text="Cartão RMC / Benefício RCC"
+                                    GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Pagamento mínimo descontado em folha. Permite saque complementar em dinheiro." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkPortabilidade" text="Portabilidade de Crédito"
+                                    GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Traz a dívida de outro banco com taxa menor e libera troco na conta do cliente." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkRefin" text="Refinanciamento (Refin)"
+                                    GridPane.columnIndex="1"
+                                    GridPane.rowIndex="2">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Renova um contrato existente no mesmo banco, voltando ao prazo máximo e liberando troco." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkGarantia" text="Empréstimo com Garantia"
+                                    GridPane.columnIndex="1" GridPane.rowIndex="3">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Home Equity ou Auto Equity. Usa imóvel ou veículo como garantia. Taxas baixíssimas." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkConsigPrivado" text="Consignado Privado (CLT)"
+                                    GridPane.columnIndex="1" GridPane.rowIndex="4">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Depende de convênio do banco com a empresa. Mercado ótimo, porém mais restrito." />
+                                    </tooltip>
+                                </CheckBox>
+
+                                <CheckBox fx:id="chkPessoal" text="Empréstimo Pessoal (CP)"
+                                    GridPane.columnIndex="1"
+                                    GridPane.rowIndex="5">
+                                    <tooltip>
+                                        <Tooltip
+                                            text="Crédito no carnê ou cheque. Taxas maiores e análise de crédito (SPC/Serasa) mais rigorosa." />
+                                    </tooltip>
+                                </CheckBox>
+                            </GridPane>
+                        </VBox>
+
+                        <ProgressIndicator fx:id="progress" visible="false" managed="false"
+                            prefHeight="30"
+                            prefWidth="30" />
+                        <Region VBox.vgrow="ALWAYS" />
+                    </VBox>
+                </content>
+            </ScrollPane>
+        </center>
+    </BorderPane>
+
+    <!-- NOVO: Camada de Overlay para Documentos (Estilo Logout) -->
+    <VBox fx:id="overlayDocs" alignment="CENTER" spacing="20" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 50;">
+        <VBox alignment="TOP_LEFT" spacing="20" maxWidth="500" maxHeight="500"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="📋 Documentação Necessária"
+                    style="-fx-font-size: 20px; -fx-font-weight: bold;" />
+            </HBox>
+
             <Separator />
 
-            <GridPane hgap="15" vgap="15">
-                <columnConstraints>
-                    <ColumnConstraints minWidth="130" />
-                    <ColumnConstraints hgrow="ALWAYS" minWidth="200" maxWidth="400" />
-                </columnConstraints>
+            <ScrollPane fitToWidth="true"
+                style="-fx-background-color: transparent; -fx-background: white;">
+                <Label fx:id="lblChecklistTexto" wrapText="true"
+                    style="-fx-font-size: 14px; -fx-line-spacing: 5;" />
+            </ScrollPane>
 
-                <Label text="Data de Nascimento:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                <DatePicker fx:id="dpDataNascimento" promptText="DD/MM/AAAA" maxWidth="Infinity"
-                    GridPane.columnIndex="1" GridPane.rowIndex="0" />
-
-                <Label text="Convênio / Órgão:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                <ComboBox fx:id="cbConvenio" promptText="Ex: INSS, SIAPE, Exército..."
-                    maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-
-                <Label text="Tipo de Vínculo:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                <ComboBox fx:id="cbVinculo" promptText="Ex: Aposentado, Pensionista..."
-                    maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-
-                <Label text="Matrícula/Benefício:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
-                <TextField fx:id="txtMatricula" promptText="Número do benefício"
-                    GridPane.columnIndex="1" GridPane.rowIndex="3" />
-
-                <Label text="Renda Mensal (R$):" GridPane.columnIndex="0" GridPane.rowIndex="4" />
-                <TextField fx:id="txtRenda" promptText="0,00" GridPane.columnIndex="1"
-                    GridPane.rowIndex="4" />
-            </GridPane>
+            <HBox spacing="15" alignment="CENTER_RIGHT">
+                <Button text="Ajustar" onAction="#fecharOverlayDocs" styleClass="flat" />
+                <Button text="Confirmar e Copiar" onAction="#confirmarCopiaChecklist"
+                    styleClass="accent" style="-fx-font-weight: bold; -fx-padding: 8 20;" />
+            </HBox>
         </VBox>
-
-        <!-- SEÇÃO 3: Intenção de Negócio (Novo) -->
-        <VBox spacing="10" style="-fx-padding: 20 0 0 0;">
-            <Label text="3. Produtos de Interesse (Intenção)"
-                style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
-            <Separator />
-
-            <!-- Grid para acomodar as modalidades em duas colunas -->
-            <GridPane hgap="20" vgap="10">
-                <columnConstraints>
-                    <ColumnConstraints percentWidth="50" />
-                    <ColumnConstraints percentWidth="50" />
-                </columnConstraints>
-
-                <!-- Coluna 1 -->
-                <CheckBox fx:id="chkFgts" text="Antecipação FGTS" GridPane.columnIndex="0"
-                    GridPane.rowIndex="0">
-                    <tooltip>
-                        <Tooltip
-                            text="Aprovação rápida e sem burocracia. Atinge público CLT negativado." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkInss" text="Consignado INSS" GridPane.columnIndex="0"
-                    GridPane.rowIndex="1">
-                    <tooltip>
-                        <Tooltip
-                            text="O Rei do mercado. Menores taxas, focado em aposentados e pensionistas." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkSiape" text="Consignado Público (SIAPE/Gov/Pref)"
-                    GridPane.columnIndex="0" GridPane.rowIndex="2">
-                    <tooltip>
-                        <Tooltip
-                            text="Para Servidores Federais, Estaduais e Municipais. Margens costumam ser mais altas." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkForcas" text="Consignado Forças Armadas"
-                    GridPane.columnIndex="0" GridPane.rowIndex="3">
-                    <tooltip>
-                        <Tooltip
-                            text="Exército, Marinha e Aeronáutica. Público excelente com ótima retenção." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkBolsaFamilia" text="Consig. Auxílio/Bolsa Família"
-                    GridPane.columnIndex="0" GridPane.rowIndex="4">
-                    <tooltip>
-                        <Tooltip
-                            text="Descontado direto do benefício social. Atenção às regras do governo que mudam frequentemente." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkContaLuz" text="Débito na Conta de Luz" GridPane.columnIndex="0"
-                    GridPane.rowIndex="5">
-                    <tooltip>
-                        <Tooltip
-                            text="Excelente para quem não tem margem, não tem FGTS e está negativado. Parcela vem na conta de energia." />
-                    </tooltip>
-                </CheckBox>
-
-                <!-- Coluna 2 -->
-                <CheckBox fx:id="chkCartao" text="Cartão RMC / Benefício RCC"
-                    GridPane.columnIndex="1" GridPane.rowIndex="0">
-                    <tooltip>
-                        <Tooltip
-                            text="Pagamento mínimo descontado em folha. Permite saque complementar em dinheiro." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkPortabilidade" text="Portabilidade de Crédito"
-                    GridPane.columnIndex="1" GridPane.rowIndex="1">
-                    <tooltip>
-                        <Tooltip
-                            text="Traz a dívida de outro banco com taxa menor e libera troco na conta do cliente." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkRefin" text="Refinanciamento (Refin)" GridPane.columnIndex="1"
-                    GridPane.rowIndex="2">
-                    <tooltip>
-                        <Tooltip
-                            text="Renova um contrato existente no mesmo banco, voltando ao prazo máximo e liberando troco." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkGarantia" text="Empréstimo com Garantia"
-                    GridPane.columnIndex="1" GridPane.rowIndex="3">
-                    <tooltip>
-                        <Tooltip
-                            text="Home Equity ou Auto Equity. Usa imóvel ou veículo como garantia. Taxas baixíssimas." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkConsigPrivado" text="Consignado Privado (CLT)"
-                    GridPane.columnIndex="1" GridPane.rowIndex="4">
-                    <tooltip>
-                        <Tooltip
-                            text="Depende de convênio do banco com a empresa. Mercado ótimo, porém mais restrito." />
-                    </tooltip>
-                </CheckBox>
-
-                <CheckBox fx:id="chkPessoal" text="Empréstimo Pessoal (CP)" GridPane.columnIndex="1"
-                    GridPane.rowIndex="5">
-                    <tooltip>
-                        <Tooltip
-                            text="Crédito no carnê ou cheque. Taxas maiores e análise de crédito (SPC/Serasa) mais rigorosa." />
-                    </tooltip>
-                </CheckBox>
-            </GridPane>
-        </VBox>
-
-        <ProgressIndicator fx:id="progress" visible="false" managed="false" prefHeight="30"
-            prefWidth="30" />
-        <Region VBox.vgrow="ALWAYS" />
-
-        <!-- Botões de Ação -->
-        <HBox spacing="15" alignment="CENTER_LEFT">
-            <Button fx:id="btnSalvar" text="💾 Salvar Informações" onAction="#handleSalvar"
-                styleClass="accent" style="-fx-font-weight: bold; -fx-padding: 8 20;" />
-            <Button fx:id="btnCancelar" text="Cancelar / Voltar" onAction="#handleCancelar"
-                styleClass="flat" />
-        </HBox>
-
     </VBox>
-</ScrollPane>
+
+    <!-- NOVO: Overlay de Preview do Relatório Profissional -->
+    <VBox fx:id="overlayResumo" alignment="CENTER" spacing="20" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 50;">
+        <VBox alignment="TOP_LEFT" spacing="20" maxWidth="600" maxHeight="700"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="📋 Revisão do Relatório de Qualificação"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+            </HBox>
+
+            <Separator />
+
+            <ScrollPane fitToWidth="true"
+                style="-fx-background-color: transparent; -fx-background: #f9f9f9; -fx-padding: 10;">
+                <!-- Usamos um Label com fonte monoespaçada para simular como ficará no WhatsApp -->
+                <Label fx:id="lblResumoPreview" wrapText="true"
+                    style="-fx-font-family: 'Monospaced'; -fx-font-size: 13px; -fx-text-fill: #333;" />
+            </ScrollPane>
+
+            <HBox spacing="15" alignment="CENTER_RIGHT">
+                <Button text="Ajustar Dados" onAction="#fecharOverlayResumo" styleClass="flat" />
+                <Button text="Confirmar e Copiar" onAction="#confirmarCopiaResumo"
+                    styleClass="accent" style="-fx-padding: 8 20; -fx-font-weight: bold;" />
+            </HBox>
+        </VBox>
+    </VBox>
+
+   <!-- Overlay de Mensagens Rápidas -->
+    <VBox fx:id="overlayMensagens" alignment="CENTER" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 40;">
+
+        <VBox spacing="15" maxWidth="500" maxHeight="600"
+            style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="📢 Central de Comunicação Rápida"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
+            </HBox>
+
+            <Separator />
+
+            <ScrollPane fitToWidth="true"
+                style="-fx-background-color: transparent; -fx-background: #fdfdfd;">
+                <VBox spacing="15" style="-fx-padding: 10;">
+
+                    <!-- Bloco: Saudação -->
+                    <VBox spacing="5"
+                        style="-fx-border-color: #eee; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 10 0;">
+                        <Label text="Saudação Inicial" style="-fx-font-weight: bold;" />
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label fx:id="lblPreviewSaudacao" text="..." wrapText="true"
+                                HBox.hgrow="ALWAYS"
+                                style="-fx-font-size: 12px; -fx-text-fill: #666;" />
+                            <Button text="📋" onAction="#copiarSaudacao" styleClass="flat"
+                                minWidth="45" />
+                        </HBox>
+                    </VBox>
+
+                    <!-- Bloco: Análise -->
+                    <VBox spacing="5"
+                        style="-fx-border-color: #eee; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 10 0;">
+                        <Label text="Início de Análise" style="-fx-font-weight: bold;" />
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label fx:id="lblPreviewAnalise" text="..."
+                                wrapText="true" HBox.hgrow="ALWAYS"
+                                style="-fx-font-size: 12px; -fx-text-fill: #666;" />
+                            <Button text="📋" onAction="#copiarAvisoAnalise" styleClass="flat"
+                                minWidth="45" />
+                        </HBox>
+                    </VBox>
+
+                    <!-- Bloco: Fechamento -->
+                    <VBox spacing="5">
+                        <Label text="Encerramento de Contato" style="-fx-font-weight: bold;" />
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label fx:id="lblPreviewFechamento" text="..."
+                                wrapText="true" HBox.hgrow="ALWAYS"
+                                style="-fx-font-size: 12px; -fx-text-fill: #666;" />
+                            <Button text="📋" onAction="#copiarFechamento" styleClass="flat"
+                                minWidth="45" />
+                        </HBox>
+                    </VBox>
+
+                </VBox>
+            </ScrollPane>
+
+            <Button text="Fechar Central" onAction="#fecharCentralMensagens"
+                maxWidth="Infinity" style="-fx-padding: 10;" />
+        </VBox>
+    </VBox>
+</StackPane>

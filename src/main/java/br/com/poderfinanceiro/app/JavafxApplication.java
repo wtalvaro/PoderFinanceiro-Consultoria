@@ -16,6 +16,8 @@ public class JavafxApplication extends Application {
         // Inicializa o Spring Boot e integra com o JavaFX
         this.context = new SpringApplicationBuilder()
                 .sources(AppApplication.class)
+                .initializers(initialContext -> initialContext.getBeanFactory().registerSingleton("hostServices",
+                        getHostServices()))
                 .run(getParameters().getRaw().toArray(new String[0]));
     }
 

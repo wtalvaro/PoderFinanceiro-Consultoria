@@ -8,6 +8,7 @@ import javafx.scene.layout.VBox;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
+import javafx.application.HostServices;
 
 @Component
 public class MainController {
@@ -23,10 +24,19 @@ public class MainController {
     @FXML
     private VBox overlaySair;
 
+    private final HostServices hostServices;
     private final ApplicationContext context;
 
-    public MainController(ApplicationContext context) {
+    public MainController(ApplicationContext context, HostServices hostServices) {
         this.context = context;
+        this.hostServices = hostServices;
+    }
+
+    /**
+     * Expondo o serviço para os outros controllers (como o LeadController)
+     */
+    public HostServices getHostServices() {
+        return hostServices;
     }
 
     /**
