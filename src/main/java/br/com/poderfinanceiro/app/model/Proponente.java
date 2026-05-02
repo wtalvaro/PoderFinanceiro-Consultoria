@@ -4,15 +4,15 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Entity
-@Table(name = "proponentes", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "cpf", "usuario_id" })
-})
+@Table(name = "proponentes")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,7 +23,7 @@ public class Proponente {
     @Column(name = "proponente_id")
     private Long id;
 
-    // Relacionamento com o Consultor dono do lead
+    // O consultor dono deste lead (amarrado via AuthService na hora de salvar)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
@@ -41,7 +41,7 @@ public class Proponente {
     private BigDecimal rendaMensal;
 
     @Column(name = "tipo_vinculo", length = 50)
-    private String tipoVinculo;
+    private String tipoVinculo; // INSS, SIAPE, Forças Armadas, etc.
 
     @Column(name = "convenio_orgao", length = 100)
     private String convenioOrgao;
@@ -51,6 +51,12 @@ public class Proponente {
 
     @Column(name = "origem_consentimento", columnDefinition = "TEXT")
     private String origemConsentimento;
+
+    // A mágica acontece aqui: Por padrão todo mundo nasce como LEAD!
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // <-- A MÁGICA ESTÁ AQUI
+    @Column(name = "classificacao", columnDefinition = "tipo_relacionamento")
+    private TipoRelacionamento classificacao = TipoRelacionamento.LEAD;
 
     @Column(name = "data_cadastro", updatable = false)
     private LocalDateTime dataCadastro;

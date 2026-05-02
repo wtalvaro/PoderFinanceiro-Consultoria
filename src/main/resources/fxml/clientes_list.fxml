@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+
+<ScrollPane fitToWidth="true" fitToHeight="true"
+    style="-fx-background-color: transparent;"
+    styleClass="edge-to-edge"
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.ClientesListController">
+
+    <content>
+        <VBox spacing="15" style="-fx-background-color: #ffffff; -fx-padding: 30;">
+
+            <!-- Cabeçalho e Barra de Pesquisa -->
+            <HBox alignment="CENTER_LEFT" spacing="20">
+                <VBox spacing="5" HBox.hgrow="ALWAYS">
+                    <Label text="Base de Contatos e Clientes"
+                        style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                    <Label
+                        text="Gerencie sua carteira. Dê um duplo clique em um registro para editar."
+                        style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;" />
+                </VBox>
+
+                <TextField fx:id="txtBusca" promptText="🔍 Buscar por Nome ou CPF..."
+                    prefWidth="250"
+                    onKeyReleased="#handleBusca" />
+                <Button text="➕ Novo Contato" onAction="#handleNovoContato" styleClass="accent"
+                    style="-fx-font-weight: bold;" />
+            </HBox>
+
+            <Separator />
+
+            <!-- Tabela de Dados -->
+            <TableView fx:id="tabelaClientes" VBox.vgrow="ALWAYS" style="-fx-font-size: 13px;">
+                <columns>
+                    <TableColumn fx:id="colNome" text="Nome Completo" prefWidth="250">
+                        <cellValueFactory>
+                            <PropertyValueFactory property="nomeCompleto" />
+                        </cellValueFactory>
+                    </TableColumn>
+
+                    <TableColumn fx:id="colCpf" text="CPF" prefWidth="120">
+                        <cellValueFactory>
+                            <PropertyValueFactory property="cpf" />
+                        </cellValueFactory>
+                    </TableColumn>
+
+                    <TableColumn fx:id="colTelefone" text="WhatsApp" prefWidth="130">
+                        <cellValueFactory>
+                            <PropertyValueFactory property="telefone" />
+                        </cellValueFactory>
+                    </TableColumn>
+
+                    <TableColumn fx:id="colOrigem" text="Origem" prefWidth="120">
+                        <cellValueFactory>
+                            <PropertyValueFactory property="origemConsentimento" />
+                        </cellValueFactory>
+                    </TableColumn>
+
+                    <TableColumn fx:id="colClassificacao" text="Status" prefWidth="120">
+                        <cellValueFactory>
+                            <PropertyValueFactory property="classificacao" />
+                        </cellValueFactory>
+                    </TableColumn>
+                </columns>
+
+                <!-- Define como a tabela se comporta se não houver dados -->
+                <placeholder>
+                    <Label text="Nenhum contato encontrado na sua carteira."
+                        style="-fx-text-fill: -color-fg-muted;" />
+                </placeholder>
+            </TableView>
+
+            <!-- Rodapé com contagem -->
+            <HBox alignment="CENTER_RIGHT">
+                <Label fx:id="lblTotalRegistros" text="Total: 0 contatos"
+                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+            </HBox>
+
+        </VBox>
+    </content>
+</ScrollPane>

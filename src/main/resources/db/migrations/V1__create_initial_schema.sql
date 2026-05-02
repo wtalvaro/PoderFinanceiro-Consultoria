@@ -3,8 +3,15 @@
 -- ==========================================
 -- 1. TIPOS E ENUMS
 -- ==========================================
+-- NOVO: Enum para gerenciar o ciclo de vida da pessoa no seu funil
+CREATE TYPE public.tipo_relacionamento AS ENUM (
+    'LEAD',
+    'PROPONENTE',
+    'CLIENTE'
+);
+
+-- ATUALIZADO: Removido o 'Lead', agora começa em 'Digitada'
 CREATE TYPE public.status_proposta AS ENUM (
-    'Lead',
     'Digitada',
     'Pendente',
     'Analise_Banco',
@@ -112,6 +119,7 @@ CREATE TABLE public.proponentes (
     convenio_orgao character varying(100),
     matricula character varying(50),
     origem_consentimento text,
+    classificacao public.tipo_relacionamento DEFAULT 'LEAD'::public.tipo_relacionamento, -- NOVO: Campo de classificação adicionado
     data_cadastro timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     deletado_em timestamp without time zone,
     data_nascimento date
@@ -126,7 +134,7 @@ CREATE TABLE public.propostas (
     valor_aprovado numeric(12,2),
     taxa_aplicada numeric(5,2),
     quantidade_parcelas integer,
-    status public.status_proposta DEFAULT 'Lead'::public.status_proposta,
+    status public.status_proposta DEFAULT 'Digitada'::public.status_proposta, -- ATUALIZADO: Default agora é 'Digitada'
     coeficiente numeric(10,6),
     valor_parcela numeric(12,2),
     modalidade_juros character varying(20) DEFAULT 'Prefixado'::character varying,
@@ -179,8 +187,6 @@ ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_pkey PRIMARY KEY (com
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_pkey PRIMARY KEY (documento_id);
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_pkey PRIMARY KEY (historico_id);
 ALTER TABLE ONLY public.interacoes_contato ADD CONSTRAINT interacoes_contato_pkey PRIMARY KEY (interacao_id);
--- Removido o UNIQUE global do CPF. Agora é único POR CONSULTOR, permitindo que consultores diferentes tentem o mesmo lead.
--- Se preferir que um CPF pertença a apenas 1 consultor na plataforma inteira, mantenha: UNIQUE (cpf)
 ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_cpf_usuario_key UNIQUE (cpf, usuario_id); 
 ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_pkey PRIMARY KEY (proponente_id);
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_pkey PRIMARY KEY (proposta_id);

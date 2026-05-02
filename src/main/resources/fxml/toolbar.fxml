@@ -8,7 +8,10 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.ToolbarController">
 
-    <Button text="➕ Novo Lead" styleClass="flat" />
+    <!-- Ação Global: Rápida e sempre visível -->
+    <Button text="➕ Novo Contato" onAction="#handleNovoContato" styleClass="flat, accent"
+        style="-fx-font-weight: bold;" />
+
     <Button text="📄 Nova Operação" styleClass="flat" />
     <Separator />
     <Button text="📥 Baixar HISCON" styleClass="flat, accent" />

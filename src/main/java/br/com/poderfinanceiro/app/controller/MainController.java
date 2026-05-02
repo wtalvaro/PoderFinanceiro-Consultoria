@@ -58,6 +58,16 @@ public class MainController {
         }
     }
 
+    // No MainController.java
+
+    public void irParaNovoContato() {
+        // Pegamos o bean de forma preguiçosa (lazy) para evitar dependência circular
+        context.getBean(LeadController.class).prepararNovoContato();
+
+        // Executamos a navegação
+        navegarPara("/fxml/lead.fxml", true);
+    }
+
     // --- LÓGICA DO OVERLAY DE SAÍDA ---
     public void mostrarOverlaySair() {
         overlaySair.setVisible(true);

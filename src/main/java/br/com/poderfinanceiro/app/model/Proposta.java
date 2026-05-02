@@ -8,6 +8,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Entity
 @Table(name = "propostas")
 @Getter
@@ -44,8 +47,11 @@ public class Proposta {
     @Column(name = "quantidade_parcelas")
     private Integer quantidadeParcelas;
 
-    @Column(columnDefinition = "status_proposta")
-    private String status = "Lead"; // Alinhado com o DEFAULT do banco
+    // 1 e 2. Mudança para Enum e alteração do Default para "Digitada"
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // <-- A MÁGICA ESTÁ AQUI
+    @Column(name = "status", columnDefinition = "status_proposta")
+    private StatusProposta status = StatusProposta.Digitada;
 
     @Column(precision = 10, scale = 6)
     private BigDecimal coeficiente;
@@ -68,6 +74,13 @@ public class Proposta {
     @Column(name = "saldo_quitacao_anterior", precision = 12, scale = 2)
     private BigDecimal saldoQuitacaoAnterior = BigDecimal.ZERO;
 
+    // 3. Adicionando os campos que estavam no SQL mas faltavam no Java
+    @Column(name = "valor_iof", precision = 12, scale = 2)
+    private BigDecimal valorIof = BigDecimal.ZERO;
+
+    @Column(name = "taxa_administracao", precision = 12, scale = 2)
+    private BigDecimal taxaAdministracao = BigDecimal.ZERO;
+
     @Column(name = "data_solicitacao")
     private LocalDate dataSolicitacao;
 
@@ -81,7 +94,7 @@ public class Proposta {
     private Integer tabelaId;
 
     @Column(name = "usuario_atualizacao_id")
-    private Long usuarioAtualizacaoId; // Para controle da trigger de histórico
+    private Long usuarioAtualizacaoId;
 
     @PrePersist
     protected void onCreate() {

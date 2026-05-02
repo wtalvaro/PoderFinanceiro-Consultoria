@@ -2,7 +2,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<!-- 1. Adicionado maxHeight aqui na raiz para o painel descer até o rodapé -->
+<!-- 1. ScrollPane permitindo crescer até o rodapé -->
 <ScrollPane fitToWidth="true" fitToHeight="true"
     maxHeight="1.7976931348623157E308"
     style="-fx-background-color: transparent;"
@@ -12,10 +12,11 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.PanelController">
 
-    <!-- 2. Adicionado maxHeight no VBox interno também por garantia -->
+    <!-- 2. VBox interno expandindo com a altura -->
     <VBox spacing="10" prefWidth="250" maxHeight="1.7976931348623157E308"
         style="-fx-background-color: -color-bg-default; -fx-padding: 15 10; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;">
 
+        <!-- Seção: BUSCA RÁPIDA -->
         <VBox spacing="5"
             style="-fx-padding: 0 0 10 0; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
             <Label text="BUSCA RÁPIDA"
@@ -24,28 +25,38 @@
                 style="-fx-font-size: 13px;" />
         </VBox>
 
+        <!-- Seção: ESTEIRA DE CRÉDITO -->
         <Label text="ESTEIRA DE CRÉDITO"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 10 0 0 5;" />
+
         <Button text="📊 Dashboard" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat, accent" />
-        <Button text="👥 Base de Clientes" maxWidth="Infinity"
+
+        <!-- Navegação Pura: Agora engloba todo o ciclo de vida -->
+        <Button text="👥 Base de Contatos/Clientes" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTelaBaseClientes" />
+
+        <Button text="📄 Propostas (Em Andamento)" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
-        <Button text="📄 Propostas (Digitadas)" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" />
+
         <Button text="⏳ Pendências / Exigências" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat"
             style="-fx-text-fill: -color-danger-fg;" />
 
+        <!-- Seção: PARAMETRIZAÇÃO -->
         <Label text="PARAMETRIZAÇÃO"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
+
         <Button text="🏦 Bancos e Convênios" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
+
         <Button text="📈 Tabelas de Juros" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
+
         <Button text="💰 Tabela de Comissões" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
 
-        <!-- Esse Region já está correto! Ele joga o menu para cima e preenche o vazio embaixo -->
+        <!-- Region que empurra tudo para cima -->
         <Region VBox.vgrow="ALWAYS" />
     </VBox>
 </ScrollPane>

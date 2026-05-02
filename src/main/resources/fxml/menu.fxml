@@ -8,7 +8,10 @@
     <menus>
         <Menu text="_Arquivo">
             <items>
-                <MenuItem text="Novo Cliente (Lead)..." accelerator="Ctrl+N" />
+                <!-- Ajustado o texto e adicionado o onAction -->
+                <MenuItem text="Novo Contato..." accelerator="Ctrl+N"
+                    onAction="#handleNovoContato" />
+
                 <MenuItem text="Nova Simulação..." accelerator="Ctrl+S" />
                 <SeparatorMenuItem />
                 <MenuItem text="Sincronizar Matriz de Taxas" />
