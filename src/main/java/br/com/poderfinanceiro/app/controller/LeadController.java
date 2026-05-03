@@ -8,6 +8,9 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+
+import java.time.format.DateTimeFormatter;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -58,8 +61,6 @@ public class LeadController {
     @FXML
     private Button btnSalvar;
     @FXML
-    private Button btnCancelar;
-    @FXML
     private VBox overlayDocs;
     @FXML
     private Label lblChecklistTexto;
@@ -103,6 +104,9 @@ public class LeadController {
         FinanceiroUtils.configurarMascaraTelefone(txtTelefone);
         esconderMensagem();
 
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        dpDataNascimento.setConverter(new javafx.util.converter.LocalDateStringConverter(formatter, formatter));
+    
         // 2. Unificação do Estado (O Pulo do Gato)
         if (this.proponenteEmEdicao != null) {
             exibirDadosNoFormulario(this.proponenteEmEdicao);
@@ -232,7 +236,6 @@ public class LeadController {
         progress.setVisible(loading);
         progress.setManaged(loading);
         btnSalvar.setDisable(loading);
-        btnCancelar.setDisable(loading);
         if (loading)
             esconderMensagem();
     }

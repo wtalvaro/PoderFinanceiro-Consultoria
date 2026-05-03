@@ -49,7 +49,7 @@ Overlay -->
                     <Pane HBox.hgrow="ALWAYS" /> <!-- Empurra as ações principais para a direita -->
 
                     <!-- Ações de Fechamento (Mantendo o destaque no Salvar) -->
-                    <Button fx:id="btnSalvarTopo" text="💾" onAction="#handleSalvar"
+                    <Button fx:id="btnSalvar" text="💾" onAction="#handleSalvar"
                         styleClass="accent"
                         style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;"
                         prefWidth="45" prefHeight="40">
