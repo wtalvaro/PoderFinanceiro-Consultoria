@@ -29,7 +29,7 @@
         <Label text="ESTEIRA DE CRÉDITO"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 10 0 0 5;" />
 
-        <Button fx:id="btnDashboard" text="📊 Dashboard" maxWidth="Infinity"
+        <Button fx:id="btnDashboard" text="📊 Painel de Controle" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat, accent" onAction="#abrirWorkspace" />
 
         <!-- Navegação Pura: Agora engloba todo o ciclo de vida -->
