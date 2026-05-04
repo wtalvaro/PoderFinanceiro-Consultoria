@@ -9,19 +9,20 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Component
 public class LeadViewModel {
 
     // --- 1. PROPERTIES (O Coração do Data Binding) ---
 
-    // Controle de Estado
     private final BooleanProperty editando = new SimpleBooleanProperty(false);
+    private final BooleanProperty carregando = new SimpleBooleanProperty(false);
 
     // Identificação
     private final StringProperty nome = new SimpleStringProperty("");
-    private final StringProperty cpf = new SimpleStringProperty("");
-    private final StringProperty telefone = new SimpleStringProperty("");
+    private final StringProperty cpf = new SimpleStringProperty(""); // Guarda apenas os números: 12345678901
+    private final StringProperty telefone = new SimpleStringProperty(""); // Guarda apenas os números
     private final StringProperty origem = new SimpleStringProperty("");
 
     // Perfil Operacional
@@ -31,7 +32,7 @@ public class LeadViewModel {
     private final StringProperty matricula = new SimpleStringProperty("");
     private final ObjectProperty<BigDecimal> renda = new SimpleObjectProperty<>(BigDecimal.ZERO);
 
-    // Todas as 12 Modalidades (CheckBoxes)
+    // Modalidades de Crédito
     private final BooleanProperty chkFgts = new SimpleBooleanProperty(false);
     private final BooleanProperty chkInss = new SimpleBooleanProperty(false);
     private final BooleanProperty chkSiape = new SimpleBooleanProperty(false);
@@ -69,10 +70,7 @@ public class LeadViewModel {
     private boolean chkConsigPrivadoOriginal = false;
     private boolean chkPessoalOriginal = false;
 
-    // 1. Nova propriedade para monitorar se o Spring está salvando
-    private final BooleanProperty carregando = new SimpleBooleanProperty(false);
-
-    // --- 3. MÉTODOS DE SINCRONIZAÇÃO ---
+    // --- 3. MÉTODOS DE SINCRONIZAÇÃO (INTEGRAÇÃO COM O BANCO) ---
 
     public void loadFromModel(Proponente p) {
         if (p == null) {
@@ -83,8 +81,10 @@ public class LeadViewModel {
 
         editando.set(true);
 
-        // 1. Sincroniza Propriedades Visuais
+        // 1. Injeta os dados limpos nas propriedades
         nome.set(p.getNomeCompleto() != null ? p.getNomeCompleto() : "");
+        // O TextFormatter do Controller agora é quem se preocupa em colocar pontos e
+        // traços na tela
         cpf.set(p.getCpf() != null ? p.getCpf() : "");
         telefone.set(p.getTelefone() != null ? p.getTelefone() : "");
         origem.set(p.getOrigemConsentimento() != null ? p.getOrigemConsentimento() : "");
@@ -94,9 +94,7 @@ public class LeadViewModel {
         matricula.set(p.getMatricula() != null ? p.getMatricula() : "");
         renda.set(p.getRendaMensal() != null ? p.getRendaMensal() : BigDecimal.ZERO);
 
-        // Nota: Se o seu Model Proponente ainda não tem os campos de modalidade,
-        // o código abaixo garante que o "Original" ignore mudanças feitas na UI após o
-        // load.
+        // Atualiza o estado interno das modalidades
         this.chkFgtsOriginal = chkFgts.get();
         this.chkInssOriginal = chkInss.get();
         this.chkSiapeOriginal = chkSiape.get();
@@ -110,7 +108,7 @@ public class LeadViewModel {
         this.chkConsigPrivadoOriginal = chkConsigPrivado.get();
         this.chkPessoalOriginal = chkPessoal.get();
 
-        // 2. Sincroniza o "Carimbo" Original (Dirty Checking)
+        // 2. Tira uma "fotografia" do estado para detectar mudanças
         this.nomeOriginal = nome.get();
         this.cpfOriginal = cpf.get();
         this.telefoneOriginal = telefone.get();
@@ -123,6 +121,7 @@ public class LeadViewModel {
     }
 
     public Proponente mapToModel(Proponente target) {
+        // Envia para o banco o valor puro e limpo
         target.setNomeCompleto(nome.get().trim());
         target.setCpf(cpf.get().trim());
         target.setTelefone(telefone.get());
@@ -187,88 +186,55 @@ public class LeadViewModel {
         this.chkPessoalOriginal = false;
     }
 
-    // --- 4. A LÓGICA DE ATIVAÇÃO DO BOTÃO SALVAR ---
+    // --- 4. REGRAS DE NEGÓCIO E VALIDAÇÕES DE TELA ---
+
     public BooleanBinding podeSalvarProperty() {
         return Bindings.createBooleanBinding(() -> {
             try {
-                // 1. REGRA PRIORITÁRIA: Se o sistema estiver salvando, o botão SEMPRE fica
-                // desativado
-                if (carregando.get()) {
+                if (carregando.get())
                     return false;
-                }
 
-                // 2. Validação de Obrigatoriedade (Nome e CPF)
-                // Extraímos apenas números do CPF para validar se tem 11 dígitos
                 boolean nomeValido = nome.get() != null && !nome.get().trim().isEmpty();
-                String cpfNumeros = cpf.get() != null ? cpf.get().replaceAll("[^0-9]", "") : "";
-                boolean cpfValido = cpfNumeros.length() == 11;
+
+                // O CPF já vem limpo graças ao TextFormatter. Basta contar os caracteres.
+                boolean cpfValido = cpf.get() != null && cpf.get().length() == 11;
 
                 boolean dadosCorretos = nomeValido && cpfValido;
+                boolean houveAlteracao = temAlteracoesPendentes();
 
-                // 3. "Dirty Checking" Global (Verifica se QUALQUER campo mudou em relação ao
-                // original)
-                // Usamos java.util.Objects.equals para segurança contra valores nulos
-                boolean houveAlteracao = !java.util.Objects.equals(nome.get(), nomeOriginal) ||
-                        !java.util.Objects.equals(cpf.get(), cpfOriginal) ||
-                        !java.util.Objects.equals(telefone.get(), telefoneOriginal) ||
-                        !java.util.Objects.equals(origem.get(), origemOriginal) ||
-                        !java.util.Objects.equals(dataNascimento.get(), dataNascimentoOriginal) ||
-                        convenio.get() != convenioOriginal ||
-                        !java.util.Objects.equals(vinculo.get(), vinculoOriginal) ||
-                        !java.util.Objects.equals(matricula.get(), matriculaOriginal) ||
-                        (renda.get() != null && renda.get().compareTo(rendaOriginal) != 0) ||
-
-                // Comparação de todas as 12 modalidades
-                        chkFgts.get() != chkFgtsOriginal ||
-                        chkInss.get() != chkInssOriginal ||
-                        chkSiape.get() != chkSiapeOriginal ||
-                        chkForcas.get() != chkForcasOriginal ||
-                        chkBolsaFamilia.get() != chkBolsaFamiliaOriginal ||
-                        chkContaLuz.get() != chkContaLuzOriginal ||
-                        chkCartao.get() != chkCartaoOriginal ||
-                        chkPortabilidade.get() != chkPortabilidadeOriginal ||
-                        chkRefin.get() != chkRefinOriginal ||
-                        chkGarantia.get() != chkGarantiaOriginal ||
-                        chkConsigPrivado.get() != chkConsigPrivadoOriginal ||
-                        chkPessoal.get() != chkPessoalOriginal;
-
-                // 4. Lógica Final de Ativação
-                if (!editando.get()) {
-                    // Para Novo Lead: Ativa se os dados obrigatórios estiverem corretos
-                    return dadosCorretos;
-                } else {
-                    // Para Edição: Ativa se estiver correto E houver alguma mudança real
-                    return dadosCorretos && houveAlteracao;
-                }
+                return editando.get() ? (dadosCorretos && houveAlteracao) : dadosCorretos;
 
             } catch (Exception e) {
-                // Em caso de erro interno no binding, imprime o log no terminal para depuração
                 e.printStackTrace();
                 return false;
             }
         },
-                // --- DEPENDÊNCIAS (O JavaFX observa todas elas para disparar a reavaliação)
-                // ---
                 nome, cpf, telefone, origem, dataNascimento, convenio, vinculo, matricula, renda,
                 chkFgts, chkInss, chkSiape, chkForcas, chkBolsaFamilia, chkContaLuz,
                 chkCartao, chkPortabilidade, chkRefin, chkGarantia, chkConsigPrivado, chkPessoal,
                 editando, carregando);
     }
 
-    /**
-     * Verifica se há qualquer diferença entre o que está na tela
-     * e o que foi carregado originalmente do banco.
-     */
     public boolean temAlteracoesPendentes() {
-        return !java.util.Objects.equals(nome.get(), nomeOriginal) ||
-                !java.util.Objects.equals(cpf.get(), cpfOriginal) ||
-                !java.util.Objects.equals(telefone.get(), telefoneOriginal) ||
-                !java.util.Objects.equals(origem.get(), origemOriginal) ||
-                !java.util.Objects.equals(dataNascimento.get(), dataNascimentoOriginal) ||
+        // Helper seguro para comparar BigDecimal, tratando nulos adequadamente
+        boolean rendaMudou;
+        if (renda.get() == null && rendaOriginal == null) {
+            rendaMudou = false;
+        } else if (renda.get() == null || rendaOriginal == null) {
+            rendaMudou = true;
+        } else {
+            rendaMudou = renda.get().compareTo(rendaOriginal) != 0;
+        }
+
+        return !Objects.equals(nome.get(), nomeOriginal) ||
+                !Objects.equals(cpf.get(), cpfOriginal) ||
+                !Objects.equals(telefone.get(), telefoneOriginal) ||
+                !Objects.equals(origem.get(), origemOriginal) ||
+                !Objects.equals(dataNascimento.get(), dataNascimentoOriginal) ||
                 convenio.get() != convenioOriginal ||
-                !java.util.Objects.equals(vinculo.get(), vinculoOriginal) ||
-                !java.util.Objects.equals(matricula.get(), matriculaOriginal) ||
-                (renda.get() != null && renda.get().compareTo(rendaOriginal) != 0) ||
+                !Objects.equals(vinculo.get(), vinculoOriginal) ||
+                !Objects.equals(matricula.get(), matriculaOriginal) ||
+                rendaMudou ||
                 chkFgts.get() != chkFgtsOriginal ||
                 chkInss.get() != chkInssOriginal ||
                 chkSiape.get() != chkSiapeOriginal ||
@@ -282,8 +248,8 @@ public class LeadViewModel {
                 chkConsigPrivado.get() != chkConsigPrivadoOriginal ||
                 chkPessoal.get() != chkPessoalOriginal;
     }
-    
-    // --- 5. GETTERS DAS PROPERTIES (Para o Controller) ---
+
+    // --- 5. GETTERS DAS PROPERTIES ---
 
     public StringProperty nomeProperty() {
         return nome;

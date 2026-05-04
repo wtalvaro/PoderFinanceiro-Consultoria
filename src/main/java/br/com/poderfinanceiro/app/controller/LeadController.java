@@ -7,20 +7,25 @@ import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.strategy.DocumentStrategy;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.LeadViewModel;
+import javafx.animation.PauseTransition;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
+import javafx.util.Duration;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Component
 public class LeadController {
 
+    private PauseTransition timerMensagem;
+    
     // --- DEPENDÊNCIAS ---
     private final ProponenteService proponenteService;
     private final MainController mainController;
@@ -127,7 +132,23 @@ public class LeadController {
         // 1. TextFields e ComboBoxes (Sem máscara especial)
         txtNome.textProperty().bindBidirectional(viewModel.nomeProperty());
         cbOrigem.valueProperty().bindBidirectional(viewModel.origemProperty());
-        dpDataNascimento.valueProperty().bindBidirectional(viewModel.dataNascimentoProperty());
+        
+        // ====================================================================
+        // BINDING DA DATA DE NASCIMENTO (Com Máscara Automática)
+        // ====================================================================
+        
+        TextFormatter<LocalDate> dataFormatter = FinanceiroUtils.criarFormatadorData();
+        
+        // Aplicamos o formatador ao campo de texto interno do DatePicker
+        dpDataNascimento.getEditor().setTextFormatter(dataFormatter);
+        
+        // Sincronizamos o valor do formatador com o ViewModel
+        dataFormatter.valueProperty().bindBidirectional(viewModel.dataNascimentoProperty());
+        
+        // Sincronizamos o valor do DatePicker com o formatador para que
+        // ao selecionar no calendário, o texto também seja atualizado corretamente.
+        dpDataNascimento.valueProperty().bindBidirectional(dataFormatter.valueProperty());
+        
         cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
         cbVinculo.valueProperty().bindBidirectional(viewModel.vinculoProperty());
         txtMatricula.textProperty().bindBidirectional(viewModel.matriculaProperty());
@@ -506,13 +527,29 @@ public class LeadController {
     }
 
     private void exibirMensagem(String texto, boolean sucesso) {
+        // 1. Configuração visual imediata
         lblMensagem.setText(texto);
         lblMensagem.setVisible(true);
         lblMensagem.setManaged(true);
+
         String color = sucesso ? "#e8f5e9" : "#ffebee";
         String text = sucesso ? "#2e7d32" : "#c62828";
-        lblMensagem.setStyle("-fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 5; -fx-background-color: "
-                + color + "; -fx-text-fill: " + text + ";");
+        lblMensagem.setStyle("-fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 5; " +
+                "-fx-background-color: " + color + "; -fx-text-fill: " + text + ";");
+
+        // 2. Lógica do Timer (Onde o PauseTransition é usado)
+        if (timerMensagem != null) {
+            timerMensagem.stop(); // Reinicia o tempo se houver uma nova mensagem
+        }
+
+        // Criamos a transição de pausa para 5 segundos
+        timerMensagem = new PauseTransition(Duration.seconds(5));
+
+        // Quando o tempo acabar, chamamos o método para esconder
+        timerMensagem.setOnFinished(event -> esconderMensagem());
+
+        // Inicia a contagem
+        timerMensagem.play();
     }
 
     private void esconderMensagem() {
