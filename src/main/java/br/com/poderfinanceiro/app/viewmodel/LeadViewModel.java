@@ -255,6 +255,34 @@ public class LeadViewModel {
                 editando, carregando);
     }
 
+    /**
+     * Verifica se há qualquer diferença entre o que está na tela
+     * e o que foi carregado originalmente do banco.
+     */
+    public boolean temAlteracoesPendentes() {
+        return !java.util.Objects.equals(nome.get(), nomeOriginal) ||
+                !java.util.Objects.equals(cpf.get(), cpfOriginal) ||
+                !java.util.Objects.equals(telefone.get(), telefoneOriginal) ||
+                !java.util.Objects.equals(origem.get(), origemOriginal) ||
+                !java.util.Objects.equals(dataNascimento.get(), dataNascimentoOriginal) ||
+                convenio.get() != convenioOriginal ||
+                !java.util.Objects.equals(vinculo.get(), vinculoOriginal) ||
+                !java.util.Objects.equals(matricula.get(), matriculaOriginal) ||
+                (renda.get() != null && renda.get().compareTo(rendaOriginal) != 0) ||
+                chkFgts.get() != chkFgtsOriginal ||
+                chkInss.get() != chkInssOriginal ||
+                chkSiape.get() != chkSiapeOriginal ||
+                chkForcas.get() != chkForcasOriginal ||
+                chkBolsaFamilia.get() != chkBolsaFamiliaOriginal ||
+                chkContaLuz.get() != chkContaLuzOriginal ||
+                chkCartao.get() != chkCartaoOriginal ||
+                chkPortabilidade.get() != chkPortabilidadeOriginal ||
+                chkRefin.get() != chkRefinOriginal ||
+                chkGarantia.get() != chkGarantiaOriginal ||
+                chkConsigPrivado.get() != chkConsigPrivadoOriginal ||
+                chkPessoal.get() != chkPessoalOriginal;
+    }
+    
     // --- 5. GETTERS DAS PROPERTIES (Para o Controller) ---
 
     public StringProperty nomeProperty() {

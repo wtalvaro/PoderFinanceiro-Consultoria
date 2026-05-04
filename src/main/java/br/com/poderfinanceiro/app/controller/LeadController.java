@@ -32,6 +32,7 @@ public class LeadController {
     private Proponente proponenteEmEdicao = null;
     private String resumoGeradoParaCopia;
     private String checklistGeradoParaCopia;
+    private Runnable acaoNavegacaoPendente;
 
     // --- FXML BINDINGS ---
     @FXML
@@ -48,8 +49,6 @@ public class LeadController {
     private ProgressIndicator progress;
     @FXML
     private Button btnSalvar, btnCancelar;
-
-    // Componente estrutural (adicionado para refletir o FXML)
     @FXML
     private ScrollPane scrollPrincipal;
 
@@ -60,7 +59,7 @@ public class LeadController {
 
     // Overlays e Previews
     @FXML
-    private VBox overlayDocs, overlayResumo, overlayMensagens;
+    private VBox overlayDocs, overlayResumo, overlayMensagens, overlayConfirmacaoSaida;
     @FXML
     private Label lblChecklistTexto, lblResumoPreview;
     @FXML
@@ -119,26 +118,21 @@ public class LeadController {
             }
         });
         cbConvenio.getItems().setAll(TipoConvenio.values());
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         dpDataNascimento.setConverter(new javafx.util.converter.LocalDateStringConverter(formatter, formatter));
-
-        FinanceiroUtils.configurarCampoMoeda(txtRenda);
-        FinanceiroUtils.configurarMascaraCpf(txtCpf);
-        FinanceiroUtils.configurarMascaraTelefone(txtTelefone);
     }
 
     private void estabelecerBindings() {
-        // TextFields e ComboBoxes
+        // 1. TextFields e ComboBoxes (Sem máscara especial)
         txtNome.textProperty().bindBidirectional(viewModel.nomeProperty());
-        txtCpf.textProperty().bindBidirectional(viewModel.cpfProperty());
-        txtTelefone.textProperty().bindBidirectional(viewModel.telefoneProperty());
         cbOrigem.valueProperty().bindBidirectional(viewModel.origemProperty());
         dpDataNascimento.valueProperty().bindBidirectional(viewModel.dataNascimentoProperty());
         cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
         cbVinculo.valueProperty().bindBidirectional(viewModel.vinculoProperty());
         txtMatricula.textProperty().bindBidirectional(viewModel.matriculaProperty());
 
-        // Vinculação de TODAS as 12 modalidades (Checkboxes)
+        // 2. Modalidades de Interesse (Checkboxes)
         chkFgts.selectedProperty().bindBidirectional(viewModel.chkFgtsProperty());
         chkInss.selectedProperty().bindBidirectional(viewModel.chkInssProperty());
         chkSiape.selectedProperty().bindBidirectional(viewModel.chkSiapeProperty());
@@ -152,42 +146,75 @@ public class LeadController {
         chkConsigPrivado.selectedProperty().bindBidirectional(viewModel.chkConsigPrivadoProperty());
         chkPessoal.selectedProperty().bindBidirectional(viewModel.chkPessoalProperty());
 
-        // Tratamento especial para o BigDecimal da Renda
-        txtRenda.textProperty().addListener((obs, oldV, newV) -> {
-            try {
-                viewModel.rendaProperty().set(FinanceiroUtils.extrairValorParaBanco(newV));
-            } catch (Exception e) {
-                viewModel.rendaProperty().set(BigDecimal.ZERO);
-            }
-        });
-        viewModel.rendaProperty().addListener((obs, oldV, newV) -> {
-            String formatado = FinanceiroUtils.formatarParaExibicao(newV);
-            if (!txtRenda.getText().equals(formatado))
-                txtRenda.setText(formatado);
-        });
+        // ====================================================================
+        // 3. CAMPOS COM MÁSCARA (TextFormatter)
+        // ====================================================================
+
+        // --- RENDA ---
+        TextFormatter<BigDecimal> rendaFormatter = FinanceiroUtils.criarFormatadorMoeda();
+        txtRenda.setTextFormatter(rendaFormatter);
+        rendaFormatter.valueProperty().bindBidirectional(viewModel.rendaProperty());
+
+        // --- CPF ---
+        TextFormatter<String> cpfFormatter = FinanceiroUtils.criarFormatadorCpf();
+        txtCpf.setTextFormatter(cpfFormatter);
+        cpfFormatter.valueProperty().bindBidirectional(viewModel.cpfProperty());
+
+        // --- TELEFONE ---
+        TextFormatter<String> telefoneFormatter = FinanceiroUtils.criarFormatadorTelefone();
+        txtTelefone.setTextFormatter(telefoneFormatter);
+        telefoneFormatter.valueProperty().bindBidirectional(viewModel.telefoneProperty());
     }
 
     // ========================================================================
-    // AÇÕES PRINCIPAIS (SALVAR, LIMPAR, PREPARAR)
+    // LÓGICA DE NAVEGAÇÃO SEGURA E SALVAMENTO
     // ========================================================================
 
-    public void prepararEdicao(Proponente cliente) {
-        this.proponenteEmEdicao = cliente;
-    }
+    public void tentarNavegar(Runnable acaoNavegacao) {
+        if (!viewModel.temAlteracoesPendentes()) {
+            acaoNavegacao.run();
+            return;
+        }
 
-    public void prepararNovoContato() {
-        this.proponenteEmEdicao = null;
+        this.acaoNavegacaoPendente = acaoNavegacao;
+        overlayConfirmacaoSaida.setVisible(true);
     }
 
     @FXML
-    private void limparFormulario() {
-        proponenteEmEdicao = null;
-        lblTituloTela.setText("Cadastrar Novo Contato");
-        viewModel.reset();
+    private void cancelarSaida() {
+        overlayConfirmacaoSaida.setVisible(false);
+        this.acaoNavegacaoPendente = null;
+    }
+
+    @FXML
+    private void descartarESair() {
+        overlayConfirmacaoSaida.setVisible(false);
+        limparFormulario();
+
+        if (acaoNavegacaoPendente != null) {
+            acaoNavegacaoPendente.run();
+            acaoNavegacaoPendente = null;
+        }
+    }
+
+    @FXML
+    private void salvarESair() {
+        if (viewModel.podeSalvarProperty().get()) {
+            overlayConfirmacaoSaida.setVisible(false);
+            executarSalvamento(this.acaoNavegacaoPendente);
+            this.acaoNavegacaoPendente = null;
+        } else {
+            exibirMensagem("⚠️ Impossível salvar. Verifique se Nome e CPF estão corretos.", false);
+            overlayConfirmacaoSaida.setVisible(false);
+        }
     }
 
     @FXML
     private void handleSalvar() {
+        executarSalvamento(null);
+    }
+
+    private void executarSalvamento(Runnable onSucesso) {
         if (viewModel.nomeProperty().get().isBlank() || viewModel.cpfProperty().get().isBlank()) {
             exibirMensagem("Nome e CPF são campos obrigatórios.", false);
             return;
@@ -205,31 +232,22 @@ public class LeadController {
         };
 
         salvarTask.setOnSucceeded(event -> {
-            // 1. Pega o proponente atualizado (com ID e campos do banco)
             Proponente proponenteSalvo = salvarTask.getValue();
 
             if (proponenteEmEdicao == null) {
-                // Se era um cadastro novo, limpamos o formulário
                 limparFormulario();
             } else {
-                // 2. Se era edição, atualizamos a referência local
                 this.proponenteEmEdicao = proponenteSalvo;
-
-                // CORREÇÃO DA TELA: Atualiza o título com o novo nome que veio do banco
                 lblTituloTela.setText("Editando Contato: " + proponenteSalvo.getNomeCompleto());
-
-                // CORREÇÃO DO BOTÃO (Passo 1): Atualiza o ViewModel e os carimbos "Original"
                 viewModel.loadFromModel(proponenteSalvo);
             }
 
-            // CORREÇÃO DO BOTÃO (Passo 2): Desligamos o loading APÓS a atualização dos
-            // dados.
-            // Quando carregando vira 'false', o JavaFX reavalia o botão, percebe que
-            // a tela == original, e desativa o botão instantaneamente!
             setLoading(false);
-
-            // 3. Dá o feedback visual ao consultor
             exibirMensagem("✅ Contato salvo com sucesso!", true);
+
+            if (onSucesso != null) {
+                onSucesso.run();
+            }
         });
 
         salvarTask.setOnFailed(event -> {
@@ -241,8 +259,23 @@ public class LeadController {
         new Thread(salvarTask).start();
     }
 
+    public void prepararEdicao(Proponente cliente) {
+        this.proponenteEmEdicao = cliente;
+    }
+
+    public void prepararNovoContato() {
+        this.proponenteEmEdicao = null;
+    }
+
+    @FXML
+    private void limparFormulario() {
+        proponenteEmEdicao = null;
+        lblTituloTela.setText("Cadastrar Novo Contato");
+        viewModel.reset();
+    }
+
     // ========================================================================
-    // LÓGICA DE NEGÓCIO (DOCUMENTOS E RESUMO)
+    // FERRAMENTAS DO WHATSAPP, DOCUMENTOS E RESUMO
     // ========================================================================
 
     @FXML
@@ -312,7 +345,6 @@ public class LeadController {
         resumo.append("\n*[MODALIDADES DE INTERESSE]*\n");
         boolean produtoSelecionado = false;
 
-        // Leitura de todas as 12 modalidades no ViewModel para o Relatório Copiável
         if (viewModel.chkFgtsProperty().get()) {
             resumo.append("✔️ Antecipação Saque Aniversário (FGTS)\n");
             produtoSelecionado = true;
@@ -373,10 +405,6 @@ public class LeadController {
         lblResumoPreview.setText(this.resumoGeradoParaCopia);
         overlayResumo.setVisible(true);
     }
-
-    // ========================================================================
-    // FERRAMENTAS E MENSAGENS DO WHATSAPP
-    // ========================================================================
 
     @FXML
     private void abrirWhatsappRapido() {
@@ -441,10 +469,6 @@ public class LeadController {
         }
     }
 
-    // ========================================================================
-    // CONTROLES DE INTERFACE (UI)
-    // ========================================================================
-
     private String getNomeConsultorLogado() {
         return authService.estaLogado() ? authService.getUsuarioLogado().getNome() : "Consultor Poder Financeiro";
     }
@@ -497,14 +521,9 @@ public class LeadController {
     }
 
     private void setLoading(boolean loading) {
-        // 1. Avise ao ViewModel. Isso desativará o botão automaticamente via Bind
         viewModel.carregandoProperty().set(loading);
-
-        // 2. Gerencie apenas o feedback visual do progresso
         progress.setVisible(loading);
         progress.setManaged(loading);
-
-        // REMOVA A LINHA: btnSalvar.setDisable(loading); <-- Isso causava o erro
 
         if (loading) {
             esconderMensagem();

@@ -410,4 +410,28 @@ Overlay -->
                 maxWidth="Infinity" style="-fx-padding: 10;" />
         </VBox>
     </VBox>
+
+    <!-- NOVO: Overlay de Confirmação de Saída -->
+    <VBox fx:id="overlayConfirmacaoSaida" alignment="CENTER" spacing="20" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
+        <VBox alignment="CENTER" spacing="20" maxWidth="450"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <Label text="⚠️ Alterações Não Salvas"
+                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #c62828;" />
+
+            <Label text="Você possui alterações na Lead atual. Deseja salvar antes de sair?"
+                wrapText="true" textAlignment="CENTER"
+                style="-fx-font-size: 14px; -fx-text-fill: #333;" />
+
+            <HBox spacing="15" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
+                <Button text="Cancelar" onAction="#cancelarSaida" styleClass="flat" />
+                <Button text="Descartar Alterações" onAction="#descartarESair"
+                    style="-fx-background-color: #f5f5f5; -fx-text-fill: #666; -fx-border-color: #ddd; -fx-border-radius: 4; -fx-background-radius: 4;" />
+                <Button text="Salvar e Sair" onAction="#salvarESair"
+                    styleClass="accent"
+                    style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;" />
+            </HBox>
+        </VBox>
+    </VBox>
 </StackPane>
