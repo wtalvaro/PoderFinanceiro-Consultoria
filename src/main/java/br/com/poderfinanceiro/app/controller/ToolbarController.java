@@ -28,4 +28,11 @@ public class ToolbarController {
     private void handleNovoContato() { // Ou o nome que você deu ao método no XML
         mainController.irParaNovoContato();
     }
+
+    @FXML
+    private void handleNovaOperacao() {
+        // Direciona o consultor para a tela de simulador
+        // Certifique-se de que o nome do arquivo é simulator.fxml
+        mainController.navegarPara("/fxml/simulator.fxml", true);
+    }
 }

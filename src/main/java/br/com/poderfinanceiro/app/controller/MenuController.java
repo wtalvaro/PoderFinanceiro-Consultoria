@@ -20,6 +20,14 @@ public class MenuController {
     }
 
     @FXML
+    private void handleNovaSimulacao() {
+        // Direciona o centro do sistema para o simulador
+        // O segundo parâmetro 'true' garante que a moldura (Sidebar/Menu) permaneça
+        // visível
+        mainController.navegarPara("/fxml/simulator.fxml", true);
+    }
+
+    @FXML
     private void handleMenuSair() {
         Platform.exit();
         System.exit(0);

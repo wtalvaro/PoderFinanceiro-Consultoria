@@ -5,14 +5,24 @@
 <TabPane tabClosingPolicy="UNAVAILABLE" styleClass="classic" minHeight="0"
     xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
 
-    <!-- ABA 1: DASHBOARD -->
-    <Tab text="Painel de Controle">
+    <!-- ABA 1: VISÃO GERAL -->
+    <Tab text="📊 Painel de Controle">
         <fx:include source="dashboard.fxml" />
     </Tab>
 
-    <!-- ABA 2: ORIGINAÇÃO E SIMULADOR -->
-    <Tab text="Originação / Simulador">
+    <!-- ABA 2: GESTÃO DE CARTEIRA -->
+    <Tab text="👥 Base de Contatos">
+        <fx:include source="clientes_list.fxml" />
+    </Tab>
+
+    <!-- ABA 3: OPERAÇÃO E CÁLCULOS -->
+    <Tab text="🖩 Originação / Simulador">
         <fx:include source="simulator.fxml" />
+    </Tab>
+
+    <!-- ABA 4: ATENDIMENTO ATIVO -->
+    <Tab text="📝 Novo Cadastro / Lead">
+        <fx:include source="lead.fxml" />
     </Tab>
 
 </TabPane>

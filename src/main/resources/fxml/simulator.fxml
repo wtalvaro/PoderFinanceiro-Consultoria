@@ -1,153 +1,252 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
 
-<ScrollPane fitToWidth="true" style="-fx-background-color: transparent;"
-    styleClass="edge-to-edge" minHeight="0" xmlns="http://javafx.com/javafx/21"
-    xmlns:fx="http://javafx.com/fxml/1"
+<!-- Root alterado para StackPane para permitir Overlays de cópia de simulação -->
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.SimulatorController">
-    <VBox spacing="15" style="-fx-padding: 20 60;">
 
-        <HBox alignment="CENTER_LEFT">
-            <Label text="Nova Operação de Crédito"
-                styleClass="title-2" />
-            <Region HBox.hgrow="ALWAYS" />
-            <Label text="Modo: Rascunho"
-                styleClass="badge, accent" />
-        </HBox>
-        <Separator />
+    <BorderPane style="-fx-background-color: #f4f4f4;">
 
-        <TitledPane text="1. Qualificação do Cliente e Margem"
-            collapsible="false" styleClass="elevated-1">
-            <VBox spacing="15" style="-fx-padding: 15;">
-                <GridPane hgap="20" vgap="15">
-                    <columnConstraints>
-                        <ColumnConstraints
-                            percentWidth="40" />
-                        <ColumnConstraints
-                            percentWidth="30" />
-                        <ColumnConstraints
-                            percentWidth="30" />
-                    </columnConstraints>
+        <!-- TOPO FIXO (ToolBar idêntica à da Lead) -->
+        <top>
+            <ToolBar
+                style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+                <items>
+                    <Button onAction="#limparSimulacao" text="🔄" styleClass="flat"
+                        style="-fx-font-weight: bold;" prefWidth="45" prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Limpar e Iniciar Nova Simulação" />
+                        </tooltip>
+                    </Button>
 
-                    <VBox GridPane.columnIndex="0">
-                        <Label text="Proponente"
-                            styleClass="text-muted" />
-                        <ComboBox
-                            fx:id="comboProponente"
-                            maxWidth="Infinity"
-                            promptText="Buscar cliente..." />
-                    </VBox>
-                    <VBox GridPane.columnIndex="1">
-                        <Label
-                            text="Convênio / Espécie"
-                            styleClass="text-muted" />
-                        <ComboBox maxWidth="Infinity"
-                            promptText="Ex: INSS (Espécie 21)" />
-                    </VBox>
-                    <VBox GridPane.columnIndex="2">
-                        <Label
-                            text="Margem Disponível (R$)"
-                            styleClass="text-muted" />
-                        <TextField promptText="0,00"
-                            style="-fx-font-weight: bold; -fx-text-fill: -color-success-emphasis;" />
-                    </VBox>
-                </GridPane>
-            </VBox>
-        </TitledPane>
+                    <Button onAction="#abrirPreviewSimulacao" text="📋" styleClass="flat"
+                        style="-fx-font-weight: bold;" prefWidth="45" prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Copiar Simulação para WhatsApp" />
+                        </tooltip>
+                    </Button>
 
-        <TitledPane
-            text="2. Condições Comerciais (Parâmetros do Banco)"
-            collapsible="false" styleClass="elevated-1">
-            <VBox spacing="15" style="-fx-padding: 15;">
-                <GridPane hgap="20" vgap="15">
-                    <columnConstraints>
-                        <ColumnConstraints
-                            percentWidth="33.3" />
-                        <ColumnConstraints
-                            percentWidth="33.3" />
-                        <ColumnConstraints
-                            percentWidth="33.3" />
-                    </columnConstraints>
+                    <Pane HBox.hgrow="ALWAYS" /> <!-- Empurra ações principais para a direita -->
 
-                    <VBox GridPane.columnIndex="0">
-                        <Label text="Banco e Operação"
-                            styleClass="text-muted" />
-                        <ComboBox fx:id="comboBanco"
-                            maxWidth="Infinity"
-                            promptText="Ex: Banco Real Grandeza - Novo" />
-                    </VBox>
-                    <VBox GridPane.columnIndex="1">
-                        <Label
-                            text="Tabela Vigente (Match Automático)"
-                            styleClass="text-muted" />
-                        <ComboBox fx:id="comboTabela"
-                            maxWidth="Infinity"
-                            promptText="Taxa Ouro - 2.05% a.m" />
-                    </VBox>
-                    <VBox GridPane.columnIndex="2">
-                        <Label text="Prazo"
-                            styleClass="text-muted" />
-                        <Spinner
-                            fx:id="spinnerParcelas"
-                            maxWidth="Infinity" />
-                    </VBox>
+                    <Separator orientation="VERTICAL" />
 
-                    <VBox GridPane.rowIndex="1"
-                        GridPane.columnIndex="0">
-                        <Label
-                            text="Valor Solicitado (Líquido)"
-                            styleClass="text-muted" />
-                        <TextField
-                            fx:id="txtValorSolicitado"
-                            promptText="0,00" />
-                    </VBox>
-                    <VBox GridPane.rowIndex="1"
-                        GridPane.columnIndex="1">
-                        <Label
-                            text="Saldo Devedor (Refin/Port)"
-                            styleClass="text-muted" />
-                        <TextField promptText="0,00"
-                            disable="true" />
-                    </VBox>
-                    <HBox GridPane.rowIndex="1"
-                        GridPane.columnIndex="2"
-                        alignment="CENTER_LEFT"
-                        spacing="10">
-                        <CheckBox
-                            text="Incluir Seguro Prestamista"
-                            selected="true" />
-                    </HBox>
-                </GridPane>
-            </VBox>
-        </TitledPane>
+                    <!-- Ações Comerciais -->
+                    <Button fx:id="btnSalvarLead" text="💾 Salvar na Lead" styleClass="flat"
+                        style="-fx-font-weight: bold; -fx-text-fill: -color-accent-fg;"
+                        prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Vincular simulação ao cliente sem efetivar" />
+                        </tooltip>
+                    </Button>
 
-        <HBox alignment="CENTER" spacing="40"
-            style="-fx-background-color: -color-bg-inset; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-default;">
-            <VBox alignment="CENTER">
-                <Label text="Valor da Parcela (PMT)"
-                    style="-fx-font-size: 14px; -fx-text-fill: -color-fg-muted;" />
-                <Label text="R$ 0,00"
-                    style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;" />
-            </VBox>
-            <Separator orientation="VERTICAL" />
-            <VBox alignment="CENTER">
-                <Label text="Valor Total Liberado"
-                    style="-fx-font-size: 14px; -fx-text-fill: -color-fg-muted;" />
-                <Label text="R$ 0,00"
-                    style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: -color-success-emphasis;" />
-            </VBox>
-        </HBox>
+                    <Button fx:id="btnEfetivar" text="🚀 Digitar no Banco" styleClass="success"
+                        style="-fx-font-weight: bold; -fx-background-color: -color-success-fg; -fx-text-fill: white;"
+                        prefHeight="40">
+                        <tooltip>
+                            <Tooltip text="Confirmar proposta e gerar espelho" />
+                        </tooltip>
+                    </Button>
+                </items>
+            </ToolBar>
+        </top>
 
-        <HBox spacing="15" alignment="CENTER_RIGHT"
-            style="-fx-padding: 10 0 0 0;">
-            <Button text="Limpar Simulação" styleClass="flat" />
-            <Button text="Salvar como Lead"
-                styleClass="outlined, accent" />
-            <Button text="Efetivar Digitação no Banco"
-                styleClass="success, large" prefWidth="250" />
-        </HBox>
+        <!-- CONTEÚDO ROLÁVEL (A Esteira de Cálculo) -->
+        <center>
+            <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;"
+                styleClass="edge-to-edge">
+                <content>
+                    <VBox spacing="20" style="-fx-background-color: #ffffff; -fx-padding: 30;">
+
+                        <!-- Cabeçalho Dinâmico -->
+                        <HBox alignment="CENTER_LEFT">
+                            <VBox spacing="5">
+                                <Label text="Simulador de Crédito"
+                                    style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                                <Label
+                                    text="Configure os parâmetros para projetar parcelas e valores líquidos."
+                                    style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;" />
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label text="Modo: Rascunho" styleClass="badge, accent"
+                                style="-fx-padding: 5 10; -fx-background-radius: 20; -fx-font-weight: bold;" />
+                        </HBox>
+
+                        <Label fx:id="lblMensagem" visible="false" managed="false" wrapText="true" />
+
+                        <!-- SEÇÃO 1: Cliente e Tipo de Operação -->
+                        <TitledPane text="1. Qualificação e Tipo de Operação" collapsible="false"
+                            styleClass="elevated-1">
+                            <VBox spacing="15" style="-fx-padding: 15;">
+                                <GridPane hgap="20" vgap="15">
+                                    <columnConstraints>
+                                        <ColumnConstraints percentWidth="35" />
+                                        <ColumnConstraints percentWidth="35" />
+                                        <ColumnConstraints percentWidth="30" />
+                                    </columnConstraints>
+
+                                    <!-- Linha 1 -->
+                                    <VBox GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                        <Label text="Vincular a um Proponente:"
+                                            styleClass="text-muted" style="-fx-font-weight: bold;" />
+                                        <ComboBox fx:id="comboProponente" maxWidth="Infinity"
+                                            promptText="Buscar cliente na base..." />
+                                    </VBox>
+
+                                    <VBox GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                        <Label text="Convênio / Órgão:" styleClass="text-muted"
+                                            style="-fx-font-weight: bold;" />
+                                        <ComboBox fx:id="comboConvenio" maxWidth="Infinity"
+                                            promptText="Ex: INSS, SIAPE..." />
+                                    </VBox>
+
+                                    <VBox GridPane.columnIndex="2" GridPane.rowIndex="0">
+                                        <Label text="Tipo de Operação:" styleClass="text-muted"
+                                            style="-fx-font-weight: bold;" />
+                                        <ComboBox fx:id="comboOperacao" maxWidth="Infinity"
+                                            promptText="Margem Livre, Refin..." />
+                                    </VBox>
+                                </GridPane>
+                            </VBox>
+                        </TitledPane>
+
+                        <!-- SEÇÃO 2: Parâmetros Comerciais e Financeiros -->
+                        <TitledPane text="2. Parâmetros Comerciais e Tabela Vigente"
+                            collapsible="false" styleClass="elevated-1">
+                            <VBox spacing="15" style="-fx-padding: 15;">
+                                <GridPane hgap="20" vgap="15">
+                                    <columnConstraints>
+                                        <ColumnConstraints percentWidth="33.3" />
+                                        <ColumnConstraints percentWidth="33.3" />
+                                        <ColumnConstraints percentWidth="33.3" />
+                                    </columnConstraints>
+
+                                    <!-- Linha 1: O Banco e a Tabela -->
+                                    <VBox GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                        <Label text="Banco Promotor:" styleClass="text-muted"
+                                            style="-fx-font-weight: bold;" />
+                                        <ComboBox fx:id="comboBanco" maxWidth="Infinity"
+                                            promptText="Selecione o banco..." />
+                                    </VBox>
+                                    <VBox GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                        <Label text="Tabela Vigente:" styleClass="text-muted"
+                                            style="-fx-font-weight: bold;" />
+                                        <ComboBox fx:id="comboTabela" maxWidth="Infinity"
+                                            promptText="Ex: Normal, Ouro, Master..." />
+                                    </VBox>
+                                    <HBox spacing="10" GridPane.columnIndex="2"
+                                        GridPane.rowIndex="0">
+                                        <VBox HBox.hgrow="ALWAYS">
+                                            <Label text="Taxa (% a.m):" styleClass="text-muted"
+                                                style="-fx-font-weight: bold;" />
+                                            <TextField fx:id="txtTaxaJuros" promptText="0.00" />
+                                        </VBox>
+                                        <VBox HBox.hgrow="ALWAYS">
+                                            <Label text="Coeficiente:" styleClass="text-muted"
+                                                style="-fx-font-weight: bold;" />
+                                            <TextField fx:id="txtCoeficiente" promptText="0.00000" />
+                                        </VBox>
+                                    </HBox>
+
+                                    <!-- Linha 2: Os Valores da Simulação -->
+                                    <VBox GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                        <Label text="Prazo (Meses):" styleClass="text-muted"
+                                            style="-fx-font-weight: bold;" />
+                                        <Spinner fx:id="spinnerParcelas" maxWidth="Infinity" />
+                                    </VBox>
+
+                                    <VBox GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                        <Label text="Base de Cálculo (Margem ou Líquido):"
+                                            styleClass="text-muted" style="-fx-font-weight: bold;" />
+                                        <TextField fx:id="txtValorBase" promptText="R$ 0,00"
+                                            style="-fx-font-weight: bold;" />
+                                    </VBox>
+
+                                    <VBox GridPane.columnIndex="2" GridPane.rowIndex="1">
+                                        <Label text="Saldo Devedor Anterior (Refin/Port):"
+                                            styleClass="text-muted" style="-fx-font-weight: bold;" />
+                                        <TextField fx:id="txtSaldoDevedor" promptText="R$ 0,00"
+                                            disable="true" />
+                                    </VBox>
+
+                                    <!-- Linha 3: Filtros e Configurações Extras -->
+                                    <HBox spacing="20" GridPane.columnSpan="3" GridPane.rowIndex="2"
+                                        alignment="CENTER_LEFT">
+                                        <CheckBox fx:id="chkPrestamista"
+                                            text="Incluir Seguro Prestamista" />
+                                        <CheckBox fx:id="chkCarencia"
+                                            text="Aplicar Carência Padrão (Dias)" />
+                                    </HBox>
+                                </GridPane>
+                            </VBox>
+                        </TitledPane>
+
+                        <!-- SEÇÃO 3: Resultado da Simulação (O Painel Principal do Consultor) -->
+                        <HBox alignment="CENTER" spacing="30"
+                            style="-fx-background-color: -color-bg-inset; -fx-padding: 25; -fx-border-radius: 8; -fx-border-color: -color-border-default;">
+
+                            <VBox alignment="CENTER">
+                                <Label text="Parcela Estimada (PMT)"
+                                    style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted; -fx-font-weight: bold;" />
+                                <Label fx:id="lblResultadoParcela" text="R$ 0,00"
+                                    style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;" />
+                            </VBox>
+
+                            <Separator orientation="VERTICAL" />
+
+                            <VBox alignment="CENTER">
+                                <Label text="Valor Líquido Liberado (Na Conta)"
+                                    style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted; -fx-font-weight: bold;" />
+                                <Label fx:id="lblResultadoLiquido" text="R$ 0,00"
+                                    style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: -color-success-emphasis;" />
+                                <Label text="Para Refinanciamento: Este é o Troco"
+                                    style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted;" />
+                            </VBox>
+
+                            <Separator orientation="VERTICAL" />
+
+                            <VBox alignment="CENTER">
+                                <Label text="Valor Bruto Financiado"
+                                    style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted; -fx-font-weight: bold;" />
+                                <Label fx:id="lblResultadoBruto" text="R$ 0,00"
+                                    style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                            </VBox>
+                        </HBox>
+
+                        <Region VBox.vgrow="ALWAYS" />
+                    </VBox>
+                </content>
+            </ScrollPane>
+        </center>
+    </BorderPane>
+
+    <!-- OVERLAY: Preview para WhatsApp (Oculto por padrão) -->
+    <VBox fx:id="overlayResumoSimulacao" alignment="CENTER" spacing="20" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 50;">
+        <VBox alignment="TOP_LEFT" spacing="20" maxWidth="500" maxHeight="600"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="📲 Pré-Visualização WhatsApp"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+            </HBox>
+
+            <Separator />
+
+            <ScrollPane fitToWidth="true"
+                style="-fx-background-color: transparent; -fx-background: #f9f9f9; -fx-padding: 10;">
+                <Label fx:id="lblSimulacaoPreview" wrapText="true"
+                    style="-fx-font-family: 'Monospaced'; -fx-font-size: 13px; -fx-text-fill: #333;"
+                    text="*SIMULAÇÃO DE CRÉDITO*&#10;Banco: ...&#10;Operação: ...&#10;&#10;*Valor Liberado:* R$ 0,00&#10;*Parcela:* 00x R$ 0,00" />
+            </ScrollPane>
+
+            <HBox spacing="15" alignment="CENTER_RIGHT">
+                <Button text="Voltar" onAction="#fecharPreviewSimulacao" styleClass="flat" />
+                <Button text="Confirmar e Copiar" onAction="#confirmarCopiaSimulacao"
+                    styleClass="accent" style="-fx-padding: 8 20; -fx-font-weight: bold;" />
+            </HBox>
+        </VBox>
     </VBox>
-</ScrollPane>
+
+</StackPane>

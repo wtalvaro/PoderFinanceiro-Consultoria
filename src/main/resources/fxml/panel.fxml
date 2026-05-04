@@ -29,17 +29,17 @@
         <Label text="ESTEIRA DE CRÉDITO"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 10 0 0 5;" />
 
-        <Button text="📊 Dashboard" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat, accent" />
+        <Button fx:id="btnDashboard" text="📊 Dashboard" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat, accent" onAction="#abrirWorkspace" />
 
         <!-- Navegação Pura: Agora engloba todo o ciclo de vida -->
-        <Button text="👥 Base de Contatos/Clientes" maxWidth="Infinity"
+        <Button fx:id="btnBaseClientes" text="👥 Base de Contatos/Clientes" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTelaBaseClientes" />
 
-        <Button text="📄 Propostas (Em Andamento)" maxWidth="Infinity"
+        <Button fx:id="btnPropostas" text="📄 Propostas (Em Andamento)" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
 
-        <Button text="⏳ Pendências / Exigências" maxWidth="Infinity"
+        <Button fx:id="btnPendencias" text="⏳ Pendências / Exigências" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat"
             style="-fx-text-fill: -color-danger-fg;" />
 
@@ -47,13 +47,13 @@
         <Label text="PARAMETRIZAÇÃO"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
 
-        <Button text="🏦 Bancos e Convênios" maxWidth="Infinity"
+        <Button fx:id="btnBancosConvenios" text="🏦 Bancos e Convênios" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
 
-        <Button text="📈 Tabelas de Juros" maxWidth="Infinity"
+        <Button fx:id="btnTabelasJuros" text="📈 Tabelas de Juros" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
 
-        <Button text="💰 Tabela de Comissões" maxWidth="Infinity"
+        <Button fx:id="btnTabelaComissoes" text="💰 Tabela de Comissões" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
 
         <!-- Region que empurra tudo para cima -->

@@ -12,7 +12,8 @@
                 <MenuItem text="Novo Contato..." accelerator="Ctrl+N"
                     onAction="#handleNovoContato" />
 
-                <MenuItem text="Nova Simulação..." accelerator="Ctrl+S" />
+                <MenuItem text="Nova Simulação..." accelerator="Ctrl+S"
+                    onAction="#handleNovaSimulacao" />
                 <SeparatorMenuItem />
                 <MenuItem text="Sincronizar Matriz de Taxas" />
                 <SeparatorMenuItem />

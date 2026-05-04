@@ -25,4 +25,11 @@ public class PanelController {
         // Agora o Java sabe exatamente o que é o mainController
         mainController.navegarPara("/fxml/clientes_list.fxml", true);
     }
+
+    @FXML
+    private void abrirWorkspace() {
+        // Seguindo o padrão de navegação do seu sistema
+        // O caminho deve ser o arquivo que contém o TabPane (workspace.fxml)
+        mainController.navegarPara("/fxml/workspace.fxml", true);
+    }
 }
