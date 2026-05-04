@@ -48,6 +48,8 @@ Overlay -->
 
                     <Pane HBox.hgrow="ALWAYS" /> <!-- Empurra as ações principais para a direita -->
 
+                    <Separator orientation="VERTICAL" />
+                    
                     <!-- Ações de Fechamento (Mantendo o destaque no Salvar) -->
                     <Button fx:id="btnSalvar" text="💾" onAction="#handleSalvar"
                         styleClass="accent"

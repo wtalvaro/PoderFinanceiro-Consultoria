@@ -1,142 +1,175 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.TipoConvenio;
 import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.service.ProponenteService;
+import br.com.poderfinanceiro.app.strategy.DocumentStrategy;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
+import br.com.poderfinanceiro.app.viewmodel.LeadViewModel;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-
-import java.time.format.DateTimeFormatter;
-
+import javafx.util.StringConverter;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Component
 public class LeadController {
 
+    // --- DEPENDÊNCIAS ---
     private final ProponenteService proponenteService;
     private final MainController mainController;
+    private final AuthService authService;
+    private final List<DocumentStrategy> documentStrategies;
+    private final LeadViewModel viewModel;
 
+    // --- ESTADO INTERNO ---
     private Proponente proponenteEmEdicao = null;
-
-    // FXML - Cabeçalho
-    @FXML
-    private Label lblTituloTela;
-    @FXML
-    private Label lblMensagem;
-
-    // FXML - Seção 1 (Básico)
-    @FXML
-    private TextField txtNome;
-    @FXML
-    private TextField txtCpf;
-    @FXML
-    private TextField txtTelefone;
-    @FXML
-    private ComboBox<String> cbOrigem;
-
-    // FXML - Seção 2 (Operacional)
-    @FXML
-    private DatePicker dpDataNascimento;
-    @FXML
-    private ComboBox<String> cbConvenio;
-    @FXML
-    private ComboBox<String> cbVinculo;
-    @FXML
-    private TextField txtMatricula;
-    @FXML
-    private TextField txtRenda;
-
-    // FXML - Seção 3 (Produtos)
-    @FXML
-    private CheckBox chkFgts, chkInss, chkSiape, chkForcas, chkBolsaFamilia, chkContaLuz;
-    @FXML
-    private CheckBox chkCartao, chkPortabilidade, chkRefin, chkGarantia, chkConsigPrivado, chkPessoal;
-
-    // FXML - Controles
-    @FXML
-    private ProgressIndicator progress;
-    @FXML
-    private Button btnSalvar;
-    @FXML
-    private VBox overlayDocs;
-    @FXML
-    private Label lblChecklistTexto;
-    @FXML
-    private VBox overlayResumo;
-    @FXML
-    private Label lblResumoPreview;
-    @FXML
-    private Label lblPreviewSaudacao;
-    @FXML
-    private Label lblPreviewAnalise;
-    @FXML
-    private Label lblPreviewFechamento;
-
     private String resumoGeradoParaCopia;
     private String checklistGeradoParaCopia;
 
-    private final AuthService authService;
-    
-    // 2. Defina os templates como constantes para evitar divergências entre o
-    // preview e a cópia
+    // --- FXML BINDINGS ---
+    @FXML
+    private Label lblTituloTela, lblMensagem;
+    @FXML
+    private TextField txtNome, txtCpf, txtTelefone, txtMatricula, txtRenda;
+    @FXML
+    private ComboBox<String> cbOrigem, cbVinculo;
+    @FXML
+    private ComboBox<TipoConvenio> cbConvenio;
+    @FXML
+    private DatePicker dpDataNascimento;
+    @FXML
+    private ProgressIndicator progress;
+    @FXML
+    private Button btnSalvar, btnCancelar;
+
+    // Componente estrutural (adicionado para refletir o FXML)
+    @FXML
+    private ScrollPane scrollPrincipal;
+
+    // Todos os 12 CheckBoxes de Modalidades
+    @FXML
+    private CheckBox chkFgts, chkInss, chkSiape, chkForcas, chkBolsaFamilia, chkContaLuz,
+            chkCartao, chkPortabilidade, chkRefin, chkGarantia, chkConsigPrivado, chkPessoal;
+
+    // Overlays e Previews
+    @FXML
+    private VBox overlayDocs, overlayResumo, overlayMensagens;
+    @FXML
+    private Label lblChecklistTexto, lblResumoPreview;
+    @FXML
+    private Label lblPreviewSaudacao, lblPreviewAnalise, lblPreviewFechamento;
+
+    // --- CONSTANTES ---
     private static final String TEMPLATE_SAUDACAO = "Olá! Sou o *%CONSULTOR%*, da *Poder Financeiro*. Recebi seu contato e estou à disposição para ajudar com seu crédito.";
     private static final String TEMPLATE_ANALISE = "Aqui é o *%CONSULTOR%*. Já iniciei a consulta da sua margem. Por favor, aguarde um momento enquanto verifico as melhores taxas.";
     private static final String TEMPLATE_FECHAMENTO = "Qualquer dúvida, pode me chamar aqui. Tenha um excelente dia! Atenciosamente, *%CONSULTOR%* | *Poder Financeiro*.";
 
-    public LeadController(ProponenteService proponenteService, MainController mainController, AuthService authService) {
+    public LeadController(ProponenteService proponenteService, MainController mainController,
+            AuthService authService, List<DocumentStrategy> documentStrategies,
+            LeadViewModel viewModel) {
         this.proponenteService = proponenteService;
         this.mainController = mainController;
         this.authService = authService;
+        this.documentStrategies = documentStrategies;
+        this.viewModel = viewModel;
     }
 
     @FXML
     public void initialize() {
-        // Tenta carregar a fonte de emojis do sistema para a memória do JavaFX
         javafx.scene.text.Font.loadFont("file:/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf", 18);
 
-        // 1. Configurações de UI
-        configurarListas();
-        FinanceiroUtils.configurarCampoMoeda(txtRenda);
-        FinanceiroUtils.configurarMascaraCpf(txtCpf);
-        FinanceiroUtils.configurarMascaraTelefone(txtTelefone);
+        configurarListasEFormatores();
+        estabelecerBindings();
         esconderMensagem();
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        dpDataNascimento.setConverter(new javafx.util.converter.LocalDateStringConverter(formatter, formatter));
-    
-        // 2. Unificação do Estado (O Pulo do Gato)
         if (this.proponenteEmEdicao != null) {
-            exibirDadosNoFormulario(this.proponenteEmEdicao);
+            lblTituloTela.setText("Editando Contato: " + proponenteEmEdicao.getNomeCompleto());
+            viewModel.loadFromModel(this.proponenteEmEdicao);
         } else {
             limparFormulario();
         }
+
+        btnSalvar.disableProperty().bind(viewModel.podeSalvarProperty().not());
     }
 
-    private void configurarListas() {
+    // ========================================================================
+    // SETUP E BINDINGS
+    // ========================================================================
+
+    private void configurarListasEFormatores() {
         cbOrigem.getItems().setAll("WhatsApp", "Panfleto", "Indicação", "Facebook", "Passou na porta");
-        cbConvenio.getItems().setAll("INSS", "SIAPE", "Exército", "Marinha", "Aeronáutica", "Governo RJ", "Prefeitura");
         cbVinculo.getItems().setAll("Aposentado", "Pensionista", "Servidor Ativo", "Militar", "CLT");
+
+        cbConvenio.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(TipoConvenio obj) {
+                return obj != null ? obj.getLabel() : "";
+            }
+
+            @Override
+            public TipoConvenio fromString(String str) {
+                return null;
+            }
+        });
+        cbConvenio.getItems().setAll(TipoConvenio.values());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        dpDataNascimento.setConverter(new javafx.util.converter.LocalDateStringConverter(formatter, formatter));
+
+        FinanceiroUtils.configurarCampoMoeda(txtRenda);
+        FinanceiroUtils.configurarMascaraCpf(txtCpf);
+        FinanceiroUtils.configurarMascaraTelefone(txtTelefone);
     }
 
-    private void exibirDadosNoFormulario(Proponente cliente) {
-        lblTituloTela.setText("Editando Contato: " + cliente.getNomeCompleto());
+    private void estabelecerBindings() {
+        // TextFields e ComboBoxes
+        txtNome.textProperty().bindBidirectional(viewModel.nomeProperty());
+        txtCpf.textProperty().bindBidirectional(viewModel.cpfProperty());
+        txtTelefone.textProperty().bindBidirectional(viewModel.telefoneProperty());
+        cbOrigem.valueProperty().bindBidirectional(viewModel.origemProperty());
+        dpDataNascimento.valueProperty().bindBidirectional(viewModel.dataNascimentoProperty());
+        cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
+        cbVinculo.valueProperty().bindBidirectional(viewModel.vinculoProperty());
+        txtMatricula.textProperty().bindBidirectional(viewModel.matriculaProperty());
 
-        txtNome.setText(cliente.getNomeCompleto());
-        txtCpf.setText(FinanceiroUtils.formatarCpf(cliente.getCpf()));
-        txtTelefone.setText(FinanceiroUtils.formatarTelefone(cliente.getTelefone()));
-        cbOrigem.setValue(cliente.getOrigemConsentimento());
+        // Vinculação de TODAS as 12 modalidades (Checkboxes)
+        chkFgts.selectedProperty().bindBidirectional(viewModel.chkFgtsProperty());
+        chkInss.selectedProperty().bindBidirectional(viewModel.chkInssProperty());
+        chkSiape.selectedProperty().bindBidirectional(viewModel.chkSiapeProperty());
+        chkForcas.selectedProperty().bindBidirectional(viewModel.chkForcasProperty());
+        chkBolsaFamilia.selectedProperty().bindBidirectional(viewModel.chkBolsaFamiliaProperty());
+        chkContaLuz.selectedProperty().bindBidirectional(viewModel.chkContaLuzProperty());
+        chkCartao.selectedProperty().bindBidirectional(viewModel.chkCartaoProperty());
+        chkPortabilidade.selectedProperty().bindBidirectional(viewModel.chkPortabilidadeProperty());
+        chkRefin.selectedProperty().bindBidirectional(viewModel.chkRefinProperty());
+        chkGarantia.selectedProperty().bindBidirectional(viewModel.chkGarantiaProperty());
+        chkConsigPrivado.selectedProperty().bindBidirectional(viewModel.chkConsigPrivadoProperty());
+        chkPessoal.selectedProperty().bindBidirectional(viewModel.chkPessoalProperty());
 
-        dpDataNascimento.setValue(cliente.getDataNascimento());
-        cbConvenio.setValue(cliente.getConvenioOrgao());
-        cbVinculo.setValue(cliente.getTipoVinculo());
-        txtMatricula.setText(cliente.getMatricula());
-        txtRenda.setText(FinanceiroUtils.formatarParaExibicao(cliente.getRendaMensal()));
-
-        desmarcarProdutos();
+        // Tratamento especial para o BigDecimal da Renda
+        txtRenda.textProperty().addListener((obs, oldV, newV) -> {
+            try {
+                viewModel.rendaProperty().set(FinanceiroUtils.extrairValorParaBanco(newV));
+            } catch (Exception e) {
+                viewModel.rendaProperty().set(BigDecimal.ZERO);
+            }
+        });
+        viewModel.rendaProperty().addListener((obs, oldV, newV) -> {
+            String formatado = FinanceiroUtils.formatarParaExibicao(newV);
+            if (!txtRenda.getText().equals(formatado))
+                txtRenda.setText(formatado);
+        });
     }
+
+    // ========================================================================
+    // AÇÕES PRINCIPAIS (SALVAR, LIMPAR, PREPARAR)
+    // ========================================================================
 
     public void prepararEdicao(Proponente cliente) {
         this.proponenteEmEdicao = cliente;
@@ -147,11 +180,15 @@ public class LeadController {
     }
 
     @FXML
-    private void handleSalvar() {
-        String nome = txtNome.getText();
-        String cpf = txtCpf.getText();
+    private void limparFormulario() {
+        proponenteEmEdicao = null;
+        lblTituloTela.setText("Cadastrar Novo Contato");
+        viewModel.reset();
+    }
 
-        if (nome == null || nome.trim().isEmpty() || cpf == null || cpf.trim().isEmpty()) {
+    @FXML
+    private void handleSalvar() {
+        if (viewModel.nomeProperty().get().isBlank() || viewModel.cpfProperty().get().isBlank()) {
             exibirMensagem("Nome e CPF são campos obrigatórios.", false);
             return;
         }
@@ -162,26 +199,37 @@ public class LeadController {
             @Override
             protected Proponente call() throws Exception {
                 Proponente contato = (proponenteEmEdicao != null) ? proponenteEmEdicao : new Proponente();
-
-                contato.setNomeCompleto(nome.trim());
-                contato.setCpf(cpf.trim());
-                contato.setTelefone(txtTelefone.getText());
-                contato.setOrigemConsentimento(cbOrigem.getValue());
-                contato.setDataNascimento(dpDataNascimento.getValue());
-                contato.setConvenioOrgao(cbConvenio.getValue());
-                contato.setTipoVinculo(cbVinculo.getValue());
-                contato.setMatricula(txtMatricula.getText());
-                contato.setRendaMensal(FinanceiroUtils.extrairValorParaBanco(txtRenda.getText()));
-
+                contato = viewModel.mapToModel(contato);
                 return proponenteService.salvarLead(contato);
             }
         };
 
         salvarTask.setOnSucceeded(event -> {
-            setLoading(false);
-            exibirMensagem("✅ Contato salvo com sucesso!", true);
-            if (proponenteEmEdicao == null)
+            // 1. Pega o proponente atualizado (com ID e campos do banco)
+            Proponente proponenteSalvo = salvarTask.getValue();
+
+            if (proponenteEmEdicao == null) {
+                // Se era um cadastro novo, limpamos o formulário
                 limparFormulario();
+            } else {
+                // 2. Se era edição, atualizamos a referência local
+                this.proponenteEmEdicao = proponenteSalvo;
+
+                // CORREÇÃO DA TELA: Atualiza o título com o novo nome que veio do banco
+                lblTituloTela.setText("Editando Contato: " + proponenteSalvo.getNomeCompleto());
+
+                // CORREÇÃO DO BOTÃO (Passo 1): Atualiza o ViewModel e os carimbos "Original"
+                viewModel.loadFromModel(proponenteSalvo);
+            }
+
+            // CORREÇÃO DO BOTÃO (Passo 2): Desligamos o loading APÓS a atualização dos
+            // dados.
+            // Quando carregando vira 'false', o JavaFX reavalia o botão, percebe que
+            // a tela == original, e desativa o botão instantaneamente!
+            setLoading(false);
+
+            // 3. Dá o feedback visual ao consultor
+            exibirMensagem("✅ Contato salvo com sucesso!", true);
         });
 
         salvarTask.setOnFailed(event -> {
@@ -193,284 +241,164 @@ public class LeadController {
         new Thread(salvarTask).start();
     }
 
-    @FXML
-    private void limparFormulario() {
-        proponenteEmEdicao = null;
-        lblTituloTela.setText("Cadastrar Novo Contato");
-        txtNome.clear();
-        txtCpf.clear();
-        txtTelefone.clear();
-        cbOrigem.getSelectionModel().clearSelection();
-        dpDataNascimento.setValue(null);
-        cbConvenio.getSelectionModel().clearSelection();
-        cbVinculo.getSelectionModel().clearSelection();
-        txtMatricula.clear();
-        txtRenda.clear();
-        desmarcarProdutos();
-    }
-
-    private void desmarcarProdutos() {
-        CheckBox[] boxes = { chkFgts, chkInss, chkSiape, chkForcas, chkBolsaFamilia, chkContaLuz,
-                chkCartao, chkPortabilidade, chkRefin, chkGarantia, chkConsigPrivado, chkPessoal };
-        for (CheckBox cb : boxes)
-            if (cb != null)
-                cb.setSelected(false);
-    }
-
-    private void exibirMensagem(String texto, boolean sucesso) {
-        lblMensagem.setText(texto);
-        lblMensagem.setVisible(true);
-        lblMensagem.setManaged(true);
-        String color = sucesso ? "#e8f5e9" : "#ffebee";
-        String text = sucesso ? "#2e7d32" : "#c62828";
-        lblMensagem.setStyle("-fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 5; -fx-background-color: "
-                + color + "; -fx-text-fill: " + text + ";");
-    }
-
-    private void esconderMensagem() {
-        lblMensagem.setVisible(false);
-        lblMensagem.setManaged(false);
-    }
-
-    private void setLoading(boolean loading) {
-        progress.setVisible(loading);
-        progress.setManaged(loading);
-        btnSalvar.setDisable(loading);
-        if (loading)
-            esconderMensagem();
-    }
-
-    // --- MÉTODOS DA TOOLBAR ---
-
-    @FXML
-    private void abrirWhatsappRapido() {
-        // 1. Sanitização: Garante apenas números
-        String tel = txtTelefone.getText().replaceAll("[^0-9]", "");
-
-        if (tel.isEmpty()) {
-            exibirMensagem("⚠️ Digite um telefone para abrir o WhatsApp.", false);
-            return;
-        }
-
-        // 2. Inteligência de Código de País:
-        // Se o consultor em Magé digitar apenas o DDD + número (11 dígitos),
-        // nós adicionamos o 55 (Brasil) automaticamente.
-        String linkFinal = tel.startsWith("55") ? tel : "55" + tel;
-        String url = "https://wa.me/" + linkFinal;
-
-        try {
-            // 3. Execução via HostServices (Melhor suporte para Fedora/Wayland)
-            // Nota: mainController deve expor o getHostServices() da sua classe Application
-            mainController.getHostServices().showDocument(url);
-
-        } catch (Exception e) {
-            exibirMensagem("Não foi possível abrir o navegador.", false);
-        }
-    }
+    // ========================================================================
+    // LÓGICA DE NEGÓCIO (DOCUMENTOS E RESUMO)
+    // ========================================================================
 
     @FXML
     private void verDocumentosNecessarios() {
-        String convenio = cbConvenio.getValue();
+        TipoConvenio convenio = viewModel.convenioProperty().get();
+        String busca = (convenio != null) ? convenio.name() : "PADRAO";
+
+        DocumentStrategy strategy = documentStrategies.stream()
+                .filter(s -> s.supports(busca))
+                .findFirst()
+                .orElseGet(() -> documentStrategies.stream()
+                        .filter(s -> s.supports("PADRAO"))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Estratégia PADRAO não encontrada.")));
+
+        String labelTitulo = (convenio != null) ? convenio.getLabel() : "GERAL";
         StringBuilder sb = new StringBuilder();
 
-        // 1. Cabeçalho Institucional
-        sb.append("📋 *INSTRUÇÕES PARA FORMALIZAÇÃO - ").append(convenio != null ? convenio.toUpperCase() : "GERAL")
-                .append("*\n");
+        sb.append("📋 *INSTRUÇÕES PARA FORMALIZAÇÃO - ").append(labelTitulo.toUpperCase()).append("*\n");
         sb.append("————————————————————————————\n");
         sb.append(
                 "Para prosseguirmos com a sua análise de crédito no *Poder Financeiro*, por favor, envie fotos nítidas dos seguintes documentos:\n\n");
-
-        // 2. Lógica de Checklist Técnica (Text Blocks)
-        String docs = switch (convenio != null ? convenio : "Padrão") {
-            case "INSS" -> """
-                    *DOCUMENTAÇÃO OBRIGATÓRIA - INSS*
-                    ————————————————————————————
-                    • *Identificação:* RG ou CNH original (dentro da validade).
-                    • *Residência:* Comprovante de endereço nominal e atualizado (máximo 60 dias).
-                    • *Extrato HISCON:* Extrato de Empréstimos Consignados (obtido via Meu INSS).
-                    • *Detalhamento:* Extrato de Pagamento (Detalhamento de Crédito - DC).
-                    • *Bancário:* Comprovante de conta onde recebe o benefício (Extrato ou Cartão).
-                    • *Identificação Visual:* Selfie com documento de identidade (para formalização digital).
-                    """;
-
-            case "SIAPE" -> """
-                    *DOCUMENTAÇÃO OBRIGATÓRIA - SIAPE*
-                    ————————————————————————————
-                    • *Identificação:* Identidade Funcional ou CNH.
-                    • *Renda:* 02 últimos contracheques (extraídos do portal SouGov).
-                    • *Residência:* Comprovante de endereço nominal e atualizado.
-                    • *Autorização:* Chave de Autorização ativa gerada no SouGov.
-                    • *Bancário:* Comprovante de conta corrente ativa para crédito.
-                    """;
-
-            case "Exército", "Marinha", "Aeronáutica" -> """
-                    *DOCUMENTAÇÃO OBRIGATÓRIA - FORÇAS ARMADAS*
-                    ————————————————————————————
-                    • *Identificação:* Identidade Militar original e legível.
-                    • *Renda:* Último Bilhete de Pagamento atualizado.
-                    • *Residência:* Comprovante de endereço em nome do militar ou cônjuge.
-                    • *Bancário:* Comprovante de conta bancária para recebimento do crédito.
-                    • *Certidão:* Nada Consta/Folha de Alterações (se solicitado pelo banco).
-                    """;
-
-            case "Governo RJ", "Prefeitura" -> """
-                    *DOCUMENTAÇÃO OBRIGATÓRIA - PÚBLICO ESTADUAL/MUNICIPAL*
-                    ————————————————————————————
-                    • *Identificação:* RG ou CNH.
-                    • *Renda:* 03 últimos contracheques originais.
-                    • *Residência:* Comprovante de residência atualizado.
-                    • *Funcional:* Número de matrícula e data de admissão.
-                    • *Bancário:* Cartão do banco ou extrato para validação de dados.
-                    """;
-
-            default -> """
-                    *DOCUMENTAÇÃO GERAL PARA ANÁLISE*
-                    ————————————————————————————
-                    • *Identificação:* RG e CPF ou CNH.
-                    • *Residência:* Comprovante de endereço nominal.
-                    • *Financeiro:* 03 últimos comprovantes de renda (Holerites).
-                    • *Extrato:* Extrato bancário dos últimos 90 dias (para crédito pessoal).
-                    • *FGTS:* Print do extrato do FGTS com saldo total disponível (se aplicável).
-                    """;
-        };
-
-        sb.append(docs);
-        sb.append("\n⚠️ *OBSERVAÇÃO:* As imagens devem estar nítidas, sem cortes nas bordas e sem reflexos.");
-
-        // Rodapé de Encerramento
-        sb.append("\n————————————————————————————\n");
-        sb.append("_Informações processadas em: ").append(
-                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+        sb.append(strategy.getChecklist());
+        sb.append("\n⚠️ *OBSERVAÇÃO:* As imagens devem estar nítidas, sem cortes nas bordas e sem reflexos.\n");
+        sb.append("————————————————————————————\n");
+        sb.append("_Informações processadas em: ")
+                .append(java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
                 .append("_\n");
         sb.append("*Poder Financeiro - Consultoria e Soluções de Crédito*");
 
-        // 3. Configuração do Preview e Exibição do Overlay
         this.checklistGeradoParaCopia = sb.toString();
         lblChecklistTexto.setText(this.checklistGeradoParaCopia);
         overlayDocs.setVisible(true);
     }
 
     @FXML
-    private void confirmarCopiaChecklist() {
-        if (this.checklistGeradoParaCopia != null) {
-            final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
-            final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
-            content.putString(this.checklistGeradoParaCopia);
-            clipboard.setContent(content);
-
-            fecharOverlayDocs();
-            exibirMensagem("✅ Lista de documentos copiada para o WhatsApp!", true);
-        }
-    }
-
-    @FXML
-    private void fecharOverlayDocs() {
-        overlayDocs.setVisible(false);
-        this.checklistGeradoParaCopia = null;
-    }
-
-    @FXML
     private void copiarResumoLead() {
         StringBuilder resumo = new StringBuilder();
 
-        // Cabeçalho Formal
         resumo.append("📑 *RELATÓRIO DE QUALIFICAÇÃO - PODER FINANCEIRO*\n");
         resumo.append("————————————————————————————\n");
-        resumo.append("Este documento contém o resumo dos dados coletados para análise de crédito.\n\n");
-
-        // Seção 1: Identificação do Proponente
         resumo.append("*[DADOS DO PROPONENTE]*\n");
-        resumo.append("• *Nome:* ").append(txtNome.getText().toUpperCase()).append("\n");
-        resumo.append("• *CPF:* ").append(txtCpf.getText()).append("\n");
-        resumo.append("• *WhatsApp:* ").append(txtTelefone.getText()).append("\n");
+        resumo.append("• *Nome:* ").append(viewModel.nomeProperty().get().toUpperCase()).append("\n");
+        resumo.append("• *CPF:* ").append(viewModel.cpfProperty().get()).append("\n");
+        resumo.append("• *WhatsApp:* ").append(viewModel.telefoneProperty().get()).append("\n");
 
-        if (dpDataNascimento.getValue() != null) {
-            String dataNasc = dpDataNascimento.getValue()
-                    .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        if (viewModel.dataNascimentoProperty().get() != null) {
+            String dataNasc = viewModel.dataNascimentoProperty().get()
+                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             resumo.append("• *Data de Nascimento:* ").append(dataNasc).append("\n");
         }
 
-        // Seção 2: Perfil Operacional e Financeiro
         resumo.append("\n*[PERFIL FINANCEIRO]*\n");
-        resumo.append("• *Convênio/Órgão:* ")
-                .append(cbConvenio.getValue() != null ? cbConvenio.getValue() : "A definir").append("\n");
-        resumo.append("• *Vínculo:* ").append(cbVinculo.getValue() != null ? cbVinculo.getValue() : "Não informado")
+        resumo.append("• *Convênio:* ")
+                .append(viewModel.convenioProperty().get() != null ? viewModel.convenioProperty().get().getLabel()
+                        : "A definir")
                 .append("\n");
-        resumo.append("• *Matrícula/Benefício:* ")
-                .append(txtMatricula.getText().isEmpty() ? "Não informada" : txtMatricula.getText()).append("\n");
+        resumo.append("• *Vínculo:* ").append(
+                viewModel.vinculoProperty().get().isEmpty() ? "Não informado" : viewModel.vinculoProperty().get())
+                .append("\n");
+        resumo.append("• *Matrícula:* ").append(
+                viewModel.matriculaProperty().get().isEmpty() ? "Não informada" : viewModel.matriculaProperty().get())
+                .append("\n");
         resumo.append("• *Renda Mensal:* R$ ").append(txtRenda.getText().isEmpty() ? "0,00" : txtRenda.getText())
                 .append("\n");
 
-        // Seção 3: Intenção de Negócio (Modalidades)
         resumo.append("\n*[MODALIDADES DE INTERESSE]*\n");
-
-        CheckBox[] produtos = {
-                chkFgts, chkInss, chkSiape, chkForcas, chkBolsaFamilia, chkContaLuz,
-                chkCartao, chkPortabilidade, chkRefin, chkGarantia, chkConsigPrivado, chkPessoal
-        };
-
         boolean produtoSelecionado = false;
-        for (CheckBox cb : produtos) {
-            if (cb != null && cb.isSelected()) {
-                resumo.append("✔️ ").append(cb.getText()).append("\n");
-                produtoSelecionado = true;
-            }
+
+        // Leitura de todas as 12 modalidades no ViewModel para o Relatório Copiável
+        if (viewModel.chkFgtsProperty().get()) {
+            resumo.append("✔️ Antecipação Saque Aniversário (FGTS)\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkInssProperty().get()) {
+            resumo.append("✔️ Consignado INSS\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkSiapeProperty().get()) {
+            resumo.append("✔️ Consignado Público (SIAPE/Gov/Pref)\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkForcasProperty().get()) {
+            resumo.append("✔️ Consignado Forças Armadas\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkBolsaFamiliaProperty().get()) {
+            resumo.append("✔️ Consig. Auxílio/Bolsa Família\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkContaLuzProperty().get()) {
+            resumo.append("✔️ Débito na Conta de Luz\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkCartaoProperty().get()) {
+            resumo.append("✔️ Cartão RMC / Benefício RCC\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkPortabilidadeProperty().get()) {
+            resumo.append("✔️ Portabilidade de Crédito\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkRefinProperty().get()) {
+            resumo.append("✔️ Refinanciamento (Refin)\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkGarantiaProperty().get()) {
+            resumo.append("✔️ Empréstimo com Garantia\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkConsigPrivadoProperty().get()) {
+            resumo.append("✔️ Consignado Privado (CLT)\n");
+            produtoSelecionado = true;
+        }
+        if (viewModel.chkPessoalProperty().get()) {
+            resumo.append("✔️ Empréstimo Pessoal (CP)\n");
+            produtoSelecionado = true;
         }
 
         if (!produtoSelecionado) {
             resumo.append("• Aguardando definição da modalidade ideal.\n");
         }
 
-        // Rodapé de Encerramento
         resumo.append("\n————————————————————————————\n");
-        resumo.append("_Informações processadas em: ").append(
-                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
-                .append("_\n");
         resumo.append("*Poder Financeiro - Consultoria e Soluções de Crédito*");
 
-        // CONFIGURAÇÃO DO PREVIEW
         this.resumoGeradoParaCopia = resumo.toString();
         lblResumoPreview.setText(this.resumoGeradoParaCopia);
-
-        // Exibe o Overlay para revisão
         overlayResumo.setVisible(true);
     }
 
-    @FXML
-    private void confirmarCopiaResumo() {
-        if (this.resumoGeradoParaCopia != null) {
-            // Executa a cópia física
-            final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
-            final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
-            content.putString(this.resumoGeradoParaCopia);
-            clipboard.setContent(content);
+    // ========================================================================
+    // FERRAMENTAS E MENSAGENS DO WHATSAPP
+    // ========================================================================
 
-            // Fecha o modal e dá o feedback
-            fecharOverlayResumo();
-            exibirMensagem("✅ Relatório copiado para a área de transferência!", true);
+    @FXML
+    private void abrirWhatsappRapido() {
+        String tel = viewModel.telefoneProperty().get().replaceAll("[^0-9]", "");
+        if (tel.isEmpty()) {
+            exibirMensagem("⚠️ Digite um telefone para abrir o WhatsApp.", false);
+            return;
+        }
+        String linkFinal = tel.startsWith("55") ? tel : "55" + tel;
+        try {
+            mainController.getHostServices().showDocument("https://wa.me/" + linkFinal);
+        } catch (Exception e) {
+            exibirMensagem("Não foi possível abrir o navegador.", false);
         }
     }
 
-    @FXML
-    private void fecharOverlayResumo() {
-        overlayResumo.setVisible(false);
-        this.resumoGeradoParaCopia = null;
-    }
-
-    /**
-     * Lógica centralizada para cópia de textos dinâmicos
-     */
     private void executarCopia(String template, String categoria) {
-        String nomeConsultor = getNomeConsultorLogado();
-
-        // Substitui o marcador pelo nome real vindo do AuthService
-        String textoFinal = template.replace("%CONSULTOR%", nomeConsultor);
-
+        String textoFinal = template.replace("%CONSULTOR%", getNomeConsultorLogado());
         final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
         final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
         content.putString(textoFinal);
         clipboard.setContent(content);
-
         exibirMensagem("✅ Mensagem de " + categoria + " copiada!", true);
     }
 
@@ -489,50 +417,97 @@ public class LeadController {
         executarCopia(TEMPLATE_FECHAMENTO, "Fechamento");
     }
 
-    /**
-     * Recupera o nome do consultor logado de forma segura
-     */
-    private String getNomeConsultorLogado() {
-        if (authService.estaLogado()) {
-            return authService.getUsuarioLogado().getNome(); //
+    @FXML
+    private void confirmarCopiaChecklist() {
+        if (this.checklistGeradoParaCopia != null) {
+            final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+            final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+            content.putString(this.checklistGeradoParaCopia);
+            clipboard.setContent(content);
+            fecharOverlayDocs();
+            exibirMensagem("✅ Lista de documentos copiada para o WhatsApp!", true);
         }
-        return "Consultor Poder Financeiro";
     }
 
-    // 1. Certifique-se de declarar o overlay que o FXML vai manipular
     @FXML
-    private VBox overlayMensagens;
+    private void confirmarCopiaResumo() {
+        if (this.resumoGeradoParaCopia != null) {
+            final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+            final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+            content.putString(this.resumoGeradoParaCopia);
+            clipboard.setContent(content);
+            fecharOverlayResumo();
+            exibirMensagem("✅ Relatório copiado para a área de transferência!", true);
+        }
+    }
 
-    // 2. O método que o FXML acusou erro (abrirCentralMensagens)
+    // ========================================================================
+    // CONTROLES DE INTERFACE (UI)
+    // ========================================================================
+
+    private String getNomeConsultorLogado() {
+        return authService.estaLogado() ? authService.getUsuarioLogado().getNome() : "Consultor Poder Financeiro";
+    }
+
+    @FXML
+    private void fecharOverlayDocs() {
+        overlayDocs.setVisible(false);
+        this.checklistGeradoParaCopia = null;
+    }
+
+    @FXML
+    private void fecharOverlayResumo() {
+        overlayResumo.setVisible(false);
+        this.resumoGeradoParaCopia = null;
+    }
+
+    @FXML
+    private void fecharCentralMensagens() {
+        if (overlayMensagens != null)
+            overlayMensagens.setVisible(false);
+    }
+
     @FXML
     private void abrirCentralMensagens() {
         if (overlayMensagens != null) {
-            atualizarPreviewsMensagens();
+            String nome = getNomeConsultorLogado();
+            if (lblPreviewSaudacao != null)
+                lblPreviewSaudacao.setText(TEMPLATE_SAUDACAO.replace("%CONSULTOR%", nome));
+            if (lblPreviewAnalise != null)
+                lblPreviewAnalise.setText(TEMPLATE_ANALISE.replace("%CONSULTOR%", nome));
+            if (lblPreviewFechamento != null)
+                lblPreviewFechamento.setText(TEMPLATE_FECHAMENTO.replace("%CONSULTOR%", nome));
             overlayMensagens.setVisible(true);
         }
     }
 
-    // 3. O método para fechar (que provavelmente está no seu FXML também)
-    @FXML
-    private void fecharCentralMensagens() {
-        if (overlayMensagens != null) {
-            overlayMensagens.setVisible(false);
-        }
+    private void exibirMensagem(String texto, boolean sucesso) {
+        lblMensagem.setText(texto);
+        lblMensagem.setVisible(true);
+        lblMensagem.setManaged(true);
+        String color = sucesso ? "#e8f5e9" : "#ffebee";
+        String text = sucesso ? "#2e7d32" : "#c62828";
+        lblMensagem.setStyle("-fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 5; -fx-background-color: "
+                + color + "; -fx-text-fill: " + text + ";");
     }
 
-    /**
-     * Atualiza os labels da interface com o nome real do consultor vindo do
-     * AuthService
-     */
-    private void atualizarPreviewsMensagens() {
-        String nome = getNomeConsultorLogado(); // Retornará "Wagner Teles Alvaro" se logado
+    private void esconderMensagem() {
+        lblMensagem.setVisible(false);
+        lblMensagem.setManaged(false);
+    }
 
-        // Atualiza os Labels do FXML com o texto processado
-        if (lblPreviewSaudacao != null)
-            lblPreviewSaudacao.setText(TEMPLATE_SAUDACAO.replace("%CONSULTOR%", nome));
-        if (lblPreviewAnalise != null)
-            lblPreviewAnalise.setText(TEMPLATE_ANALISE.replace("%CONSULTOR%", nome));
-        if (lblPreviewFechamento != null)
-            lblPreviewFechamento.setText(TEMPLATE_FECHAMENTO.replace("%CONSULTOR%", nome));
+    private void setLoading(boolean loading) {
+        // 1. Avise ao ViewModel. Isso desativará o botão automaticamente via Bind
+        viewModel.carregandoProperty().set(loading);
+
+        // 2. Gerencie apenas o feedback visual do progresso
+        progress.setVisible(loading);
+        progress.setManaged(loading);
+
+        // REMOVA A LINHA: btnSalvar.setDisable(loading); <-- Isso causava o erro
+
+        if (loading) {
+            esconderMensagem();
+        }
     }
 }
