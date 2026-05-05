@@ -3,10 +3,6 @@ package br.com.poderfinanceiro.app.controller;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.springframework.context.ApplicationContext;
@@ -159,99 +155,32 @@ public class MainController {
             navegarPara("/fxml/workspace.fxml", true);
         }
 
-        // 2. Localiza o TabPane dentro da tela atual (o Workspace)
-        // O id no seu arquivo workspace.fxml deve ser "tabPanePrincipal"
-        Node centro = contentArea.getChildren().get(0);
-        TabPane tabPane = (TabPane) centro.lookup("#tabPanePrincipal");
+        try {
+            WorkspaceController workspaceController;
+            ViewPair pair = cacheDeViews.get("/fxml/workspace.fxml");
 
-        if (tabPane != null) {
-            Long idBuscado = proponente.getId(); // ID vindo do banco
-
-            // 1. BUSCA INTELIGENTE: Só tenta localizar se o proponente já tiver um ID
-            if (idBuscado != null) {
-                for (Tab tab : tabPane.getTabs()) {
-                    Object idNaAba = tab.getUserData();
-
-                    // Comparação segura de Longs para evitar duplicatas[cite: 4, 8]
-                    if (idNaAba instanceof Long && idNaAba.equals(idBuscado)) {
-                        tabPane.getSelectionModel().select(tab);
-                        return; // Cliente já está aberto, apenas focamos a aba
-                    }
-                }
+            // 2. Se já estiver no cache, usa ele. Se não, carrega a tela e o Controller
+            // agora.
+            if (pair != null && pair.controller instanceof WorkspaceController) {
+                workspaceController = (WorkspaceController) pair.controller;
             } else {
-                // OPCIONAL: Evitar abrir múltiplas abas de "Novo Contato" vazias
-                for (Tab tab : tabPane.getTabs()) {
-                    if ("NOVO_CONTATO".equals(tab.getUserData())) {
-                        tabPane.getSelectionModel().select(tab);
-                        return;
-                    }
-                }
-            }
-
-            // 3. Cria a nova aba manualmente
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
+                // Força o carregamento para garantir que o WorkspaceController exista
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/workspace.fxml"));
                 loader.setControllerFactory(context::getBean);
-                Parent root = loader.load();
-
-                AtendimentoHubController hubController = loader.getController();
-                hubController.inicializarAtendimento(proponente);
-
-                // 1. Criamos a aba apenas com o conteúdo (root)
-                Tab novaAba = new Tab();
-                novaAba.setContent(root);
-                novaAba.setClosable(true);
-
-                Label iconeAba = new Label("👤");
-                iconeAba.setStyle("-fx-font-size: 14px;");
-                novaAba.setGraphic(iconeAba);
-
-                // 3. CONFIGURAÇÃO DO TÍTULO DINÂMICO (Binding reativo)
-                // O título vai observar a propriedade 'nome' lá no LeadViewModel
-                novaAba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
-                    String nome = hubController.getLeadController().getViewModel().nomeProperty().get();
-
-                    if (nome == null || nome.trim().isEmpty()) {
-                        return "Novo Atendimento";
-                    }
-
-                    // Opcional: Se o nome for muito longo, você pode dar um substring para não
-                    // quebrar a aba
-                    return nome.length() > 20 ? nome.substring(0, 17) + "..." : nome;
-
-                }, hubController.getLeadController().getViewModel().nomeProperty()));
-
-                // --- 🛡️ IMPLEMENTAÇÃO DA INTERCEPTAÇÃO E MEMORY LEAK ---
-                novaAba.setOnCloseRequest(event -> {
-                    // Ação real que vai destruir a aba e limpar a memória
-                    Runnable acaoMatarAba = () -> {
-                        tabPane.getTabs().remove(novaAba); // Remove a aba visualmente
-                        hubController.limparRecursos(); // Evita o Memory Leak
-                    };
-
-                    if (hubController.temAlteracoesNaoSalvas()) {
-                        // 1. OBRIGATÓRIO: Cancela o fechamento automático do JavaFX
-                        event.consume();
-
-                        // 2. Aciona o seu overlay. Se o usuário clicar em "Descartar" ou "Salvar",
-                        // o seu LeadController vai executar o 'acaoMatarAba' passado acima.
-                        hubController.solicitarFechamento(acaoMatarAba);
-                    } else {
-                        // Se não tem alterações, deixa o JavaFX fechar a aba normalmente,
-                        // mas garante que o Timer será desligado.
-                        hubController.limparRecursos();
-                    }
-                });
-                // --------------------------------------------------------
-
-                tabPane.getTabs().add(novaAba);
-                tabPane.getSelectionModel().select(novaAba);
-
-            } catch (IOException e) {
-                e.printStackTrace();
+                Node view = loader.load();
+                workspaceController = loader.getController();
+                cacheDeViews.put("/fxml/workspace.fxml", new ViewPair(view, workspaceController));
+                contentArea.getChildren().setAll(view);
+                this.telaAtual = "/fxml/workspace.fxml";
             }
-        } else {
-            System.err.println("Erro Crítico: Não foi possível localizar o TabPane no Workspace!");
+
+            // 3. Delega a responsabilidade da aba para quem realmente detém o componente
+            // TabPane
+            workspaceController.abrirOuFocarAba(proponente);
+
+        } catch (IOException e) {
+            System.err.println("Erro ao carregar WorkspaceController: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

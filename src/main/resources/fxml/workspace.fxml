@@ -2,9 +2,11 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
+<!-- ADICIONADO O fx:controller AQUI NA TAG RAIZ 👇 -->
 <TabPane fx:id="tabPanePrincipal" tabClosingPolicy="ALL_TABS" styleClass="classic" minHeight="0"
-    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
-    
+    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.WorkspaceController">
+
     <!-- ABA 0: VISÃO GERAL -->
     <Tab text="📊 Painel de Controle" closable="false">
         <fx:include source="dashboard.fxml" />
