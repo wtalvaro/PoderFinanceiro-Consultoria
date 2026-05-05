@@ -28,7 +28,7 @@ import java.util.List;
 public class LeadController {
 
     private PauseTransition timerMensagem;
-    
+
     // --- DEPENDÊNCIAS ---
     private final ProponenteService proponenteService;
     private final MainController mainController;
@@ -71,12 +71,20 @@ public class LeadController {
     @FXML
     private Label lblChecklistTexto, lblResumoPreview;
     @FXML
-    private Label lblPreviewSaudacao, lblPreviewAnalise, lblPreviewFechamento;
+    private Label lblPreviewSaudacao, lblPreviewAnalise, lblPreviewFechamento, lblPreviewRetargeting;
 
     // --- CONSTANTES ---
     private static final String TEMPLATE_SAUDACAO = "Olá! Sou o *%CONSULTOR%*, da *Poder Financeiro*. Recebi seu contato e estou à disposição para ajudar com seu crédito.";
     private static final String TEMPLATE_ANALISE = "Aqui é o *%CONSULTOR%*. Já iniciei a consulta da sua margem. Por favor, aguarde um momento enquanto verifico as melhores taxas.";
     private static final String TEMPLATE_FECHAMENTO = "Qualquer dúvida, pode me chamar aqui. Tenha um excelente dia! Atenciosamente, *%CONSULTOR%* | *Poder Financeiro*.";
+    private static final String TEMPLATE_RETARGETING = "Oi! Tudo bem? Aqui é o *%CONSULTOR%* da *Poder Financeiro*.\n\n"
+            +
+            "Vi que você chegou a conversar comigo sobre o empréstimo, mas não conseguimos finalizar seu atendimento.\n\n"
+            +
+            "Quero te avisar que muitos clientes que estavam na mesma situação que você já conseguiram liberar valores, tanto no empréstimo CLT quanto na antecipação do FGTS!\n\n"
+            +
+            "Posso dar continuidade ao seu processo pra ver o quanto conseguimos liberar pra você hoje?\n\n" +
+            "É rápido, seguro e sem compromisso.";
 
     public LeadController(ProponenteService proponenteService, MainController mainController,
             AuthService authService, List<DocumentStrategy> documentStrategies,
@@ -139,23 +147,23 @@ public class LeadController {
         // 1. TextFields e ComboBoxes (Sem máscara especial)
         txtNome.textProperty().bindBidirectional(viewModel.nomeProperty());
         cbOrigem.valueProperty().bindBidirectional(viewModel.origemProperty());
-        
+
         // ====================================================================
         // BINDING DA DATA DE NASCIMENTO (Com Máscara Automática)
         // ====================================================================
-        
+
         TextFormatter<LocalDate> dataFormatter = FinanceiroUtils.criarFormatadorData();
-        
+
         // Aplicamos o formatador ao campo de texto interno do DatePicker
         dpDataNascimento.getEditor().setTextFormatter(dataFormatter);
-        
+
         // Sincronizamos o valor do formatador com o ViewModel
         dataFormatter.valueProperty().bindBidirectional(viewModel.dataNascimentoProperty());
-        
+
         // Sincronizamos o valor do DatePicker com o formatador para que
         // ao selecionar no calendário, o texto também seja atualizado corretamente.
         dpDataNascimento.valueProperty().bindBidirectional(dataFormatter.valueProperty());
-        
+
         cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
         cbVinculo.valueProperty().bindBidirectional(viewModel.vinculoProperty());
         txtMatricula.textProperty().bindBidirectional(viewModel.matriculaProperty());
@@ -474,6 +482,11 @@ public class LeadController {
     }
 
     @FXML
+    private void copiarRetargeting() {
+        executarCopia(TEMPLATE_RETARGETING, "Retargeting");
+    }
+
+    @FXML
     private void confirmarCopiaChecklist() {
         if (this.checklistGeradoParaCopia != null) {
             final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
@@ -529,6 +542,8 @@ public class LeadController {
                 lblPreviewAnalise.setText(TEMPLATE_ANALISE.replace("%CONSULTOR%", nome));
             if (lblPreviewFechamento != null)
                 lblPreviewFechamento.setText(TEMPLATE_FECHAMENTO.replace("%CONSULTOR%", nome));
+            if (lblPreviewRetargeting != null)
+                lblPreviewRetargeting.setText(TEMPLATE_RETARGETING.replace("%CONSULTOR%", nome));
             overlayMensagens.setVisible(true);
         }
     }
@@ -572,5 +587,17 @@ public class LeadController {
         if (loading) {
             esconderMensagem();
         }
+    }
+
+    /**
+     * Método chamado quando a aba é definitivamente fechada.
+     * Desliga processos em background para evitar vazamento de memória.
+     */
+    public void liberarRecursos() {
+        if (this.timerMensagem != null) {
+            this.timerMensagem.stop();
+            this.timerMensagem = null;
+        }
+        System.out.println("Recursos do LeadController liberados com sucesso!");
     }
 }

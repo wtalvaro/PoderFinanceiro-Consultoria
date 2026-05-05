@@ -26,4 +26,20 @@ public class AtendimentoHubController {
         // 3. Usa o método de verificação que você já escreveu
         return abaLeadController.getViewModel().temAlteracoesPendentes();
     }
+
+    /**
+     * Pede ao LeadController para mostrar o modal de confirmação.
+     * Se o usuário confirmar a saída, o 'acaoFecharAba' será executado.
+     */
+    public void solicitarFechamento(Runnable acaoFecharAba) {
+        abaLeadController.tentarNavegar(acaoFecharAba);
+    }
+
+    /**
+     * Repassa a ordem de limpeza de memória para as abas filhas.
+     */
+    public void limparRecursos() {
+        abaLeadController.liberarRecursos();
+        // Se no futuro você criar timers no SimulatorController, chame-os aqui também!
+    }
 }

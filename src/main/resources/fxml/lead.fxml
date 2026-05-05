@@ -403,6 +403,21 @@ Overlay -->
                         </HBox>
                     </VBox>
 
+                    <!-- Bloco: Retargeting (Retomar Contato) -->
+                    <VBox spacing="5"
+                        style="-fx-border-color: #eee; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 10 0;">
+                        <Label text="Retomar Contato (Lead Frio)" style="-fx-font-weight: bold;" />
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <!-- O Label que vai receber a prévia do texto -->
+                            <Label fx:id="lblPreviewRetargeting" text="..." wrapText="true"
+                                HBox.hgrow="ALWAYS"
+                                style="-fx-font-size: 12px; -fx-text-fill: #666;" />
+                            <!-- O Botão que chama o novo método de cópia -->
+                            <Button text="📋" onAction="#copiarRetargeting" styleClass="flat"
+                                minWidth="45" />
+                        </HBox>
+                    </VBox>
+
                 </VBox>
             </ScrollPane>
 

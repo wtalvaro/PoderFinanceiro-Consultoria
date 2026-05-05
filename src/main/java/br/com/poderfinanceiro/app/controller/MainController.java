@@ -166,13 +166,32 @@ public class MainController {
             novaAba.setClosable(true);
 
             Label iconeAba = new Label("👤");
-
-            // Apenas ajustamos o tamanho para alinhar com o texto da aba, SEM forçar o
-            // font-family!
             iconeAba.setStyle("-fx-font-size: 14px;");
-
             novaAba.setGraphic(iconeAba);
-            
+
+            // --- 🛡️ IMPLEMENTAÇÃO DA INTERCEPTAÇÃO E MEMORY LEAK ---
+            novaAba.setOnCloseRequest(event -> {
+                // Ação real que vai destruir a aba e limpar a memória
+                Runnable acaoMatarAba = () -> {
+                    tabPane.getTabs().remove(novaAba); // Remove a aba visualmente
+                    hubController.limparRecursos(); // Evita o Memory Leak
+                };
+
+                if (hubController.temAlteracoesNaoSalvas()) {
+                    // 1. OBRIGATÓRIO: Cancela o fechamento automático do JavaFX
+                    event.consume();
+
+                    // 2. Aciona o seu overlay. Se o usuário clicar em "Descartar" ou "Salvar",
+                    // o seu LeadController vai executar o 'acaoMatarAba' passado acima.
+                    hubController.solicitarFechamento(acaoMatarAba);
+                } else {
+                    // Se não tem alterações, deixa o JavaFX fechar a aba normalmente,
+                    // mas garante que o Timer será desligado.
+                    hubController.limparRecursos();
+                }
+            });
+            // --------------------------------------------------------
+
             tabPane.getTabs().add(novaAba);
             tabPane.getSelectionModel().select(novaAba);
 
