@@ -36,7 +36,18 @@ public class MainController {
 
     private final HostServices hostServices;
     private final ApplicationContext context;
-    private final Map<String, Node> telasEmCache = new HashMap<>();
+
+    private static class ViewPair {
+        Node view;
+        Object controller;
+
+        ViewPair(Node view, Object controller) {
+            this.view = view;
+            this.controller = controller;
+        }
+    }
+
+    private final Map<String, ViewPair> cacheDeViews = new HashMap<>();
 
     // Rastreamento da tela ativa para interceptar saídas acidentais
     private String telaAtual = "";
@@ -74,39 +85,32 @@ public class MainController {
     }
 
     /**
-     * O motor real de navegação que faz o carregamento do FXML e atualiza a UI.
+     * Motor de navegação atualizado para capturar e preservar o Controller.
      */
     private void executarNavegacao(String fxmlPath, boolean mostrarEstrutura) {
         try {
-            Node view;
+            ViewPair pair;
 
-            // Verifica se a tela já foi carregada antes
-            if (telasEmCache.containsKey(fxmlPath)) {
-                // Recupera a tela com todo o seu estado (como as abas abertas)
-                view = telasEmCache.get(fxmlPath);
+            if (cacheDeViews.containsKey(fxmlPath)) {
+                pair = cacheDeViews.get(fxmlPath);
             } else {
-                // Se for a primeira vez, carrega o FXML
                 FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
                 loader.setControllerFactory(context::getBean);
-                view = loader.load();
+                Node view = loader.load();
 
-                // Salva no cache para uso futuro
-                telasEmCache.put(fxmlPath, view);
+                // Captura o controller REAL gerado pelo Spring para esta tela[cite: 4]
+                pair = new ViewPair(view, loader.getController());
+                cacheDeViews.put(fxmlPath, pair);
             }
 
-            // Oculta ou mostra barras (Menu, Sidebar, Rodapé)
             topBar.setVisible(mostrarEstrutura);
             topBar.setManaged(mostrarEstrutura);
-
             sideBar.setVisible(mostrarEstrutura);
             sideBar.setManaged(mostrarEstrutura);
-
             bottomBar.setVisible(mostrarEstrutura);
             bottomBar.setManaged(mostrarEstrutura);
 
-            // Injeta a tela recuperada ou recém-criada no centro
-            contentArea.getChildren().setAll(view);
-
+            contentArea.getChildren().setAll(pair.view);
             this.telaAtual = fxmlPath;
 
         } catch (IOException e) {
@@ -115,24 +119,32 @@ public class MainController {
     }
 
     public void limparCacheDeTelas() {
-        telasEmCache.clear();
+        cacheDeViews.clear();
     }
 
     /**
-     * Método acionado pelo menu lateral para iniciar um novo atendimento
+     * Versão corrigida: Agora fala com o Controller REAL da tela, não com um
+     * novo.
      */
     public void irParaNovoContato() {
-        Runnable acaoNovoContato = () -> {
-            context.getBean(LeadController.class).prepararNovoContato();
-            executarNavegacao("/fxml/lead.fxml", true);
-        };
+        // 1. Garante que a tela de Lead esteja carregada no cache e visível
+        executarNavegacao("/fxml/lead.fxml", true);
 
-        // Se já estivermos editando uma Lead e clicarmos no botão "Novo Contato",
-        // também precisamos proteger os dados antes de limpar a tela!
-        if ("/fxml/lead.fxml".equals(this.telaAtual)) {
-            context.getBean(LeadController.class).tentarNavegar(acaoNovoContato);
-        } else {
-            acaoNovoContato.run();
+        // 2. Recupera o par Visual/Controller do cache[cite: 4]
+        ViewPair pair = cacheDeViews.get("/fxml/lead.fxml");
+
+        if (pair != null && pair.controller instanceof LeadController leadController) {
+            // Ação que será executada se for seguro prosseguir[cite: 4]
+            Runnable acaoLimparFormulario = () -> leadController.prepararNovoContato();
+
+            // 3. Se o usuário já estiver na tela de lead, verifica alterações
+            // pendentes[cite: 4]
+            // Se não estiver, executa o reset direto
+            if ("/fxml/lead.fxml".equals(this.telaAtual)) {
+                leadController.tentarNavegar(acaoLimparFormulario);
+            } else {
+                acaoLimparFormulario.run();
+            }
         }
     }
 
@@ -142,66 +154,106 @@ public class MainController {
     }
 
     public void abrirClienteNoWorkspace(Proponente proponente) {
-    // 1. Garante que o Workspace esteja visível no centro da tela
-    if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
-        navegarPara("/fxml/workspace.fxml", true);
-    }
-
-    // 2. Localiza o TabPane dentro da tela atual (o Workspace)
-    // O id no seu arquivo workspace.fxml deve ser "tabPanePrincipal"
-    Node centro = contentArea.getChildren().get(0);
-    TabPane tabPane = (TabPane) centro.lookup("#tabPanePrincipal");
-
-    if (tabPane != null) {
-        // 3. Cria a nova aba manualmente
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
-            loader.setControllerFactory(context::getBean);
-            Parent root = loader.load();
-
-            AtendimentoHubController hubController = loader.getController();
-            hubController.inicializarAtendimento(proponente);
-
-            Tab novaAba = new Tab(proponente.getNomeCompleto(), root);
-            novaAba.setClosable(true);
-
-            Label iconeAba = new Label("👤");
-            iconeAba.setStyle("-fx-font-size: 14px;");
-            novaAba.setGraphic(iconeAba);
-
-            // --- 🛡️ IMPLEMENTAÇÃO DA INTERCEPTAÇÃO E MEMORY LEAK ---
-            novaAba.setOnCloseRequest(event -> {
-                // Ação real que vai destruir a aba e limpar a memória
-                Runnable acaoMatarAba = () -> {
-                    tabPane.getTabs().remove(novaAba); // Remove a aba visualmente
-                    hubController.limparRecursos(); // Evita o Memory Leak
-                };
-
-                if (hubController.temAlteracoesNaoSalvas()) {
-                    // 1. OBRIGATÓRIO: Cancela o fechamento automático do JavaFX
-                    event.consume();
-
-                    // 2. Aciona o seu overlay. Se o usuário clicar em "Descartar" ou "Salvar",
-                    // o seu LeadController vai executar o 'acaoMatarAba' passado acima.
-                    hubController.solicitarFechamento(acaoMatarAba);
-                } else {
-                    // Se não tem alterações, deixa o JavaFX fechar a aba normalmente,
-                    // mas garante que o Timer será desligado.
-                    hubController.limparRecursos();
-                }
-            });
-            // --------------------------------------------------------
-
-            tabPane.getTabs().add(novaAba);
-            tabPane.getSelectionModel().select(novaAba);
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        // 1. Garante que o Workspace esteja visível no centro da tela
+        if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
+            navegarPara("/fxml/workspace.fxml", true);
         }
-    } else {
-        System.err.println("Erro Crítico: Não foi possível localizar o TabPane no Workspace!");
+
+        // 2. Localiza o TabPane dentro da tela atual (o Workspace)
+        // O id no seu arquivo workspace.fxml deve ser "tabPanePrincipal"
+        Node centro = contentArea.getChildren().get(0);
+        TabPane tabPane = (TabPane) centro.lookup("#tabPanePrincipal");
+
+        if (tabPane != null) {
+            Long idBuscado = proponente.getId(); // ID vindo do banco
+
+            // 1. BUSCA INTELIGENTE: Só tenta localizar se o proponente já tiver um ID
+            if (idBuscado != null) {
+                for (Tab tab : tabPane.getTabs()) {
+                    Object idNaAba = tab.getUserData();
+
+                    // Comparação segura de Longs para evitar duplicatas[cite: 4, 8]
+                    if (idNaAba instanceof Long && idNaAba.equals(idBuscado)) {
+                        tabPane.getSelectionModel().select(tab);
+                        return; // Cliente já está aberto, apenas focamos a aba
+                    }
+                }
+            } else {
+                // OPCIONAL: Evitar abrir múltiplas abas de "Novo Contato" vazias
+                for (Tab tab : tabPane.getTabs()) {
+                    if ("NOVO_CONTATO".equals(tab.getUserData())) {
+                        tabPane.getSelectionModel().select(tab);
+                        return;
+                    }
+                }
+            }
+
+            // 3. Cria a nova aba manualmente
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
+                loader.setControllerFactory(context::getBean);
+                Parent root = loader.load();
+
+                AtendimentoHubController hubController = loader.getController();
+                hubController.inicializarAtendimento(proponente);
+
+                // 1. Criamos a aba apenas com o conteúdo (root)
+                Tab novaAba = new Tab();
+                novaAba.setContent(root);
+                novaAba.setClosable(true);
+
+                Label iconeAba = new Label("👤");
+                iconeAba.setStyle("-fx-font-size: 14px;");
+                novaAba.setGraphic(iconeAba);
+
+                // 3. CONFIGURAÇÃO DO TÍTULO DINÂMICO (Binding reativo)
+                // O título vai observar a propriedade 'nome' lá no LeadViewModel
+                novaAba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
+                    String nome = hubController.getLeadController().getViewModel().nomeProperty().get();
+
+                    if (nome == null || nome.trim().isEmpty()) {
+                        return "Novo Atendimento";
+                    }
+
+                    // Opcional: Se o nome for muito longo, você pode dar um substring para não
+                    // quebrar a aba
+                    return nome.length() > 20 ? nome.substring(0, 17) + "..." : nome;
+
+                }, hubController.getLeadController().getViewModel().nomeProperty()));
+
+                // --- 🛡️ IMPLEMENTAÇÃO DA INTERCEPTAÇÃO E MEMORY LEAK ---
+                novaAba.setOnCloseRequest(event -> {
+                    // Ação real que vai destruir a aba e limpar a memória
+                    Runnable acaoMatarAba = () -> {
+                        tabPane.getTabs().remove(novaAba); // Remove a aba visualmente
+                        hubController.limparRecursos(); // Evita o Memory Leak
+                    };
+
+                    if (hubController.temAlteracoesNaoSalvas()) {
+                        // 1. OBRIGATÓRIO: Cancela o fechamento automático do JavaFX
+                        event.consume();
+
+                        // 2. Aciona o seu overlay. Se o usuário clicar em "Descartar" ou "Salvar",
+                        // o seu LeadController vai executar o 'acaoMatarAba' passado acima.
+                        hubController.solicitarFechamento(acaoMatarAba);
+                    } else {
+                        // Se não tem alterações, deixa o JavaFX fechar a aba normalmente,
+                        // mas garante que o Timer será desligado.
+                        hubController.limparRecursos();
+                    }
+                });
+                // --------------------------------------------------------
+
+                tabPane.getTabs().add(novaAba);
+                tabPane.getSelectionModel().select(novaAba);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("Erro Crítico: Não foi possível localizar o TabPane no Workspace!");
+        }
     }
-}
 
     // --- LÓGICA DO OVERLAY DE SAÍDA ---
     public void mostrarOverlaySair() {

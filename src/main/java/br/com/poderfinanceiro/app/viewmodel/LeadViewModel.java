@@ -21,7 +21,8 @@ public class LeadViewModel {
 
     private final BooleanProperty editando = new SimpleBooleanProperty(false);
     private final BooleanProperty carregando = new SimpleBooleanProperty(false);
-
+    private final ObjectProperty<Long> id = new SimpleObjectProperty<>(null);
+    
     // Identificação
     private final StringProperty nome = new SimpleStringProperty("");
     private final StringProperty cpf = new SimpleStringProperty(""); // Guarda apenas os números: 12345678901
@@ -77,11 +78,11 @@ public class LeadViewModel {
 
     public void loadFromModel(Proponente p) {
         if (p == null) {
-            editando.set(false);
             reset();
             return;
         }
 
+        id.set(p.getId()); // <-- SALVE O ID AQUI
         editando.set(true);
 
         // 1. Injeta os dados limpos nas propriedades
@@ -124,6 +125,9 @@ public class LeadViewModel {
     }
 
     public Proponente mapToModel(Proponente target) {
+        // Garanta que o ID seja preservado se ele existir no ViewModel
+        target.setId(id.get());
+        
         // Envia para o banco o valor puro e limpo
         target.setNomeCompleto(nome.get().trim());
         target.setCpf(cpf.get().trim());

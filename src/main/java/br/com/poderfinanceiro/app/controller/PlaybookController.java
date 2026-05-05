@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import br.com.poderfinanceiro.app.model.PlaybookItem;
+import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.service.PlaybookService;
 
 import java.util.Comparator;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 public class PlaybookController {
 
     private final PlaybookService playbookService;
+    private final AuthService authService;
 
     @FXML
     private TreeView<Object> treeViewScripts; // Usamos Object para aceitar String (categoria) e PlaybookItem
@@ -42,62 +44,75 @@ public class PlaybookController {
     }
 
     private void configurarArvore() {
-    // 1. Criar o nó raiz (invisível conforme o FXML)
-    TreeItem<Object> root = new TreeItem<>("Root");
+        // 1. Criar o nó raiz (invisível conforme o FXML)
+        TreeItem<Object> root = new TreeItem<>("Root");
 
-    // 2. Agrupar os scripts por categoria (Adicionado TreeMap para ordenar as pastas de A-Z)
-    List<PlaybookItem> todosScripts = playbookService.listarTudoParaOPlaybook();
-    Map<String, List<PlaybookItem>> agrupados = todosScripts.stream()
-            .collect(Collectors.groupingBy(PlaybookItem::getCategoria, TreeMap::new, Collectors.toList()));
+        // 2. Agrupar os scripts por categoria (Adicionado TreeMap para ordenar as
+        // pastas de A-Z)
+        List<PlaybookItem> todosScripts = playbookService.listarTudoParaOPlaybook();
+        Map<String, List<PlaybookItem>> agrupados = todosScripts.stream()
+                .collect(Collectors.groupingBy(PlaybookItem::getCategoria, TreeMap::new, Collectors.toList()));
 
-    // 3. Construir a hierarquia
-    agrupados.forEach((categoria, scripts) -> {
-        TreeItem<Object> categoriaNode = new TreeItem<>(categoria);
-        categoriaNode.setExpanded(true); // Deixa as categorias abertas por padrão[cite: 2]
+        // 3. Construir a hierarquia
+        agrupados.forEach((categoria, scripts) -> {
+            TreeItem<Object> categoriaNode = new TreeItem<>(categoria);
+            categoriaNode.setExpanded(true); // Deixa as categorias abertas por padrão[cite: 2]
 
-        // Adicionado .stream().sorted() para ordenar os scripts dentro da pasta
-        scripts.stream()
-               .sorted(Comparator.comparing(PlaybookItem::getTitulo))
-               .forEach(script -> {
-                   categoriaNode.getChildren().add(new TreeItem<>(script));
-               });
+            // Adicionado .stream().sorted() para ordenar os scripts dentro da pasta
+            scripts.stream()
+                    .sorted(Comparator.comparing(PlaybookItem::getTitulo))
+                    .forEach(script -> {
+                        categoriaNode.getChildren().add(new TreeItem<>(script));
+                    });
 
-        root.getChildren().add(categoriaNode);
-    });
+            root.getChildren().add(categoriaNode);
+        });
 
-    treeViewScripts.setRoot(root);
+        treeViewScripts.setRoot(root);
 
-    // 4. Customizar a exibição (Mantido exatamente como o seu original)[cite: 3]
-    treeViewScripts.setCellFactory(tv -> new TreeCell<>() {
-        @Override
-        protected void updateItem(Object item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty || item == null) {
-                setText(null);
-                setStyle("");
-            } else if (item instanceof String) {
-                setText((String) item);
-                setStyle("-fx-font-weight: bold; -fx-text-fill: #1976d2;");
-            } else if (item instanceof PlaybookItem) {
-                setText(((PlaybookItem) item).getTitulo());
-                setStyle("-fx-padding: 0 0 0 10;");
+        // 4. Customizar a exibição (Mantido exatamente como o seu original)[cite: 3]
+        treeViewScripts.setCellFactory(tv -> new TreeCell<>() {
+            @Override
+            protected void updateItem(Object item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else if (item instanceof String) {
+                    setText((String) item);
+                    setStyle("-fx-font-weight: bold; -fx-text-fill: #1976d2;");
+                } else if (item instanceof PlaybookItem) {
+                    setText(((PlaybookItem) item).getTitulo());
+                    setStyle("-fx-padding: 0 0 0 10;");
+                }
             }
-        }
-    });
+        });
 
-    // 5. Ouvinte de seleção (Mantido exatamente como o seu original)[cite: 3]
-    treeViewScripts.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-        if (newVal != null && newVal.getValue() instanceof PlaybookItem) {
-            exibirDetalhes((PlaybookItem) newVal.getValue());
-        }
-    });
-}
+        // 5. Ouvinte de seleção (Mantido exatamente como o seu original)[cite: 3]
+        treeViewScripts.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal.getValue() instanceof PlaybookItem) {
+                exibirDetalhes((PlaybookItem) newVal.getValue());
+            }
+        });
+    }
 
     private void exibirDetalhes(PlaybookItem item) {
         labelTitulo.setText(item.getTitulo());
         labelCategoria.setText("Categoria: " + item.getCategoria());
-        txtConteudo.setText(item.getConteudo());
+
+        // --- PERSONALIZAÇÃO DINÂMICA ---
+        // Resolve a tag %CONSULTOR% antes de exibir no TextArea
+        String textoPersonalizado = item.getConteudo()
+                .replace("%CONSULTOR%", getNomeConsultorLogado());
+                
+        txtConteudo.setText(textoPersonalizado);
         labelDica.setText("💡 Dica: " + item.getDicaTecnica());
+    }
+
+    private String getNomeConsultorLogado() {
+        return authService.estaLogado()
+                ? authService.getUsuarioLogado().getNome()
+                : "Consultor Poder Financeiro";
     }
 
     @FXML
@@ -107,8 +122,8 @@ public class PlaybookController {
         // RESOLUÇÃO DO ERRO: Obtemos o item diretamente da seleção da ListView
         PlaybookItem itemSelecionado = treeViewScripts.getSelectionModel().getSelectedItem() != null
                 && treeViewScripts.getSelectionModel().getSelectedItem().getValue() instanceof PlaybookItem
-                ? (PlaybookItem) treeViewScripts.getSelectionModel().getSelectedItem().getValue()
-                : null;
+                        ? (PlaybookItem) treeViewScripts.getSelectionModel().getSelectedItem().getValue()
+                        : null;
 
         if (textoParaCopiar != null && !textoParaCopiar.isEmpty()) {
             // 1. Ação de Cópia

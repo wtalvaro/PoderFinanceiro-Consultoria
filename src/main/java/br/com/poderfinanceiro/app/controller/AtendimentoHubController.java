@@ -22,6 +22,13 @@ public class AtendimentoHubController {
         abaSimulatorController.vincularProponente(proponente);
     }
 
+    /**
+     * Permite que a MainController acesse os dados do Lead para o Binding da Aba.
+     */
+    public LeadController getLeadController() {
+        return abaLeadController;
+    }
+
     public boolean temAlteracoesNaoSalvas() {
         // 3. Usa o método de verificação que você já escreveu
         return abaLeadController.getViewModel().temAlteracoesPendentes();

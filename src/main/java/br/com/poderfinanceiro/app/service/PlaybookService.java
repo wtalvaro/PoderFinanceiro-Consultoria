@@ -48,7 +48,7 @@ public class PlaybookService {
                                                                 "Docs: " + convenio.getLabel(), // Título amigável vindo
                                                                                                 // do Enum
                                                                 strategy.getChecklist(),
-                                                                "-Fotos nítidas, sem cortes e sem reflexos para o convênio "
+                                                                "Fotos nítidas, sem cortes e sem reflexos para o convênio "
                                                                                 + convenio.getLabel() + "."));
                                         });
                 }
@@ -57,6 +57,13 @@ public class PlaybookService {
 
         public List<PlaybookItem> listarScriptsVenda() {
                 List<PlaybookItem> scripts = new ArrayList<>();
+
+                // 0. ABORDAGEM INICIAL ---
+                scripts.add(new PlaybookItem(
+                                "Abordagem",
+                                "Saudação e Especialista",
+                                "Olá, tudo bem? Seja bem-vindo(a)! \n\nMe chamo %CONSULTOR% e sou especialista financeira. Você sabia que quem trabalha de carteira assinada pode ter acesso a linhas de crédito com aprovação rápida e taxas super acessíveis?\n\nTrabalho com as melhores financeiras do mercado e meu atendimento é 100% gratuito. Vamos fazer uma simulação sem compromisso?",
+                                "Personalize com seu nome. Gatilho de autoridade e gratuidade."));
 
                 // 1. PRODUTO: BOLSA FAMÍLIA
                 scripts.add(new PlaybookItem(
@@ -84,6 +91,12 @@ public class PlaybookService {
                                 "Oi, tudo bem? A Caixa Econômica acabou de atualizar os saldos do FGTS dos trabalhadores. Como você já havia me procurado antes, passei aqui para refazermos sua simulação. Muitas pessoas que não tinham saldo semana passada, agora têm valor liberado! Vamos testar?",
                                 "Do dia 21 ao dia 23. Foque em clientes que reprovaram anteriormente por falta de saldo."));
 
+                scripts.add(new PlaybookItem(
+                                "FGTS",
+                                "Autorização de Bancos",
+                                "Aqui estão as financeiras que precisam ser autorizadas no seu aplicativo FGTS para a simulação:\n\n1- BMP SOCIEDADE DE CRÉDITO\n2- MONEY PLUS\n3- BMS\n4- QI SOCIEDADE DE CRÉDITO\n\nVocê já está com o aplicativo aberto para fazermos juntos?",
+                                "Certifique-se de que o cliente ativou a modalidade Saque-Aniversário antes[cite: 1, 2]."));
+
                 // 3. PRODUTO: CLT
                 scripts.add(new PlaybookItem(
                                 "CLT",
@@ -97,6 +110,12 @@ public class PlaybookService {
                                 "Simulação Rápida CLT (Facta, Paraná, Presença): https://simulador.poderfinanceiro.com.br/page/clt/indicacao/9a0863e5-d404-4957-b891-2100e6f3afb9\n\nConsultar Status das Propostas: https://simulador.poderfinanceiro.com.br/page/acompanhar",
                                 "Uso interno do operador. Atalhos cruciais para digitar propostas rapidamente."));
 
+                scripts.add(new PlaybookItem(
+                                "CLT",
+                                "Coleta de Dados Simulação",
+                                "Para realizar sua simulação CLT com as melhores condições, preciso de:\n\n✍🏼 NOME COMPLETO:\n✍🏼 CPF:\n✍🏼 DATA DE NASCIMENTO:\n✍🏼 WHATSAPP:\n\nConsegue me enviar agora para eu verificar o valor disponível?",
+                                "Peça o tempo de registro na empresa atual antes de solicitar os dados sensíveis."));
+
                 // 4. FECHAMENTO E RECUPERAÇÃO
                 scripts.add(new PlaybookItem(
                                 "Fechamento",
@@ -104,7 +123,39 @@ public class PlaybookService {
                                 "Passei para avisar que alguns clientes já garantiram o valor hoje. Posso finalizar sua solicitação agora também?",
                                 "Gatilho de escassez e prova social. Aplicar preferencialmente no final da tarde (15h - 17h)."));
 
-                // 5. INDICAÇÃO E MULTIPLICAÇÃO DE LEADS
+                scripts.add(new PlaybookItem(
+                                "Fechamento",
+                                "Formalização e Selfie",
+                                "Proposta registrada com sucesso! 🤩\n\nDOCUMENTOS ACEITOS:\n✅ RG ou CNH (em bom estado)\n✅ Foto do documento fora da capinha\n🤳🏽 SELFIE em ambiente claro e nítido.\n\nRevise o contrato com atenção antes de assinar para garantir a segurança da liberação.",
+                                "A qualidade da foto evita que a proposta fique parada ou seja recusada pelo banco."));
+
+                scripts.add(new PlaybookItem(
+                                "Fechamento",
+                                "Aprovação e Valores",
+                                "Ótima notícia! Sua simulação foi APROVADA! 🎉\n\n*Valor liberado:* R$ [valor]\n*Prazo:* [parcelas] vezes\n*Parcela:* R$ [valor_parcela]",
+                                "Passe os valores com entusiasmo para converter a simulação em contrato."));
+
+                // 5. PÓS-VENDA E REPROVAÇÃO ---
+                scripts.add(new PlaybookItem(
+                                "Pós-Venda",
+                                "Agradecimento e Indicações",
+                                "Em nome da PODER FINANCEIRO, agradecemos a confiança! Aproveite seu empréstimo.\n\nSe puder, me envie 2 contatos de amigos que trabalham registrados para eu ajudá-los também. \n\n🚨 DICA: Nunca compartilhe seus dados com desconhecidos.",
+                                "Gerar indicações no momento do 'uau' (dinheiro na conta) é a melhor forma de prospectar."));
+
+                scripts.add(new PlaybookItem(
+                                "Pós-Venda",
+                                "Script de Reprovação",
+                                "Infelizmente o banco não aprovou o valor hoje, mas não desanima! Às vezes pequenos ajustes no tempo de registro já mudam tudo.\n\nEnquanto isso, você conhece alguém que trabalha registrado? Se puder indicar, fico grata!",
+                                "Não perca o contato. Transforme um 'não' em uma oportunidade de indicação."));
+
+                // 6. REMARKETING ---
+                scripts.add(new PlaybookItem(
+                                "Remarketing",
+                                "Retomada (Após 1 hora)",
+                                "Oi! Tudo bem? Vi que conversamos sobre o empréstimo, mas não finalizamos.\n\nMuitos clientes na sua situação já liberaram os valores hoje! Posso dar continuidade ao seu processo para garantir seu dinheiro ainda hoje?",
+                                "Envie junto com 4 imagens de provas sociais (prints de clientes que receberam)."));
+
+                // 7. INDICAÇÃO E MULTIPLICAÇÃO DE LEADS
                 scripts.add(new PlaybookItem(
                                 "Prospecção",
                                 "Comando de Indicação Direta",
@@ -117,7 +168,7 @@ public class PlaybookService {
                                 "Oi, tudo bem? Passei aqui porque hoje estou revisando algumas simulações e queria saber se você conseguiu analisar a proposta. Caso ainda não seja o momento, você poderia me indicar 3 pessoas que trabalham registradas (CLT)? Eu verifico gratuitamente e te agradeço muito!",
                                 "Excelente para contatos frios ou propostas recusadas. Enviar junto com o cartão de indicação estratégico."));
 
-                // 6. DICAS DE CONVERSÃO GERAL
+                // 8. DICAS DE CONVERSÃO GERAL
                 scripts.add(new PlaybookItem(
                                 "Estratégia de Vendas",
                                 "Dica de Ouro: Uso de Áudios",

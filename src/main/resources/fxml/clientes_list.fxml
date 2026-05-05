@@ -15,8 +15,8 @@
                 style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
                 <items>
                     <!-- Botão de Refresh para recarregar dados do banco -->
-                    <Button onAction="#carregarDados" text="🔄" styleClass="flat"
-                        style="-fx-font-weight: bold;" prefWidth="45" prefHeight="40">
+                    <Button onAction="#carregarDados" text="🔄 Atualizar Lista" styleClass="flat"
+                        style="-fx-font-weight: bold;" >
                         <tooltip>
                             <Tooltip text="Atualizar Lista" />
                         </tooltip>

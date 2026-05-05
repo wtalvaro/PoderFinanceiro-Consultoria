@@ -14,15 +14,16 @@
             <ToolBar
                 style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
                 <items>
-                    <Button onAction="#limparSimulacao" text="🔄" styleClass="flat"
-                        style="-fx-font-weight: bold;" prefWidth="45" prefHeight="40">
+                    <Button onAction="#limparSimulacao" text="🔄 Limpar Simulação" styleClass="flat"
+                        style="-fx-font-weight: bold;" >
                         <tooltip>
                             <Tooltip text="Limpar e Iniciar Nova Simulação" />
                         </tooltip>
                     </Button>
 
-                    <Button onAction="#abrirPreviewSimulacao" text="📋" styleClass="flat"
-                        style="-fx-font-weight: bold;" prefWidth="45" prefHeight="40">
+                    <Button onAction="#abrirPreviewSimulacao" text="📋  Gerar Resumo"
+                        styleClass="flat"
+                        style="-fx-font-weight: bold;" >
                         <tooltip>
                             <Tooltip text="Copiar Simulação para WhatsApp" />
                         </tooltip>

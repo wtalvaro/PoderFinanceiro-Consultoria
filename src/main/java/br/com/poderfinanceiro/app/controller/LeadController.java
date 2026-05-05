@@ -2,9 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.Proponente;
 import br.com.poderfinanceiro.app.model.TipoConvenio;
-import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.service.ProponenteService;
-import br.com.poderfinanceiro.app.strategy.DocumentStrategy;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.LeadViewModel;
 import javafx.animation.PauseTransition;
@@ -21,7 +19,6 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Component
 @Scope("prototype") // Essencial para isolar cada cliente
@@ -32,14 +29,9 @@ public class LeadController {
     // --- DEPENDÊNCIAS ---
     private final ProponenteService proponenteService;
     private final MainController mainController;
-    private final AuthService authService;
-    private final List<DocumentStrategy> documentStrategies;
     private final LeadViewModel viewModel;
 
-    // --- ESTADO INTERNO ---
-    private Proponente proponenteEmEdicao = null;
     private String resumoGeradoParaCopia;
-    private String checklistGeradoParaCopia;
     private Runnable acaoNavegacaoPendente;
 
     // --- FXML BINDINGS ---
@@ -67,32 +59,13 @@ public class LeadController {
 
     // Overlays e Previews
     @FXML
-    private VBox overlayDocs, overlayResumo, overlayMensagens, overlayConfirmacaoSaida;
+    private VBox overlayResumo, overlayConfirmacaoSaida;
     @FXML
     private Label lblChecklistTexto, lblResumoPreview;
-    @FXML
-    private Label lblPreviewSaudacao, lblPreviewAnalise, lblPreviewFechamento, lblPreviewRetargeting;
 
-    // --- CONSTANTES ---
-    private static final String TEMPLATE_SAUDACAO = "Olá! Sou o *%CONSULTOR%*, da *Poder Financeiro*. Recebi seu contato e estou à disposição para ajudar com seu crédito.";
-    private static final String TEMPLATE_ANALISE = "Aqui é o *%CONSULTOR%*. Já iniciei a consulta da sua margem. Por favor, aguarde um momento enquanto verifico as melhores taxas.";
-    private static final String TEMPLATE_FECHAMENTO = "Qualquer dúvida, pode me chamar aqui. Tenha um excelente dia! Atenciosamente, *%CONSULTOR%* | *Poder Financeiro*.";
-    private static final String TEMPLATE_RETARGETING = "Oi! Tudo bem? Aqui é o *%CONSULTOR%* da *Poder Financeiro*.\n\n"
-            +
-            "Vi que você chegou a conversar comigo sobre o empréstimo, mas não conseguimos finalizar seu atendimento.\n\n"
-            +
-            "Quero te avisar que muitos clientes que estavam na mesma situação que você já conseguiram liberar valores, tanto no empréstimo CLT quanto na antecipação do FGTS!\n\n"
-            +
-            "Posso dar continuidade ao seu processo pra ver o quanto conseguimos liberar pra você hoje?\n\n" +
-            "É rápido, seguro e sem compromisso.";
-
-    public LeadController(ProponenteService proponenteService, MainController mainController,
-            AuthService authService, List<DocumentStrategy> documentStrategies,
-            LeadViewModel viewModel) {
+    public LeadController(ProponenteService proponenteService, MainController mainController, LeadViewModel viewModel) {
         this.proponenteService = proponenteService;
         this.mainController = mainController;
-        this.authService = authService;
-        this.documentStrategies = documentStrategies;
         this.viewModel = viewModel;
     }
 
@@ -261,8 +234,7 @@ public class LeadController {
         Task<Proponente> salvarTask = new Task<>() {
             @Override
             protected Proponente call() throws Exception {
-                Proponente contato = (proponenteEmEdicao != null) ? proponenteEmEdicao : new Proponente();
-                contato = viewModel.mapToModel(contato);
+                Proponente contato = viewModel.mapToModel(new Proponente());
                 return proponenteService.salvarLead(contato);
             }
         };
@@ -270,13 +242,7 @@ public class LeadController {
         salvarTask.setOnSucceeded(event -> {
             Proponente proponenteSalvo = salvarTask.getValue();
 
-            if (proponenteEmEdicao == null) {
-                limparFormulario();
-            } else {
-                this.proponenteEmEdicao = proponenteSalvo;
-                lblTituloTela.setText("Editando Contato: " + proponenteSalvo.getNomeCompleto());
-                viewModel.loadFromModel(proponenteSalvo);
-            }
+            viewModel.loadFromModel(proponenteSalvo);
 
             setLoading(false);
             exibirMensagem("✅ Contato salvo com sucesso!", true);
@@ -295,57 +261,34 @@ public class LeadController {
         new Thread(salvarTask).start();
     }
 
+    /**
+     * Prepara a tela para editar um cliente já existente no banco de dados.
+     */
     public void prepararEdicao(Proponente cliente) {
-        this.proponenteEmEdicao = cliente;
+        if (cliente != null) {
+            // Carrega o proponente no ViewModel, o que atualiza todos os campos
+            // da tela automaticamente e injeta o ID para evitar erro de CPF duplicado.
+            viewModel.loadFromModel(cliente);
+        }
     }
 
+    /**
+     * Limpa o formulário para iniciar o cadastro de um novo proponente do zero.
+     */
     public void prepararNovoContato() {
-        this.proponenteEmEdicao = null;
+        // Reseta todas as propriedades do ViewModel para o estado inicial (vazio).
+        // Graças ao Binding no initialize, o título da tela mudará sozinho.
+        viewModel.reset();
     }
 
     @FXML
     private void limparFormulario() {
-        proponenteEmEdicao = null;
-        lblTituloTela.setText("Cadastrar Novo Contato");
         viewModel.reset();
     }
 
     // ========================================================================
     // FERRAMENTAS DO WHATSAPP, DOCUMENTOS E RESUMO
     // ========================================================================
-
-    @FXML
-    private void verDocumentosNecessarios() {
-        TipoConvenio convenio = viewModel.convenioProperty().get();
-        String busca = (convenio != null) ? convenio.name() : "PADRAO";
-
-        DocumentStrategy strategy = documentStrategies.stream()
-                .filter(s -> s.supports(busca))
-                .findFirst()
-                .orElseGet(() -> documentStrategies.stream()
-                        .filter(s -> s.supports("PADRAO"))
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Estratégia PADRAO não encontrada.")));
-
-        String labelTitulo = (convenio != null) ? convenio.getLabel() : "GERAL";
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("📋 *INSTRUÇÕES PARA FORMALIZAÇÃO - ").append(labelTitulo.toUpperCase()).append("*\n");
-        sb.append("————————————————————————————\n");
-        sb.append(
-                "Para prosseguirmos com a sua análise de crédito no *Poder Financeiro*, por favor, envie fotos nítidas dos seguintes documentos:\n\n");
-        sb.append(strategy.getChecklist());
-        sb.append("\n⚠️ *OBSERVAÇÃO:* As imagens devem estar nítidas, sem cortes nas bordas e sem reflexos.\n");
-        sb.append("————————————————————————————\n");
-        sb.append("_Informações processadas em: ")
-                .append(java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
-                .append("_\n");
-        sb.append("*Poder Financeiro - Consultoria e Soluções de Crédito*");
-
-        this.checklistGeradoParaCopia = sb.toString();
-        lblChecklistTexto.setText(this.checklistGeradoParaCopia);
-        overlayDocs.setVisible(true);
-    }
 
     @FXML
     private void copiarResumoLead() {
@@ -457,47 +400,6 @@ public class LeadController {
         }
     }
 
-    private void executarCopia(String template, String categoria) {
-        String textoFinal = template.replace("%CONSULTOR%", getNomeConsultorLogado());
-        final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
-        final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
-        content.putString(textoFinal);
-        clipboard.setContent(content);
-        exibirMensagem("✅ Mensagem de " + categoria + " copiada!", true);
-    }
-
-    @FXML
-    private void copiarSaudacao() {
-        executarCopia(TEMPLATE_SAUDACAO, "Saudação");
-    }
-
-    @FXML
-    private void copiarAvisoAnalise() {
-        executarCopia(TEMPLATE_ANALISE, "Análise");
-    }
-
-    @FXML
-    private void copiarFechamento() {
-        executarCopia(TEMPLATE_FECHAMENTO, "Fechamento");
-    }
-
-    @FXML
-    private void copiarRetargeting() {
-        executarCopia(TEMPLATE_RETARGETING, "Retargeting");
-    }
-
-    @FXML
-    private void confirmarCopiaChecklist() {
-        if (this.checklistGeradoParaCopia != null) {
-            final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
-            final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
-            content.putString(this.checklistGeradoParaCopia);
-            clipboard.setContent(content);
-            fecharOverlayDocs();
-            exibirMensagem("✅ Lista de documentos copiada para o WhatsApp!", true);
-        }
-    }
-
     @FXML
     private void confirmarCopiaResumo() {
         if (this.resumoGeradoParaCopia != null) {
@@ -510,42 +412,10 @@ public class LeadController {
         }
     }
 
-    private String getNomeConsultorLogado() {
-        return authService.estaLogado() ? authService.getUsuarioLogado().getNome() : "Consultor Poder Financeiro";
-    }
-
-    @FXML
-    private void fecharOverlayDocs() {
-        overlayDocs.setVisible(false);
-        this.checklistGeradoParaCopia = null;
-    }
-
     @FXML
     private void fecharOverlayResumo() {
         overlayResumo.setVisible(false);
         this.resumoGeradoParaCopia = null;
-    }
-
-    @FXML
-    private void fecharCentralMensagens() {
-        if (overlayMensagens != null)
-            overlayMensagens.setVisible(false);
-    }
-
-    @FXML
-    private void abrirCentralMensagens() {
-        if (overlayMensagens != null) {
-            String nome = getNomeConsultorLogado();
-            if (lblPreviewSaudacao != null)
-                lblPreviewSaudacao.setText(TEMPLATE_SAUDACAO.replace("%CONSULTOR%", nome));
-            if (lblPreviewAnalise != null)
-                lblPreviewAnalise.setText(TEMPLATE_ANALISE.replace("%CONSULTOR%", nome));
-            if (lblPreviewFechamento != null)
-                lblPreviewFechamento.setText(TEMPLATE_FECHAMENTO.replace("%CONSULTOR%", nome));
-            if (lblPreviewRetargeting != null)
-                lblPreviewRetargeting.setText(TEMPLATE_RETARGETING.replace("%CONSULTOR%", nome));
-            overlayMensagens.setVisible(true);
-        }
     }
 
     private void exibirMensagem(String texto, boolean sucesso) {
