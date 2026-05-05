@@ -3,9 +3,14 @@ package br.com.poderfinanceiro.app.controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import br.com.poderfinanceiro.app.model.Proponente;
+
 @Component
+@Scope("prototype") // Essencial para garantir que cada aba tenha seu próprio estado isolado
 public class SimulatorController {
 
     // --- ELEMENTOS DE INTERFACE (Mapeados do simulator.fxml) ---
@@ -139,6 +144,11 @@ public class SimulatorController {
 
         fecharPreviewSimulacao();
         exibirMensagem("✅ Simulação copiada para o WhatsApp!", true);
+    }
+
+    public void vincularProponente(Proponente proponente) {
+        // Lógica para carregar os dados do cliente no simulador
+        System.out.println("Vinculando simulador ao cliente: " + proponente.getNomeCompleto());
     }
 
     // ========================================================================

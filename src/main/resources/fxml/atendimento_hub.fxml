@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<TabPane fx:id="subTabPane" side="LEFT" tabClosingPolicy="UNAVAILABLE"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.AtendimentoHubController">
+    <tabs>
+        <Tab text="📝 Dados">
+            <fx:include fx:id="abaLead" source="lead.fxml" />
+        </Tab>
+        <Tab text="🖩 Simulação">
+            <fx:include fx:id="abaSimulator" source="simulator.fxml" />
+        </Tab>
+    </tabs>
+</TabPane>

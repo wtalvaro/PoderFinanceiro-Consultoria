@@ -3,12 +3,22 @@ package br.com.poderfinanceiro.app.controller;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.model.Proponente;
+
 import java.io.IOException;
 import javafx.application.HostServices;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class MainController {
@@ -26,6 +36,7 @@ public class MainController {
 
     private final HostServices hostServices;
     private final ApplicationContext context;
+    private final Map<String, Node> telasEmCache = new HashMap<>();
 
     // Rastreamento da tela ativa para interceptar saídas acidentais
     private String telaAtual = "";
@@ -67,9 +78,21 @@ public class MainController {
      */
     private void executarNavegacao(String fxmlPath, boolean mostrarEstrutura) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            loader.setControllerFactory(context::getBean);
-            Node view = loader.load();
+            Node view;
+
+            // Verifica se a tela já foi carregada antes
+            if (telasEmCache.containsKey(fxmlPath)) {
+                // Recupera a tela com todo o seu estado (como as abas abertas)
+                view = telasEmCache.get(fxmlPath);
+            } else {
+                // Se for a primeira vez, carrega o FXML
+                FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+                loader.setControllerFactory(context::getBean);
+                view = loader.load();
+
+                // Salva no cache para uso futuro
+                telasEmCache.put(fxmlPath, view);
+            }
 
             // Oculta ou mostra barras (Menu, Sidebar, Rodapé)
             topBar.setVisible(mostrarEstrutura);
@@ -81,15 +104,18 @@ public class MainController {
             bottomBar.setVisible(mostrarEstrutura);
             bottomBar.setManaged(mostrarEstrutura);
 
-            // Injeta a nova tela no centro
+            // Injeta a tela recuperada ou recém-criada no centro
             contentArea.getChildren().setAll(view);
 
-            // Atualiza o registro de onde o consultor está agora
             this.telaAtual = fxmlPath;
 
         } catch (IOException e) {
             throw new RuntimeException("Erro ao carregar a tela: " + fxmlPath, e);
         }
+    }
+
+    public void limparCacheDeTelas() {
+        telasEmCache.clear();
     }
 
     /**
@@ -109,6 +135,54 @@ public class MainController {
             acaoNovoContato.run();
         }
     }
+
+    // No MainController.java
+    public void irParaWorkspace() {
+        navegarPara("/fxml/workspace.fxml", true); // Garante o carregamento do FXML
+    }
+
+    public void abrirClienteNoWorkspace(Proponente proponente) {
+    // 1. Garante que o Workspace esteja visível no centro da tela
+    if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
+        navegarPara("/fxml/workspace.fxml", true);
+    }
+
+    // 2. Localiza o TabPane dentro da tela atual (o Workspace)
+    // O id no seu arquivo workspace.fxml deve ser "tabPanePrincipal"
+    Node centro = contentArea.getChildren().get(0);
+    TabPane tabPane = (TabPane) centro.lookup("#tabPanePrincipal");
+
+    if (tabPane != null) {
+        // 3. Cria a nova aba manualmente
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
+            loader.setControllerFactory(context::getBean);
+            Parent root = loader.load();
+
+            AtendimentoHubController hubController = loader.getController();
+            hubController.inicializarAtendimento(proponente);
+
+            Tab novaAba = new Tab(proponente.getNomeCompleto(), root);
+            novaAba.setClosable(true);
+
+            Label iconeAba = new Label("👤");
+
+            // Apenas ajustamos o tamanho para alinhar com o texto da aba, SEM forçar o
+            // font-family!
+            iconeAba.setStyle("-fx-font-size: 14px;");
+
+            novaAba.setGraphic(iconeAba);
+            
+            tabPane.getTabs().add(novaAba);
+            tabPane.getSelectionModel().select(novaAba);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    } else {
+        System.err.println("Erro Crítico: Não foi possível localizar o TabPane no Workspace!");
+    }
+}
 
     // --- LÓGICA DO OVERLAY DE SAÍDA ---
     public void mostrarOverlaySair() {

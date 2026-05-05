@@ -2,26 +2,26 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<TabPane tabClosingPolicy="UNAVAILABLE" styleClass="classic" minHeight="0"
+<TabPane fx:id="tabPanePrincipal" tabClosingPolicy="ALL_TABS" styleClass="classic" minHeight="0"
     xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
 
     <!-- ABA 1: VISÃO GERAL -->
-    <Tab text="📊 Painel de Controle">
+    <Tab text="📊 Painel de Controle" closable="false">
         <fx:include source="dashboard.fxml" />
     </Tab>
 
     <!-- ABA 2: GESTÃO DE CARTEIRA -->
-    <Tab text="👥 Base de Contatos">
+    <Tab text="👥 Base de Contatos" closable="false">
         <fx:include source="clientes_list.fxml" />
     </Tab>
 
     <!-- ABA 3: OPERAÇÃO E CÁLCULOS -->
-    <Tab text="🖩 Originação / Simulador">
+    <Tab text="🖩 Originação / Simulador" closable="false">
         <fx:include source="simulator.fxml" />
     </Tab>
 
     <!-- ABA 4: ATENDIMENTO ATIVO -->
-    <Tab text="📝 Novo Cadastro / Lead">
+    <Tab text="📝 Novo Cadastro / Lead" closable="false">
         <fx:include source="lead.fxml" />
     </Tab>
 

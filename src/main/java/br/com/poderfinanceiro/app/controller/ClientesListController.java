@@ -21,8 +21,6 @@ public class ClientesListController {
 
     private final ProponenteService proponenteService;
     private final MainController mainController;
-    private final LeadController leadController; // Injetamos o parceiro aqui!
-
     @FXML
     private TableView<Proponente> tabelaClientes;
     @FXML
@@ -48,7 +46,6 @@ public class ClientesListController {
             LeadController leadController) {
         this.proponenteService = proponenteService;
         this.mainController = mainController;
-        this.leadController = leadController;
     }
 
     @FXML
@@ -59,13 +56,13 @@ public class ClientesListController {
         configurarFormatacaoCpfNaTabela();
         configurarFormatacaoTelefoneNaTabela();
 
-        // Configura o Duplo Clique na Tabela
         tabelaClientes.setRowFactory(tv -> {
             TableRow<Proponente> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
-                    Proponente clienteSelecionado = row.getItem();
-                    abrirEdicao(clienteSelecionado);
+                    Proponente selecionado = row.getItem();
+                    // DELEGAMOS PARA O MAIN CONTROLLER!
+                    mainController.abrirClienteNoWorkspace(selecionado);
                 }
             });
             return row;
@@ -105,14 +102,6 @@ public class ClientesListController {
     @FXML
     private void handleNovoContato() {
         mainController.irParaNovoContato();
-    }
-
-    private void abrirEdicao(Proponente cliente) {
-        // 1. Passa o cliente para o LeadController
-        leadController.prepararEdicao(cliente);
-
-        // 2. Manda o MainController trocar a tela para mostrar o formulário
-        mainController.navegarPara("/fxml/lead.fxml", true);
     }
 
     private void atualizarContador() {

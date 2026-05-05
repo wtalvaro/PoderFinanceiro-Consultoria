@@ -14,6 +14,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import javafx.util.Duration;
+
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -22,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Component
+@Scope("prototype") // Essencial para isolar cada cliente
 public class LeadController {
 
     private PauseTransition timerMensagem;
@@ -93,14 +96,18 @@ public class LeadController {
         estabelecerBindings();
         esconderMensagem();
 
-        if (this.proponenteEmEdicao != null) {
-            lblTituloTela.setText("Editando Contato: " + proponenteEmEdicao.getNomeCompleto());
-            viewModel.loadFromModel(this.proponenteEmEdicao);
-        } else {
-            limparFormulario();
-        }
+        // A Label agora vai reagir automaticamente a qualquer mudança no nome (seja do
+        // banco ou da digitação)
+        lblTituloTela.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
+            String nome = viewModel.nomeProperty().get();
+            return (nome == null || nome.trim().isEmpty()) ? "Cadastrar Novo Contato" : "Editando Contato: " + nome;
+        }, viewModel.nomeProperty()));
 
         btnSalvar.disableProperty().bind(viewModel.podeSalvarProperty().not());
+    }
+
+    public LeadViewModel getViewModel() {
+        return viewModel;
     }
 
     // ========================================================================

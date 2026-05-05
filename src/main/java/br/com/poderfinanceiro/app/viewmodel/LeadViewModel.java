@@ -5,6 +5,8 @@ import br.com.poderfinanceiro.app.model.TipoConvenio;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.*;
+
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 @Component
+@Scope("prototype") // Essencial para garantir que cada aba tenha seu próprio estado isolado
 public class LeadViewModel {
 
     // --- 1. PROPERTIES (O Coração do Data Binding) ---
@@ -184,6 +187,16 @@ public class LeadViewModel {
         this.chkGarantiaOriginal = false;
         this.chkConsigPrivadoOriginal = false;
         this.chkPessoalOriginal = false;
+    }
+
+    // Atalho para o Hub verificar o estado
+    public boolean isDirty() {
+        return temAlteracoesPendentes();
+    }
+
+    // Caso o Hub precise observar a mudança em tempo real
+    public BooleanProperty dirtyProperty() {
+        return new SimpleBooleanProperty(temAlteracoesPendentes());
     }
 
     // --- 4. REGRAS DE NEGÓCIO E VALIDAÇÕES DE TELA ---
