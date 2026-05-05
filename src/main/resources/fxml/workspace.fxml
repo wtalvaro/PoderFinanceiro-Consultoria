@@ -4,10 +4,15 @@
 
 <TabPane fx:id="tabPanePrincipal" tabClosingPolicy="ALL_TABS" styleClass="classic" minHeight="0"
     xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
-
-    <!-- ABA 1: VISÃO GERAL -->
+    
+    <!-- ABA 0: VISÃO GERAL -->
     <Tab text="📊 Painel de Controle" closable="false">
         <fx:include source="dashboard.fxml" />
+    </Tab>
+
+    <!-- ABA 1: PLAYBOOK (FIXA E PRIMEIRA) -->
+    <Tab text="📖 Playbook de Vendas" closable="false">
+        <fx:include source="playbook.fxml" />
     </Tab>
 
     <!-- ABA 2: GESTÃO DE CARTEIRA -->

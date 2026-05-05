@@ -62,6 +62,11 @@ public class LoginController {
                 // 3. O SEGREDO ESTÁ AQUI: Atualiza a barra ANTES de mostrar a tela
                 statusBarController.atualizarStatusUsuario();
 
+                // ---> CORREÇÃO AQUI <---
+                setLoading(false); // Reabilita os botões e campos de texto
+                txtSenha.clear(); // Limpa a senha por segurança
+                // -----------------------
+
                 // Redireciona para a cena principal
                 mainController.navegarPara("/fxml/workspace.fxml", true);
             } else {

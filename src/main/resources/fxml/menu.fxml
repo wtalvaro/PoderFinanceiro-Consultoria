@@ -25,6 +25,9 @@
                 <MenuItem text="Consultar HISCON (INSS)" />
                 <MenuItem text="Cálculo de Portabilidade (DCC)" />
                 <MenuItem text="Esteira de Digitação (Bancos)" />
+                <!-- Adicionado o Playbook com separador para destaque -->
+                <SeparatorMenuItem />
+                <MenuItem text="Playbook de Vendas" accelerator="Ctrl+P" onAction="#handlePlaybook" />
             </items>
         </Menu>
         <Menu text="_Financeiro">

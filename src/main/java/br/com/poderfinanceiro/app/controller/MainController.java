@@ -218,9 +218,15 @@ public class MainController {
         // Primeiro ocultamos a janela modal de confirmação de saída
         overlaySair.setVisible(false);
 
-        // Chamamos a navegação padrão. Se houver edição de Lead em andamento,
-        // o sistema vai "pausar" o logout, abrir a tela de salvar e só depois efetuar o
-        // logout!
+        // ---> CORREÇÕES DE SEGURANÇA E UX AQUI <---
+        // 1. Efetua o logout real no backend (anula o usuarioLogado)
+        context.getBean(br.com.poderfinanceiro.app.service.AuthService.class).logout();
+
+        // 2. Destrói o cache! Assim, o próximo usuário terá um Workspace novinho
+        limparCacheDeTelas();
+        // ------------------------------------------
+
+        // Chamamos a navegação padrão.
         navegarPara("/fxml/login.fxml", false);
     }
 }

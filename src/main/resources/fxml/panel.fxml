@@ -2,7 +2,6 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<!-- 1. ScrollPane permitindo crescer até o rodapé -->
 <ScrollPane fitToWidth="true" fitToHeight="true"
     maxHeight="1.7976931348623157E308"
     style="-fx-background-color: transparent;"
@@ -12,7 +11,6 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.PanelController">
 
-    <!-- 2. VBox interno expandindo com a altura -->
     <VBox spacing="10" prefWidth="250" maxHeight="1.7976931348623157E308"
         style="-fx-background-color: -color-bg-default; -fx-padding: 15 10; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;">
 
@@ -32,7 +30,10 @@
         <Button fx:id="btnDashboard" text="📊 Painel de Controle" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat, accent" onAction="#abrirWorkspace" />
 
-        <!-- Navegação Pura: Agora engloba todo o ciclo de vida -->
+        <!-- NOVO BOTÃO: PLAYBOOK DE VENDAS -->
+        <Button fx:id="btnPlaybook" text="📖 Playbook de Vendas" maxWidth="Infinity"
+            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirPlaybook" />
+
         <Button fx:id="btnBaseClientes" text="👥 Base de Contatos/Clientes" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTelaBaseClientes" />
 
@@ -56,7 +57,6 @@
         <Button fx:id="btnTabelaComissoes" text="💰 Tabela de Comissões" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
 
-        <!-- Region que empurra tudo para cima -->
         <Region VBox.vgrow="ALWAYS" />
     </VBox>
 </ScrollPane>

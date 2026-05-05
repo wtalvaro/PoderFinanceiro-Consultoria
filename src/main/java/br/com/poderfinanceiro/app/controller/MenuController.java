@@ -26,6 +26,13 @@ public class MenuController {
         // visível
         mainController.navegarPara("/fxml/simulator.fxml", true);
     }
+    
+    @FXML
+    private void handlePlaybook() {
+        // Direciona para a tela de scripts e regras de negócio
+        // O parâmetro 'true' mantém a Sidebar ativa para navegação rápida
+        mainController.navegarPara("/fxml/playbook.fxml", true);
+    }
 
     @FXML
     private void handleMenuSair() {
