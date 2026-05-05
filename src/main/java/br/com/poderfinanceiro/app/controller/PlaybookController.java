@@ -14,8 +14,10 @@ import org.springframework.stereotype.Component;
 import br.com.poderfinanceiro.app.model.PlaybookItem;
 import br.com.poderfinanceiro.app.service.PlaybookService;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Component
@@ -40,54 +42,56 @@ public class PlaybookController {
     }
 
     private void configurarArvore() {
-        // 1. Criar o nó raiz (invisível conforme o FXML)
-        TreeItem<Object> root = new TreeItem<>("Root");
+    // 1. Criar o nó raiz (invisível conforme o FXML)
+    TreeItem<Object> root = new TreeItem<>("Root");
 
-        // 2. Agrupar os scripts por categoria
-        List<PlaybookItem> todosScripts = playbookService.listarTudoParaOPlaybook();
-        Map<String, List<PlaybookItem>> agrupados = todosScripts.stream()
-                .collect(Collectors.groupingBy(PlaybookItem::getCategoria));
+    // 2. Agrupar os scripts por categoria (Adicionado TreeMap para ordenar as pastas de A-Z)
+    List<PlaybookItem> todosScripts = playbookService.listarTudoParaOPlaybook();
+    Map<String, List<PlaybookItem>> agrupados = todosScripts.stream()
+            .collect(Collectors.groupingBy(PlaybookItem::getCategoria, TreeMap::new, Collectors.toList()));
 
-        // 3. Construir a hierarquia
-        agrupados.forEach((categoria, scripts) -> {
-            TreeItem<Object> categoriaNode = new TreeItem<>(categoria);
-            categoriaNode.setExpanded(true); // Deixa as categorias abertas por padrão
+    // 3. Construir a hierarquia
+    agrupados.forEach((categoria, scripts) -> {
+        TreeItem<Object> categoriaNode = new TreeItem<>(categoria);
+        categoriaNode.setExpanded(true); // Deixa as categorias abertas por padrão[cite: 2]
 
-            scripts.forEach(script -> {
-                categoriaNode.getChildren().add(new TreeItem<>(script));
-            });
+        // Adicionado .stream().sorted() para ordenar os scripts dentro da pasta
+        scripts.stream()
+               .sorted(Comparator.comparing(PlaybookItem::getTitulo))
+               .forEach(script -> {
+                   categoriaNode.getChildren().add(new TreeItem<>(script));
+               });
 
-            root.getChildren().add(categoriaNode);
-        });
+        root.getChildren().add(categoriaNode);
+    });
 
-        treeViewScripts.setRoot(root);
+    treeViewScripts.setRoot(root);
 
-        // 4. Customizar a exibição (mostrar apenas o título para o script e o nome para
-        // a categoria)
-        treeViewScripts.setCellFactory(tv -> new TreeCell<>() {
-            @Override
-            protected void updateItem(Object item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("");
-                } else if (item instanceof String) {
-                    setText((String) item);
-                    setStyle("-fx-font-weight: bold; -fx-text-fill: #1976d2;"); // Destaque para categorias
-                } else if (item instanceof PlaybookItem) {
-                    setText(((PlaybookItem) item).getTitulo());
-                    setStyle("-fx-padding: 0 0 0 10;"); // Indentação para os scripts
-                }
+    // 4. Customizar a exibição (Mantido exatamente como o seu original)[cite: 3]
+    treeViewScripts.setCellFactory(tv -> new TreeCell<>() {
+        @Override
+        protected void updateItem(Object item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) {
+                setText(null);
+                setStyle("");
+            } else if (item instanceof String) {
+                setText((String) item);
+                setStyle("-fx-font-weight: bold; -fx-text-fill: #1976d2;");
+            } else if (item instanceof PlaybookItem) {
+                setText(((PlaybookItem) item).getTitulo());
+                setStyle("-fx-padding: 0 0 0 10;");
             }
-        });
+        }
+    });
 
-        // 5. Ouvinte de seleção
-        treeViewScripts.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal.getValue() instanceof PlaybookItem) {
-                exibirDetalhes((PlaybookItem) newVal.getValue());
-            }
-        });
-    }
+    // 5. Ouvinte de seleção (Mantido exatamente como o seu original)[cite: 3]
+    treeViewScripts.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+        if (newVal != null && newVal.getValue() instanceof PlaybookItem) {
+            exibirDetalhes((PlaybookItem) newVal.getValue());
+        }
+    });
+}
 
     private void exibirDetalhes(PlaybookItem item) {
         labelTitulo.setText(item.getTitulo());
