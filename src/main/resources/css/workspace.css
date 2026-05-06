@@ -1,0 +1,22 @@
+.workspace-container {
+    /* Propriedades de preenchimento (Padding) */
+    -fx-padding: 10;
+    padding: 10px;
+    /* Compatibilidade padrão */
+}
+
+.workspace-container .tab-header-area {
+    /* Define o cursor como 'mãozinha' ao passar sobre as abas */
+    -fx-cursor: hand;
+    cursor: pointer;
+    /* Compatibilidade padrão (W3C) */
+
+    -fx-padding: 0 5 0 5;
+    padding: 0 5px 0 5px;
+    /* Compatibilidade padrão */
+}
+
+.workspace-container .tab {
+    -fx-tab-min-width: 150px;
+    -fx-tab-max-width: 250px;
+}

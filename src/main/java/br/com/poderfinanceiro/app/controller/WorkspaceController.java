@@ -3,10 +3,12 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.model.Proponente;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.application.Platform;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +25,30 @@ public class WorkspaceController {
 
     public WorkspaceController(ApplicationContext context) {
         this.context = context;
+    }
+
+    @FXML
+    public void initialize() {
+        // Platform.runLater é necessário apenas uma vez para garantir que a skin foi
+        // carregada
+        Platform.runLater(() -> {
+            Node headerArea = tabPanePrincipal.lookup(".tab-header-area");
+
+            if (headerArea != null) {
+                headerArea.setOnScroll(event -> {
+                    // Somas simples de Delta: Se houver qualquer movimento positivo, volta.
+                    // Negativo, avança.
+                    if (event.getDeltaY() > 0 || event.getDeltaX() > 0) {
+                        tabPanePrincipal.getSelectionModel().selectPrevious();
+                    } else {
+                        tabPanePrincipal.getSelectionModel().selectNext();
+                    }
+
+                    // Consome o evento para não afetar o conteúdo interno da aba
+                    event.consume();
+                });
+            }
+        });
     }
 
     /**
