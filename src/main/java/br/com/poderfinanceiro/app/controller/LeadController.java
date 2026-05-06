@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.model.Proponente;
 import br.com.poderfinanceiro.app.model.TipoConvenio;
 import br.com.poderfinanceiro.app.model.TipoRelacionamento;
 import br.com.poderfinanceiro.app.model.TipoVinculo;
+import br.com.poderfinanceiro.app.model.Labeled;
 import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.LeadViewModel;
@@ -104,53 +105,36 @@ public class LeadController {
 
     private void configurarListasEFormatores() {
         // 1. Populando as listas
-        cbOrigem.getItems().setAll(OrigemLead.values());
-        cbVinculo.getItems().setAll(TipoVinculo.values());
-        cbClassificacao.getItems().setAll(TipoRelacionamento.values());
-        cbConvenio.getItems().setAll(TipoConvenio.values());
+        configurarCombo(cbOrigem, OrigemLead.values(), OrigemLead::fromString);
+        configurarCombo(cbVinculo, TipoVinculo.values(), TipoVinculo::fromString);
+        configurarCombo(cbConvenio, TipoConvenio.values(), TipoConvenio::fromString);
+        configurarCombo(cbClassificacao, TipoRelacionamento.values(), TipoRelacionamento::fromString);
 
-        // 2. Converter para OrigemLead (Usa o getLabel() que você criou)
-        cbOrigem.setConverter(new StringConverter<OrigemLead>() {
-            @Override
-            public String toString(OrigemLead obj) {
-                return obj != null ? obj.getLabel() : "";
-            }
-
-            @Override
-            public OrigemLead fromString(String str) {
-                return null;
-            }
-        });
-
-        // 3. Converter para TipoVinculo (Usa o getLabel() que você criou)
-        cbVinculo.setConverter(new StringConverter<TipoVinculo>() {
-            @Override
-            public String toString(TipoVinculo obj) {
-                return obj != null ? obj.getLabel() : "";
-            }
-
-            @Override
-            public TipoVinculo fromString(String str) {
-                return null;
-            }
-        });
-
-        // 4. Já existente no seu código para Convênio
-        cbConvenio.setConverter(new StringConverter<TipoConvenio>() {
-            @Override
-            public String toString(TipoConvenio obj) {
-                return obj != null ? obj.getLabel() : "";
-            }
-
-            @Override
-            public TipoConvenio fromString(String str) {
-                return null;
-            }
-        });
-
-        // Formatador de data para o padrão brasileiro
+        // Formato de data brasileiro para o DatePicker
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         dpDataNascimento.setConverter(new javafx.util.converter.LocalDateStringConverter(formatter, formatter));
+    }
+
+    /**
+     * Método Genérico com Strategy Pattern.
+     * T: Deve ser um Enum e implementar Labeled.
+     * searcher: Uma função que define como converter String de volta para o Enum.
+     */
+    private <T extends Enum<T> & Labeled> void configurarCombo(ComboBox<T> combo, T[] values,
+            java.util.function.Function<String, T> searcher) {
+        combo.getItems().setAll(values);
+
+        combo.setConverter(new StringConverter<T>() {
+            @Override
+            public String toString(T obj) {
+                return (obj != null) ? obj.getLabel() : ""; // Usa o label para exibição
+            }
+
+            @Override
+            public T fromString(String str) {
+                return searcher.apply(str); // Usa a estratégia de busca específica do Enum
+            }
+        });
     }
 
     private void estabelecerBindings() {

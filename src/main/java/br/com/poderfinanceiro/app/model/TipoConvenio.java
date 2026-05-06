@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model;
 
-public enum TipoConvenio {
+public enum TipoConvenio implements Labeled {
     INSS("INSS"),
     SIAPE("SIAPE"),
     EXERCITO("Exército"),

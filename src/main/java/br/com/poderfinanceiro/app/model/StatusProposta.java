@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model;
 
-public enum StatusProposta {
+public enum StatusProposta implements Labeled {
     DIGITADA("Digitada"),
     PENDENTE("Pendente"),
     ANALISE_BANCO("Análise do Banco"),

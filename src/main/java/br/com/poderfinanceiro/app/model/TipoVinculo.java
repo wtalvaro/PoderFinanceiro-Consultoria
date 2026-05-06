@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model;
 
-public enum TipoVinculo {
+public enum TipoVinculo implements Labeled {
     APOSENTADO("Aposentado"),
     PENSIONISTA("Pensionista"),
     SERVIDOR_ATIVO("Servidor Ativo"),

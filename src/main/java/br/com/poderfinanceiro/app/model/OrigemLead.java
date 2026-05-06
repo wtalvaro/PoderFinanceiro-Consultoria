@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model;
 
-public enum OrigemLead {
+public enum OrigemLead implements Labeled {
     WHATSAPP("WhatsApp"),
     PANFLETO("Panfleto"),
     INDICACAO("Indicação"),

@@ -56,29 +56,31 @@ public class LeadViewModel {
     private final BooleanProperty chkPessoal = new SimpleBooleanProperty(false);
 
     // --- 2. ESTADOS ORIGINAIS (Para o Dirty Checking) ---
-    private String nomeOriginal = "";
-    private String cpfOriginal = "";
-    private String telefoneOriginal = "";
-    private OrigemLead origemOriginal = OrigemLead.WHATSAPP;
-    private LocalDate dataNascimentoOriginal = null;
-    private TipoConvenio convenioOriginal = TipoConvenio.PADRAO;
-    private TipoVinculo vinculoOriginal = TipoVinculo.CLT;
-    private String matriculaOriginal = "";
-    private BigDecimal rendaOriginal = BigDecimal.ZERO;
-    private TipoRelacionamento classificacaoOriginal = TipoRelacionamento.LEAD;
+    private final ReadOnlyStringWrapper nomeOriginal = new ReadOnlyStringWrapper("");
+    private final ReadOnlyStringWrapper cpfOriginal = new ReadOnlyStringWrapper("");
+    private final ReadOnlyStringWrapper telefoneOriginal = new ReadOnlyStringWrapper("");
+    private final ReadOnlyObjectWrapper<OrigemLead> origemOriginal = new ReadOnlyObjectWrapper<>(OrigemLead.WHATSAPP);
+    private final ReadOnlyObjectWrapper<LocalDate> dataNascimentoOriginal = new ReadOnlyObjectWrapper<>(null);
+    private final ReadOnlyObjectWrapper<TipoConvenio> convenioOriginal = new ReadOnlyObjectWrapper<>(
+            TipoConvenio.PADRAO);
+    private final ReadOnlyObjectWrapper<TipoVinculo> vinculoOriginal = new ReadOnlyObjectWrapper<>(TipoVinculo.CLT);
+    private final ReadOnlyStringWrapper matriculaOriginal = new ReadOnlyStringWrapper("");
+    private final ReadOnlyObjectWrapper<BigDecimal> rendaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
+    private final ReadOnlyObjectWrapper<TipoRelacionamento> classificacaoOriginal = new ReadOnlyObjectWrapper<>(
+            TipoRelacionamento.LEAD);
 
-    private boolean chkFgtsOriginal = false;
-    private boolean chkInssOriginal = false;
-    private boolean chkSiapeOriginal = false;
-    private boolean chkForcasOriginal = false;
-    private boolean chkBolsaFamiliaOriginal = false;
-    private boolean chkContaLuzOriginal = false;
-    private boolean chkCartaoOriginal = false;
-    private boolean chkPortabilidadeOriginal = false;
-    private boolean chkRefinOriginal = false;
-    private boolean chkGarantiaOriginal = false;
-    private boolean chkConsigPrivadoOriginal = false;
-    private boolean chkPessoalOriginal = false;
+    private final ReadOnlyBooleanWrapper chkFgtsOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkInssOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkSiapeOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkForcasOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkBolsaFamiliaOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkContaLuzOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkCartaoOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkPortabilidadeOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkRefinOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkGarantiaOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkConsigPrivadoOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyBooleanWrapper chkPessoalOriginal = new ReadOnlyBooleanWrapper(false);
 
     // --- 3. MÉTODOS DE SINCRONIZAÇÃO ---
 
@@ -89,7 +91,6 @@ public class LeadViewModel {
         }
 
         id.set(p.getId());
-        editando.set(true); // <-- GARANTE QUE É EDIÇÃO
 
         // Injeta os dados nas propriedades
         nome.set(p.getNomeCompleto() != null ? p.getNomeCompleto() : "");
@@ -102,29 +103,23 @@ public class LeadViewModel {
         matricula.set(p.getMatricula() != null ? p.getMatricula() : "");
         renda.set(p.getRendaMensal() != null ? p.getRendaMensal() : BigDecimal.ZERO);
         classificacao.set(p.getClassificacao() != null ? p.getClassificacao() : TipoRelacionamento.LEAD);
-        this.chkFgtsOriginal = chkFgts.get();
-        this.chkInssOriginal = chkInss.get();
-        this.chkSiapeOriginal = chkSiape.get();
-        this.chkForcasOriginal = chkForcas.get();
-        this.chkBolsaFamiliaOriginal = chkBolsaFamilia.get();
-        this.chkContaLuzOriginal = chkContaLuz.get();
-        this.chkCartaoOriginal = chkCartao.get();
-        this.chkPortabilidadeOriginal = chkPortabilidade.get();
-        this.chkRefinOriginal = chkRefin.get();
-        this.chkGarantiaOriginal = chkGarantia.get();
-        this.chkConsigPrivadoOriginal = chkConsigPrivado.get();
-        this.chkPessoalOriginal = chkPessoal.get();
 
-        this.nomeOriginal = nome.get();
-        this.cpfOriginal = cpf.get();
-        this.telefoneOriginal = telefone.get();
-        this.origemOriginal = origem.get();
-        this.dataNascimentoOriginal = dataNascimento.get();
-        this.convenioOriginal = convenio.get();
-        this.vinculoOriginal = vinculo.get();
-        this.matriculaOriginal = matricula.get();
-        this.rendaOriginal = renda.get();
-        this.classificacaoOriginal = classificacao.get();
+        this.chkFgtsOriginal.set(chkFgts.get());
+        this.chkInssOriginal.set(chkInss.get());
+        this.chkSiapeOriginal.set(chkSiape.get());
+        this.chkForcasOriginal.set(chkForcas.get());
+        this.chkBolsaFamiliaOriginal.set(chkBolsaFamilia.get());
+        this.chkContaLuzOriginal.set(chkContaLuz.get());
+        this.chkCartaoOriginal.set(chkCartao.get());
+        this.chkPortabilidadeOriginal.set(chkPortabilidade.get());
+        this.chkRefinOriginal.set(chkRefin.get());
+        this.chkGarantiaOriginal.set(chkGarantia.get());
+        this.chkConsigPrivadoOriginal.set(chkConsigPrivado.get());
+        this.chkPessoalOriginal.set(chkPessoal.get());
+
+        // 2. DEPOIS: Sincroniza o "Original" com o que acabou de ser injetado[cite: 7]
+        sincronizarEstadoOriginal();
+        editando.set(true); // <-- GARANTE QUE É EDIÇÃO
     }
 
     public Proponente mapToModel(Proponente target) {
@@ -174,30 +169,57 @@ public class LeadViewModel {
         limparEstadoOriginal();
     }
 
-    private void limparEstadoOriginal() {
-        this.nomeOriginal = "";
-        this.cpfOriginal = "";
-        this.telefoneOriginal = "";
-        this.origemOriginal = OrigemLead.WHATSAPP;
-        this.dataNascimentoOriginal = null;
-        this.convenioOriginal = TipoConvenio.PADRAO;
-        this.vinculoOriginal = TipoVinculo.CLT;
-        this.matriculaOriginal = "";
-        this.rendaOriginal = BigDecimal.ZERO;
-        this.classificacaoOriginal = TipoRelacionamento.LEAD;
+    private void sincronizarEstadoOriginal() {
+        this.nomeOriginal.set(nome.get());
+        this.cpfOriginal.set(cpf.get());
+        this.telefoneOriginal.set(telefone.get());
+        this.origemOriginal.set(origem.get());
+        this.dataNascimentoOriginal.set(dataNascimento.get());
+        this.convenioOriginal.set(convenio.get());
+        this.vinculoOriginal.set(vinculo.get());
+        this.matriculaOriginal.set(matricula.get());
+        this.rendaOriginal.set(renda.get());
+        this.classificacaoOriginal.set(classificacao.get());
 
-        this.chkFgtsOriginal = false;
-        this.chkInssOriginal = false;
-        this.chkSiapeOriginal = false;
-        this.chkForcasOriginal = false;
-        this.chkBolsaFamiliaOriginal = false;
-        this.chkContaLuzOriginal = false;
-        this.chkCartaoOriginal = false;
-        this.chkPortabilidadeOriginal = false;
-        this.chkRefinOriginal = false;
-        this.chkGarantiaOriginal = false;
-        this.chkConsigPrivadoOriginal = false;
-        this.chkPessoalOriginal = false;
+        // Agora capturamos o valor real vindo do banco, não o lixo da memória[cite: 7]
+        this.chkFgtsOriginal.set(chkFgts.get());
+        this.chkInssOriginal.set(chkInss.get());
+        this.chkSiapeOriginal.set(chkSiape.get());
+        this.chkForcasOriginal.set(chkForcas.get());
+        this.chkBolsaFamiliaOriginal.set(chkBolsaFamilia.get());
+        this.chkContaLuzOriginal.set(chkContaLuz.get());
+        this.chkCartaoOriginal.set(chkCartao.get());
+        this.chkPortabilidadeOriginal.set(chkPortabilidade.get());
+        this.chkRefinOriginal.set(chkRefin.get());
+        this.chkGarantiaOriginal.set(chkGarantia.get());
+        this.chkConsigPrivadoOriginal.set(chkConsigPrivado.get());
+        this.chkPessoalOriginal.set(chkPessoal.get());
+    }
+
+    private void limparEstadoOriginal() {
+        this.nomeOriginal.set("");
+        this.cpfOriginal.set("");
+        this.telefoneOriginal.set("");
+        this.origemOriginal.set(OrigemLead.WHATSAPP);
+        this.dataNascimentoOriginal.set(null);
+        this.convenioOriginal.set(TipoConvenio.PADRAO);
+        this.vinculoOriginal.set(TipoVinculo.CLT);
+        this.matriculaOriginal.set("");
+        this.rendaOriginal.set(BigDecimal.ZERO);
+        this.classificacaoOriginal.set(TipoRelacionamento.LEAD);
+
+        this.chkFgtsOriginal.set(false);
+        this.chkInssOriginal.set(false);
+        this.chkSiapeOriginal.set(false);
+        this.chkForcasOriginal.set(false);
+        this.chkBolsaFamiliaOriginal.set(false);
+        this.chkContaLuzOriginal.set(false);
+        this.chkCartaoOriginal.set(false);
+        this.chkPortabilidadeOriginal.set(false);
+        this.chkRefinOriginal.set(false);
+        this.chkGarantiaOriginal.set(false);
+        this.chkConsigPrivadoOriginal.set(false);
+        this.chkPessoalOriginal.set(false);
     }
 
     public boolean isDirty() {
@@ -246,44 +268,44 @@ public class LeadViewModel {
 
     public boolean temAlteracoesPendentes() {
         boolean rendaMudou;
-        if (renda.get() == null && rendaOriginal == null) {
+        if (renda.get() == null && rendaOriginal.get() == null) {
             rendaMudou = false;
-        } else if (renda.get() == null || rendaOriginal == null) {
+        } else if (renda.get() == null || rendaOriginal.get() == null) {
             rendaMudou = true;
         } else {
-            rendaMudou = renda.get().compareTo(rendaOriginal) != 0;
+            rendaMudou = renda.get().compareTo(rendaOriginal.get()) != 0;
         }
 
         // CORREÇÃO CRÍTICA: Remove a máscara antes de comparar se o CPF ou Telefone
         // mudou
         String cpfAtual = cpf.get() != null ? cpf.get().replaceAll("[^0-9]", "") : "";
-        String cpfOrig = cpfOriginal != null ? cpfOriginal.replaceAll("[^0-9]", "") : "";
+        String cpfOrig = cpfOriginal.get() != null ? cpfOriginal.get().replaceAll("[^0-9]", "") : "";
 
         String telAtual = telefone.get() != null ? telefone.get().replaceAll("[^0-9]", "") : "";
-        String telOrig = telefoneOriginal != null ? telefoneOriginal.replaceAll("[^0-9]", "") : "";
+        String telOrig = telefoneOriginal.get() != null ? telefoneOriginal.get().replaceAll("[^0-9]", "") : "";
 
-        return !Objects.equals(nome.get(), nomeOriginal) ||
+        return !Objects.equals(nome.get(), nomeOriginal.get()) ||
                 !cpfAtual.equals(cpfOrig) ||
                 !telAtual.equals(telOrig) ||
-                !Objects.equals(origem.get(), origemOriginal) ||
-                !Objects.equals(dataNascimento.get(), dataNascimentoOriginal) ||
-                !Objects.equals(convenio.get(), convenioOriginal) ||
-                !Objects.equals(vinculo.get(), vinculoOriginal) ||
-                !Objects.equals(matricula.get(), matriculaOriginal) ||
-                !Objects.equals(classificacao.get(), classificacaoOriginal) ||
+                !Objects.equals(origem.get(), origemOriginal.get()) ||
+                !Objects.equals(dataNascimento.get(), dataNascimentoOriginal.get()) ||
+                !Objects.equals(convenio.get(), convenioOriginal.get()) ||
+                !Objects.equals(vinculo.get(), vinculoOriginal.get()) ||
+                !Objects.equals(matricula.get(), matriculaOriginal.get()) ||
+                !Objects.equals(classificacao.get(), classificacaoOriginal.get()) ||
                 rendaMudou ||
-                chkFgts.get() != chkFgtsOriginal ||
-                chkInss.get() != chkInssOriginal ||
-                chkSiape.get() != chkSiapeOriginal ||
-                chkForcas.get() != chkForcasOriginal ||
-                chkBolsaFamilia.get() != chkBolsaFamiliaOriginal ||
-                chkContaLuz.get() != chkContaLuzOriginal ||
-                chkCartao.get() != chkCartaoOriginal ||
-                chkPortabilidade.get() != chkPortabilidadeOriginal ||
-                chkRefin.get() != chkRefinOriginal ||
-                chkGarantia.get() != chkGarantiaOriginal ||
-                chkConsigPrivado.get() != chkConsigPrivadoOriginal ||
-                chkPessoal.get() != chkPessoalOriginal;
+                chkFgts.get() != chkFgtsOriginal.get() ||
+                chkInss.get() != chkInssOriginal.get() ||
+                chkSiape.get() != chkSiapeOriginal.get() ||
+                chkForcas.get() != chkForcasOriginal.get() ||
+                chkBolsaFamilia.get() != chkBolsaFamiliaOriginal.get() ||
+                chkContaLuz.get() != chkContaLuzOriginal.get() ||
+                chkCartao.get() != chkCartaoOriginal.get() ||
+                chkPortabilidade.get() != chkPortabilidadeOriginal.get() ||
+                chkRefin.get() != chkRefinOriginal.get() ||
+                chkGarantia.get() != chkGarantiaOriginal.get() ||
+                chkConsigPrivado.get() != chkConsigPrivadoOriginal.get() ||
+                chkPessoal.get() != chkPessoalOriginal.get();
     }
 
     // --- 5. GETTERS DAS PROPERTIES ---

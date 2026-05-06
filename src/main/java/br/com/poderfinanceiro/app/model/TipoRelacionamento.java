@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model;
 
-public enum TipoRelacionamento {
+public enum TipoRelacionamento implements Labeled {
     LEAD("Lead"),
     PROPONENTE("Proponente"),
     CLIENTE("Cliente");
