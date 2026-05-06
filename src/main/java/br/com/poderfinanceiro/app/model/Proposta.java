@@ -49,9 +49,9 @@ public class Proposta {
 
     // 1 e 2. Mudança para Enum e alteração do Default para "Digitada"
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // <-- A MÁGICA ESTÁ AQUI
-    @Column(name = "status", columnDefinition = "status_proposta")
-    private StatusProposta status = StatusProposta.Digitada;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", columnDefinition = "status_proposta_enum") // Nome EXATO do TYPE no seu SQL
+    private StatusProposta status = StatusProposta.DIGITADA;
 
     @Column(precision = 10, scale = 6)
     private BigDecimal coeficiente;

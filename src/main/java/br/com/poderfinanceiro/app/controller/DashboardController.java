@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.Proposta;
 import br.com.poderfinanceiro.app.model.StatusProposta;
+import br.com.poderfinanceiro.app.model.TipoVinculo;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
@@ -72,10 +73,14 @@ public class DashboardController {
         colBanco.setCellValueFactory(
                 cellData -> new SimpleStringProperty(cellData.getValue().getBanco().getNomeBanco()));
 
-        // Acesso ao vínculo/convênio (Entidade Proponente)
-        colConvenio.setCellValueFactory(
-                cellData -> new SimpleStringProperty(cellData.getValue().getProponente().getTipoVinculo()));
+        colConvenio.setCellValueFactory(cellData -> {
+            // 1. Pegamos o enum do proponente vinculado à proposta
+            TipoVinculo vinculo = cellData.getValue().getProponente().getTipoVinculo();
 
+            // 2. Retornamos a descrição amigável ou vazio se estiver nulo
+            return new SimpleStringProperty(vinculo != null ? vinculo.getLabel() : "");
+        });
+        
         // Mapeamento direto de campos da Proposta
         colValor.setCellValueFactory(new PropertyValueFactory<>("valorAprovado"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
@@ -101,15 +106,15 @@ public class DashboardController {
     public void carregarDadosReais() {
         List<Proposta> propostas = propostaRepository.findAll();
 
-        // 1. Contador de propostas aguardando (Status Digitada ou Pendente)
+        // 1. Contador de propostas aguardando (Status DIGITADA ou PENDENTE)
         long aguardando = propostas.stream()
-                .filter(p -> p.getStatus() == StatusProposta.Digitada ||
-                        p.getStatus() == StatusProposta.Pendente)
+                .filter(p -> p.getStatus() == StatusProposta.DIGITADA ||
+                        p.getStatus() == StatusProposta.PENDENTE)
                 .count();
 
-        // 2. Volume total aprovado (Status Pago)
+        // 2. Volume total aprovado (Status PAGO)
         BigDecimal volumePago = propostas.stream()
-                .filter(p -> p.getStatus() == StatusProposta.Pago)
+                .filter(p -> p.getStatus() == StatusProposta.PAGO)
                 .map(p -> p.getValorAprovado() != null ? p.getValorAprovado() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

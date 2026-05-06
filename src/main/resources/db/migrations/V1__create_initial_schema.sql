@@ -4,22 +4,51 @@
 -- 1. TIPOS E ENUMS
 -- ==========================================
 -- NOVO: Enum para gerenciar o ciclo de vida da pessoa no seu funil
-CREATE TYPE public.tipo_relacionamento AS ENUM (
+CREATE TYPE public.tipo_relacionamento_enum AS ENUM (
     'LEAD',
     'PROPONENTE',
     'CLIENTE'
 );
 
 -- ATUALIZADO: Removido o 'Lead', agora começa em 'Digitada'
-CREATE TYPE public.status_proposta AS ENUM (
-    'Digitada',
-    'Pendente',
-    'Analise_Banco',
-    'Aguardando_Doc',
-    'Aprovada',
-    'Reprovado',
-    'Pago',
-    'Cancelado'
+CREATE TYPE public.status_proposta_enum AS ENUM (
+    'DIGITADA',
+    'PENDENTE',
+    'ANALISE_BANCO',
+    'AGUARDANDO_DOC',
+    'APROVADA',
+    'REPROVADA',
+    'PAGO',
+    'CANCELADO'
+);
+
+-- Enum para a origem da captação (Lead)
+CREATE TYPE public.origem_consentimento_enum AS ENUM (
+    'WHATSAPP',
+    'PANFLETO',
+    'INDICACAO',
+    'FACEBOOK',
+    'PASSOU_NA_PORTA'
+);
+
+-- Enum para o tipo de vínculo do proponente
+CREATE TYPE public.tipo_vinculo_enum AS ENUM (
+    'APOSENTADO', 
+    'PENSIONISTA', 
+    'SERVIDOR_ATIVO', 
+    'MILITAR', 
+    'CLT'
+);
+
+CREATE TYPE public.tipo_convenio_enum AS ENUM (
+    'INSS',
+    'SIAPE',
+    'EXERCITO',
+    'MARINHA',
+    'AERONAUTICA',
+    'GOVERNO',
+    'PREFEITURA',
+    'PADRAO'
 );
 
 -- ==========================================
@@ -65,8 +94,8 @@ CREATE TABLE public.bancos (
 );
 
 CREATE TABLE public.comissoes (
-    comissao_id integer DEFAULT nextval('public.comissoes_comissao_id_seq'::regclass) NOT NULL,
-    proposta_id integer NOT NULL,
+    comissao_id bigint DEFAULT nextval('public.comissoes_comissao_id_seq'::regclass) NOT NULL,
+    proposta_id bigint NOT NULL,
     usuario_id bigint NOT NULL, -- Qual consultor recebe esta comissão
     valor_bruto_comissao numeric(12,2) NOT NULL,
     impostos_retidos numeric(12,2) DEFAULT 0.00,
@@ -78,8 +107,8 @@ CREATE TABLE public.comissoes (
 );
 
 CREATE TABLE public.documentos_proponente (
-    documento_id integer DEFAULT nextval('public.documentos_proponente_documento_id_seq'::regclass) NOT NULL,
-    proponente_id integer,
+    documento_id bigint DEFAULT nextval('public.documentos_proponente_documento_id_seq'::regclass) NOT NULL,
+    proponente_id bigint,
     usuario_id bigint NOT NULL, -- Quem fez o upload
     tipo_documento character varying(50) NOT NULL,
     arquivo_path text NOT NULL,
@@ -89,8 +118,8 @@ CREATE TABLE public.documentos_proponente (
 );
 
 CREATE TABLE public.historico_status_proposta (
-    historico_id integer DEFAULT nextval('public.historico_status_proposta_historico_id_seq'::regclass) NOT NULL,
-    proposta_id integer,
+    historico_id bigint DEFAULT nextval('public.historico_status_proposta_historico_id_seq'::regclass) NOT NULL,
+    proposta_id bigint,
     usuario_id bigint, -- Quem mudou o status
     status_anterior character varying(50),
     status_novo character varying(50) NOT NULL,
@@ -99,8 +128,8 @@ CREATE TABLE public.historico_status_proposta (
 );
 
 CREATE TABLE public.interacoes_contato (
-    interacao_id integer DEFAULT nextval('public.interacoes_contato_interacao_id_seq'::regclass) NOT NULL,
-    proponente_id integer,
+    interacao_id bigint DEFAULT nextval('public.interacoes_contato_interacao_id_seq'::regclass) NOT NULL,
+    proponente_id bigint,
     usuario_id bigint NOT NULL, -- Qual consultor atendeu/enviou
     canal character varying(20) DEFAULT 'WhatsApp'::character varying,
     mensagem_texto text,
@@ -115,26 +144,26 @@ CREATE TABLE public.proponentes (
     cpf character varying(14) NOT NULL,
     telefone character varying(20),
     renda_mensal numeric(12,2),
-    tipo_vinculo character varying(50),
-    convenio_orgao character varying(100),
+    tipo_vinculo public.tipo_vinculo_enum DEFAULT 'CLT'::public.tipo_vinculo_enum, -- NOVO: Tipo de vínculo do proponente
+    convenio_orgao public.tipo_convenio_enum DEFAULT 'PADRAO'::public.tipo_convenio_enum, -- NOVO: Tipo de convênio/órgão
     matricula character varying(50),
-    origem_consentimento text,
-    classificacao public.tipo_relacionamento DEFAULT 'LEAD'::public.tipo_relacionamento, -- NOVO: Campo de classificação adicionado
+    origem_consentimento public.origem_consentimento_enum DEFAULT 'WHATSAPP'::public.origem_consentimento_enum, -- NOVO: Origem da captação do lead
+    classificacao public.tipo_relacionamento_enum DEFAULT 'LEAD'::public.tipo_relacionamento_enum, -- NOVO: Campo de classificação adicionado
     data_cadastro timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     deletado_em timestamp without time zone,
     data_nascimento date
 );
 
 CREATE TABLE public.propostas (
-    proposta_id integer DEFAULT nextval('public.propostas_proposta_id_seq'::regclass) NOT NULL,
-    proponente_id integer NOT NULL,
-    banco_id integer NOT NULL,
+    proposta_id bigint DEFAULT nextval('public.propostas_proposta_id_seq'::regclass) NOT NULL,
+    proponente_id bigint NOT NULL,
+    banco_id bigint NOT NULL,
     usuario_id bigint NOT NULL, -- Consultor responsável pela proposta
     valor_solicitado numeric(12,2) NOT NULL,
     valor_aprovado numeric(12,2),
     taxa_aplicada numeric(5,2),
     quantidade_parcelas integer,
-    status public.status_proposta DEFAULT 'Digitada'::public.status_proposta, -- ATUALIZADO: Default agora é 'Digitada'
+    status public.status_proposta_enum DEFAULT 'DIGITADA'::public.status_proposta_enum, -- ATUALIZADO: Default agora é 'DIGITADA'
     coeficiente numeric(10,6),
     valor_parcela numeric(12,2),
     modalidade_juros character varying(20) DEFAULT 'Prefixado'::character varying,
@@ -147,7 +176,7 @@ CREATE TABLE public.propostas (
     data_solicitacao date DEFAULT CURRENT_DATE,
     observacoes text,
     ultima_atualizacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    tabela_id integer,
+    tabela_id bigint, -- Referência à tabela de juros aplicada
     usuario_atualizacao_id bigint -- Necessário para a trigger de histórico saber quem alterou
 );
 

@@ -1,7 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.model.OrigemLead;
 import br.com.poderfinanceiro.app.model.Proponente;
 import br.com.poderfinanceiro.app.model.TipoConvenio;
+import br.com.poderfinanceiro.app.model.TipoRelacionamento;
+import br.com.poderfinanceiro.app.model.TipoVinculo;
 import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.LeadViewModel;
@@ -40,9 +43,13 @@ public class LeadController {
     @FXML
     private TextField txtNome, txtCpf, txtTelefone, txtMatricula, txtRenda;
     @FXML
-    private ComboBox<String> cbOrigem, cbVinculo;
+    private ComboBox<OrigemLead> cbOrigem;
+    @FXML
+    private ComboBox<TipoVinculo> cbVinculo;
     @FXML
     private ComboBox<TipoConvenio> cbConvenio;
+    @FXML
+    private ComboBox<TipoRelacionamento> cbClassificacao;
     @FXML
     private DatePicker dpDataNascimento;
     @FXML
@@ -96,10 +103,40 @@ public class LeadController {
     // ========================================================================
 
     private void configurarListasEFormatores() {
-        cbOrigem.getItems().setAll("WhatsApp", "Panfleto", "Indicação", "Facebook", "Passou na porta");
-        cbVinculo.getItems().setAll("Aposentado", "Pensionista", "Servidor Ativo", "Militar", "CLT");
+        // 1. Populando as listas
+        cbOrigem.getItems().setAll(OrigemLead.values());
+        cbVinculo.getItems().setAll(TipoVinculo.values());
+        cbClassificacao.getItems().setAll(TipoRelacionamento.values());
+        cbConvenio.getItems().setAll(TipoConvenio.values());
 
-        cbConvenio.setConverter(new StringConverter<>() {
+        // 2. Converter para OrigemLead (Usa o getLabel() que você criou)
+        cbOrigem.setConverter(new StringConverter<OrigemLead>() {
+            @Override
+            public String toString(OrigemLead obj) {
+                return obj != null ? obj.getLabel() : "";
+            }
+
+            @Override
+            public OrigemLead fromString(String str) {
+                return null;
+            }
+        });
+
+        // 3. Converter para TipoVinculo (Usa o getLabel() que você criou)
+        cbVinculo.setConverter(new StringConverter<TipoVinculo>() {
+            @Override
+            public String toString(TipoVinculo obj) {
+                return obj != null ? obj.getLabel() : "";
+            }
+
+            @Override
+            public TipoVinculo fromString(String str) {
+                return null;
+            }
+        });
+
+        // 4. Já existente no seu código para Convênio
+        cbConvenio.setConverter(new StringConverter<TipoConvenio>() {
             @Override
             public String toString(TipoConvenio obj) {
                 return obj != null ? obj.getLabel() : "";
@@ -110,8 +147,8 @@ public class LeadController {
                 return null;
             }
         });
-        cbConvenio.getItems().setAll(TipoConvenio.values());
 
+        // Formatador de data para o padrão brasileiro
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         dpDataNascimento.setConverter(new javafx.util.converter.LocalDateStringConverter(formatter, formatter));
     }
@@ -120,7 +157,7 @@ public class LeadController {
         // 1. TextFields e ComboBoxes (Sem máscara especial)
         txtNome.textProperty().bindBidirectional(viewModel.nomeProperty());
         cbOrigem.valueProperty().bindBidirectional(viewModel.origemProperty());
-
+        cbClassificacao.valueProperty().bindBidirectional(viewModel.classificacaoProperty());
         // ====================================================================
         // BINDING DA DATA DE NASCIMENTO (Com Máscara Automática)
         // ====================================================================
@@ -333,7 +370,8 @@ public class LeadController {
                         : "A definir")
                 .append("\n");
         resumo.append("• *Vínculo:* ").append(
-                viewModel.vinculoProperty().get().isEmpty() ? "Não informado" : viewModel.vinculoProperty().get())
+                viewModel.vinculoProperty().get() == null ? "Não informado"
+                        : viewModel.vinculoProperty().get().getLabel())
                 .append("\n");
         resumo.append("• *Matrícula:* ").append(
                 viewModel.matriculaProperty().get().isEmpty() ? "Não informada" : viewModel.matriculaProperty().get())

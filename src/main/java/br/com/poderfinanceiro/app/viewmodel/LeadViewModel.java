@@ -1,7 +1,10 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
+import br.com.poderfinanceiro.app.model.OrigemLead;
 import br.com.poderfinanceiro.app.model.Proponente;
 import br.com.poderfinanceiro.app.model.TipoConvenio;
+import br.com.poderfinanceiro.app.model.TipoRelacionamento;
+import br.com.poderfinanceiro.app.model.TipoVinculo;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.*;
@@ -27,14 +30,16 @@ public class LeadViewModel {
     private final StringProperty nome = new SimpleStringProperty("");
     private final StringProperty cpf = new SimpleStringProperty("");
     private final StringProperty telefone = new SimpleStringProperty("");
-    private final StringProperty origem = new SimpleStringProperty("");
+    private final ObjectProperty<OrigemLead> origem = new SimpleObjectProperty<>(null);
 
     // Perfil Operacional
     private final ObjectProperty<LocalDate> dataNascimento = new SimpleObjectProperty<>();
     private final ObjectProperty<TipoConvenio> convenio = new SimpleObjectProperty<>(TipoConvenio.PADRAO);
-    private final StringProperty vinculo = new SimpleStringProperty("");
+    private final ObjectProperty<TipoVinculo> vinculo = new SimpleObjectProperty<>(TipoVinculo.CLT);
     private final StringProperty matricula = new SimpleStringProperty("");
     private final ObjectProperty<BigDecimal> renda = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final ObjectProperty<TipoRelacionamento> classificacao = new SimpleObjectProperty<>(
+            TipoRelacionamento.LEAD);
 
     // Modalidades de Crédito
     private final BooleanProperty chkFgts = new SimpleBooleanProperty(false);
@@ -54,12 +59,13 @@ public class LeadViewModel {
     private String nomeOriginal = "";
     private String cpfOriginal = "";
     private String telefoneOriginal = "";
-    private String origemOriginal = "";
+    private OrigemLead origemOriginal = OrigemLead.WHATSAPP;
     private LocalDate dataNascimentoOriginal = null;
     private TipoConvenio convenioOriginal = TipoConvenio.PADRAO;
-    private String vinculoOriginal = "";
+    private TipoVinculo vinculoOriginal = TipoVinculo.CLT;
     private String matriculaOriginal = "";
     private BigDecimal rendaOriginal = BigDecimal.ZERO;
+    private TipoRelacionamento classificacaoOriginal = TipoRelacionamento.LEAD;
 
     private boolean chkFgtsOriginal = false;
     private boolean chkInssOriginal = false;
@@ -89,13 +95,13 @@ public class LeadViewModel {
         nome.set(p.getNomeCompleto() != null ? p.getNomeCompleto() : "");
         cpf.set(p.getCpf() != null ? p.getCpf() : "");
         telefone.set(p.getTelefone() != null ? p.getTelefone() : "");
-        origem.set(p.getOrigemConsentimento() != null ? p.getOrigemConsentimento() : "");
+        origem.set(p.getOrigemConsentimento() != null ? p.getOrigemConsentimento() : OrigemLead.WHATSAPP);
         dataNascimento.set(p.getDataNascimento());
-        convenio.set(TipoConvenio.fromString(p.getConvenioOrgao()));
-        vinculo.set(p.getTipoVinculo() != null ? p.getTipoVinculo() : "");
+        convenio.set(p.getConvenioOrgao() != null ? p.getConvenioOrgao() : TipoConvenio.PADRAO);
+        vinculo.set(p.getTipoVinculo() != null ? p.getTipoVinculo() : TipoVinculo.CLT);
         matricula.set(p.getMatricula() != null ? p.getMatricula() : "");
         renda.set(p.getRendaMensal() != null ? p.getRendaMensal() : BigDecimal.ZERO);
-
+        classificacao.set(p.getClassificacao() != null ? p.getClassificacao() : TipoRelacionamento.LEAD);
         this.chkFgtsOriginal = chkFgts.get();
         this.chkInssOriginal = chkInss.get();
         this.chkSiapeOriginal = chkSiape.get();
@@ -118,6 +124,7 @@ public class LeadViewModel {
         this.vinculoOriginal = vinculo.get();
         this.matriculaOriginal = matricula.get();
         this.rendaOriginal = renda.get();
+        this.classificacaoOriginal = classificacao.get();
     }
 
     public Proponente mapToModel(Proponente target) {
@@ -125,12 +132,13 @@ public class LeadViewModel {
         target.setNomeCompleto(nome.get().trim());
         target.setCpf(cpf.get().trim());
         target.setTelefone(telefone.get());
-        target.setOrigemConsentimento(origem.get());
+        target.setOrigemConsentimento(origem.get() != null ? origem.get() : OrigemLead.WHATSAPP);
         target.setDataNascimento(dataNascimento.get());
-        target.setConvenioOrgao(convenio.get() != null ? convenio.get().getLabel() : null);
-        target.setTipoVinculo(vinculo.get());
+        target.setConvenioOrgao(convenio.get() != null ? convenio.get() : TipoConvenio.PADRAO);
+        target.setTipoVinculo(vinculo.get() != null ? vinculo.get() : TipoVinculo.CLT);
         target.setMatricula(matricula.get());
         target.setRendaMensal(renda.get());
+        target.setClassificacao(classificacao.get() != null ? classificacao.get() : TipoRelacionamento.LEAD);
         return target;
     }
 
@@ -142,12 +150,13 @@ public class LeadViewModel {
         nome.set("");
         cpf.set("");
         telefone.set("");
-        origem.set("");
+        origem.set(OrigemLead.WHATSAPP);
         dataNascimento.set(null);
         convenio.set(TipoConvenio.PADRAO);
-        vinculo.set("");
+        vinculo.set(TipoVinculo.CLT);
         matricula.set("");
         renda.set(BigDecimal.ZERO);
+        classificacao.set(TipoRelacionamento.LEAD);
 
         chkFgts.set(false);
         chkInss.set(false);
@@ -169,12 +178,13 @@ public class LeadViewModel {
         this.nomeOriginal = "";
         this.cpfOriginal = "";
         this.telefoneOriginal = "";
-        this.origemOriginal = "";
+        this.origemOriginal = OrigemLead.WHATSAPP;
         this.dataNascimentoOriginal = null;
         this.convenioOriginal = TipoConvenio.PADRAO;
-        this.vinculoOriginal = "";
+        this.vinculoOriginal = TipoVinculo.CLT;
         this.matriculaOriginal = "";
         this.rendaOriginal = BigDecimal.ZERO;
+        this.classificacaoOriginal = TipoRelacionamento.LEAD;
 
         this.chkFgtsOriginal = false;
         this.chkInssOriginal = false;
@@ -211,7 +221,7 @@ public class LeadViewModel {
                 // CORREÇÃO CRÍTICA: Remove a máscara para contar exatamente os 11 números do
                 // CPF
                 String cpfLimpo = cpf.get() != null ? cpf.get().replaceAll("[^0-9]", "") : "";
-                
+
                 // NOVA REGRA: O CPF é válido se estiver VAZIO (opcional) OU se tiver exatamente
                 // 11 números.
                 boolean cpfValido = cpfLimpo.isEmpty() || cpfLimpo.length() == 11;
@@ -228,7 +238,7 @@ public class LeadViewModel {
                 return false;
             }
         },
-                nome, cpf, telefone, origem, dataNascimento, convenio, vinculo, matricula, renda,
+                nome, cpf, telefone, origem, dataNascimento, convenio, vinculo, matricula, renda, classificacao,
                 chkFgts, chkInss, chkSiape, chkForcas, chkBolsaFamilia, chkContaLuz,
                 chkCartao, chkPortabilidade, chkRefin, chkGarantia, chkConsigPrivado, chkPessoal,
                 editando, carregando);
@@ -257,9 +267,10 @@ public class LeadViewModel {
                 !telAtual.equals(telOrig) ||
                 !Objects.equals(origem.get(), origemOriginal) ||
                 !Objects.equals(dataNascimento.get(), dataNascimentoOriginal) ||
-                convenio.get() != convenioOriginal ||
+                !Objects.equals(convenio.get(), convenioOriginal) ||
                 !Objects.equals(vinculo.get(), vinculoOriginal) ||
                 !Objects.equals(matricula.get(), matriculaOriginal) ||
+                !Objects.equals(classificacao.get(), classificacaoOriginal) ||
                 rendaMudou ||
                 chkFgts.get() != chkFgtsOriginal ||
                 chkInss.get() != chkInssOriginal ||
@@ -289,7 +300,7 @@ public class LeadViewModel {
         return telefone;
     }
 
-    public StringProperty origemProperty() {
+    public ObjectProperty<OrigemLead> origemProperty() {
         return origem;
     }
 
@@ -301,7 +312,7 @@ public class LeadViewModel {
         return convenio;
     }
 
-    public StringProperty vinculoProperty() {
+    public ObjectProperty<TipoVinculo> vinculoProperty() {
         return vinculo;
     }
 
@@ -311,6 +322,10 @@ public class LeadViewModel {
 
     public ObjectProperty<BigDecimal> rendaProperty() {
         return renda;
+    }
+
+    public ObjectProperty<TipoRelacionamento> classificacaoProperty() {
+        return classificacao;
     }
 
     public BooleanProperty chkFgtsProperty() {

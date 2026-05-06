@@ -40,23 +40,28 @@ public class Proponente {
     @Column(name = "renda_mensal", precision = 12, scale = 2)
     private BigDecimal rendaMensal;
 
-    @Column(name = "tipo_vinculo", length = 50)
-    private String tipoVinculo; // INSS, SIAPE, Forças Armadas, etc.
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "tipo_vinculo", columnDefinition = "tipo_vinculo_enum")
+    private TipoVinculo tipoVinculo;
 
-    @Column(name = "convenio_orgao", length = 100)
-    private String convenioOrgao;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "convenio_orgao", columnDefinition = "tipo_convenio_enum")
+     private TipoConvenio convenioOrgao;
 
     @Column(length = 50)
     private String matricula;
 
-    @Column(name = "origem_consentimento", columnDefinition = "TEXT")
-    private String origemConsentimento;
-
-    // A mágica acontece aqui: Por padrão todo mundo nasce como LEAD!
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // <-- A MÁGICA ESTÁ AQUI
-    @Column(name = "classificacao", columnDefinition = "tipo_relacionamento")
-    private TipoRelacionamento classificacao = TipoRelacionamento.LEAD;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "origem_consentimento", columnDefinition = "origem_consentimento_enum")
+    private OrigemLead origemConsentimento;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "classificacao", columnDefinition = "tipo_relacionamento_enum") // Nome EXATO do TYPE no seu SQL
+    private TipoRelacionamento classificacao = TipoRelacionamento.LEAD; // Valor padrão
 
     @Column(name = "data_cadastro", updatable = false)
     private LocalDateTime dataCadastro;

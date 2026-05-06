@@ -1,13 +1,15 @@
 package br.com.poderfinanceiro.app.model;
 
-public enum TipoRelacionamento {
-    LEAD("Lead"),
-    PROPONENTE("Proponente"),
-    CLIENTE("Cliente");
+public enum TipoVinculo {
+    APOSENTADO("Aposentado"),
+    PENSIONISTA("Pensionista"),
+    SERVIDOR_ATIVO("Servidor Ativo"),
+    MILITAR("Militar"),
+    CLT("CLT");
 
     private final String label;
 
-    TipoRelacionamento(String label) {
+    TipoVinculo(String label) {
         this.label = label;
     }
 
@@ -19,16 +21,16 @@ public enum TipoRelacionamento {
      * Método de busca robusto para converter Strings em Enums.
      * Tenta encontrar pelo nome da constante ou pelo label amigável.
      */
-    public static TipoRelacionamento fromString(String value) {
+    public static TipoVinculo fromString(String value) {
         if (value == null || value.isBlank()) {
-            return LEAD; // Valor padrão para casos nulos ou em branco
+            return CLT; // Valor padrão para casos nulos ou em branco
         }
 
-        for (TipoRelacionamento tipo : TipoRelacionamento.values()) {
+        for (TipoVinculo tipo : TipoVinculo.values()) {
             if (tipo.name().equalsIgnoreCase(value) || tipo.getLabel().equalsIgnoreCase(value)) {
                 return tipo;
             }
         }
-        return LEAD; // Retorna LEAD como padrão se não encontrar correspondência
+        return CLT; // Retorna CLT como padrão se não encontrar correspondência
     }
 }

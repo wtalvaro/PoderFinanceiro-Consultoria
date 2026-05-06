@@ -81,7 +81,7 @@ Overlay -->
                                 GridPane.columnIndex="1"
                                 GridPane.rowIndex="0" />
 
-                            <Label text="CPF: *" GridPane.columnIndex="0" GridPane.rowIndex="1"
+                            <Label text="CPF:" GridPane.columnIndex="0" GridPane.rowIndex="1"
                                 style="-fx-font-weight: bold;" />
                             <TextField fx:id="txtCpf" promptText="000.000.000-00"
                                 GridPane.columnIndex="1"
@@ -97,6 +97,11 @@ Overlay -->
                             <ComboBox fx:id="cbOrigem" promptText="Onde o cliente te achou?"
                                 maxWidth="Infinity"
                                 GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                            <Label text="Classificação:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                            <ComboBox fx:id="cbClassificacao" promptText="Como você classifica este contato?"
+                                maxWidth="Infinity"
+                                GridPane.columnIndex="1" GridPane.rowIndex="4" />
                         </GridPane>
 
                         <!-- SEÇÃO 2: Aprofundamento -->
