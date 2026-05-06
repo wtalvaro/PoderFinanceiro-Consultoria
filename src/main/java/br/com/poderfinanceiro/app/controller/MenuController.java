@@ -15,23 +15,13 @@ public class MenuController {
     }
 
     @FXML
-    private void handleNovoContato() { // Ou o nome que você deu ao método no XML
-        mainController.irParaNovoContato();
+    private void handleNovoContato() {
+        mainController.irParaNovoContato(); // Agora criará uma aba Hub "Novo Atendimento"
     }
 
     @FXML
-    private void handleNovaSimulacao() {
-        // Direciona o centro do sistema para o simulador
-        // O segundo parâmetro 'true' garante que a moldura (Sidebar/Menu) permaneça
-        // visível
-        mainController.navegarPara("/fxml/simulator.fxml", true);
-    }
-    
-    @FXML
     private void handlePlaybook() {
-        // Direciona para a tela de scripts e regras de negócio
-        // O parâmetro 'true' mantém a Sidebar ativa para navegação rápida
-        mainController.navegarPara("/fxml/playbook.fxml", true);
+        mainController.focarAbaPlaybook();
     }
 
     @FXML

@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 @Component
-@Scope("prototype") // Essencial para garantir que cada aba tenha seu próprio estado isolado
+@Scope("prototype")
 public class LeadViewModel {
 
     // --- 1. PROPERTIES (O Coração do Data Binding) ---
@@ -22,11 +22,11 @@ public class LeadViewModel {
     private final BooleanProperty editando = new SimpleBooleanProperty(false);
     private final BooleanProperty carregando = new SimpleBooleanProperty(false);
     private final ObjectProperty<Long> id = new SimpleObjectProperty<>(null);
-    
+
     // Identificação
     private final StringProperty nome = new SimpleStringProperty("");
-    private final StringProperty cpf = new SimpleStringProperty(""); // Guarda apenas os números: 12345678901
-    private final StringProperty telefone = new SimpleStringProperty(""); // Guarda apenas os números
+    private final StringProperty cpf = new SimpleStringProperty("");
+    private final StringProperty telefone = new SimpleStringProperty("");
     private final StringProperty origem = new SimpleStringProperty("");
 
     // Perfil Operacional
@@ -74,7 +74,7 @@ public class LeadViewModel {
     private boolean chkConsigPrivadoOriginal = false;
     private boolean chkPessoalOriginal = false;
 
-    // --- 3. MÉTODOS DE SINCRONIZAÇÃO (INTEGRAÇÃO COM O BANCO) ---
+    // --- 3. MÉTODOS DE SINCRONIZAÇÃO ---
 
     public void loadFromModel(Proponente p) {
         if (p == null) {
@@ -82,13 +82,11 @@ public class LeadViewModel {
             return;
         }
 
-        id.set(p.getId()); // <-- SALVE O ID AQUI
-        editando.set(true);
+        id.set(p.getId());
+        editando.set(true); // <-- GARANTE QUE É EDIÇÃO
 
-        // 1. Injeta os dados limpos nas propriedades
+        // Injeta os dados nas propriedades
         nome.set(p.getNomeCompleto() != null ? p.getNomeCompleto() : "");
-        // O TextFormatter do Controller agora é quem se preocupa em colocar pontos e
-        // traços na tela
         cpf.set(p.getCpf() != null ? p.getCpf() : "");
         telefone.set(p.getTelefone() != null ? p.getTelefone() : "");
         origem.set(p.getOrigemConsentimento() != null ? p.getOrigemConsentimento() : "");
@@ -98,7 +96,6 @@ public class LeadViewModel {
         matricula.set(p.getMatricula() != null ? p.getMatricula() : "");
         renda.set(p.getRendaMensal() != null ? p.getRendaMensal() : BigDecimal.ZERO);
 
-        // Atualiza o estado interno das modalidades
         this.chkFgtsOriginal = chkFgts.get();
         this.chkInssOriginal = chkInss.get();
         this.chkSiapeOriginal = chkSiape.get();
@@ -112,7 +109,6 @@ public class LeadViewModel {
         this.chkConsigPrivadoOriginal = chkConsigPrivado.get();
         this.chkPessoalOriginal = chkPessoal.get();
 
-        // 2. Tira uma "fotografia" do estado para detectar mudanças
         this.nomeOriginal = nome.get();
         this.cpfOriginal = cpf.get();
         this.telefoneOriginal = telefone.get();
@@ -125,10 +121,7 @@ public class LeadViewModel {
     }
 
     public Proponente mapToModel(Proponente target) {
-        // Garanta que o ID seja preservado se ele existir no ViewModel
         target.setId(id.get());
-        
-        // Envia para o banco o valor puro e limpo
         target.setNomeCompleto(nome.get().trim());
         target.setCpf(cpf.get().trim());
         target.setTelefone(telefone.get());
@@ -142,6 +135,10 @@ public class LeadViewModel {
     }
 
     public void reset() {
+        // CORREÇÃO CRÍTICA: Garante que é um NOVO contato
+        id.set(null);
+        editando.set(false);
+
         nome.set("");
         cpf.set("");
         telefone.set("");
@@ -193,12 +190,10 @@ public class LeadViewModel {
         this.chkPessoalOriginal = false;
     }
 
-    // Atalho para o Hub verificar o estado
     public boolean isDirty() {
         return temAlteracoesPendentes();
     }
 
-    // Caso o Hub precise observar a mudança em tempo real
     public BooleanProperty dirtyProperty() {
         return new SimpleBooleanProperty(temAlteracoesPendentes());
     }
@@ -213,12 +208,19 @@ public class LeadViewModel {
 
                 boolean nomeValido = nome.get() != null && !nome.get().trim().isEmpty();
 
-                // O CPF já vem limpo graças ao TextFormatter. Basta contar os caracteres.
-                boolean cpfValido = cpf.get() != null && cpf.get().length() == 11;
+                // CORREÇÃO CRÍTICA: Remove a máscara para contar exatamente os 11 números do
+                // CPF
+                String cpfLimpo = cpf.get() != null ? cpf.get().replaceAll("[^0-9]", "") : "";
+                
+                // NOVA REGRA: O CPF é válido se estiver VAZIO (opcional) OU se tiver exatamente
+                // 11 números.
+                boolean cpfValido = cpfLimpo.isEmpty() || cpfLimpo.length() == 11;
 
                 boolean dadosCorretos = nomeValido && cpfValido;
                 boolean houveAlteracao = temAlteracoesPendentes();
 
+                // Se está editando um existente, precisa estar correto E alterado.
+                // Se é um NOVO cadastro, basta estar correto.
                 return editando.get() ? (dadosCorretos && houveAlteracao) : dadosCorretos;
 
             } catch (Exception e) {
@@ -233,7 +235,6 @@ public class LeadViewModel {
     }
 
     public boolean temAlteracoesPendentes() {
-        // Helper seguro para comparar BigDecimal, tratando nulos adequadamente
         boolean rendaMudou;
         if (renda.get() == null && rendaOriginal == null) {
             rendaMudou = false;
@@ -243,9 +244,17 @@ public class LeadViewModel {
             rendaMudou = renda.get().compareTo(rendaOriginal) != 0;
         }
 
+        // CORREÇÃO CRÍTICA: Remove a máscara antes de comparar se o CPF ou Telefone
+        // mudou
+        String cpfAtual = cpf.get() != null ? cpf.get().replaceAll("[^0-9]", "") : "";
+        String cpfOrig = cpfOriginal != null ? cpfOriginal.replaceAll("[^0-9]", "") : "";
+
+        String telAtual = telefone.get() != null ? telefone.get().replaceAll("[^0-9]", "") : "";
+        String telOrig = telefoneOriginal != null ? telefoneOriginal.replaceAll("[^0-9]", "") : "";
+
         return !Objects.equals(nome.get(), nomeOriginal) ||
-                !Objects.equals(cpf.get(), cpfOriginal) ||
-                !Objects.equals(telefone.get(), telefoneOriginal) ||
+                !cpfAtual.equals(cpfOrig) ||
+                !telAtual.equals(telOrig) ||
                 !Objects.equals(origem.get(), origemOriginal) ||
                 !Objects.equals(dataNascimento.get(), dataNascimentoOriginal) ||
                 convenio.get() != convenioOriginal ||

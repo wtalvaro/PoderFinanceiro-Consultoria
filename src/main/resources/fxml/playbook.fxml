@@ -3,44 +3,56 @@
 <?import javafx.scene.layout.*?>
 <?import java.lang.String?>
 
-<SplitPane fx:controller="br.com.poderfinanceiro.app.controller.PlaybookController"
-    dividerPositions="0.25"
-    styleClass="classic"
+<!-- O container principal agora é um VBox para comportar a barra no topo e o SplitPane embaixo -->
+<VBox fx:controller="br.com.poderfinanceiro.app.controller.PlaybookController"
     xmlns="http://javafx.com/javafx/21"
-    xmlns:fx="http://javafx.com/fxml/1">
-    <items>
-        <!-- No SplitPane, substitua o ListView por este TreeView -->
-        <TreeView fx:id="treeViewScripts" showRoot="false" />
+    xmlns:fx="http://javafx.com/fxml/1"
+    style="-fx-background-color: white;">
 
-        <!-- Área de Detalhes e Ação -->
-        <VBox spacing="10" style="-fx-padding: 15;">
-            <Label fx:id="labelTitulo" style="-fx-font-size: 18px; -fx-font-weight: bold;"
-                text="Selecione um Script" />
-            <Label fx:id="labelCategoria" style="-fx-text-fill: gray;" />
+    <!-- Toolbar de Busca -->
+    <HBox spacing="10"
+        style="-fx-padding: 10 15 10 15; -fx-background-color: #f1f3f5; -fx-border-color: #dee2e6; -fx-border-width: 0 0 1 0;"
+        alignment="CENTER_LEFT">
+        <Label text="🔍 Buscar Script:" style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
+        <TextField fx:id="txtBusca"
+            promptText="Digite para filtrar por título, categoria ou conteúdo..."
+            HBox.hgrow="ALWAYS" style="-fx-font-size: 14px;" />
+    </HBox>
 
-            <!-- No seu TextArea (Conteúdo do Script) -->
-            <TextArea fx:id="txtConteudo"
-                editable="false"
-                wrapText="true"
-                VBox.vgrow="ALWAYS"
-                style="-fx-font-family: 'Segoe UI'; -fx-font-size: 16px; -fx-line-spacing: 5px;" />
+    <!-- O Layout Clássico que você escolheu -->
+    <SplitPane dividerPositions="0.25" styleClass="classic" VBox.vgrow="ALWAYS">
+        <items>
+            <!-- Árvore de Navegação -->
+            <TreeView fx:id="treeViewScripts" showRoot="false" />
 
-            <VBox spacing="5" style="-fx-background-color: #f8f9fa; -fx-padding: 10;">
-                <Label text="Orientação Técnica / Dica:"
-                    style="-fx-font-weight: bold; -fx-font-size: 15px;" />
+            <!-- Área de Detalhes e Ação -->
+            <VBox spacing="10" style="-fx-padding: 15;">
+                <Label fx:id="labelTitulo" style="-fx-font-size: 18px; -fx-font-weight: bold;"
+                    text="Selecione um Script" />
+                <Label fx:id="labelCategoria" style="-fx-text-fill: gray;" />
 
-                <!-- O NOME AQUI PRECISA SER labelDica -->
-                <Label fx:id="labelDica" wrapText="true"
-                    style="-fx-text-fill: #5d6d7e; -fx-font-size: 16px; -fx-font-style: italic;" />
+                <!-- Conteúdo do Script -->
+                <TextArea fx:id="txtConteudo"
+                    editable="false"
+                    wrapText="true"
+                    VBox.vgrow="ALWAYS"
+                    style="-fx-font-family: 'Segoe UI'; -fx-font-size: 16px; -fx-line-spacing: 5px;" />
+
+                <VBox spacing="5" style="-fx-background-color: #f8f9fa; -fx-padding: 10;">
+                    <Label text="Orientação Técnica / Dica:"
+                        style="-fx-font-weight: bold; -fx-font-size: 15px;" />
+                    <Label fx:id="labelDica" wrapText="true"
+                        style="-fx-text-fill: #5d6d7e; -fx-font-size: 16px; -fx-font-style: italic;" />
+                </VBox>
+
+                <Button fx:id="btnCopiar" maxWidth="Infinity" onAction="#handleCopiar"
+                    style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;"
+                    text="Copiar para o Clipboard">
+                    <styleClass>
+                        <String fx:value="button" />
+                    </styleClass>
+                </Button>
             </VBox>
-
-            <Button fx:id="btnCopiar" maxWidth="Infinity" onAction="#handleCopiar"
-                style="-fx-background-color: #1976d2; -fx-text-fill: white;"
-                text="Copiar para o Clipboard">
-                <styleClass>
-                    <String fx:value="button" />
-                </styleClass>
-            </Button>
-        </VBox>
-    </items>
-</SplitPane>
+        </items>
+    </SplitPane>
+</VBox>

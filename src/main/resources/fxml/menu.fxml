@@ -2,18 +2,12 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<MenuBar xmlns="http://javafx.com/javafx/21"
-    xmlns:fx="http://javafx.com/fxml/1"
+<MenuBar xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.MenuController">
     <menus>
         <Menu text="_Arquivo">
             <items>
-                <!-- Ajustado o texto e adicionado o onAction -->
-                <MenuItem text="Novo Contato..." accelerator="Ctrl+N"
-                    onAction="#handleNovoContato" />
-
-                <MenuItem text="Nova Simulação..." accelerator="Ctrl+S"
-                    onAction="#handleNovaSimulacao" />
+                <MenuItem text="Novo Contato..." accelerator="Ctrl+N" onAction="#handleNovoContato" />
                 <SeparatorMenuItem />
                 <MenuItem text="Sincronizar Matriz de Taxas" />
                 <SeparatorMenuItem />
@@ -25,7 +19,6 @@
                 <MenuItem text="Consultar HISCON (INSS)" />
                 <MenuItem text="Cálculo de Portabilidade (DCC)" />
                 <MenuItem text="Esteira de Digitação (Bancos)" />
-                <!-- Adicionado o Playbook com separador para destaque -->
                 <SeparatorMenuItem />
                 <MenuItem text="Playbook de Vendas" accelerator="Ctrl+P" onAction="#handlePlaybook" />
             </items>

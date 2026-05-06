@@ -18,23 +18,17 @@ public class PanelController {
     }
 
     @FXML
-    private void abrirTelaBaseClientes() {
-        mainController.navegarPara("/fxml/clientes_list.fxml", true);
-    }
-
-    @FXML
     private void abrirWorkspace() {
-        mainController.navegarPara("/fxml/workspace.fxml", true);
+        mainController.focarAbaDashboard();
     }
 
-    /**
-     * Aciona a navegação para a tela que contém os scripts
-     * e estratégias de venda da Poder Financeiro.
-     */
     @FXML
     private void abrirPlaybook() {
-        // Certifique-se de que o arquivo FXML da listagem de scripts
-        // esteja neste caminho
-        mainController.navegarPara("/fxml/playbook.fxml", true);
+        mainController.focarAbaPlaybook();
+    }
+
+    @FXML
+    private void abrirTelaBaseClientes() {
+        mainController.focarAbaClientes();
     }
 }

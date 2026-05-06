@@ -1,63 +1,112 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.text.Text?>
 
-<!-- ADICIONADOS OS NAMESPACES ABAIXO E O CONTROLLER -->
-<VBox spacing="20" style="-fx-padding: 30;" minHeight="0"
-    xmlns="http://javafx.com/javafx/21"
-    xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.DashboardController">
+<VBox spacing="0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.DashboardController"
+    style="-fx-background-color: -color-bg-subtle;">
 
-    <HBox spacing="20">
-        <VBox HBox.hgrow="ALWAYS"
-            style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
-            <Label text="Aguardando Digitação"
-                styleClass="text-muted" />
-            <Label text="18" styleClass="title-2"
-                style="-fx-text-fill: -color-warning-emphasis;" />
+    <!-- BARRA SUPERIOR: IDENTIFICAÇÃO E CICLO DE FECHAMENTO -->
+    <HBox alignment="CENTER_LEFT" spacing="20"
+        style="-fx-background-color: -color-bg-default; -fx-padding: 15 30; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+        <VBox>
+            <Label fx:id="lblNomeConsultor" styleClass="title-3" text="Wagner Teles Alvaro" /> <!--[cite: 23] -->
+            <Label text="Poder Financeiro • Unidade Magé/RJ" styleClass="text-muted" /> <!-- -->
         </VBox>
-        <VBox HBox.hgrow="ALWAYS"
-            style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
-            <Label text="Produção (Aprovadas)"
-                styleClass="text-muted" />
-            <Label text="R$ 215.300,00" styleClass="title-2"
-                style="-fx-text-fill: -color-success-emphasis;" />
-        </VBox>
-        <VBox HBox.hgrow="ALWAYS"
-            style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
-            <Label text="Previsão de Receita"
-                styleClass="text-muted" />
-            <Label text="R$ 18.420,00" styleClass="title-2"
-                style="-fx-text-fill: -color-accent-emphasis;" />
+        <Region HBox.hgrow="ALWAYS" />
+        <VBox alignment="CENTER_RIGHT" spacing="2">
+            <Label text="CICLO DE FECHAMENTO"
+                style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: -color-warning-emphasis;" />
+            <Label text="Quarta-feira, 23:59h" style="-fx-font-weight: bold;" /> <!-- -->
+            <Label text="Pagamento na Sexta até 18h" styleClass="text-small" /> <!--[cite: 11] -->
         </VBox>
     </HBox>
 
-    <VBox VBox.vgrow="ALWAYS"
-        style="-fx-background-color: -color-bg-default; -fx-border-radius: 8; -fx-border-color: -color-border-muted;"
-        minHeight="0">
-        <HBox alignment="CENTER_LEFT" spacing="15"
-            style="-fx-padding: 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
-            <Label text="Monitor de Esteira"
-                styleClass="title-4" />
-            <Region HBox.hgrow="ALWAYS" />
-            <Button text="Atualizar Tabela" styleClass="flat" />
-        </HBox>
-        <TableView fx:id="tabelaPropostas" VBox.vgrow="ALWAYS"
-            styleClass="striped, bordered"
-            style="-fx-background-insets: 0;" minHeight="50">
-            <columns>
-                <TableColumn text="ADE/Proposta"
-                    prefWidth="120" />
-                <TableColumn text="Cliente" prefWidth="250" />
-                <TableColumn text="Convênio" prefWidth="100" />
-                <TableColumn text="Banco" prefWidth="120" />
-                <TableColumn text="Operação" prefWidth="120" />
-                <TableColumn text="Valor (R$)"
-                    prefWidth="100" />
-                <TableColumn text="Status" prefWidth="120" />
-            </columns>
-        </TableView>
-    </VBox>
+    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+        <VBox spacing="25" style="-fx-padding: 30;">
+
+            <!-- SEÇÃO DE MÉTRICAS (KPIs DO CORRETOR) -->
+            <HBox spacing="20">
+                <!-- Card 1: Esteira Pendente (Status Digitada/Pendente) -->
+                <VBox HBox.hgrow="ALWAYS"
+                    style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 10; -fx-border-color: -color-border-muted;">
+                    <Label text="PROPOSTAS EM ESTEIRA" styleClass="text-caption" />
+                    <Label fx:id="lblQtdAguardando" text="0" styleClass="title-2"
+                        style="-fx-text-fill: -color-warning-emphasis;" /> <!-- -->
+                    <Label text="Aguardando digitação ou doc" styleClass="text-small" />
+                </VBox>
+
+                <!-- Card 2: Produção Liquidada (Status Pago) -->
+                <VBox HBox.hgrow="ALWAYS"
+                    style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 10; -fx-border-color: -color-border-muted;">
+                    <Label text="PRODUÇÃO PAGA (MÊS)" styleClass="text-caption" />
+                    <Label fx:id="lblVolumeAprovado" text="R$ 0,00" styleClass="title-2"
+                        style="-fx-text-fill: -color-success-emphasis;" /> <!--[cite: 12, 13] -->
+                    <Label text="Volume total aprovado no banco" styleClass="text-small" />
+                </VBox>
+
+                <!-- Card 3: Comissão Real (Valor Líquido Consultor) -->
+                <VBox HBox.hgrow="ALWAYS"
+                    style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 10; -fx-border-color: -color-border-muted;">
+                    <Label text="COMISSÃO A RECEBER" styleClass="text-caption" />
+                    <Label fx:id="lblComissaoEstimada" text="R$ 0,00" styleClass="title-2"
+                        style="-fx-text-fill: -color-accent-emphasis;" /> <!--[cite: 13, 17] -->
+                    <Label text="Previsão líquida para sexta-feira" styleClass="text-small" />
+                </VBox>
+            </HBox>
+
+            <!-- MONITOR DE ESTEIRA REAL E ATALHOS -->
+            <VBox
+                style="-fx-background-color: -color-bg-default; -fx-border-radius: 10; -fx-border-color: -color-border-muted;"
+                VBox.vgrow="ALWAYS">
+                <HBox alignment="CENTER_LEFT" spacing="15"
+                    style="-fx-padding: 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+                    <VBox spacing="2">
+                        <Label text="Monitor de Propostas" styleClass="title-4" />
+                        <Label text="Acompanhamento em tempo real das financeiras"
+                            styleClass="text-small" />
+                    </VBox>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <TextField promptText="Buscar por Nome ou CPF..." prefWidth="250" />
+                    <Button text="Simular Novo" styleClass="flat" />
+                    <Button text="Atualizar" onAction="#carregarDadosReais" />
+                </HBox>
+
+                <TableView fx:id="tabelaPropostas" VBox.vgrow="ALWAYS"
+                    styleClass="striped, bordered" minHeight="400">
+                    <columns>
+                        <TableColumn fx:id="colCliente" text="Proponente" prefWidth="250" /> <!--[cite: 15] -->
+                        <TableColumn fx:id="colBanco" text="Banco" prefWidth="150" /> <!-- -->
+                        <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="120" /> <!--[cite: 15, 21] -->
+                        <TableColumn fx:id="colValor" text="Vlr. Aprovado" prefWidth="120" /> <!--[cite: 14] -->
+                        <TableColumn fx:id="colStatus" text="Status Atual" prefWidth="150" /> <!--[cite: 12] -->
+                    </columns>
+                    <placeholder>
+                        <Label text="Nenhuma proposta encontrada para este consultor." />
+                    </placeholder>
+                </TableView>
+
+                <!-- FOOTER COM LEGENDAS DE AÇÃO -->
+                <HBox spacing="20"
+                    style="-fx-padding: 10 15; -fx-background-color: -color-bg-subtle;">
+                    <HBox alignment="CENTER" spacing="5">
+                        <Circle radius="4" style="-fx-fill: -color-warning-emphasis;" />
+                        <Label text="Pendente Doc" styleClass="text-small" />
+                    </HBox>
+                    <HBox alignment="CENTER" spacing="5">
+                        <Circle radius="4" style="-fx-fill: -color-success-emphasis;" />
+                        <Label text="Pago" styleClass="text-small" />
+                    </HBox>
+                    <HBox alignment="CENTER" spacing="5">
+                        <Circle radius="4" style="-fx-fill: -color-danger-emphasis;" />
+                        <Label text="Reprovado" styleClass="text-small" />
+                    </HBox>
+                </HBox>
+            </VBox>
+        </VBox>
+    </ScrollPane>
 </VBox>

@@ -11,6 +11,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.UUID; // <-- IMPORTANTE: Adicionado para gerar IDs únicos
 
 @Component
 public class WorkspaceController {
@@ -25,39 +26,65 @@ public class WorkspaceController {
     }
 
     /**
-     * Motor inteligente de abas: Localiza uma aba existente ou cria uma nova se
-     * necessário.
+     * Foca em uma das abas fixas do sistema (0=Dashboard, 1=Playbook, 2=Clientes)
+     */
+    public void focarAbaFixa(int index) {
+        if (tabPanePrincipal != null && index >= 0 && index < tabPanePrincipal.getTabs().size()) {
+            tabPanePrincipal.getSelectionModel().select(index);
+        }
+    }
+
+    /**
+     * Motor inteligente: Se proponente for null, abre um Novo Contato ÚNICO.
+     * Se existir, foca na aba já aberta ou cria uma nova aba Hub.
      */
     public void abrirOuFocarAba(Proponente proponente) {
-        // 1. Blindagem de Tipo: Normaliza IDs para String para evitar falsos negativos
-        // na comparação
-        String idBuscado = proponente.getId() != null ? String.valueOf(proponente.getId()) : "NOVO_CONTATO";
+        String idBuscado;
+        boolean isContatoExistente = false;
 
-        // 2. BUSCA NA COLEÇÃO DE ABAS
-        for (Tab tab : tabPanePrincipal.getTabs()) {
-            String idNaAba = String.valueOf(tab.getUserData());
+        // 1 e 2. Avaliação explícita: A IDE agora é forçada a reconhecer a proteção.
+        if (proponente != null && proponente.getId() != null) {
+            idBuscado = String.valueOf(proponente.getId());
+            isContatoExistente = true;
+        } else {
+            // Nova operação garantida e isolada
+            idBuscado = "NOVO_CONTATO_" + UUID.randomUUID().toString();
+        }
 
-            if (idBuscado.equals(idNaAba)) {
-                // A aba já existe! Apenas focamos nela e interrompemos a execução.
-                tabPanePrincipal.getSelectionModel().select(tab);
-                return;
+        // 3. BUSCA NA COLEÇÃO DE ABAS (Executado apenas para clientes existentes)
+        if (isContatoExistente) {
+            for (Tab tab : tabPanePrincipal.getTabs()) {
+                String idNaAba = String.valueOf(tab.getUserData());
+
+                if (idBuscado.equals(idNaAba)) {
+                    // A aba do cliente já existe! Focamos nela e interrompemos a execução.
+                    tabPanePrincipal.getSelectionModel().select(tab);
+                    return;
+                }
             }
         }
 
-        // 3. CRIAÇÃO ISOLADA DA NOVA ABA (SRP Respeitado)
+        // 4. CRIAÇÃO DA NOVA ABA HUB
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
 
             AtendimentoHubController hubController = loader.getController();
-            hubController.inicializarAtendimento(proponente);
+
+            // Inicializa os dados do cliente ou prepara um cadastro vazio
+            if (proponente != null) {
+                hubController.inicializarAtendimento(proponente);
+            } else {
+                hubController.getLeadController().prepararNovoContato();
+            }
 
             Tab novaAba = new Tab();
             novaAba.setContent(root);
             novaAba.setClosable(true);
 
-            // O Segredo: Etiquetamos a aba fisicamente com a String normalizada
+            // Etiquetamos a aba fisicamente com a String (ID do banco ou UUID do novo
+            // contato)
             novaAba.setUserData(idBuscado);
 
             Label iconeAba = new Label("👤");

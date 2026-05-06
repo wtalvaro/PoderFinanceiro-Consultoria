@@ -1,158 +1,187 @@
 package br.com.poderfinanceiro.app.controller;
 
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.util.Duration;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
-
 import br.com.poderfinanceiro.app.model.PlaybookItem;
 import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.service.PlaybookService;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import org.springframework.stereotype.Controller;
 
-import java.util.Comparator;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
-@Component
-@RequiredArgsConstructor
-@Scope("prototype")
-public class PlaybookController {
-
-    private final PlaybookService playbookService;
-    private final AuthService authService;
+@Controller
+public class PlaybookController implements Initializable {
 
     @FXML
-    private TreeView<Object> treeViewScripts; // Usamos Object para aceitar String (categoria) e PlaybookItem
+    private TextField txtBusca;
     @FXML
-    private Label labelTitulo, labelCategoria, labelDica;
+    private TreeView<String> treeViewScripts;
+    @FXML
+    private Label labelTitulo;
+    @FXML
+    private Label labelCategoria;
     @FXML
     private TextArea txtConteudo;
     @FXML
+    private Label labelDica;
+    @FXML
     private Button btnCopiar;
 
-    @FXML
-    public void initialize() {
-        configurarArvore();
+    private final PlaybookService playbookService;
+    private final AuthService authService; // 1. Adicionado a injeção do AuthService
+    private List<PlaybookItem> todosOsItens;
+
+    // 2. Construtor atualizado para o Spring injetar o AuthService
+    public PlaybookController(PlaybookService playbookService, AuthService authService) {
+        this.playbookService = playbookService;
+        this.authService = authService;
     }
 
-    private void configurarArvore() {
-        // 1. Criar o nó raiz (invisível conforme o FXML)
-        TreeItem<Object> root = new TreeItem<>("Root");
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        this.todosOsItens = playbookService.listarTudoParaOPlaybook();
 
-        // 2. Agrupar os scripts por categoria (Adicionado TreeMap para ordenar as
-        // pastas de A-Z)
-        List<PlaybookItem> todosScripts = playbookService.listarTudoParaOPlaybook();
-        Map<String, List<PlaybookItem>> agrupados = todosScripts.stream()
-                .collect(Collectors.groupingBy(PlaybookItem::getCategoria, TreeMap::new, Collectors.toList()));
+        construirArvore(this.todosOsItens, false);
+        configurarSelecaoNaArvore();
+        configurarFiltroDeBusca();
+    }
 
-        // 3. Construir a hierarquia
-        agrupados.forEach((categoria, scripts) -> {
-            TreeItem<Object> categoriaNode = new TreeItem<>(categoria);
-            categoriaNode.setExpanded(true); // Deixa as categorias abertas por padrão[cite: 2]
+    private void configurarFiltroDeBusca() {
+        txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null || newValue.trim().isEmpty()) {
+                construirArvore(this.todosOsItens, false);
+                return;
+            }
 
-            // Adicionado .stream().sorted() para ordenar os scripts dentro da pasta
-            scripts.stream()
-                    .sorted(Comparator.comparing(PlaybookItem::getTitulo))
-                    .forEach(script -> {
-                        categoriaNode.getChildren().add(new TreeItem<>(script));
-                    });
+            String termo = newValue.toLowerCase().trim();
 
-            root.getChildren().add(categoriaNode);
+            List<PlaybookItem> itensFiltrados = todosOsItens.stream()
+                    .filter(item -> item.getTitulo().toLowerCase().contains(termo)
+                            || item.getCategoria().toLowerCase().contains(termo)
+                            || item.getConteudo().toLowerCase().contains(termo))
+                    .collect(Collectors.toList());
+
+            construirArvore(itensFiltrados, true);
         });
+    }
 
-        treeViewScripts.setRoot(root);
+    private void construirArvore(List<PlaybookItem> itensParaExibir, boolean expandirPastas) {
+        if (itensParaExibir == null || itensParaExibir.isEmpty()) {
+            treeViewScripts.setRoot(new TreeItem<>("Nenhum resultado encontrado"));
+            return;
+        }
 
-        // 4. Customizar a exibição (Mantido exatamente como o seu original)[cite: 3]
-        treeViewScripts.setCellFactory(tv -> new TreeCell<>() {
-            @Override
-            protected void updateItem(Object item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("");
-                } else if (item instanceof String) {
-                    setText((String) item);
-                    setStyle("-fx-font-weight: bold; -fx-text-fill: #1976d2;");
-                } else if (item instanceof PlaybookItem) {
-                    setText(((PlaybookItem) item).getTitulo());
-                    setStyle("-fx-padding: 0 0 0 10;");
-                }
+        Map<String, List<PlaybookItem>> itensPorCategoria = itensParaExibir.stream()
+                .collect(Collectors.groupingBy(
+                        PlaybookItem::getCategoria,
+                        java.util.TreeMap::new,
+                        Collectors.toList()));
+
+        TreeItem<String> rootItem = new TreeItem<>("Playbook");
+        rootItem.setExpanded(true);
+
+        for (Map.Entry<String, List<PlaybookItem>> entry : itensPorCategoria.entrySet()) {
+            TreeItem<String> categoriaNode = new TreeItem<>(entry.getKey());
+            categoriaNode.setExpanded(expandirPastas);
+
+            List<PlaybookItem> scriptsOrdenados = entry.getValue().stream()
+                    .sorted(java.util.Comparator.comparing(PlaybookItem::getTitulo, String.CASE_INSENSITIVE_ORDER))
+                    .collect(Collectors.toList());
+
+            for (PlaybookItem item : scriptsOrdenados) {
+                TreeItem<String> scriptNode = new TreeItem<>(item.getTitulo());
+                categoriaNode.getChildren().add(scriptNode);
+            }
+
+            rootItem.getChildren().add(categoriaNode);
+        }
+
+        treeViewScripts.setRoot(rootItem);
+    }
+
+    private void configurarSelecaoNaArvore() {
+        treeViewScripts.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && newValue.isLeaf() && newValue.getParent() != null
+                    && newValue.getParent().getValue() != null) {
+                exibirDetalhesDoScript(newValue.getValue(), newValue.getParent().getValue());
+            } else {
+                limparPainelDeDetalhes();
             }
         });
-
-        // 5. Ouvinte de seleção (Mantido exatamente como o seu original)[cite: 3]
-        treeViewScripts.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal.getValue() instanceof PlaybookItem) {
-                exibirDetalhes((PlaybookItem) newVal.getValue());
-            }
-        });
     }
 
-    private void exibirDetalhes(PlaybookItem item) {
-        labelTitulo.setText(item.getTitulo());
-        labelCategoria.setText("Categoria: " + item.getCategoria());
+    private void exibirDetalhesDoScript(String tituloDoScript, String categoriaDoScript) {
+        // 3. Puxando o nome real do Consultor logado!
+        String nomeDoConsultor = "Consultor(a)"; // Fallback de segurança
+        if (authService.estaLogado()) {
+            nomeDoConsultor = authService.getUsuarioLogado().getNome();
+        }
 
-        // --- PERSONALIZAÇÃO DINÂMICA ---
-        // Resolve a tag %CONSULTOR% antes de exibir no TextArea
-        String textoPersonalizado = item.getConteudo()
-                .replace("%CONSULTOR%", getNomeConsultorLogado());
-                
-        txtConteudo.setText(textoPersonalizado);
-        labelDica.setText("💡 Dica: " + item.getDicaTecnica());
+        final String consultorFinal = nomeDoConsultor;
+
+        todosOsItens.stream()
+                .filter(item -> item.getTitulo().equals(tituloDoScript)
+                        && item.getCategoria().equals(categoriaDoScript))
+                .findFirst()
+                .ifPresent(itemSelecionado -> {
+                    labelTitulo.setText(itemSelecionado.getTitulo());
+                    labelCategoria.setText(itemSelecionado.getCategoria());
+
+                    // 4. A substituição real
+                    String conteudoPersonalizado = itemSelecionado.getConteudo().replace("%CONSULTOR%", consultorFinal);
+                    txtConteudo.setText(conteudoPersonalizado);
+
+                    String dica = itemSelecionado.getDica() != null ? itemSelecionado.getDica() : "";
+                    labelDica.setText(dica);
+
+                    btnCopiar.setDisable(false);
+                });
     }
 
-    private String getNomeConsultorLogado() {
-        return authService.estaLogado()
-                ? authService.getUsuarioLogado().getNome()
-                : "Consultor Poder Financeiro";
+    private void limparPainelDeDetalhes() {
+        labelTitulo.setText("Selecione um Script");
+        labelCategoria.setText("");
+        txtConteudo.setText("");
+        labelDica.setText("");
+        btnCopiar.setDisable(true);
     }
 
     @FXML
     private void handleCopiar() {
         String textoParaCopiar = txtConteudo.getText();
-
-        // RESOLUÇÃO DO ERRO: Obtemos o item diretamente da seleção da ListView
-        PlaybookItem itemSelecionado = treeViewScripts.getSelectionModel().getSelectedItem() != null
-                && treeViewScripts.getSelectionModel().getSelectedItem().getValue() instanceof PlaybookItem
-                        ? (PlaybookItem) treeViewScripts.getSelectionModel().getSelectedItem().getValue()
-                        : null;
-
         if (textoParaCopiar != null && !textoParaCopiar.isEmpty()) {
-            // 1. Ação de Cópia
-            Clipboard clipboard = Clipboard.getSystemClipboard();
-            ClipboardContent content = new ClipboardContent();
+            final Clipboard clipboard = Clipboard.getSystemClipboard();
+            final ClipboardContent content = new ClipboardContent();
             content.putString(textoParaCopiar);
             clipboard.setContent(content);
 
-            // 2. Feedback Visual Imediato (o efeito de "pulo" que conversamos)
             String textoOriginal = btnCopiar.getText();
-            String estiloOriginal = btnCopiar.getStyle();
+            btnCopiar.setText("Copiado! ✓");
+            btnCopiar.setStyle(
+                    "-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
 
-            btnCopiar.setText("✅ Copiado para o Clipboard!");
-            btnCopiar.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
-
-            // 3. Temporizador para voltar ao normal (1.5 segundos)
-            Timeline timeline = new Timeline(new KeyFrame(
-                    Duration.seconds(1.5),
-                    ae -> {
+            new java.util.Timer().schedule(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    javafx.application.Platform.runLater(() -> {
                         btnCopiar.setText(textoOriginal);
-                        btnCopiar.setStyle(estiloOriginal);
-                    }));
-            timeline.setCycleCount(1);
-            timeline.play();
-
-            // Log de depuração (agora com a variável resolvida)
-            if (itemSelecionado != null) {
-                System.out.println("Conteúdo copiado: " + itemSelecionado.getTitulo());
-            }
+                        btnCopiar.setStyle(
+                                "-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
+                    });
+                }
+            }, 2000);
         }
     }
 }

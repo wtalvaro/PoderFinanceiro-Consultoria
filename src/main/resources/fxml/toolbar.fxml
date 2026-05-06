@@ -12,9 +12,8 @@
     <Button text="➕ Novo Contato" onAction="#handleNovoContato" styleClass="flat, accent"
         style="-fx-font-weight: bold;" />
 
-    <Button fx:id="btnNovaOperacao" text="📄 Nova Operação" styleClass="flat"
-        onAction="#handleNovaOperacao" />
     <Separator />
+
     <Button text="📥 Baixar HISCON" styleClass="flat, accent" />
     <Button text="🖩 Calc. Portabilidade" styleClass="flat" />
     <Button text="🖩 Calc. Price" styleClass="flat" />

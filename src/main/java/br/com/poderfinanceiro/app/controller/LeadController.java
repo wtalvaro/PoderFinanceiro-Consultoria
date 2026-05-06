@@ -224,8 +224,9 @@ public class LeadController {
     }
 
     private void executarSalvamento(Runnable onSucesso) {
-        if (viewModel.nomeProperty().get().isBlank() || viewModel.cpfProperty().get().isBlank()) {
-            exibirMensagem("Nome e CPF são campos obrigatórios.", false);
+        // NOVA REGRA: Agora apenas o Nome é estritamente obrigatório para salvar
+        if (viewModel.nomeProperty().get().isBlank()) {
+            exibirMensagem("O Nome é um campo obrigatório.", false);
             return;
         }
 
@@ -242,7 +243,26 @@ public class LeadController {
         salvarTask.setOnSucceeded(event -> {
             Proponente proponenteSalvo = salvarTask.getValue();
 
+            // 1. Atualiza o ViewModel (isso reseta a flag 'editando' e os campos
+            // 'originais')
             viewModel.loadFromModel(proponenteSalvo);
+
+            // --- 2. O PULO DO GATO: SINCRONIZAÇÃO DA ABA ---
+            // Se era um "Novo Contato", a aba estava com um UUID.
+            // Agora, forçamos a aba a assumir o ID real do banco para não duplicar no
+            // próximo clique.
+            if (scrollPrincipal.getScene() != null) {
+                TabPane tabPane = (TabPane) scrollPrincipal.getScene().lookup("#tabPanePrincipal");
+                if (tabPane != null) {
+                    Tab abaAtiva = tabPane.getSelectionModel().getSelectedItem();
+                    if (abaAtiva != null) {
+                        // Converte o ID para String para manter o padrão que criamos no
+                        // WorkspaceController
+                        abaAtiva.setUserData(String.valueOf(proponenteSalvo.getId()));
+                    }
+                }
+            }
+            // ------------------------------------------------
 
             setLoading(false);
             exibirMensagem("✅ Contato salvo com sucesso!", true);

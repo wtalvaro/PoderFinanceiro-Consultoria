@@ -45,7 +45,7 @@ public class MainController {
 
     private final Map<String, ViewPair> cacheDeViews = new HashMap<>();
 
-    // Rastreamento da tela ativa para interceptar saídas acidentais
+    // Rastreamento da tela ativa para evitar recarregamentos desnecessários
     private String telaAtual = "";
 
     public MainController(ApplicationContext context, HostServices hostServices) {
@@ -53,36 +53,18 @@ public class MainController {
         this.hostServices = hostServices;
     }
 
-    /**
-     * Expondo o serviço para os outros controllers
-     */
     public HostServices getHostServices() {
         return hostServices;
     }
 
     /**
-     * O Cérebro da Navegação: Ponto de entrada para todas as trocas de tela.
-     * Ele intercepta a ação caso o usuário esteja saindo da tela de Lead.
+     * O Cérebro da Navegação: Ponto de entrada para todas as trocas de tela
+     * principais.
      */
     public void navegarPara(String fxmlPath, boolean mostrarEstrutura) {
-        // Empacota a troca de tela em um "Callback" (Runnable)
-        Runnable acaoNavegacao = () -> executarNavegacao(fxmlPath, mostrarEstrutura);
-
-        // Se estivermos na tela de Lead e tentando ir para outra tela (ex: Dashboard ou
-        // Login)
-        if ("/fxml/lead.fxml".equals(this.telaAtual) && !"/fxml/lead.fxml".equals(fxmlPath)) {
-            // Delega a responsabilidade para o LeadController perguntar sobre alterações
-            LeadController leadController = context.getBean(LeadController.class);
-            leadController.tentarNavegar(acaoNavegacao);
-        } else {
-            // Se estiver em qualquer outra tela, navega direto
-            acaoNavegacao.run();
-        }
+        executarNavegacao(fxmlPath, mostrarEstrutura);
     }
 
-    /**
-     * Motor de navegação atualizado para capturar e preservar o Controller.
-     */
     private void executarNavegacao(String fxmlPath, boolean mostrarEstrutura) {
         try {
             ViewPair pair;
@@ -94,7 +76,7 @@ public class MainController {
                 loader.setControllerFactory(context::getBean);
                 Node view = loader.load();
 
-                // Captura o controller REAL gerado pelo Spring para esta tela[cite: 4]
+                // Captura o controller REAL gerado pelo Spring para esta tela
                 pair = new ViewPair(view, loader.getController());
                 cacheDeViews.put(fxmlPath, pair);
             }
@@ -118,73 +100,50 @@ public class MainController {
         cacheDeViews.clear();
     }
 
-    /**
-     * Versão corrigida: Agora fala com o Controller REAL da tela, não com um
-     * novo.
-     */
+    // ========================================================================
+    // ROTEAMENTO DE ABAS NO WORKSPACE (Clean Architecture)
+    // ========================================================================
+
     public void irParaNovoContato() {
-        // 1. Garante que a tela de Lead esteja carregada no cache e visível
-        executarNavegacao("/fxml/lead.fxml", true);
-
-        // 2. Recupera o par Visual/Controller do cache[cite: 4]
-        ViewPair pair = cacheDeViews.get("/fxml/lead.fxml");
-
-        if (pair != null && pair.controller instanceof LeadController leadController) {
-            // Ação que será executada se for seguro prosseguir[cite: 4]
-            Runnable acaoLimparFormulario = () -> leadController.prepararNovoContato();
-
-            // 3. Se o usuário já estiver na tela de lead, verifica alterações
-            // pendentes[cite: 4]
-            // Se não estiver, executa o reset direto
-            if ("/fxml/lead.fxml".equals(this.telaAtual)) {
-                leadController.tentarNavegar(acaoLimparFormulario);
-            } else {
-                acaoLimparFormulario.run();
-            }
-        }
+        abrirClienteNoWorkspace(null); // Null indica "Novo Cadastro" para o Workspace
     }
 
-    // No MainController.java
-    public void irParaWorkspace() {
-        navegarPara("/fxml/workspace.fxml", true); // Garante o carregamento do FXML
+    public void focarAbaDashboard() {
+        acionarAbaFixaWorkspace(0);
+    }
+
+    public void focarAbaPlaybook() {
+        acionarAbaFixaWorkspace(1);
+    }
+
+    public void focarAbaClientes() {
+        acionarAbaFixaWorkspace(2);
+    }
+
+    private void acionarAbaFixaWorkspace(int index) {
+        garantirWorkspaceVisivel();
+        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
+        ws.focarAbaFixa(index);
     }
 
     public void abrirClienteNoWorkspace(Proponente proponente) {
-        // 1. Garante que o Workspace esteja visível no centro da tela
+        garantirWorkspaceVisivel();
+        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
+        ws.abrirOuFocarAba(proponente);
+    }
+
+    private void garantirWorkspaceVisivel() {
         if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
+            // Executa o carregamento real do FXML e Controller caso ainda não esteja na
+            // tela
             navegarPara("/fxml/workspace.fxml", true);
-        }
-
-        try {
-            WorkspaceController workspaceController;
-            ViewPair pair = cacheDeViews.get("/fxml/workspace.fxml");
-
-            // 2. Se já estiver no cache, usa ele. Se não, carrega a tela e o Controller
-            // agora.
-            if (pair != null && pair.controller instanceof WorkspaceController) {
-                workspaceController = (WorkspaceController) pair.controller;
-            } else {
-                // Força o carregamento para garantir que o WorkspaceController exista
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/workspace.fxml"));
-                loader.setControllerFactory(context::getBean);
-                Node view = loader.load();
-                workspaceController = loader.getController();
-                cacheDeViews.put("/fxml/workspace.fxml", new ViewPair(view, workspaceController));
-                contentArea.getChildren().setAll(view);
-                this.telaAtual = "/fxml/workspace.fxml";
-            }
-
-            // 3. Delega a responsabilidade da aba para quem realmente detém o componente
-            // TabPane
-            workspaceController.abrirOuFocarAba(proponente);
-
-        } catch (IOException e) {
-            System.err.println("Erro ao carregar WorkspaceController: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
-    // --- LÓGICA DO OVERLAY DE SAÍDA ---
+    // ========================================================================
+    // LÓGICA DO OVERLAY DE SAÍDA
+    // ========================================================================
+
     public void mostrarOverlaySair() {
         overlaySair.setVisible(true);
     }
@@ -196,18 +155,9 @@ public class MainController {
 
     @FXML
     private void confirmarLogout() {
-        // Primeiro ocultamos a janela modal de confirmação de saída
         overlaySair.setVisible(false);
-
-        // ---> CORREÇÕES DE SEGURANÇA E UX AQUI <---
-        // 1. Efetua o logout real no backend (anula o usuarioLogado)
         context.getBean(br.com.poderfinanceiro.app.service.AuthService.class).logout();
-
-        // 2. Destrói o cache! Assim, o próximo usuário terá um Workspace novinho
         limparCacheDeTelas();
-        // ------------------------------------------
-
-        // Chamamos a navegação padrão.
         navegarPara("/fxml/login.fxml", false);
     }
 }
