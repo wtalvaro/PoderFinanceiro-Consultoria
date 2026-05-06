@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.model.Proponente;
 import br.com.poderfinanceiro.app.model.TipoConvenio;
 import br.com.poderfinanceiro.app.model.TipoRelacionamento;
 import br.com.poderfinanceiro.app.model.TipoVinculo;
+import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.*;
@@ -84,6 +85,38 @@ public class LeadViewModel {
 
     // --- 3. MÉTODOS DE SINCRONIZAÇÃO ---
 
+    private final ReadOnlyBooleanWrapper dirty = new ReadOnlyBooleanWrapper(false);
+
+    @PostConstruct // CRÍTICO: Faz o Spring chamar este método ao criar o ViewModel
+    public void initialize() {
+        // Vinculamos a propriedade dirty ao resultado do método temAlteracoesPendentes
+        // Ela será reavaliada automaticamente sempre que QUALQUER dependência mudar.
+        dirty.bind(Bindings.createBooleanBinding(this::temAlteracoesPendentes,
+                nome, nomeOriginal.getReadOnlyProperty(),
+                cpf, cpfOriginal.getReadOnlyProperty(),
+                telefone, telefoneOriginal.getReadOnlyProperty(),
+                origem, origemOriginal.getReadOnlyProperty(),
+                dataNascimento, dataNascimentoOriginal.getReadOnlyProperty(),
+                convenio, convenioOriginal.getReadOnlyProperty(),
+                vinculo, vinculoOriginal.getReadOnlyProperty(),
+                matricula, matriculaOriginal.getReadOnlyProperty(),
+                renda, rendaOriginal.getReadOnlyProperty(),
+                classificacao, classificacaoOriginal.getReadOnlyProperty(),
+                chkFgts, chkFgtsOriginal.getReadOnlyProperty(),
+                chkInss, chkInssOriginal.getReadOnlyProperty(),
+                chkSiape, chkSiapeOriginal.getReadOnlyProperty(),
+                chkForcas, chkForcasOriginal.getReadOnlyProperty(),
+                chkBolsaFamilia, chkBolsaFamiliaOriginal.getReadOnlyProperty(),
+                chkContaLuz, chkContaLuzOriginal.getReadOnlyProperty(),
+                chkCartao, chkCartaoOriginal.getReadOnlyProperty(),
+                chkPortabilidade, chkPortabilidadeOriginal.getReadOnlyProperty(),
+                chkRefin, chkRefinOriginal.getReadOnlyProperty(),
+                chkGarantia, chkGarantiaOriginal.getReadOnlyProperty(),
+                chkConsigPrivado, chkConsigPrivadoOriginal.getReadOnlyProperty(),
+                chkPessoal, chkPessoalOriginal.getReadOnlyProperty(),
+                editando, carregando));
+    }
+
     public void loadFromModel(Proponente p) {
         if (p == null) {
             reset();
@@ -104,28 +137,16 @@ public class LeadViewModel {
         renda.set(p.getRendaMensal() != null ? p.getRendaMensal() : BigDecimal.ZERO);
         classificacao.set(p.getClassificacao() != null ? p.getClassificacao() : TipoRelacionamento.LEAD);
 
-        this.chkFgtsOriginal.set(chkFgts.get());
-        this.chkInssOriginal.set(chkInss.get());
-        this.chkSiapeOriginal.set(chkSiape.get());
-        this.chkForcasOriginal.set(chkForcas.get());
-        this.chkBolsaFamiliaOriginal.set(chkBolsaFamilia.get());
-        this.chkContaLuzOriginal.set(chkContaLuz.get());
-        this.chkCartaoOriginal.set(chkCartao.get());
-        this.chkPortabilidadeOriginal.set(chkPortabilidade.get());
-        this.chkRefinOriginal.set(chkRefin.get());
-        this.chkGarantiaOriginal.set(chkGarantia.get());
-        this.chkConsigPrivadoOriginal.set(chkConsigPrivado.get());
-        this.chkPessoalOriginal.set(chkPessoal.get());
-
         // 2. DEPOIS: Sincroniza o "Original" com o que acabou de ser injetado[cite: 7]
         sincronizarEstadoOriginal();
         editando.set(true); // <-- GARANTE QUE É EDIÇÃO
     }
 
     public Proponente mapToModel(Proponente target) {
+        // Dados de Identificação e Perfil
         target.setId(id.get());
         target.setNomeCompleto(nome.get().trim());
-        target.setCpf(cpf.get().trim());
+        target.setCpf(cpf.get().replaceAll("[^0-9]", "")); // Limpeza de máscara para o banco
         target.setTelefone(telefone.get());
         target.setOrigemConsentimento(origem.get() != null ? origem.get() : OrigemLead.WHATSAPP);
         target.setDataNascimento(dataNascimento.get());
@@ -134,6 +155,7 @@ public class LeadViewModel {
         target.setMatricula(matricula.get());
         target.setRendaMensal(renda.get());
         target.setClassificacao(classificacao.get() != null ? classificacao.get() : TipoRelacionamento.LEAD);
+
         return target;
     }
 
@@ -166,7 +188,7 @@ public class LeadViewModel {
         chkConsigPrivado.set(false);
         chkPessoal.set(false);
 
-        limparEstadoOriginal();
+        sincronizarEstadoOriginal();
     }
 
     private void sincronizarEstadoOriginal() {
@@ -196,38 +218,8 @@ public class LeadViewModel {
         this.chkPessoalOriginal.set(chkPessoal.get());
     }
 
-    private void limparEstadoOriginal() {
-        this.nomeOriginal.set("");
-        this.cpfOriginal.set("");
-        this.telefoneOriginal.set("");
-        this.origemOriginal.set(OrigemLead.WHATSAPP);
-        this.dataNascimentoOriginal.set(null);
-        this.convenioOriginal.set(TipoConvenio.PADRAO);
-        this.vinculoOriginal.set(TipoVinculo.CLT);
-        this.matriculaOriginal.set("");
-        this.rendaOriginal.set(BigDecimal.ZERO);
-        this.classificacaoOriginal.set(TipoRelacionamento.LEAD);
-
-        this.chkFgtsOriginal.set(false);
-        this.chkInssOriginal.set(false);
-        this.chkSiapeOriginal.set(false);
-        this.chkForcasOriginal.set(false);
-        this.chkBolsaFamiliaOriginal.set(false);
-        this.chkContaLuzOriginal.set(false);
-        this.chkCartaoOriginal.set(false);
-        this.chkPortabilidadeOriginal.set(false);
-        this.chkRefinOriginal.set(false);
-        this.chkGarantiaOriginal.set(false);
-        this.chkConsigPrivadoOriginal.set(false);
-        this.chkPessoalOriginal.set(false);
-    }
-
     public boolean isDirty() {
-        return temAlteracoesPendentes();
-    }
-
-    public BooleanProperty dirtyProperty() {
-        return new SimpleBooleanProperty(temAlteracoesPendentes());
+        return dirty.get();
     }
 
     // --- 4. REGRAS DE NEGÓCIO E VALIDAÇÕES DE TELA ---
@@ -238,32 +230,22 @@ public class LeadViewModel {
                 if (carregando.get())
                     return false;
 
+                // Validações básicas
                 boolean nomeValido = nome.get() != null && !nome.get().trim().isEmpty();
-
-                // CORREÇÃO CRÍTICA: Remove a máscara para contar exatamente os 11 números do
-                // CPF
                 String cpfLimpo = cpf.get() != null ? cpf.get().replaceAll("[^0-9]", "") : "";
-
-                // NOVA REGRA: O CPF é válido se estiver VAZIO (opcional) OU se tiver exatamente
-                // 11 números.
                 boolean cpfValido = cpfLimpo.isEmpty() || cpfLimpo.length() == 11;
 
                 boolean dadosCorretos = nomeValido && cpfValido;
-                boolean houveAlteracao = temAlteracoesPendentes();
+                boolean houveAlteracao = dirty.get(); // Reage instantaneamente agora
 
-                // Se está editando um existente, precisa estar correto E alterado.
-                // Se é um NOVO cadastro, basta estar correto.
+                // Se editando, precisa ser válido E alterado. Se novo, apenas válido.
                 return editando.get() ? (dadosCorretos && houveAlteracao) : dadosCorretos;
 
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
-        },
-                nome, cpf, telefone, origem, dataNascimento, convenio, vinculo, matricula, renda, classificacao,
-                chkFgts, chkInss, chkSiape, chkForcas, chkBolsaFamilia, chkContaLuz,
-                chkCartao, chkPortabilidade, chkRefin, chkGarantia, chkConsigPrivado, chkPessoal,
-                editando, carregando);
+        }, dirty, nome, cpf, editando, carregando); // Adicionadas dependências diretas de validação);
     }
 
     public boolean temAlteracoesPendentes() {
@@ -400,5 +382,9 @@ public class LeadViewModel {
 
     public BooleanProperty carregandoProperty() {
         return carregando;
+    }
+
+    public ReadOnlyBooleanProperty dirtyProperty() {
+        return dirty.getReadOnlyProperty();
     }
 }
