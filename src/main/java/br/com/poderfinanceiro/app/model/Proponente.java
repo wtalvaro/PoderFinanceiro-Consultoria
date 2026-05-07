@@ -7,6 +7,8 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -71,6 +73,13 @@ public class Proponente {
 
     @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
+
+    // Relacionamento com a tabela de Endereços
+    // CascadeType.ALL garante que ao salvar o Proponente, o Endereço salva junto
+    // orphanRemoval = true garante que se o endereço for removido da lista, ele
+    // será deletado do banco
+    @OneToMany(mappedBy = "proponente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<EnderecoProponente> enderecos = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

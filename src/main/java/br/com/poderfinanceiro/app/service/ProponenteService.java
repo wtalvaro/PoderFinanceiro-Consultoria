@@ -91,4 +91,13 @@ public class ProponenteService {
         String termoBusca = termo.replaceAll("[^a-zA-Z0-9]", "");
         return proponenteRepository.buscarRapidaPorNomeOuCpf(termoBusca, consultorLogado.getId());
     }
+
+    /**
+     * Busca a versão mais atualizada do Proponente diretamente do banco.
+     */
+    public Proponente buscarPorId(Long id) {
+        if (id == null)
+            return null;
+        return proponenteRepository.findById(id).orElse(null);
+    }
 }

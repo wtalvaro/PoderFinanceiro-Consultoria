@@ -51,6 +51,19 @@ CREATE TYPE public.tipo_convenio_enum AS ENUM (
     'PADRAO'
 );
 
+-- Enum para os Estados Brasileiros (UF)
+CREATE TYPE public.uf_enum AS ENUM (
+    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 
+    'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 
+    'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+);
+
+-- Enum para Tipos de Logradouro (Padronização básica)
+CREATE TYPE public.tipo_logradouro_enum AS ENUM (
+    'RUA', 'AVENIDA', 'TRAVESSA', 'ALAMEDA', 'PRACA', 
+    'RODOVIA', 'ESTRADA', 'BECO', 'LOTEAMENTO', 'OUTRO'
+);
+
 -- ==========================================
 -- 2. SEQUÊNCIAS
 -- ==========================================
@@ -63,6 +76,7 @@ CREATE SEQUENCE public.interacoes_contato_interacao_id_seq START WITH 1 INCREMEN
 CREATE SEQUENCE public.proponentes_proponente_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.propostas_proposta_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.tabelas_juros_tabela_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+CREATE SEQUENCE public.enderecos_proponente_endereco_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 
 -- ==========================================
 -- 3. TABELAS
@@ -193,6 +207,21 @@ CREATE TABLE public.tabelas_juros (
     criado_em timestamp(6) without time zone
 );
 
+CREATE TABLE public.enderecos_proponente (
+    endereco_id bigint DEFAULT nextval('public.enderecos_proponente_endereco_id_seq'::regclass) NOT NULL,
+    proponente_id bigint NOT NULL,
+    cep character varying(8) NOT NULL, -- Somente números
+    tipo_logradouro public.tipo_logradouro_enum DEFAULT 'RUA'::public.tipo_logradouro_enum,
+    logradouro character varying(255) NOT NULL,
+    numero character varying(20) NOT NULL,
+    complemento character varying(100),
+    bairro character varying(100) NOT NULL,
+    cidade character varying(100) NOT NULL,
+    uf public.uf_enum NOT NULL,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    ultima_atualizacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==========================================
 -- 4. VÍNCULOS DE SEQUÊNCIAS (OWNERSHIP)
 -- ==========================================
@@ -205,6 +234,7 @@ ALTER SEQUENCE public.interacoes_contato_interacao_id_seq OWNED BY public.intera
 ALTER SEQUENCE public.proponentes_proponente_id_seq OWNED BY public.proponentes.proponente_id;
 ALTER SEQUENCE public.propostas_proposta_id_seq OWNED BY public.propostas.proposta_id;
 ALTER SEQUENCE public.tabelas_juros_tabela_id_seq OWNED BY public.tabelas_juros.tabela_id;
+ALTER SEQUENCE public.enderecos_proponente_endereco_id_seq OWNED BY public.enderecos_proponente.endereco_id;
 
 -- ==========================================
 -- 5. CHAVES PRIMÁRIAS E ÚNICAS
@@ -220,6 +250,7 @@ ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_cpf_usuario_key U
 ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_pkey PRIMARY KEY (proponente_id);
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_pkey PRIMARY KEY (proposta_id);
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_pkey PRIMARY KEY (tabela_id);
+ALTER TABLE ONLY public.enderecos_proponente ADD CONSTRAINT enderecos_proponente_pkey PRIMARY KEY (endereco_id);
 
 -- ==========================================
 -- 6. ÍNDICES
@@ -230,6 +261,8 @@ CREATE INDEX idx_proponentes_cpf_ativo ON public.proponentes USING btree (cpf) W
 CREATE INDEX idx_propostas_status_busca ON public.propostas USING btree (status);
 CREATE INDEX idx_propostas_usuario ON public.propostas USING btree (usuario_id);
 CREATE INDEX idx_proponentes_usuario ON public.proponentes USING btree (usuario_id);
+CREATE INDEX idx_enderecos_proponente_id ON public.enderecos_proponente USING btree (proponente_id);
+CREATE INDEX idx_enderecos_cep ON public.enderecos_proponente USING btree (cep);
 
 -- ==========================================
 -- 7. CHAVES ESTRANGEIRAS (FOREIGN KEYS)
@@ -256,6 +289,8 @@ ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_usuario_atualizacao_i
 
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_banco_id_fkey FOREIGN KEY (banco_id) REFERENCES public.bancos(banco_id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY public.enderecos_proponente ADD CONSTRAINT enderecos_proponente_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
+
 -- ==========================================
 -- 8. FUNÇÕES E TRIGGERS
 -- ==========================================
@@ -273,4 +308,13 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.trg_update_timestamp()
+RETURNS trigger AS $$
+BEGIN
+    NEW.ultima_atualizacao = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER trigger_status_update BEFORE UPDATE ON public.propostas FOR EACH ROW EXECUTE FUNCTION public.trg_log_status_change();
+CREATE TRIGGER trigger_update_timestamp_endereco BEFORE UPDATE ON public.enderecos_proponente FOR EACH ROW EXECUTE FUNCTION public.trg_update_timestamp();
