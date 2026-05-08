@@ -7,6 +7,8 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import br.com.poderfinanceiro.app.model.enums.TipoLogradouro;
+
 import java.time.LocalDateTime;
 
 @Entity

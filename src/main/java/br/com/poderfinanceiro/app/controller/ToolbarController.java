@@ -10,10 +10,14 @@ public class ToolbarController {
     private final StageInitializer stageInitializer;
     private final MainController mainController;
     
-    public ToolbarController(StageInitializer stageInitializer, MainController mainController,
-            LeadController leadController) {
+    public ToolbarController(StageInitializer stageInitializer, MainController mainController) {
         this.stageInitializer = stageInitializer;
         this.mainController = mainController;
+    }
+
+    @FXML
+    private void handleLinksUteis() {
+        mainController.irParaLinksUteis();
     }
 
     @FXML
@@ -27,12 +31,5 @@ public class ToolbarController {
     @FXML
     private void handleNovoContato() { // Ou o nome que você deu ao método no XML
         mainController.irParaNovoContato();
-    }
-
-    @FXML
-    private void handleNovaOperacao() {
-        // Direciona o consultor para a tela de simulador
-        // Certifique-se de que o nome do arquivo é simulator.fxml
-        mainController.navegarPara("/fxml/simulator.fxml", true);
     }
 }

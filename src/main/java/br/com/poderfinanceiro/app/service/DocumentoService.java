@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.model.Proponente;
 import br.com.poderfinanceiro.app.model.Usuario;
 import br.com.poderfinanceiro.app.repository.DocumentoProponenteRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -81,7 +82,7 @@ public class DocumentoService {
     }
 
     public List<DocumentoProponente> listarDoProponente(Long proponenteId) {
-        return repository.findByProponenteId(proponenteId);
+        return repository.findByProponenteIdOrderByIdAsc(proponenteId);
     }
 
     public void abrirDocumento(DocumentoProponente doc) {
@@ -93,6 +94,17 @@ public class DocumentoService {
         } catch (Exception e) {
             System.err.println("Erro ao abrir arquivo: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public DocumentoProponente alternarVerificacao(Long documentoId) {
+        DocumentoProponente doc = repository.findById(documentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+
+        // Inverte o status atual
+        doc.setVerificado(!doc.getVerificado());
+
+        return repository.save(doc);
     }
 
     // --- Utilitários Internos ---

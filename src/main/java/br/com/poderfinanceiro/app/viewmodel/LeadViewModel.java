@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.OrigemLead;
 import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.model.TipoConvenio;
-import br.com.poderfinanceiro.app.model.TipoRelacionamento;
-import br.com.poderfinanceiro.app.model.TipoVinculo;
+import br.com.poderfinanceiro.app.model.enums.OrigemLead;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoRelacionamento;
+import br.com.poderfinanceiro.app.model.enums.TipoVinculo;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;

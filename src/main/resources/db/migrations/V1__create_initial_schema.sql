@@ -64,6 +64,15 @@ CREATE TYPE public.tipo_logradouro_enum AS ENUM (
     'RODOVIA', 'ESTRADA', 'BECO', 'LOTEAMENTO', 'OUTRO'
 );
 
+-- Enum para Categorias de Links
+CREATE TYPE public.categoria_link_enum AS ENUM (
+    'BANCO',
+    'GOVERNO',
+    'CONSULTA',
+    'INTERNO',
+    'OUTROS'
+);
+
 -- ==========================================
 -- 2. SEQUÊNCIAS
 -- ==========================================
@@ -77,6 +86,7 @@ CREATE SEQUENCE public.proponentes_proponente_id_seq START WITH 1 INCREMENT BY 1
 CREATE SEQUENCE public.propostas_proposta_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.tabelas_juros_tabela_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 CREATE SEQUENCE public.enderecos_proponente_endereco_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+CREATE SEQUENCE public.links_uteis_link_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 
 -- ==========================================
 -- 3. TABELAS
@@ -222,6 +232,16 @@ CREATE TABLE public.enderecos_proponente (
     ultima_atualizacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE public.links_uteis (
+    link_id bigint DEFAULT nextval('public.links_uteis_link_id_seq'::regclass) NOT NULL,
+    titulo character varying(100) NOT NULL,
+    url text NOT NULL,
+    descricao character varying(255),
+    categoria public.categoria_link_enum DEFAULT 'OUTROS'::public.categoria_link_enum,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT links_uteis_pkey PRIMARY KEY (link_id)
+);
+
 -- ==========================================
 -- 4. VÍNCULOS DE SEQUÊNCIAS (OWNERSHIP)
 -- ==========================================
@@ -235,6 +255,7 @@ ALTER SEQUENCE public.proponentes_proponente_id_seq OWNED BY public.proponentes.
 ALTER SEQUENCE public.propostas_proposta_id_seq OWNED BY public.propostas.proposta_id;
 ALTER SEQUENCE public.tabelas_juros_tabela_id_seq OWNED BY public.tabelas_juros.tabela_id;
 ALTER SEQUENCE public.enderecos_proponente_endereco_id_seq OWNED BY public.enderecos_proponente.endereco_id;
+ALTER SEQUENCE public.links_uteis_link_id_seq OWNED BY public.links_uteis.link_id;
 
 -- ==========================================
 -- 5. CHAVES PRIMÁRIAS E ÚNICAS

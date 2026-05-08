@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.com.poderfinanceiro.app.model.PlaybookItem;
 import br.com.poderfinanceiro.app.model.PlaybookItemDTO;
-import br.com.poderfinanceiro.app.model.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
 import br.com.poderfinanceiro.app.strategy.DocumentStrategy;
 
 @Service

@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import br.com.poderfinanceiro.app.model.enums.StatusProposta;
+
 @Entity
 @Table(name = "propostas")
 @Getter

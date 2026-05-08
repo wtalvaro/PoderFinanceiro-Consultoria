@@ -11,27 +11,26 @@ import java.util.Optional;
 public interface DocumentoProponenteRepository extends JpaRepository<DocumentoProponente, Long> {
 
     /**
-     * Busca todos os documentos atrelados a um proponente (cliente) específico.
-     * Útil para carregar a galeria de documentos na tela de detalhes do cliente.
+     * Busca todos os documentos de um proponente mantendo a ordem de inserção.
+     * O OrderByIdAsc garante que a linha não pule para o final ao ser atualizada.
      */
-    List<DocumentoProponente> findByProponenteId(Long proponenteId);
+    List<DocumentoProponente> findByProponenteIdOrderByIdAsc(Long proponenteId);
 
     /**
-     * Busca todos os documentos de um cliente filtrando pelo tipo (ex: "RG",
-     * "Comprovante de Endereço").
+     * Busca por tipo mantendo a ordenação estável.
      */
-    List<DocumentoProponente> findByProponenteIdAndTipoDocumento(Long proponenteId, String tipoDocumento);
+    List<DocumentoProponente> findByProponenteIdAndTipoDocumentoOrderByIdAsc(Long proponenteId, String tipoDocumento);
 
     /**
      * Busca um documento pelo seu Hash SHA-256.
-     * Excelente prática de segurança e economia de armazenamento para evitar
-     * que o consultor faça o upload do mesmo arquivo PDF/imagem duas vezes.
+     * (Não precisa de OrderBy pois o Hash é único, retorna apenas 0 ou 1 registro).
      */
     Optional<DocumentoProponente> findByHashSha256(String hashSha256);
 
     /**
-     * Lista documentos que ainda não foram verificados (útil para
-     * auditoria/backoffice).
+     * Lista documentos pendentes de verificação.
+     * Aqui usamos OrderByIdAsc para o auditor ver os documentos mais antigos
+     * primeiro.
      */
-    List<DocumentoProponente> findByVerificadoFalse();
+    List<DocumentoProponente> findByVerificadoFalseOrderByIdAsc();
 }

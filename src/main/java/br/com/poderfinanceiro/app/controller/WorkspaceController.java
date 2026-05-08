@@ -131,4 +131,37 @@ public class WorkspaceController {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Abre ou foca na aba de Links Úteis.
+     * Diferente das abas fixas, esta é fechável.
+     */
+    public void abrirAbaLinks() {
+        String idLinks = "ABA_LINKS_UTEIS";
+
+        // 1. Verificar se a aba já está aberta
+        for (Tab tab : tabPanePrincipal.getTabs()) {
+            if (idLinks.equals(tab.getUserData())) {
+                tabPanePrincipal.getSelectionModel().select(tab);
+                return;
+            }
+        }
+
+        // 2. Se não estiver aberta, carregar o FXML
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/links_uteis.fxml"));
+            loader.setControllerFactory(context::getBean);
+            Parent root = loader.load();
+
+            Tab tabLinks = new Tab("🔗 Links Úteis");
+            tabLinks.setContent(root);
+            tabLinks.setUserData(idLinks);
+            tabLinks.setClosable(true); // Esta aba o usuário pode fechar
+
+            tabPanePrincipal.getTabs().add(tabLinks);
+            tabPanePrincipal.getSelectionModel().select(tabLinks);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

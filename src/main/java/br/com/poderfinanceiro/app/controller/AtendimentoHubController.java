@@ -31,6 +31,8 @@ public class AtendimentoHubController {
     @FXML
     private DocumentoController abaDocumentoController;
     @FXML
+    private LinkUtilController abaLinksController;
+    @FXML
     private VBox overlayConfirmacaoSaida, overlayMensagem, overlayResumo;
     @FXML
     private Button btnSalvar;
@@ -80,9 +82,11 @@ public class AtendimentoHubController {
     }
 
     public void inicializarAtendimento(Proponente proponente) {
+        // 1. Carregar Lead: Se o proponente for null, as abas devem resetar para estado "novo"
         this.proponenteAberto = proponente;
         abaLeadController.getViewModel().loadFromModel(proponente);
 
+        // 2. Carregar Endereço: Se o proponente tiver endereços, carrega o primeiro. Caso
         if (proponente != null && proponente.getEnderecos() != null && !proponente.getEnderecos().isEmpty()) {
             abaEnderecoController.getViewModel().loadFromModel(proponente.getEnderecos().get(0));
         } else {
@@ -94,6 +98,11 @@ public class AtendimentoHubController {
             abaDocumentoController.carregarDocumentos(proponente);
         } else {
             abaDocumentoController.carregarDocumentos(null);
+        }
+
+        // 4. Carregar Links Úteis (se a aba estiver presente)
+        if (abaLinksController != null) {
+            abaLinksController.recarregarLinks();
         }
     }
 

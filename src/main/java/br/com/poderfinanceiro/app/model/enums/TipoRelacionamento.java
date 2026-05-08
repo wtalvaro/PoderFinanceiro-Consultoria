@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.model;
+package br.com.poderfinanceiro.app.model.enums;
 
 public enum TipoRelacionamento implements Labeled {
     LEAD("Lead"),

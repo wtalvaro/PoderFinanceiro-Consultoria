@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.OrigemLead;
-import br.com.poderfinanceiro.app.model.TipoConvenio;
-import br.com.poderfinanceiro.app.model.TipoRelacionamento;
-import br.com.poderfinanceiro.app.model.TipoVinculo;
-import br.com.poderfinanceiro.app.model.Labeled;
+import br.com.poderfinanceiro.app.model.enums.Labeled;
+import br.com.poderfinanceiro.app.model.enums.OrigemLead;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoRelacionamento;
+import br.com.poderfinanceiro.app.model.enums.TipoVinculo;
 import br.com.poderfinanceiro.app.utils.ContatoUtils;
 import br.com.poderfinanceiro.app.utils.DataUtils;
 import br.com.poderfinanceiro.app.utils.DocumentoUtils;

@@ -55,12 +55,12 @@
                         <fx:include fx:id="abaEndereco" source="endereco.fxml" />
                     </Tab>
 
-                    <Tab text="🖩 Simulação">
-                        <fx:include fx:id="abaSimulator" source="simulator.fxml" />
-                    </Tab>
-
                     <Tab text="📁 Documentos">
                         <fx:include fx:id="abaDocumento" source="documentos.fxml" />
+                    </Tab>
+
+                    <Tab text="🔗 Links Úteis">
+                        <fx:include fx:id="abaLinks" source="links_uteis.fxml" />
                     </Tab>
                 </tabs>
             </TabPane>

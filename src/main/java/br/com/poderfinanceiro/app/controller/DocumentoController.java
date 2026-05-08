@@ -190,9 +190,46 @@ public class DocumentoController {
     private void configurarTabela() {
         colTipo.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTipoDocumento()));
 
-        colStatus.setCellValueFactory(data -> {
-            Boolean verificado = data.getValue().getVerificado();
-            return new SimpleStringProperty(verificado ? "✅ Verificado" : "⏳ Pendente");
+        colStatus.setCellFactory(param -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    DocumentoProponente doc = getTableRow().getItem();
+
+                    // Criamos um "botão" que parece um Label para ser discreto mas clicável
+                    Hyperlink linkStatus = new Hyperlink(doc.getVerificado() ? "✅ Verificado" : "⏳ Pendente");
+
+                    // Estilização dinâmica baseada no estado
+                    if (doc.getVerificado()) {
+                        linkStatus.setStyle("-fx-text-fill: #2e7d32; -fx-underline: false; -fx-font-weight: bold;");
+                    } else {
+                        linkStatus.setStyle("-fx-text-fill: #ffa000; -fx-underline: false; -fx-font-weight: bold;");
+                    }
+
+                    linkStatus.setOnAction(event -> {
+                        try {
+                            // 1. Atualiza no Banco via Serviço
+                            DocumentoProponente atualizado = documentoService.alternarVerificacao(doc.getId());
+
+                            // 2. Sincroniza o objeto da lista (sem recarregar do banco)
+                            doc.setVerificado(atualizado.getVerificado());
+
+                            // 3. O SEGREDO: Repinta a tabela instantaneamente
+                            tableDocumentos.refresh();
+
+                        } catch (Exception e) {
+                            mostrarAviso("Erro ao atualizar status: " + e.getMessage(), false);
+                        }
+                    });
+
+                    setGraphic(linkStatus);
+                }
+            }
         });
 
         colAcoes.setCellFactory(param -> new TableCell<>() {

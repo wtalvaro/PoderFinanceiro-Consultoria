@@ -14,17 +14,16 @@
 
     <Separator />
 
-    <Button text="📥 Baixar HISCON" styleClass="flat, accent" />
     <Button text="🖩 Calc. Portabilidade" styleClass="flat" />
     <Button text="🖩 Calc. Price" styleClass="flat" />
     <Separator />
+    <Button text="📥 Baixar HISCON" styleClass="flat, accent" />
     <Button text="🖨️ Gerar CCB" styleClass="flat" />
-    <Button text="📎 Upload Docs" styleClass="flat" />
 
     <!-- ESPAÇADOR -->
     <Region HBox.hgrow="ALWAYS" />
 
-    <Button text="⚙️ Parâmetros" styleClass="flat" style="-fx-text-fill: -color-fg-muted;" />
+    <Button text="🔗 Links" onAction="#handleLinksUteis" styleClass="flat" />
     <Separator orientation="VERTICAL" />
     <Button text="🚪 Sair" onAction="#handleLogout" styleClass="flat, danger"
         style="-fx-text-fill: -color-danger-emphasis; -fx-font-weight: bold;" />

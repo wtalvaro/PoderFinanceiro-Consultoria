@@ -2,7 +2,7 @@ package br.com.poderfinanceiro.app.strategy;
 
 import org.springframework.stereotype.Service;
 
-import br.com.poderfinanceiro.app.model.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
 
 @Service
 public class ExercitoDocumentStrategy implements DocumentStrategy {

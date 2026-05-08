@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.model;
+package br.com.poderfinanceiro.app.model.enums;
 
 public enum StatusProposta implements Labeled {
     DIGITADA("Digitada"),

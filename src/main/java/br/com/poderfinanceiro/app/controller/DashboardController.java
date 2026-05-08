@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.Proposta;
-import br.com.poderfinanceiro.app.model.StatusProposta;
-import br.com.poderfinanceiro.app.model.TipoVinculo;
+import br.com.poderfinanceiro.app.model.enums.StatusProposta;
+import br.com.poderfinanceiro.app.model.enums.TipoVinculo;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;

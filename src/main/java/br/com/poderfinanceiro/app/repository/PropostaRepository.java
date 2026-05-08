@@ -1,7 +1,8 @@
 package br.com.poderfinanceiro.app.repository;
 
 import br.com.poderfinanceiro.app.model.Proposta;
-import br.com.poderfinanceiro.app.model.StatusProposta; // Importe o Enum
+import br.com.poderfinanceiro.app.model.enums.StatusProposta;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;

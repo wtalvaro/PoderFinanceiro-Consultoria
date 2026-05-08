@@ -13,6 +13,11 @@ import java.util.List;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import br.com.poderfinanceiro.app.model.enums.OrigemLead;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoRelacionamento;
+import br.com.poderfinanceiro.app.model.enums.TipoVinculo;
+
 @Entity
 @Table(name = "proponentes")
 @Getter

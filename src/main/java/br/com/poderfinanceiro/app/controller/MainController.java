@@ -132,6 +132,12 @@ public class MainController {
         ws.abrirOuFocarAba(proponente);
     }
 
+    public void irParaLinksUteis() {
+        garantirWorkspaceVisivel();
+        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
+        ws.abrirAbaLinks();
+    }
+
     private void garantirWorkspaceVisivel() {
         if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
             // Executa o carregamento real do FXML e Controller caso ainda não esteja na

@@ -28,6 +28,11 @@ public class PanelController {
     }
 
     @FXML
+    private void abrirLinksUteis() {
+        mainController.irParaLinksUteis();
+    }
+
+    @FXML
     private void abrirTelaBaseClientes() {
         mainController.focarAbaClientes();
     }

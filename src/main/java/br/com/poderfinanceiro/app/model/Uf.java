@@ -1,5 +1,7 @@
 package br.com.poderfinanceiro.app.model;
 
+import br.com.poderfinanceiro.app.model.enums.Labeled;
+
 public enum Uf implements Labeled {
     AC("Acre"), AL("Alagoas"), AP("Amapá"), AM("Amazonas"),
     BA("Bahia"), CE("Ceará"), DF("Distrito Federal"), ES("Espírito Santo"),

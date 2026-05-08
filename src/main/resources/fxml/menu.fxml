@@ -21,6 +21,7 @@
                 <MenuItem text="Esteira de Digitação (Bancos)" />
                 <SeparatorMenuItem />
                 <MenuItem text="Playbook de Vendas" accelerator="Ctrl+P" onAction="#handlePlaybook" />
+                <MenuItem text="Links Úteis" accelerator="Ctrl+L" onAction="#handleLinksUteis" />
             </items>
         </Menu>
         <Menu text="_Financeiro">

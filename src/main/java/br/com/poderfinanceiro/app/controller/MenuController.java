@@ -25,6 +25,11 @@ public class MenuController {
     }
 
     @FXML
+    private void handleLinksUteis() {
+        mainController.irParaLinksUteis();
+    }
+
+    @FXML
     private void handleMenuSair() {
         Platform.exit();
         System.exit(0);

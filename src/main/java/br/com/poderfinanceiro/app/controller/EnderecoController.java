@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.EnderecoProponente;
-import br.com.poderfinanceiro.app.model.TipoLogradouro;
 import br.com.poderfinanceiro.app.model.Uf;
+import br.com.poderfinanceiro.app.model.enums.TipoLogradouro;
 import br.com.poderfinanceiro.app.utils.EnderecoUtils;
 import br.com.poderfinanceiro.app.viewmodel.EnderecoViewModel;
 import javafx.collections.FXCollections;

@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.model;
+package br.com.poderfinanceiro.app.model.enums;
 
 public enum OrigemLead implements Labeled {
     WHATSAPP("WhatsApp"),
