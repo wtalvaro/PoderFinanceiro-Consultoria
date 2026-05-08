@@ -56,8 +56,9 @@ public class DocumentoService {
         String extensao = obterExtensao(arquivoOriginal.getName());
         String nomeLimpo = proponente.getNomeCompleto().replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
         String novoNomeArquivo = tipoDoc.replaceAll(" ", "_").toUpperCase() + "_" + nomeLimpo + extensao;
+        String nomePasta = String.format("CLIENTE_%03d_%s", proponente.getId(), nomeLimpo);
 
-        Path pastaCliente = ROOT_DIR.resolve("CLIENTE_" + proponente.getId());
+        Path pastaCliente = ROOT_DIR.resolve(nomePasta);
         if (!Files.exists(pastaCliente)) {
             Files.createDirectories(pastaCliente);
         }
