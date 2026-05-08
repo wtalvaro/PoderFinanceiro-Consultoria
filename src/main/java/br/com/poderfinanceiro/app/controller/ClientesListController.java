@@ -1,8 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.service.ProponenteService;
-import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
+import br.com.poderfinanceiro.app.service.MainService;
+import br.com.poderfinanceiro.app.utils.ContatoUtils;
+import br.com.poderfinanceiro.app.utils.DocumentoUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -19,7 +20,7 @@ import java.util.List;
 @Component
 public class ClientesListController {
 
-    private final ProponenteService proponenteService;
+    private final MainService proponenteService;
     private final MainController mainController;
     @FXML
     private TableView<Proponente> tabelaClientes;
@@ -41,7 +42,7 @@ public class ClientesListController {
     // Lista observável que o JavaFX usa para atualizar a tabela em tempo real
     private ObservableList<Proponente> listaContatos = FXCollections.observableArrayList();
 
-    public ClientesListController(ProponenteService proponenteService,
+    public ClientesListController(MainService proponenteService,
             MainController mainController,
             LeadController leadController) {
         this.proponenteService = proponenteService;
@@ -121,7 +122,7 @@ public class ClientesListController {
                     setGraphic(null);
                 } else {
                     // Aqui usamos o seu utilitário DRY
-                    setText(FinanceiroUtils.formatarCpf(cpf));
+                    setText(DocumentoUtils.formatarCpf(cpf));
                 }
             }
         });
@@ -135,7 +136,7 @@ public class ClientesListController {
                 if (empty || tel == null) {
                     setText(null);
                 } else {
-                    setText(FinanceiroUtils.formatarTelefone(tel));
+                    setText(ContatoUtils.formatarTelefone(tel));
                 }
             }
         });

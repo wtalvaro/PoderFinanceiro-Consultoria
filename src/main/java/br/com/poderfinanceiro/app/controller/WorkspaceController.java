@@ -65,85 +65,68 @@ public class WorkspaceController {
      * Se existir, foca na aba já aberta ou cria uma nova aba Hub.
      */
     public void abrirOuFocarAba(Proponente proponente) {
-        String idBuscado;
-        boolean isContatoExistente = false;
+        String idBuscado = null;
+        boolean isExistente = (proponente != null && proponente.getId() != null);
 
-        // 1 e 2. Avaliação explícita: A IDE agora é forçada a reconhecer a proteção.
-        if (proponente != null && proponente.getId() != null) {
+        if (isExistente && proponente != null) {
             idBuscado = String.valueOf(proponente.getId());
-            isContatoExistente = true;
-        } else {
-            // Nova operação garantida e isolada
-            idBuscado = "NOVO_CONTATO_" + UUID.randomUUID().toString();
-        }
-
-        // 3. BUSCA NA COLEÇÃO DE ABAS (Executado apenas para clientes existentes)
-        if (isContatoExistente) {
+            // Busca aba existente pelo ID do banco
             for (Tab tab : tabPanePrincipal.getTabs()) {
-                String idNaAba = String.valueOf(tab.getUserData());
-
-                if (idBuscado.equals(idNaAba)) {
-                    // A aba do cliente já existe! Focamos nela e interrompemos a execução.
+                if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
                     tabPanePrincipal.getSelectionModel().select(tab);
                     return;
                 }
             }
+        } else {
+            // Para novos, geramos um ID temporário único para permitir várias abas de
+            // "Novo"
+            idBuscado = "NOVO_" + UUID.randomUUID().toString();
         }
 
-        // 4. CRIAÇÃO DA NOVA ABA HUB
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
+            AtendimentoHubController hub = loader.getController();
 
-            AtendimentoHubController hubController = loader.getController();
-
-            // Inicializa os dados do cliente ou prepara um cadastro vazio
-            if (proponente != null) {
-                hubController.inicializarAtendimento(proponente);
-            } else {
-                hubController.getLeadController().prepararNovoContato();
-            }
+            if (isExistente)
+                hub.inicializarAtendimento(proponente);
+            else
+                hub.prepararNovoAtendimento();
 
             Tab novaAba = new Tab();
             novaAba.setContent(root);
-            novaAba.setClosable(true);
+            novaAba.setUserData(idBuscado); // Identificador único da aba
 
-            // Etiquetamos a aba fisicamente com a String (ID do banco ou UUID do novo
-            // contato)
-            novaAba.setUserData(idBuscado);
+            // Binding reativo: O título da aba "persegue" o nome no ViewModel
+            novaAba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
+                String nome = hub.getLeadController().getViewModel().nomeProperty().get();
+                if (nome == null || nome.trim().isEmpty()) {
+                    return "Novo Atendimento";
+                }
+                // Limita o tamanho para não quebrar o layout das abas
+                return nome.length() > 20 ? nome.substring(0, 17) + "..." : nome;
+            }, hub.getLeadController().getViewModel().nomeProperty()));
 
+            // Opcional: Adicionar o ícone que tínhamos antes
             Label iconeAba = new Label("👤");
             iconeAba.setStyle("-fx-font-size: 14px;");
             novaAba.setGraphic(iconeAba);
 
-            // Binding reativo de título
-            novaAba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
-                String nome = hubController.getLeadController().getViewModel().nomeProperty().get();
-                if (nome == null || nome.trim().isEmpty()) {
-                    return "Novo Atendimento";
-                }
-                return nome.length() > 20 ? nome.substring(0, 17) + "..." : nome;
-            }, hubController.getLeadController().getViewModel().nomeProperty()));
-
-            // Proteção contra vazamento de memória e fechamento acidental
+            // Configura o fechamento SEGURO
             novaAba.setOnCloseRequest(event -> {
-                Runnable acaoMatarAba = () -> {
-                    tabPanePrincipal.getTabs().remove(novaAba);
-                    hubController.limparRecursos();
-                };
-
-                if (hubController.temAlteracoesNaoSalvas()) {
-                    event.consume();
-                    hubController.solicitarFechamento(acaoMatarAba);
+                if (hub.temAlteracoesNaoSalvas()) {
+                    event.consume(); // Para o fechamento automático
+                    hub.solicitarFechamento(() -> {
+                        tabPanePrincipal.getTabs().remove(novaAba);
+                    });
                 } else {
-                    hubController.limparRecursos();
+                    hub.limparRecursos();
                 }
             });
 
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
-
         } catch (IOException e) {
             e.printStackTrace();
         }

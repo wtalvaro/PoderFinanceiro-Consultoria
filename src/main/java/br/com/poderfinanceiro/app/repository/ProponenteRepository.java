@@ -25,4 +25,7 @@ public interface ProponenteRepository extends JpaRepository<Proponente, Long> {
     @Query("SELECT p FROM Proponente p WHERE p.usuario.id = :usuarioId AND p.deletadoEm IS NULL AND " +
             "(LOWER(p.nomeCompleto) LIKE LOWER(CONCAT('%', :termo, '%')) OR p.cpf LIKE CONCAT('%', :termo, '%'))")
     List<Proponente> buscarRapidaPorNomeOuCpf(@Param("termo") String termo, @Param("usuarioId") Long usuarioId);
+
+    @Query("SELECT p FROM Proponente p LEFT JOIN FETCH p.enderecos WHERE p.id = :id")
+    Optional<Proponente> findByIdWithEnderecos(@Param("id") Long id);
 }

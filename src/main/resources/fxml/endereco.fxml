@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ScrollPane fitToWidth="true" style="-fx-background-color: transparent;"
+    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.EnderecoController">
+    <content>
+        <VBox spacing="20.0" style="-fx-padding: 20;">
+            <children>
+                <Label style="-fx-font-size: 18px; -fx-font-weight: bold;"
+                    text="📍 Localização do Proponente" />
+
+                <GridPane hgap="15.0" vgap="15.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="150.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+                    </columnConstraints>
+
+                    <children>
+                        <Label text="CEP:" GridPane.rowIndex="0" />
+                        <HBox spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <children>
+                                <TextField fx:id="txtCep" prefWidth="150.0" promptText="00.000-000" />
+                                <Button onAction="#buscarCep" text="🔍 Buscar CEP" styleClass="flat" />
+                            </children>
+                        </HBox>
+
+                        <Label text="Logradouro:" GridPane.rowIndex="1" />
+                        <HBox spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <children>
+                                <ComboBox fx:id="comboTipoLogradouro" prefWidth="120.0" />
+                                <TextField fx:id="txtLogradouro" HBox.hgrow="ALWAYS"
+                                    promptText="Nome da rua, avenida, etc." />
+                            </children>
+                        </HBox>
+
+                        <Label text="Número:" GridPane.rowIndex="2" />
+                        <HBox spacing="15.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                            <children>
+                                <TextField fx:id="txtNumero" prefWidth="100.0" />
+                                <Label text="Complemento:" />
+                                <TextField fx:id="txtComplemento" HBox.hgrow="ALWAYS" />
+                            </children>
+                        </HBox>
+
+                        <Label text="Bairro:" GridPane.rowIndex="3" />
+                        <TextField fx:id="txtBairro" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                        <Label text="Cidade:" GridPane.rowIndex="4" />
+                        <HBox spacing="15.0" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                            <children>
+                                <TextField fx:id="txtCidade" HBox.hgrow="ALWAYS" />
+                                <Label text="UF:" />
+                                <ComboBox fx:id="comboUf" prefWidth="100.0" />
+                            </children>
+                        </HBox>
+                    </children>
+                </GridPane>
+
+                <Label fx:id="lblMensagem" managed="false" visible="false" />
+            </children>
+        </VBox>
+    </content>
+</ScrollPane>
