@@ -9,12 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-public class MainService {
+public class ProponenteService {
 
     private final ProponenteRepository proponenteRepository;
     private final AuthService authService; // Essencial para saber quem está logado
 
-    public MainService(ProponenteRepository proponenteRepository, AuthService authService) {
+    public ProponenteService(ProponenteRepository proponenteRepository, AuthService authService) {
         this.proponenteRepository = proponenteRepository;
         this.authService = authService;
     }

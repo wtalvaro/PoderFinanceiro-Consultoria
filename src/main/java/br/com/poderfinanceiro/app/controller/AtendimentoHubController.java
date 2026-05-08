@@ -2,7 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.EnderecoProponente;
 import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.service.MainService;
+import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -35,14 +35,14 @@ public class AtendimentoHubController {
     @FXML
     private Label lblMensagemTexto, lblMensagemTitulo, lblResumoPreview;
 
-    private final MainService atendimentoService;
+    private final ProponenteService atendimentoService;
     private final MainController mainController;
 
     private Proponente proponenteAberto;
     private Runnable acaoNavegacaoPendente;
     private String resumoGeradoParaCopia;
 
-    public AtendimentoHubController(MainService atendimentoService, MainController mainController) {
+    public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController) {
         this.atendimentoService = atendimentoService;
         this.mainController = mainController;
     }

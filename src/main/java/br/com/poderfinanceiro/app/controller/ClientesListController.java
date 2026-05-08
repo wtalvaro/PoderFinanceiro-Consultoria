@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.service.MainService;
+import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.utils.ContatoUtils;
 import br.com.poderfinanceiro.app.utils.DocumentoUtils;
 import javafx.collections.FXCollections;
@@ -20,7 +20,7 @@ import java.util.List;
 @Component
 public class ClientesListController {
 
-    private final MainService proponenteService;
+    private final ProponenteService proponenteService;
     private final MainController mainController;
     @FXML
     private TableView<Proponente> tabelaClientes;
@@ -42,7 +42,7 @@ public class ClientesListController {
     // Lista observável que o JavaFX usa para atualizar a tabela em tempo real
     private ObservableList<Proponente> listaContatos = FXCollections.observableArrayList();
 
-    public ClientesListController(MainService proponenteService,
+    public ClientesListController(ProponenteService proponenteService,
             MainController mainController,
             LeadController leadController) {
         this.proponenteService = proponenteService;
