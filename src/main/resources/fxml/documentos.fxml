@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="15" style="-fx-padding: 20;" xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.DocumentoController">
+
+    <Label text="📁 Documentação Digitalizada" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+
+    <VBox fx:id="dropZone" alignment="CENTER" spacing="10"
+        style="-fx-border-color: #aaaaaa; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #fafafa; -fx-padding: 30; -fx-cursor: hand;"
+        onDragOver="#handleDragOver" onDragDropped="#handleDragDropped"
+        onMouseClicked="#handleFileSelection">
+
+        <Label text="📥 Arraste os documentos para cá"
+            style="-fx-font-size: 16px; -fx-text-fill: #555;" />
+        <Label text="ou clique para buscar no computador (PDF, JPG, PNG)"
+            style="-fx-font-size: 12px; -fx-text-fill: #888;" />
+    </VBox>
+
+    <VBox fx:id="panelClassificacao" alignment="CENTER" spacing="10" visible="false" managed="false"
+        style="-fx-background-color: #e3f2fd; -fx-border-color: #90caf9; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 20;">
+
+        <Label text="Classifique o documento recebido:"
+            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1565c0;" />
+        <Label fx:id="lblNomeArquivo" style="-fx-text-fill: #555; -fx-font-style: italic;" />
+
+        <HBox spacing="10" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
+            <ComboBox fx:id="comboTipoDocumento" promptText="Selecione o tipo..." prefWidth="250" />
+            <Button text="Confirmar Upload" onAction="#confirmarUploadInline" styleClass="accent"
+                style="-fx-font-weight: bold; -fx-background-color: #2e7d32; -fx-text-fill: white;" />
+            <Button text="Cancelar" onAction="#cancelarUploadInline" styleClass="flat" />
+        </HBox>
+    </VBox>
+
+    <Label fx:id="lblAviso" visible="false" managed="false" />
+
+    <TableView fx:id="tableDocumentos" VBox.vgrow="ALWAYS" styleClass="edge-to-edge">
+        <columns>
+            <TableColumn fx:id="colTipo" text="Tipo de Documento" prefWidth="250" />
+            <TableColumn fx:id="colStatus" text="Status" prefWidth="150" />
+            <TableColumn fx:id="colAcoes" text="Ações" prefWidth="150" />
+        </columns>
+        <placeholder>
+            <Label text="Nenhum documento anexado. Arraste um arquivo acima." />
+        </placeholder>
+    </TableView>
+</VBox>

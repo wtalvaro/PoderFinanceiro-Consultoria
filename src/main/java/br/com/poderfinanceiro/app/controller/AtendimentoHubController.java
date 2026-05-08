@@ -29,6 +29,8 @@ public class AtendimentoHubController {
     @FXML
     private EnderecoController abaEnderecoController;
     @FXML
+    private DocumentoController abaDocumentoController;
+    @FXML
     private VBox overlayConfirmacaoSaida, overlayMensagem, overlayResumo;
     @FXML
     private Button btnSalvar;
@@ -86,6 +88,13 @@ public class AtendimentoHubController {
         } else {
             abaEnderecoController.getViewModel().reset();
         }
+
+        // 3. Carregar Documentos
+        if (proponente != null && proponente.getId() != null) {
+            abaDocumentoController.carregarDocumentos(proponente);
+        } else {
+            abaDocumentoController.carregarDocumentos(null);
+        }
     }
 
     public void prepararNovoAtendimento() {
@@ -94,6 +103,7 @@ public class AtendimentoHubController {
         // Reseta (limpa e sincroniza o estado original) de todas as abas
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
+        abaDocumentoController.carregarDocumentos(null);
     }
 
     public boolean temAlteracoesNaoSalvas() {
@@ -226,5 +236,6 @@ public class AtendimentoHubController {
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         proponenteAberto = null;
+        abaDocumentoController.carregarDocumentos(null);
     }
 }
