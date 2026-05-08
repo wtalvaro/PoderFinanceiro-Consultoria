@@ -1,11 +1,13 @@
 package br.com.poderfinanceiro.app.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import jakarta.annotation.PostConstruct; // Usando o jakarta conforme ajustado anteriormente
+import jakarta.annotation.PostConstruct;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -27,22 +29,30 @@ public class PlaybookService {
         // Armazena em memória os itens estáticos carregados do JSON
         private final List<PlaybookItem> itensEstaticos = new ArrayList<>();
 
-        // 1. REMOVA o ObjectMapper daqui dos parâmetros
         public PlaybookService(List<DocumentStrategy> documentStrategies) {
                 this.documentStrategies = documentStrategies;
-                // 2. INSTANCIE diretamente aqui
                 this.objectMapper = new ObjectMapper();
         }
 
         @PostConstruct
         public void init() {
+                carregarDoJson();
+        }
+
+        private void carregarDoJson() {
                 try {
                         ClassPathResource resource = new ClassPathResource("playbooks/playbook_scripts.json");
+                        if (!resource.exists()) {
+                                System.out.println("Arquivo de playbook não encontrado no classpath.");
+                                return;
+                        }
+
                         try (InputStream is = resource.getInputStream()) {
                                 List<PlaybookItemDTO> dtos = objectMapper.readValue(is,
                                                 new TypeReference<List<PlaybookItemDTO>>() {
                                                 });
 
+                                itensEstaticos.clear(); // Limpa a lista antes de recarregar
                                 for (PlaybookItemDTO dto : dtos) {
                                         itensEstaticos.add(new PlaybookItem(
                                                         dto.categoria(),
@@ -62,6 +72,43 @@ public class PlaybookService {
                 return itens;
         }
 
+        // ==========================================
+        // NOVO MÉTODO DE SALVAMENTO (CRUD)
+        // ==========================================
+
+        public void salvarTodos(List<PlaybookItem> todosOsItens) {
+                // 1. Filtramos as checklists dinâmicas para não gravá-las no JSON
+                List<PlaybookItemDTO> dtosParaSalvar = todosOsItens.stream()
+                                .filter(item -> item.getCategoria() != null
+                                                && !item.getCategoria().contains("Checklists de Documentos"))
+                                .map(item -> new PlaybookItemDTO(
+                                                item.getCategoria(),
+                                                item.getTitulo(),
+                                                item.getConteudo(),
+                                                item.getDica()))
+                                .collect(Collectors.toList());
+
+                // 2. Caminho fixo para o ambiente de desenvolvimento
+                File arquivoJson = new File("src/main/resources/playbooks/playbook_scripts.json");
+
+                try {
+                        // Grava o JSON de forma indentada e bonita (Pretty Printer)
+                        objectMapper.writerWithDefaultPrettyPrinter().writeValue(arquivoJson, dtosParaSalvar);
+
+                        // 3. Atualiza a memória estática
+                        itensEstaticos.clear();
+                        todosOsItens.stream()
+                                        .filter(item -> item.getCategoria() != null
+                                                        && !item.getCategoria().contains("Checklists de Documentos"))
+                                        .forEach(itensEstaticos::add);
+
+                        System.out.println("Playbook salvo com sucesso!");
+
+                } catch (IOException e) {
+                        System.err.println("Erro ao salvar o playbook: " + e.getMessage());
+                }
+        }
+
         private List<PlaybookItem> gerarChecklistsDeDocumentos() {
                 List<PlaybookItem> checklists = new ArrayList<>();
 
@@ -72,7 +119,6 @@ public class PlaybookService {
                                         .ifPresent(strategy -> {
                                                 String categoria = convenio.getLabel()
                                                                 + " / 4. Checklists de Documentos";
-
                                                 checklists.add(new PlaybookItem(
                                                                 categoria,
                                                                 "Documentação Exigida",

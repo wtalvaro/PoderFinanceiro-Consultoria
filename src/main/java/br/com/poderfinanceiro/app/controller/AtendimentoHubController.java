@@ -10,6 +10,7 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
@@ -45,6 +46,7 @@ public class AtendimentoHubController {
     private Proponente proponenteAberto;
     private Runnable acaoNavegacaoPendente;
     private String resumoGeradoParaCopia;
+    private Tab tabPertencente;
 
     public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController) {
         this.atendimentoService = atendimentoService;
@@ -107,7 +109,7 @@ public class AtendimentoHubController {
     }
 
     public void prepararNovoAtendimento() {
-        this.proponenteAberto = null;
+        this.proponenteAberto = new Proponente();
 
         // Reseta (limpa e sincroniza o estado original) de todas as abas
         abaLeadController.getViewModel().reset();
@@ -130,6 +132,10 @@ public class AtendimentoHubController {
         return abaLeadController;
     }
 
+    public void setTabPertencente(Tab tab) {
+        this.tabPertencente = tab;
+    }
+
     private void executarSalvamento(Runnable onSucesso) {
         Task<Proponente> task = new Task<>() {
             @Override
@@ -147,10 +153,35 @@ public class AtendimentoHubController {
         };
 
         task.setOnSucceeded(ev -> {
-            inicializarAtendimento(task.getValue()); // Isso reseta o estado 'Dirty'
+            // 1. Pegamos o proponente que acabou de voltar do banco de dados (agora com ID)
+            Proponente proponenteSalvo = task.getValue();
+
+            // 2. A sua linha original intacta que reseta a tela e o estado 'Dirty'
+            inicializarAtendimento(proponenteSalvo);
+
+            // 3. A NOVA MÁGICA: Avisamos a Aba que este contato não é mais "NOVO",
+            // e sim um contato real com ID no banco.
+            if (tabPertencente != null && proponenteSalvo.getId() != null) {
+                tabPertencente.setUserData(String.valueOf(proponenteSalvo.getId()));
+            }
+
             exibirMensagem("Atendimento salvo com sucesso!", true);
-            if (onSucesso != null)
+            if (onSucesso != null) {
                 onSucesso.run();
+            }
+        });
+
+        task.setOnFailed(ev -> {
+            Throwable erro = task.getException();
+
+            // Verifica se o erro foi uma validação de negócio que nós criamos
+            if (erro instanceof IllegalArgumentException || erro instanceof IllegalStateException) {
+                exibirMensagem(erro.getMessage(), false);
+            } else {
+                // Se foi um erro de banco (ex: DataIntegrityViolationException) ou de código
+                erro.printStackTrace();
+                exibirMensagem("Erro ao salvar: " + erro.getMessage(), false);
+            }
         });
 
         new Thread(task).start();

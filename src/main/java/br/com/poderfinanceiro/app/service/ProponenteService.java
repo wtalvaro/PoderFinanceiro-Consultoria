@@ -43,20 +43,25 @@ public class ProponenteService {
         // 3. Validação de Duplicidade Inteligente
         String cpfLimpo = lead.getCpf();
         Long idAtual = lead.getId(); // No seu modelo o campo é 'id'
+        boolean isCpfPreenchido = cpfLimpo != null && !cpfLimpo.trim().isEmpty();
 
-        if (idAtual == null) {
-            // NOVO REGISTRO: O CPF não pode existir na carteira deste consultor
-            if (proponenteRepository.existsByCpfAndUsuarioIdAndDeletadoEmIsNull(cpfLimpo, consultorLogado.getId())) {
-                throw new IllegalArgumentException("Você já possui um cliente cadastrado com este CPF.");
-            }
-        } else {
-            // EDIÇÃO: O CPF pode existir, desde que não seja de OUTRO cliente (IdNot)
-            boolean cpfJaExisteEmOutro = proponenteRepository
-                    .existsByCpfAndUsuarioIdAndIdNotAndDeletadoEmIsNull(
-                            cpfLimpo, consultorLogado.getId(), idAtual);
+        if (isCpfPreenchido) {
+            if (idAtual == null) {
+                // NOVO REGISTRO: O CPF não pode existir na carteira deste consultor
+                if (proponenteRepository.existsByCpfAndUsuarioIdAndDeletadoEmIsNull(cpfLimpo,
+                        consultorLogado.getId())) {
+                    throw new IllegalArgumentException("Você já possui um cliente cadastrado com este CPF.");
+                }
+            } else {
+                // EDIÇÃO: O CPF pode existir, desde que não seja de OUTRO cliente (IdNot)
+                boolean cpfJaExisteEmOutro = proponenteRepository
+                        .existsByCpfAndUsuarioIdAndIdNotAndDeletadoEmIsNull(
+                                cpfLimpo, consultorLogado.getId(), idAtual);
 
-            if (cpfJaExisteEmOutro) {
-                throw new IllegalArgumentException("Este CPF já está sendo usado por outro cliente na sua carteira.");
+                if (cpfJaExisteEmOutro) {
+                    throw new IllegalArgumentException(
+                            "Este CPF já está sendo usado por outro cliente na sua carteira.");
+                }
             }
         }
 

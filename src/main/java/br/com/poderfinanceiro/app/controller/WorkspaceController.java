@@ -97,6 +97,7 @@ public class WorkspaceController {
             Tab novaAba = new Tab();
             novaAba.setContent(root);
             novaAba.setUserData(idBuscado); // Identificador único da aba
+            hub.setTabPertencente(novaAba);
 
             // Binding reativo: O título da aba "persegue" o nome no ViewModel
             novaAba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {

@@ -267,7 +267,6 @@ ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_pkey PRIMARY KEY (com
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_pkey PRIMARY KEY (documento_id);
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_pkey PRIMARY KEY (historico_id);
 ALTER TABLE ONLY public.interacoes_contato ADD CONSTRAINT interacoes_contato_pkey PRIMARY KEY (interacao_id);
-ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_cpf_usuario_key UNIQUE (cpf, usuario_id); 
 ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_pkey PRIMARY KEY (proponente_id);
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_pkey PRIMARY KEY (proposta_id);
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_pkey PRIMARY KEY (tabela_id);
@@ -284,6 +283,7 @@ CREATE INDEX idx_propostas_usuario ON public.propostas USING btree (usuario_id);
 CREATE INDEX idx_proponentes_usuario ON public.proponentes USING btree (usuario_id);
 CREATE INDEX idx_enderecos_proponente_id ON public.enderecos_proponente USING btree (proponente_id);
 CREATE INDEX idx_enderecos_cep ON public.enderecos_proponente USING btree (cep);
+CREATE UNIQUE INDEX proponentes_cpf_usuario_key ON public.proponentes (cpf, usuario_id) WHERE cpf <> '';
 
 -- ==========================================
 -- 7. CHAVES ESTRANGEIRAS (FOREIGN KEYS)
