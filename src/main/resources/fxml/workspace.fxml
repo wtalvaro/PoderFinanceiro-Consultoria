@@ -9,7 +9,7 @@
     styleClass="classic, workspace-container">
 
     <!-- ABA 0: VISÃO GERAL (FIXA) -->
-    <Tab text="📊 Painel de Controle" closable="false">
+    <Tab text="📊 Visão Geral" closable="false">
         <fx:include source="dashboard.fxml" />
     </Tab>
 

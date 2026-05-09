@@ -14,28 +14,23 @@
     <VBox spacing="10" prefWidth="250" maxHeight="1.7976931348623157E308"
         style="-fx-background-color: -color-bg-default; -fx-padding: 15 10; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;">
 
-        <!-- Seção: BUSCA RÁPIDA -->
-        <VBox spacing="5"
-            style="-fx-padding: 0 0 10 0; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
-            <Label text="BUSCA RÁPIDA"
-                style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-            <TextField promptText="CPF, Nome ou ADE..."
-                style="-fx-font-size: 13px;" />
-        </VBox>
-
-        <!-- Seção: ESTEIRA DE CRÉDITO -->
-        <Label text="ESTEIRA DE CRÉDITO"
-            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 10 0 0 5;" />
-
-        <Button fx:id="btnDashboard" text="📊 Painel de Controle" maxWidth="Infinity"
+        <Label text="GERENCIAL"
+            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 0 0 0 5;" />
+            
+        <Button fx:id="btnDashboard" text="📊 Visão Geral" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat, accent" onAction="#abrirWorkspace" />
 
-        <!-- NOVO BOTÃO: PLAYBOOK DE VENDAS -->
+        <Label text="VENDAS E CLIENTES"
+            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 10 0 0 5;" />
+
         <Button fx:id="btnPlaybook" text="📖 Playbook de Vendas" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirPlaybook" />
 
         <Button fx:id="btnBaseClientes" text="👥 Base de Contatos/Clientes" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTelaBaseClientes" />
+
+        <Label text="ESTEIRA DE CRÉDITO"
+            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 15 0 0 5;" />
 
         <Button fx:id="btnPropostas" text="📄 Propostas (Em Andamento)" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />
@@ -44,8 +39,7 @@
             alignment="BASELINE_LEFT" styleClass="flat"
             style="-fx-text-fill: -color-danger-fg;" />
 
-        <!-- Seção: PARAMETRIZAÇÃO -->
-        <Label text="PARAMETRIZAÇÃO"
+        <Label text="REGRAS E CONSULTAS"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
 
         <Button fx:id="btnBancosConvenios" text="🏦 Bancos e Convênios" maxWidth="Infinity"
