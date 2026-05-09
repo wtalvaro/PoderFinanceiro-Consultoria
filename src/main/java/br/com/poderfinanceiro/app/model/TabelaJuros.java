@@ -6,7 +6,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
 
 @Entity
 @Table(name = "tabelas_juros")
@@ -41,6 +47,26 @@ public class TabelaJuros {
 
     @Column(name = "prazo_maximo")
     private Integer prazoMaximo = 96;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "tipo_convenio")
+    private TipoConvenio tipoConvenio;
+
+    @Column(name = "comissao_percentual")
+    private BigDecimal comissaoPercentual;
+
+    @Column(name = "valor_minimo_emprestimo")
+    private BigDecimal valorMinimoEmprestimo;
+
+    @Column(name = "valor_maximo_emprestimo")
+    private BigDecimal valorMaximoEmprestimo;
+
+    @Column(name = "inicio_vigencia")
+    private LocalDate inicioVigencia;
+
+    @Column(name = "fim_vigencia")
+    private LocalDate fimVigencia;
 
     @Column(nullable = false)
     private Boolean ativo = true;

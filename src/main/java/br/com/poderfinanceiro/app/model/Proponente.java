@@ -79,6 +79,10 @@ public class Proponente {
     @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "indicado_por_id")
+    private Proponente indicadoPor;
+
     // Relacionamento com a tabela de Endereços
     // CascadeType.ALL garante que ao salvar o Proponente, o Endereço salva junto
     // orphanRemoval = true garante que se o endereço for removido da lista, ele

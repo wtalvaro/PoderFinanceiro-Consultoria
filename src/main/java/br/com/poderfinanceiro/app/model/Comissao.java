@@ -49,6 +49,12 @@ public class Comissao {
     @Column(name = "data_recebimento")
     private LocalDateTime dataRecebimento;
 
+    @Column(name = "valor_pago_pela_poder")
+    private BigDecimal valorPagoPelaPoder;
+
+    @Column(nullable = false)
+    private boolean contestada = false;
+
     @Column(name = "criado_em", updatable = false)
     private LocalDateTime criadoEm;
 

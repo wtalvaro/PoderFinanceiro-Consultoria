@@ -83,6 +83,12 @@ public class Proposta {
     @Column(name = "taxa_administracao", precision = 12, scale = 2)
     private BigDecimal taxaAdministracao = BigDecimal.ZERO;
 
+    @Column(name = "comissao_estimada")
+    private BigDecimal comissaoEstimada;
+
+    @Column(name = "valor_final_cliente")
+    private BigDecimal valorFinalCliente;
+
     @Column(name = "data_solicitacao")
     private LocalDate dataSolicitacao;
 

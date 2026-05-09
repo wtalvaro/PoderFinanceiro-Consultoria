@@ -32,9 +32,6 @@ public class Banco {
     @Column(name = "taxa_maxima", precision = 5, scale = 2)
     private BigDecimal taxaMaxima;
 
-    @Column(name = "comissao_percentual", precision = 5, scale = 2)
-    private BigDecimal comissaoPercentual;
-
     @Column(name = "prazo_maximo")
     private Integer prazoMaximo;
 
