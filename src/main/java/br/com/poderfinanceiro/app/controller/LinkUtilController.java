@@ -6,6 +6,9 @@ import br.com.poderfinanceiro.app.model.enums.CategoriaLink;
 import br.com.poderfinanceiro.app.repository.LinkUtilRepository;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -20,6 +23,11 @@ public class LinkUtilController {
     private ComboBox<CategoriaLink> comboCategoria;
     @FXML
     private TextField txtTitulo, txtUrl, txtDescricao;
+
+    // NOVO: Campo de busca
+    @FXML
+    private TextField txtBusca;
+
     @FXML
     private TableView<LinkUtil> tableLinks;
     @FXML
@@ -32,12 +40,16 @@ public class LinkUtilController {
 
     private LinkUtil linkEmEdicao;
 
+    // NOVO: Lista mestre que guarda todos os dados para o filtro não perder
+    // informação
+    private final ObservableList<LinkUtil> masterData = FXCollections.observableArrayList();
+
     public LinkUtilController(LinkUtilRepository repository, MainController mainController) {
         this.repository = repository;
         this.mainController = mainController;
     }
 
-@FXML
+    @FXML
     public void initialize() {
         // 1. Usa o seu método genérico para configurar a ComboBox
         configurarCombo(comboCategoria, CategoriaLink.values(), CategoriaLink::fromString);
@@ -45,15 +57,64 @@ public class LinkUtilController {
         // 2. Configuração das colunas
         colCategoria.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategoria().getLabel()));
         colTitulo.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTitulo()));
-        colDescricao.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescricao()));
+        colDescricao.setCellValueFactory(data -> {
+            String desc = data.getValue().getDescricao();
+            return new SimpleStringProperty(desc != null ? desc : ""); // Previne null pointer na interface
+        });
 
         configurarColunaAcoes();
+
+        // 3. NOVO: Configura a mágica do filtro
+        configurarBuscaReativa();
+
+        // 4. Carrega os dados do banco
         recarregarLinks();
     }
 
     /**
-     * Reutilizando o seu método genérico para manter a consistência do projeto.
+     * Configura o FilteredList para buscar instantaneamente no cliente.
      */
+    private void configurarBuscaReativa() {
+        // Envolve nossa ObservableList em um FilteredList (inicialmente mostra tudo)
+        FilteredList<LinkUtil> filteredData = new FilteredList<>(masterData, p -> true);
+
+        // Adiciona um listener (escutador) ao texto da barra de busca
+        txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
+            filteredData.setPredicate(link -> {
+                // Se o texto de busca for vazio, mostra o link
+                if (newValue == null || newValue.isEmpty()) {
+                    return true;
+                }
+
+                // Coloca tudo em minúsculo para a busca não ser sensível a maiúsculas
+                String filtro = newValue.toLowerCase();
+
+                // Busca no Título
+                if (link.getTitulo() != null && link.getTitulo().toLowerCase().contains(filtro)) {
+                    return true;
+                }
+                // Busca na Descrição
+                if (link.getDescricao() != null && link.getDescricao().toLowerCase().contains(filtro)) {
+                    return true;
+                }
+                // Busca na Categoria (pelo label Bonito)
+                if (link.getCategoria() != null && link.getCategoria().getLabel().toLowerCase().contains(filtro)) {
+                    return true;
+                }
+
+                return false; // Não deu match em nada, esconde da tabela
+            });
+        });
+
+        // Envolve o FilteredList em um SortedList para permitir que o usuário ainda
+        // clique nos cabeçalhos da tabela para ordenar
+        SortedList<LinkUtil> sortedData = new SortedList<>(filteredData);
+        sortedData.comparatorProperty().bind(tableLinks.comparatorProperty());
+
+        // Adiciona a lista final "superpoderosa" na tabela
+        tableLinks.setItems(sortedData);
+    }
+
     private <T extends Enum<T> & Labeled> void configurarCombo(ComboBox<T> combo, T[] values,
             java.util.function.Function<String, T> searcher) {
         combo.getItems().setAll(values);
@@ -89,7 +150,7 @@ public class LinkUtilController {
                 btnAbrir.setCursor(Cursor.HAND);
                 btnEditar.setCursor(Cursor.HAND);
                 btnExcluir.setCursor(Cursor.HAND);
-                
+
                 btnEditar.setOnAction(e -> {
                     LinkUtil item = getTableRow().getItem();
                     if (item != null)
@@ -133,7 +194,7 @@ public class LinkUtilController {
 
         repository.save(link);
         limparFormulario();
-        recarregarLinks();
+        recarregarLinks(); // Recarrega do banco e atualiza a masterData
     }
 
     private void prepararEdicao(LinkUtil link) {
@@ -159,6 +220,9 @@ public class LinkUtilController {
     }
 
     public void recarregarLinks() {
-        tableLinks.setItems(FXCollections.observableArrayList(repository.findAllByOrderByCategoriaAscTituloAsc()));
+        // ATUALIZADO: Em vez de jogar direto na tabela, atualizamos a masterData.
+        // A interface vai reagir automaticamente mantendo o filtro de texto se houver
+        // algum!
+        masterData.setAll(repository.findAllByOrderByCategoriaAscTituloAsc());
     }
 }

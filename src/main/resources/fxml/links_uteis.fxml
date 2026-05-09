@@ -57,6 +57,15 @@
 
             </GridPane>
 
+            <HBox alignment="CENTER_LEFT" spacing="10"
+                style="-fx-padding: 10 15 10 15; -fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1; -fx-border-radius: 5;">
+                <Label text="🔍 Buscar Link:" style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
+                <TextField fx:id="txtBusca"
+                    promptText="Digite para filtrar por título, descrição ou categoria..."
+                    HBox.hgrow="ALWAYS"
+                    style="-fx-font-size: 14px; -fx-background-color: transparent;" />
+            </HBox>
+            
             <TableView fx:id="tableLinks" minHeight="400.0" VBox.vgrow="ALWAYS">
                 <columns>
                     <TableColumn fx:id="colCategoria" text="Categoria" prefWidth="150.0" />
