@@ -29,23 +29,32 @@ public class WorkspaceController {
 
     @FXML
     public void initialize() {
-        // Platform.runLater é necessário apenas uma vez para garantir que a skin foi
-        // carregada
         Platform.runLater(() -> {
             Node headerArea = tabPanePrincipal.lookup(".tab-header-area");
 
             if (headerArea != null) {
                 headerArea.setOnScroll(event -> {
-                    // Somas simples de Delta: Se houver qualquer movimento positivo, volta.
-                    // Negativo, avança.
-                    if (event.getDeltaY() > 0 || event.getDeltaX() > 0) {
-                        tabPanePrincipal.getSelectionModel().selectPrevious();
-                    } else {
-                        tabPanePrincipal.getSelectionModel().selectNext();
+                    double dy = event.getDeltaY();
+                    double dx = event.getDeltaX();
+
+                    // Prioriza o eixo com maior deslocamento para evitar trocas acidentais
+                    if (Math.abs(dy) > Math.abs(dx)) {
+                        // Scroll Vertical
+                        if (dy < 0) {
+                            tabPanePrincipal.getSelectionModel().selectNext();
+                        } else if (dy > 0) {
+                            tabPanePrincipal.getSelectionModel().selectPrevious();
+                        }
+                    } else if (Math.abs(dx) > 2) { // Pequena margem de tolerância (deadzone) para o X
+                        // Scroll Horizontal
+                        if (dx < 0) {
+                            tabPanePrincipal.getSelectionModel().selectNext();
+                        } else if (dx > 0) {
+                            tabPanePrincipal.getSelectionModel().selectPrevious();
+                        }
                     }
 
-                    // Consome o evento para não afetar o conteúdo interno da aba
-                    event.consume();
+                    event.consume(); // Importante para o evento não subir para os controles dentro da aba
                 });
             }
         });

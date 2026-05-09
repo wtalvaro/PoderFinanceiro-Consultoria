@@ -27,22 +27,22 @@
   "categoria" : "Bolsa Família / 3. Regras e Segurança",
   "titulo" : "Elegibilidade e Limites",
   "conteudo" : "A contratação é exclusiva para o responsável familiar cadastrado no CadÚnico. O limite máximo liberado é de R$ 750,00, com parcelas fixas cravadas em R$ 159,00, descontadas automaticamente.",
-  "dica" : "Dica: Siga rigorosamente para garantir o pagamento das suas comissões."
+  "dica" : "Siga rigorosamente para garantir o pagamento das suas comissões."
 }, {
   "categoria" : "Bolsa Família / 3. Regras e Segurança",
   "titulo" : "Alerta CAIXA TEM",
   "conteudo" : "A Crefisa NÃO aceita conta do tipo 'Poupança Social Digital'. O cliente deve alterar o app para 'Poupança Caixa Tem' para que o desconto em conta seja autorizado.",
-  "dica" : "Dica: Siga rigorosamente para evitar propostas travadas."
+  "dica" : "Siga rigorosamente para evitar propostas travadas."
 }, {
   "categoria" : "Bolsa Família / 3. Regras e Segurança",
   "titulo" : "Análise de Recusas (Crefisa)",
   "conteudo" : "Se retornar 'CLIENTE SEM PERFIL', o cliente possui histórico de inadimplência/pendências anteriores. Se retornar 'NÃO É POSSÍVEL ATENDER À SOLICITAÇÃO', a proposta foi barrada por política interna, mesmo com o nome regular.",
-  "dica" : "Dica: Use essas informações para dar uma devolutiva correta ao cliente."
+  "dica" : "Use essas informações para dar uma devolutiva correta ao cliente."
 }, {
   "categoria" : "Bolsa Família / 3. Regras e Segurança",
   "titulo" : "Sistema Operacional",
   "conteudo" : "Obrigatório o uso do usuário Crefisa próprio. O uso de fichas manuais foi descontinuado.",
-  "dica" : "Dica: Digite diretamente no portal da financeira."
+  "dica" : "Digite diretamente no portal da financeira."
 }, {
   "categoria" : "FGTS / 1. Prospecção e Remarketing",
   "titulo" : "Modo Noturno (Remarketing)",
@@ -67,12 +67,12 @@
   "categoria" : "FGTS / 3. Regras e Segurança",
   "titulo" : "Regras Saque-Aniversário",
   "conteudo" : "Antecipação só após 90 dias da adesão. Parcelas devem ser de R$ 100 a R$ 500. Regra de limite: 1 contrato por ano (com transição para até 3 parcelas anuais).",
-  "dica" : "Dica: Siga rigorosamente para garantir o pagamento das suas comissões."
+  "dica" : "Siga rigorosamente para garantir o pagamento das suas comissões."
 }, {
   "categoria" : "FGTS / 3. Regras e Segurança",
   "titulo" : "Atualização Saldo Caixa",
   "conteudo" : "Empregadores pagam dia 20. A Caixa tem até 5 dias úteis para atualizar. FOCO TOTAL em retrabalhar CPFs reprovados entre os dias 21 e 23. Teste tabelas de menor comissão para liberar valores maiores.",
-  "dica" : "Dica: Organize sua agenda para priorizar o FGTS nessas datas."
+  "dica" : "Organize sua agenda para priorizar o FGTS nessas datas."
 }, {
   "categoria" : "CLT / 1. Prospecção",
   "titulo" : "Grupos e Marketplace",
@@ -92,12 +92,12 @@
   "categoria" : "CLT / 3. Regras e Segurança",
   "titulo" : "Estratégia de Aprovação (V8)",
   "conteudo" : "CPF recusado em um banco pode aprovar em outro. Teste toda a esteira. ATENÇÃO: Durante instabilidades de sistema, digite propostas CLT sempre SEM SEGURO para evitar que fiquem paradas na esteira.",
-  "dica" : "Dica: Siga rigorosamente para garantir a aprovação."
+  "dica" : "Siga rigorosamente para garantir a aprovação."
 }, {
   "categoria" : "CLT / 3. Regras e Segurança",
   "titulo" : "Pausa Operacional (Virada de Folha)",
   "conteudo" : "Todo mês, do dia 20 (22h) ao dia 23 (06h). Sem consultas de margem e novas contratações.",
-  "dica" : "Dica: Durante a pausa, foque em FGTS e Bolsa Família."
+  "dica" : "Durante a pausa, foque em FGTS e Bolsa Família."
 }, {
   "categoria" : "Geral / 1. Abordagem Inicial",
   "titulo" : "Saudação Especialista",
@@ -152,12 +152,12 @@
   "categoria" : "Geral / 4. Operação Financeira",
   "titulo" : "Ordem de Oferta Estratégica",
   "conteudo" : "1º CLT (ticket mais alto) > 2º FGTS > 3º Bolsa Família.",
-  "dica" : "Dica: Siga esta hierarquia para maximizar seus ganhos."
+  "dica" : "Siga esta hierarquia para maximizar seus ganhos."
 }, {
   "categoria" : "Geral / 4. Operação Financeira",
   "titulo" : "Ciclo de Comissão",
   "conteudo" : "Fechamento quarta-feira às 23:59. Quinta-feira PDF de conferência. Pagamento na sexta-feira até as 18h.",
-  "dica" : "Dica: Fique atento aos prazos semanais."
+  "dica" : "Fique atento aos prazos semanais."
 }, {
   "categoria" : "Geral / 5. Links e Utilitários",
   "titulo" : "Portal de Serviços INSS",
