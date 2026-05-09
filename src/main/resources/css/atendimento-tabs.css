@@ -1,0 +1,38 @@
+/* 1. O TRILHO LATERAL: Ajustamos para permitir uma largura bem pequena */
+.tab-pane:left>.tab-header-area {
+    -fx-padding: 10 0 0 0;
+    -fx-min-width: 50px;
+    /* Largura mínima reduzida */
+    -fx-max-width: 160px;
+}
+
+/* 2. A ABA (BOTÃO): O segredo é o pref-width e o padding lateral zero */
+.tab {
+    /* Padding lateral zerado para o ícone ficar livre e centralizado */
+    -fx-padding: 10 0 10 0;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+
+    /* Forçamos a largura da aba inativa para o tamanho do ícone */
+    -fx-min-width: 50px;
+    -fx-pref-width: 50px;
+}
+
+/* 3. ABA SELECIONADA: Quando ativa, ela expande para caber o texto */
+.tab:selected {
+    -fx-pref-width: 160px;
+    /* Expande para mostrar o nome da aba */
+    -fx-background-color: -color-accent-subtle;
+    -fx-border-color: -color-accent-fg;
+    -fx-border-width: 0 0 0 3;
+    /* Linha de destaque lateral */
+}
+
+.tab:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tab .focus-indicator {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}

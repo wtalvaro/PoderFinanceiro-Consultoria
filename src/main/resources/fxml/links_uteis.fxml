@@ -2,60 +2,67 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" styleClass="edge-to-edge"
-    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+<ScrollPane fx:id="scrollPrincipal" fitToWidth="true" style="-fx-background-color: transparent;"
+    styleClass="edge-to-edge" xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.LinkUtilController">
 
     <content>
         <VBox spacing="15" style="-fx-padding: 20; -fx-background-color: white;">
 
-            <Label text="🔗 Gestão de Links e Atalhos"
-                style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+            <TitledPane fx:id="paneFormulario" text="🔗 Gestão de Links e Atalhos"
+                expanded="false" animated="true"
+                style="-fx-font-size: 14px; -fx-text-fill: -color-fg-default; -fx-font-weight: normal;">
 
-            <GridPane hgap="10" vgap="12"
-                style="-fx-background-color: -color-bg-subtle; -fx-padding: 15; -fx-background-radius: 8;">
+                <content>
+                    <GridPane hgap="12" vgap="15"
+                        style="-fx-padding: 20; -fx-background-color: -color-bg-subtle;">
+                        <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" minWidth="250.0" prefWidth="280.0" />
+                            <ColumnConstraints hgrow="ALWAYS" minWidth="300.0" />
+                            <ColumnConstraints hgrow="NEVER" halignment="RIGHT" />
+                        </columnConstraints>
 
-                <columnConstraints>
-                    <ColumnConstraints hgrow="SOMETIMES" minWidth="250.0" prefWidth="280.0" />
-                    <ColumnConstraints hgrow="ALWAYS" minWidth="300.0" />
-                    <ColumnConstraints hgrow="NEVER" halignment="RIGHT" />
-                </columnConstraints>
+                        <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="0"
+                            GridPane.rowIndex="0">
+                            <Label text="Categoria:" minWidth="85.0"
+                                style="-fx-text-fill: -color-fg-muted; -fx-font-weight: normal;" />
+                            <ComboBox fx:id="comboCategoria" HBox.hgrow="ALWAYS" maxWidth="Infinity" />
+                        </HBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="0"
-                    GridPane.rowIndex="0">
-                    <Label text="Categoria:" style="-fx-font-weight: bold;" minWidth="85.0" />
-                    <ComboBox fx:id="comboCategoria" HBox.hgrow="ALWAYS" maxWidth="Infinity" />
-                </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="1"
+                            GridPane.rowIndex="0" GridPane.columnSpan="2">
+                            <Label text="Título:" minWidth="-Infinity"
+                                style="-fx-text-fill: -color-fg-muted; -fx-font-weight: normal;" />
+                            <TextField fx:id="txtTitulo" promptText="Ex: Portal do Consignado"
+                                HBox.hgrow="ALWAYS" />
+                        </HBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="1"
-                    GridPane.rowIndex="0" GridPane.columnSpan="2">
-                    <Label text="Título:" style="-fx-font-weight: bold;" minWidth="-Infinity" />
-                    <TextField fx:id="txtTitulo" promptText="Ex: Portal do Consignado"
-                        HBox.hgrow="ALWAYS" />
-                </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="0"
+                            GridPane.rowIndex="1" GridPane.columnSpan="3">
+                            <Label text="Descrição:" minWidth="85.0"
+                                style="-fx-text-fill: -color-fg-muted; -fx-font-weight: normal;" />
+                            <TextField fx:id="txtDescricao" promptText="Notas técnicas..."
+                                HBox.hgrow="ALWAYS" />
+                        </HBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="0"
-                    GridPane.rowIndex="1" GridPane.columnSpan="3">
-                    <Label text="Descrição:" style="-fx-font-weight: bold;" minWidth="85.0" />
-                    <TextField fx:id="txtDescricao"
-                        promptText="Notas técnicas, horários ou convênios..." HBox.hgrow="ALWAYS" />
-                </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="0"
+                            GridPane.rowIndex="2" GridPane.columnSpan="2">
+                            <Label text="Endereço:" minWidth="85.0"
+                                style="-fx-text-fill: -color-fg-muted; -fx-font-weight: normal;" />
+                            <TextField fx:id="txtUrl" promptText="https://..." HBox.hgrow="ALWAYS" />
+                        </HBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="10" GridPane.columnIndex="0"
-                    GridPane.rowIndex="2" GridPane.columnSpan="2">
-                    <Label text="Endereço:" style="-fx-font-weight: bold;" minWidth="85.0" />
-                    <TextField fx:id="txtUrl" promptText="https://..." HBox.hgrow="ALWAYS" />
-                </HBox>
-
-                <HBox alignment="BOTTOM_RIGHT" spacing="10" GridPane.columnIndex="2"
-                    GridPane.rowIndex="2">
-                    <Button onAction="#handleSalvar" styleClass="accent" text="Salvar"
-                        minWidth="-Infinity" style="-fx-font-weight: bold;" />
-                    <Button onAction="#limparFormulario" styleClass="flat" text="Limpar"
-                        minWidth="-Infinity" />
-                </HBox>
-
-            </GridPane>
+                        <HBox alignment="BOTTOM_RIGHT" spacing="10" GridPane.columnIndex="2"
+                            GridPane.rowIndex="2">
+                            <Button onAction="#handleSalvar" styleClass="accent" text="💾 Salvar"
+                                minWidth="-Infinity" style="-fx-font-weight: bold;" />
+                            <Button onAction="#limparFormulario" styleClass="flat" text="Limpar"
+                                minWidth="-Infinity" />
+                        </HBox>
+                    </GridPane>
+                </content>
+            </TitledPane>
 
             <HBox alignment="CENTER_LEFT" spacing="10"
                 style="-fx-padding: 10 15 10 15; -fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1; -fx-border-radius: 5;">
@@ -65,7 +72,7 @@
                     HBox.hgrow="ALWAYS"
                     style="-fx-font-size: 14px; -fx-background-color: transparent;" />
             </HBox>
-            
+
             <TableView fx:id="tableLinks" minHeight="400.0" VBox.vgrow="ALWAYS">
                 <columns>
                     <TableColumn fx:id="colCategoria" text="Categoria" prefWidth="150.0" />

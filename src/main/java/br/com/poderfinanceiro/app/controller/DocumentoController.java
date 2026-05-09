@@ -28,7 +28,6 @@ public class DocumentoController {
     private Label lblNomeArquivo;
     @FXML
     private ComboBox<String> comboTipoDocumento;
-
     @FXML
     private TableView<DocumentoProponente> tableDocumentos;
     @FXML

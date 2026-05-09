@@ -34,6 +34,10 @@ public class LinkUtilController {
     private TableColumn<LinkUtil, String> colCategoria, colTitulo, colDescricao;
     @FXML
     private TableColumn<LinkUtil, Void> colAcao;
+    @FXML
+    private TitledPane paneFormulario;
+    @FXML
+    private ScrollPane scrollPrincipal;
 
     private final LinkUtilRepository repository;
     private final MainController mainController;
@@ -203,6 +207,10 @@ public class LinkUtilController {
         txtUrl.setText(link.getUrl());
         txtDescricao.setText(link.getDescricao());
         comboCategoria.setValue(link.getCategoria());
+        paneFormulario.setText("✏️ Editando: " + link.getTitulo());
+        paneFormulario.setExpanded(true);
+        scrollPrincipal.setVvalue(0.0);
+        txtTitulo.requestFocus();
     }
 
     private void handleExcluir(LinkUtil link) {
@@ -217,6 +225,7 @@ public class LinkUtilController {
         txtUrl.clear();
         txtDescricao.clear();
         comboCategoria.getSelectionModel().clearSelection();
+        paneFormulario.setText("🔗 Gestão de Links e Atalhos");
     }
 
     public void recarregarLinks() {
