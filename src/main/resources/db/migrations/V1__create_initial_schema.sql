@@ -3,14 +3,14 @@
 -- ==========================================
 -- 1. TIPOS E ENUMS
 -- ==========================================
--- NOVO: Enum para gerenciar o ciclo de vida da pessoa no seu funil
+-- Enum para gerenciar o ciclo de vida da pessoa no seu funil
 CREATE TYPE public.tipo_relacionamento_enum AS ENUM (
     'LEAD',
     'PROPONENTE',
     'CLIENTE'
 );
 
--- ATUALIZADO: Removido o 'Lead', agora começa em 'Digitada'
+-- Status da proposta
 CREATE TYPE public.status_proposta_enum AS ENUM (
     'DIGITADA',
     'PENDENTE',
@@ -58,7 +58,7 @@ CREATE TYPE public.uf_enum AS ENUM (
     'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 );
 
--- Enum para Tipos de Logradouro (Padronização básica)
+-- Enum para Tipos de Logradouro
 CREATE TYPE public.tipo_logradouro_enum AS ENUM (
     'RUA', 'AVENIDA', 'TRAVESSA', 'ALAMEDA', 'PRACA', 
     'RODOVIA', 'ESTRADA', 'BECO', 'LOTEAMENTO', 'OUTRO'
@@ -108,7 +108,7 @@ CREATE TABLE public.bancos (
     taxa_media_juros numeric(5,2),
     taxa_minima numeric(5,2),
     taxa_maxima numeric(5,2),
-    comissao_percentual numeric(5,2),
+    -- comissao_percentual removida daqui
     prazo_maximo integer,
     link_portal_banco text,
     sistema_amortizacao character varying(50) DEFAULT 'Price'::character varying,
@@ -120,10 +120,12 @@ CREATE TABLE public.bancos (
 CREATE TABLE public.comissoes (
     comissao_id bigint DEFAULT nextval('public.comissoes_comissao_id_seq'::regclass) NOT NULL,
     proposta_id bigint NOT NULL,
-    usuario_id bigint NOT NULL, -- Qual consultor recebe esta comissão
+    usuario_id bigint NOT NULL,
     valor_bruto_comissao numeric(12,2) NOT NULL,
     impostos_retidos numeric(12,2) DEFAULT 0.00,
     valor_liquido_consultor numeric(12,2) NOT NULL,
+    valor_pago_pela_poder numeric(12,2) DEFAULT 0.00,
+    contestada boolean DEFAULT false,
     data_previsao_pagamento date,
     status_pagamento character varying(20) DEFAULT 'Pendente'::character varying,
     data_recebimento timestamp without time zone,
@@ -133,7 +135,7 @@ CREATE TABLE public.comissoes (
 CREATE TABLE public.documentos_proponente (
     documento_id bigint DEFAULT nextval('public.documentos_proponente_documento_id_seq'::regclass) NOT NULL,
     proponente_id bigint,
-    usuario_id bigint NOT NULL, -- Quem fez o upload
+    usuario_id bigint NOT NULL,
     tipo_documento character varying(50) NOT NULL,
     arquivo_path text NOT NULL,
     hash_sha256 character varying(64),
@@ -144,7 +146,7 @@ CREATE TABLE public.documentos_proponente (
 CREATE TABLE public.historico_status_proposta (
     historico_id bigint DEFAULT nextval('public.historico_status_proposta_historico_id_seq'::regclass) NOT NULL,
     proposta_id bigint,
-    usuario_id bigint, -- Quem mudou o status
+    usuario_id bigint,
     status_anterior character varying(50),
     status_novo character varying(50) NOT NULL,
     data_mudanca timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
@@ -154,7 +156,7 @@ CREATE TABLE public.historico_status_proposta (
 CREATE TABLE public.interacoes_contato (
     interacao_id bigint DEFAULT nextval('public.interacoes_contato_interacao_id_seq'::regclass) NOT NULL,
     proponente_id bigint,
-    usuario_id bigint NOT NULL, -- Qual consultor atendeu/enviou
+    usuario_id bigint NOT NULL,
     canal character varying(20) DEFAULT 'WhatsApp'::character varying,
     mensagem_texto text,
     direcao character varying(10),
@@ -163,16 +165,17 @@ CREATE TABLE public.interacoes_contato (
 
 CREATE TABLE public.proponentes (
     proponente_id bigint DEFAULT nextval('public.proponentes_proponente_id_seq'::regclass) NOT NULL,
-    usuario_id bigint NOT NULL, -- Dono da carteira do cliente
+    usuario_id bigint NOT NULL,
     nome_completo character varying(255) NOT NULL,
     cpf character varying(14) NOT NULL,
     telefone character varying(20),
     renda_mensal numeric(12,2),
-    tipo_vinculo public.tipo_vinculo_enum DEFAULT 'CLT'::public.tipo_vinculo_enum, -- NOVO: Tipo de vínculo do proponente
-    convenio_orgao public.tipo_convenio_enum DEFAULT 'PADRAO'::public.tipo_convenio_enum, -- NOVO: Tipo de convênio/órgão
+    tipo_vinculo public.tipo_vinculo_enum DEFAULT 'CLT'::public.tipo_vinculo_enum,
+    convenio_orgao public.tipo_convenio_enum DEFAULT 'PADRAO'::public.tipo_convenio_enum,
     matricula character varying(50),
-    origem_consentimento public.origem_consentimento_enum DEFAULT 'WHATSAPP'::public.origem_consentimento_enum, -- NOVO: Origem da captação do lead
-    classificacao public.tipo_relacionamento_enum DEFAULT 'LEAD'::public.tipo_relacionamento_enum, -- NOVO: Campo de classificação adicionado
+    origem_consentimento public.origem_consentimento_enum DEFAULT 'WHATSAPP'::public.origem_consentimento_enum,
+    classificacao public.tipo_relacionamento_enum DEFAULT 'LEAD'::public.tipo_relacionamento_enum,
+    indicado_por_id bigint REFERENCES public.proponentes(proponente_id),
     data_cadastro timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     deletado_em timestamp without time zone,
     data_nascimento date
@@ -182,12 +185,12 @@ CREATE TABLE public.propostas (
     proposta_id bigint DEFAULT nextval('public.propostas_proposta_id_seq'::regclass) NOT NULL,
     proponente_id bigint NOT NULL,
     banco_id bigint NOT NULL,
-    usuario_id bigint NOT NULL, -- Consultor responsável pela proposta
+    usuario_id bigint NOT NULL,
     valor_solicitado numeric(12,2) NOT NULL,
     valor_aprovado numeric(12,2),
     taxa_aplicada numeric(5,2),
     quantidade_parcelas integer,
-    status public.status_proposta_enum DEFAULT 'DIGITADA'::public.status_proposta_enum, -- ATUALIZADO: Default agora é 'DIGITADA'
+    status public.status_proposta_enum DEFAULT 'DIGITADA'::public.status_proposta_enum,
     coeficiente numeric(10,6),
     valor_parcela numeric(12,2),
     modalidade_juros character varying(20) DEFAULT 'Prefixado'::character varying,
@@ -197,11 +200,13 @@ CREATE TABLE public.propostas (
     saldo_quitacao_anterior numeric(12,2) DEFAULT 0.00,
     valor_iof numeric(12,2) DEFAULT 0.00,
     taxa_administracao numeric(12,2) DEFAULT 0.00,
+    comissao_estimada numeric(12,2) DEFAULT 0.00,
+    valor_final_cliente numeric(12,2) DEFAULT 0.00,
     data_solicitacao date DEFAULT CURRENT_DATE,
     observacoes text,
     ultima_atualizacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    tabela_id bigint, -- Referência à tabela de juros aplicada
-    usuario_atualizacao_id bigint -- Necessário para a trigger de histórico saber quem alterou
+    tabela_id bigint,
+    usuario_atualizacao_id bigint
 );
 
 CREATE TABLE public.tabelas_juros (
@@ -213,6 +218,12 @@ CREATE TABLE public.tabelas_juros (
     idade_maxima integer DEFAULT 100,
     renda_minima numeric(12,2) DEFAULT 0.00,
     prazo_maximo integer DEFAULT 96,
+    tipo_convenio public.tipo_convenio_enum DEFAULT 'PADRAO'::public.tipo_convenio_enum,
+    comissao_percentual numeric(5,2) DEFAULT 0.00,
+    valor_minimo_emprestimo numeric(12,2) DEFAULT 0.00,
+    valor_maximo_emprestimo numeric(12,2) DEFAULT 999999.99,
+    inicio_vigencia date DEFAULT CURRENT_DATE,
+    fim_vigencia date,
     ativo boolean DEFAULT true,
     criado_em timestamp(6) without time zone
 );
@@ -220,7 +231,7 @@ CREATE TABLE public.tabelas_juros (
 CREATE TABLE public.enderecos_proponente (
     endereco_id bigint DEFAULT nextval('public.enderecos_proponente_endereco_id_seq'::regclass) NOT NULL,
     proponente_id bigint NOT NULL,
-    cep character varying(8) NOT NULL, -- Somente números
+    cep character varying(8) NOT NULL,
     tipo_logradouro public.tipo_logradouro_enum DEFAULT 'RUA'::public.tipo_logradouro_enum,
     logradouro character varying(255) NOT NULL,
     numero character varying(20) NOT NULL,
@@ -319,7 +330,6 @@ CREATE FUNCTION public.trg_log_status_change() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    -- O Spring/Hibernate deve enviar o usuario_atualizacao_id no momento do UPDATE
     IF (OLD.status IS DISTINCT FROM NEW.status) THEN
         INSERT INTO public.historico_status_proposta(proposta_id, usuario_id, status_anterior, status_novo)
         VALUES (NEW.proposta_id, NEW.usuario_atualizacao_id, OLD.status::text, NEW.status::text);
@@ -339,3 +349,54 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_status_update BEFORE UPDATE ON public.propostas FOR EACH ROW EXECUTE FUNCTION public.trg_log_status_change();
 CREATE TRIGGER trigger_update_timestamp_endereco BEFORE UPDATE ON public.enderecos_proponente FOR EACH ROW EXECUTE FUNCTION public.trg_update_timestamp();
+
+-- ==========================================
+-- 9. COMANDOS DE MANUTENÇÃO E MIGRAÇÃO
+-- ==========================================
+-- Comandos para atualizar base existente caso os campos não tenham sido criados acima
+
+-- 1. Vincular tabelas de juros ao tipo de produto/convênio
+DO $$ BEGIN
+    ALTER TABLE public.tabelas_juros ADD COLUMN tipo_convenio public.tipo_convenio_enum DEFAULT 'PADRAO';
+EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Coluna tipo_convenio já existe em tabelas_juros.';
+END $$;
+
+-- 2. Melhorar a visibilidade da comissão na proposta
+DO $$ BEGIN
+    ALTER TABLE public.propostas ADD COLUMN comissao_estimada numeric(12,2) DEFAULT 0.00;
+    ALTER TABLE public.propostas ADD COLUMN valor_final_cliente numeric(12,2) DEFAULT 0.00;
+EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Colunas de comissão/valor final já existem em propostas.';
+END $$;
+
+-- 3. Sistema de Indicações
+DO $$ BEGIN
+    ALTER TABLE public.proponentes ADD COLUMN indicado_por_id bigint REFERENCES public.proponentes(proponente_id);
+EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Coluna indicado_por_id já existe em proponentes.';
+END $$;
+
+-- 4. Detalhamento da conferência de valores
+DO $$ BEGIN
+    ALTER TABLE public.comissoes ADD COLUMN valor_pago_pela_poder numeric(12,2) DEFAULT 0.00;
+    ALTER TABLE public.comissoes ADD COLUMN contestada boolean DEFAULT false;
+EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Colunas de conferência já existem em comissoes.';
+END $$;
+
+-- 5. Versionamento das Tabelas de Juros
+DO $$ BEGIN
+    ALTER TABLE public.tabelas_juros ADD COLUMN inicio_vigencia date DEFAULT CURRENT_DATE;
+    ALTER TABLE public.tabelas_juros ADD COLUMN fim_vigencia date;
+EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Colunas de vigência já existem em tabelas_juros.';
+END $$;
+
+-- 6. Movendo e adicionando as faixas de comissão (Tabela de Juros e Bancos)
+DO $$ BEGIN
+    ALTER TABLE public.bancos DROP COLUMN IF EXISTS comissao_percentual;
+EXCEPTION WHEN undefined_column THEN RAISE NOTICE 'Coluna comissao_percentual já foi removida de bancos.';
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE public.tabelas_juros ADD COLUMN comissao_percentual numeric(5,2) DEFAULT 0.00;
+    ALTER TABLE public.tabelas_juros ADD COLUMN valor_minimo_emprestimo numeric(12,2) DEFAULT 0.00;
+    ALTER TABLE public.tabelas_juros ADD COLUMN valor_maximo_emprestimo numeric(12,2) DEFAULT 999999.99;
+EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Colunas de faixa de comissão já existem em tabelas_juros.';
+END $$;
