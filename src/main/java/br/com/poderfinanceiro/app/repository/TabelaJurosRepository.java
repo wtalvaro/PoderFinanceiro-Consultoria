@@ -21,4 +21,13 @@ public interface TabelaJurosRepository extends JpaRepository<TabelaJuros, Long> 
      */
     List<TabelaJuros> findByAtivoTrueAndIdadeMinimaLessThanEqualAndIdadeMaximaGreaterThanEqual(
             Integer idadeMin, Integer idadeMax);
+
+    /**
+     * Lista todas as tabelas de juros que estão ativas e não possuem data de fim de
+     * vigência.
+     * Esta consulta é essencial para garantir que o simulador utilize apenas as
+     * taxas atualmente vigentes.
+     */
+    List<TabelaJuros> findByAtivoTrueAndFimVigenciaIsNull();
+
 }

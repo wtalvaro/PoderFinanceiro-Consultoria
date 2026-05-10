@@ -16,7 +16,7 @@
 
         <Label text="GERENCIAL"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 0 0 0 5;" />
-            
+
         <Button fx:id="btnDashboard" text="📊 Visão Geral" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat, accent" onAction="#abrirWorkspace" />
 
@@ -46,7 +46,7 @@
             alignment="BASELINE_LEFT" styleClass="flat" />
 
         <Button fx:id="btnTabelasJuros" text="📈 Tabelas de Juros" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" />
+            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelasJuros" />
 
         <Button fx:id="btnTabelaComissoes" text="💰 Tabela de Comissões" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" />

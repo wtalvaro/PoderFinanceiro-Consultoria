@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.TabelaJurosController">
+
+    <ScrollPane fx:id="scrollPrincipal" fitToWidth="true" fitToHeight="true"
+        style="-fx-background-color: transparent;" styleClass="edge-to-edge">
+        <content>
+            <VBox spacing="20" style="-fx-padding: 30; -fx-background-color: #ffffff;">
+
+                <VBox spacing="5">
+                    <Label text="📈 Matriz de Taxas e Comissões"
+                        style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                    <Label
+                        text="Regra de Ouro: Atualizar uma tabela arquiva a versão antiga e cria uma nova. Suas propostas e comissões anteriores não são afetadas."
+                        style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;" wrapText="true" />
+                </VBox>
+
+                <Label fx:id="lblAviso" visible="false" managed="false" wrapText="true" />
+
+                <TitledPane fx:id="paneFormulario"
+                    text="💊 Prescrever Nova Tabela (Cadastrar / Atualizar)"
+                    expanded="false" animated="true"
+                    style="-fx-font-size: 14px; -fx-text-fill: -color-fg-default; -fx-font-weight: normal;">
+
+                    <content>
+                        <GridPane hgap="15" vgap="15"
+                            style="-fx-padding: 20; -fx-background-color: -color-bg-subtle;">
+                            <columnConstraints>
+                                <ColumnConstraints hgrow="ALWAYS" minWidth="200" />
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="150" />
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="120" />
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="120" />
+                            </columnConstraints>
+
+                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <Label text="Nome da Tabela:"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                <TextField fx:id="txtNomeTabela"
+                                    promptText="Ex: INSS Normal - Banco PAN" maxWidth="Infinity" />
+                            </VBox>
+
+                            <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                <Label text="Convênio Associado:"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                <ComboBox fx:id="comboConvenio" promptText="Selecione..."
+                                    maxWidth="Infinity" />
+                            </VBox>
+
+                            <VBox spacing="5" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                                <Label text="Taxa Mensal (%):"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                <TextField fx:id="txtTaxaMensal" promptText="0,00" />
+                            </VBox>
+
+                            <VBox spacing="5" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                                <Label text="Comissão (%):"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                <TextField fx:id="txtComissao" promptText="0,00" />
+                            </VBox>
+
+                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                <Label text="Valor Mínimo (R$):"
+                                    style="-fx-text-fill: -color-fg-muted;" />
+                                <TextField fx:id="txtValorMinimo" promptText="Ex: 500,00" />
+                            </VBox>
+
+                            <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <Label text="Valor Máximo (R$):"
+                                    style="-fx-text-fill: -color-fg-muted;" />
+                                <TextField fx:id="txtValorMaximo"
+                                    promptText="Deixe vazio se não houver teto" />
+                            </VBox>
+
+                            <HBox alignment="BOTTOM_RIGHT" spacing="10" GridPane.columnIndex="2"
+                                GridPane.rowIndex="1" GridPane.columnSpan="2">
+                                <Button text="Limpar" onAction="#limparFormulario" styleClass="flat" />
+                                <Button text="💾 Salvar Tabela" onAction="#handleSalvar"
+                                    styleClass="accent"
+                                    style="-fx-font-weight: bold;" />
+                            </HBox>
+                        </GridPane>
+                    </content>
+                </TitledPane>
+
+                <HBox alignment="CENTER_LEFT" spacing="10"
+                    style="-fx-padding: 10 15 10 15; -fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1; -fx-border-radius: 5;">
+                    <Label text="🔍 Buscar Tabela Ativa:"
+                        style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
+                    <TextField fx:id="txtBusca" promptText="Filtre por nome, convênio ou taxa..."
+                        HBox.hgrow="ALWAYS"
+                        style="-fx-font-size: 14px; -fx-background-color: transparent;" />
+                </HBox>
+
+                <TableView fx:id="tableTabelas" minHeight="350" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="120" />
+                        <TableColumn fx:id="colNome" text="Nome da Tabela" prefWidth="280" />
+                        <TableColumn fx:id="colTaxa" text="Taxa Mês" prefWidth="90"
+                            style="-fx-alignment: CENTER;" />
+                        <TableColumn fx:id="colComissao" text="Comissão" prefWidth="90"
+                            style="-fx-alignment: CENTER;" />
+                        <TableColumn fx:id="colLimites" text="Faixa Permitida (Min - Max)"
+                            prefWidth="180" />
+                        <TableColumn fx:id="colAcoes" text="Ações" prefWidth="120"
+                            style="-fx-alignment: CENTER;" />
+                    </columns>
+                    <placeholder>
+                        <Label text="Nenhuma tabela de juros ativa encontrada no sistema." />
+                    </placeholder>
+                </TableView>
+
+            </VBox>
+        </content>
+    </ScrollPane>
+
+    <VBox fx:id="overlayArquivar" alignment="CENTER" spacing="20" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
+        <VBox alignment="CENTER" spacing="20" maxWidth="450"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <Label text="⚠️ Arquivar Tabela de Juros"
+                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #ffa000;" />
+
+            <Label
+                text="Deseja arquivar esta tabela? Ela não aparecerá mais em novas simulações, mas o histórico de comissões antigas será mantido intacto."
+                wrapText="true" textAlignment="CENTER"
+                style="-fx-font-size: 14px; -fx-text-fill: #333;" />
+
+            <HBox spacing="15" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
+                <Button text="Cancelar" onAction="#cancelarArquivamento" styleClass="flat" />
+                <Button text="Sim, Arquivar Tabela" onAction="#confirmarArquivamento"
+                    styleClass="accent"
+                    style="-fx-font-weight: bold; -fx-background-color: #f57c00; -fx-text-fill: white;" />
+            </HBox>
+        </VBox>
+    </VBox>
+
+</StackPane>

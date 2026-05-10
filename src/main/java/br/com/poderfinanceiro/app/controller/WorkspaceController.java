@@ -174,4 +174,37 @@ public class WorkspaceController {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Abre ou foca na aba de Gestão de Tabelas de Juros.
+     * Segue a mesma arquitetura de aba fechável da tela de Links Úteis.
+     */
+    public void abrirAbaTabelasJuros() {
+        String idTabelas = "ABA_TABELAS_JUROS";
+
+        // 1. Verificar se a aba já está aberta
+        for (Tab tab : tabPanePrincipal.getTabs()) {
+            if (idTabelas.equals(tab.getUserData())) {
+                tabPanePrincipal.getSelectionModel().select(tab);
+                return;
+            }
+        }
+
+        // 2. Se não estiver aberta, carregar o FXML
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/tabelas_juros.fxml"));
+            loader.setControllerFactory(context::getBean);
+            Parent root = loader.load();
+
+            Tab tabTabelas = new Tab("📈 Tabelas de Juros");
+            tabTabelas.setContent(root);
+            tabTabelas.setUserData(idTabelas);
+            tabTabelas.setClosable(true); // Esta aba o usuário pode fechar
+
+            tabPanePrincipal.getTabs().add(tabTabelas);
+            tabPanePrincipal.getSelectionModel().select(tabTabelas);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
