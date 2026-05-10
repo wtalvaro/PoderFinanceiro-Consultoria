@@ -43,7 +43,7 @@
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
 
         <Button fx:id="btnBancosConvenios" text="🏦 Bancos e Convênios" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" />
+            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirBancosConvenios" />
 
         <Button fx:id="btnTabelasJuros" text="📈 Tabelas de Juros" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelasJuros" />

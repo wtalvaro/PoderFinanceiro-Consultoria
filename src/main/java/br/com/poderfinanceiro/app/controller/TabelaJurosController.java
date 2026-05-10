@@ -225,6 +225,22 @@ public class TabelaJurosController {
     }
 
     @FXML
+    private void prepararNovaVersao() {
+        if (tabelaSelecionadaParaArquivar != null) {
+            // Reaproveita a lógica do botão Editar!
+            // Ele joga os dados pro ViewModel e abre o painel expansível.
+            // Quando ela clicar em "Salvar", a Regra de Ouro fará a mágica.
+            editarTabela(tabelaSelecionadaParaArquivar);
+        }
+        // Fecha o overlay escuro
+        cancelarArquivamento();
+
+        // Dá um scroll para o topo ou foca no painel para ela ver que o formulário
+        // abriu
+        paneFormulario.requestFocus();
+    }
+
+    @FXML
     private void confirmarArquivamento() {
         if (tabelaSelecionadaParaArquivar != null) {
             service.arquivarTabela(tabelaSelecionadaParaArquivar);

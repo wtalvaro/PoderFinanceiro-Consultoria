@@ -139,9 +139,36 @@ public class MainController {
     }
 
     public void irParaTabelasJuros() {
-        garantirWorkspaceVisivel();
-        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
-        ws.abrirAbaTabelasJuros();
+        try {
+            garantirWorkspaceVisivel();
+
+            ViewPair pair = cacheDeViews.get("/fxml/workspace.fxml");
+
+            // Verificação de segurança (Blindagem contra NullPointerException)
+            if (pair != null && pair.controller instanceof WorkspaceController) {
+                WorkspaceController ws = (WorkspaceController) pair.controller;
+                ws.abrirAbaTabelasJuros();
+            } else {
+                System.err.println("O painel do Workspace não foi encontrado no cache!");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void irParaBancosConvenios() {
+        try {
+            garantirWorkspaceVisivel();
+            ViewPair pair = cacheDeViews.get("/fxml/workspace.fxml");
+
+            if (pair != null && pair.controller instanceof WorkspaceController) {
+                WorkspaceController ws = (WorkspaceController) pair.controller;
+                ws.abrirAbaBancosConvenios();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void garantirWorkspaceVisivel() {

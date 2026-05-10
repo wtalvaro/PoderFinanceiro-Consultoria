@@ -104,13 +104,10 @@ CREATE TABLE public.usuarios (
 
 CREATE TABLE public.bancos (
     banco_id bigint DEFAULT nextval('public.bancos_banco_id_seq'::regclass) NOT NULL,
+    codigo_banco character varying(10),
     nome_banco character varying(100) NOT NULL,
-    taxa_media_juros numeric(5,2),
-    taxa_minima numeric(5,2),
-    taxa_maxima numeric(5,2),
-    -- comissao_percentual removida daqui
-    prazo_maximo integer,
     link_portal_banco text,
+    telefone_suporte character varying(50),
     sistema_amortizacao character varying(50) DEFAULT 'Price'::character varying,
     permite_pos_fixado boolean DEFAULT false,
     ativo boolean DEFAULT true,
@@ -399,4 +396,20 @@ DO $$ BEGIN
     ALTER TABLE public.tabelas_juros ADD COLUMN valor_minimo_emprestimo numeric(12,2) DEFAULT 0.00;
     ALTER TABLE public.tabelas_juros ADD COLUMN valor_maximo_emprestimo numeric(12,2) DEFAULT 999999.99;
 EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Colunas de faixa de comissão já existem em tabelas_juros.';
+END $$;
+
+-- 7. Atualização da tabela de Bancos (Clean Architecture)
+DO $$ BEGIN
+    ALTER TABLE public.bancos ADD COLUMN codigo_banco character varying(10);
+    ALTER TABLE public.bancos ADD COLUMN telefone_suporte character varying(50);
+EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Colunas codigo/telefone já existem.';
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE public.bancos DROP COLUMN IF EXISTS taxa_media_juros;
+    ALTER TABLE public.bancos DROP COLUMN IF EXISTS taxa_minima;
+    ALTER TABLE public.bancos DROP COLUMN IF EXISTS taxa_maxima;
+    ALTER TABLE public.bancos DROP COLUMN IF EXISTS prazo_maximo;
+    ALTER TABLE public.bancos DROP COLUMN IF EXISTS comissao_percentual;
+EXCEPTION WHEN undefined_column THEN RAISE NOTICE 'Colunas antigas já foram removidas.';
 END $$;

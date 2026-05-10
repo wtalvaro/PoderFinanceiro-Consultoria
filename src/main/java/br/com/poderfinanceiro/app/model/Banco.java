@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,23 +19,17 @@ public class Banco {
     @Column(name = "banco_id")
     private Long id;
 
+    @Column(name = "codigo_banco", length = 10)
+    private String codigo;
+
     @Column(name = "nome_banco", nullable = false, length = 100)
-    private String nomeBanco;
-
-    @Column(name = "taxa_media_juros", precision = 5, scale = 2)
-    private BigDecimal taxaMediaJuros;
-
-    @Column(name = "taxa_minima", precision = 5, scale = 2)
-    private BigDecimal taxaMinima;
-
-    @Column(name = "taxa_maxima", precision = 5, scale = 2)
-    private BigDecimal taxaMaxima;
-
-    @Column(name = "prazo_maximo")
-    private Integer prazoMaximo;
+    private String nome;
 
     @Column(name = "link_portal_banco", columnDefinition = "TEXT")
-    private String linkPortalBanco;
+    private String sitePortal;
+
+    @Column(name = "telefone_suporte", length = 50)
+    private String telefoneSuporte;
 
     @Column(name = "sistema_amortizacao", length = 50)
     private String sistemaAmortizacao = "Price";

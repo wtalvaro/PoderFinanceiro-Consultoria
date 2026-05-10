@@ -11,19 +11,22 @@ import java.util.Optional;
 public interface BancoRepository extends JpaRepository<Banco, Long> {
 
     /**
-     * Retorna todos os bancos que estão ativos, ideal para popular comboboxes no
-     * FXML.
+     * Retorna todos os bancos que estão ativos (para preencher os cards).
      */
     List<Banco> findByAtivoTrue();
 
     /**
-     * Retorna todos os bancos ativos, ordenados por nome para facilitar a busca do
-     * usuário.
+     * Retorna todos os bancos ativos, ordenados por nome.
      */
-    List<Banco> findByAtivoTrueOrderByNomeBancoAsc();
+    List<Banco> findByAtivoTrueOrderByNomeAsc();
 
     /**
      * Busca um banco específico pelo nome (ignorando maiúsculas e minúsculas).
      */
-    Optional<Banco> findByNomeBancoIgnoreCase(String nomeBanco);
+    Optional<Banco> findByNomeIgnoreCase(String nome);
+
+    /**
+     * Busca um banco pelo código (Ex: "623", "341"). Útil para integrações futuras.
+     */
+    Optional<Banco> findByCodigo(String codigo);
 }

@@ -72,6 +72,12 @@ public class PanelController {
         mainController.irParaTabelasJuros();
     }
 
+    @FXML
+    private void abrirBancosConvenios() {
+        destacarBotaoAtivo(btnBancosConvenios);
+        mainController.irParaBancosConvenios();;
+    }
+
     // ==========================================================
     // MÉTODOS AUXILIARES DE UI
     // ==========================================================

@@ -180,18 +180,17 @@ public class WorkspaceController {
      * Segue a mesma arquitetura de aba fechável da tela de Links Úteis.
      */
     public void abrirAbaTabelasJuros() {
-        String idTabelas = "ABA_TABELAS_JUROS";
-
-        // 1. Verificar se a aba já está aberta
-        for (Tab tab : tabPanePrincipal.getTabs()) {
-            if (idTabelas.equals(tab.getUserData())) {
-                tabPanePrincipal.getSelectionModel().select(tab);
-                return;
-            }
-        }
-
-        // 2. Se não estiver aberta, carregar o FXML
         try {
+            String idTabelas = "ABA_TABELAS_JUROS";
+
+            // 1. Verifica se a aba já está aberta
+            for (Tab tab : tabPanePrincipal.getTabs()) {
+                if (idTabelas.equals(tab.getUserData())) {
+                    tabPanePrincipal.getSelectionModel().select(tab);
+                    return;
+                }
+            }
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/tabelas_juros.fxml"));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
@@ -199,11 +198,48 @@ public class WorkspaceController {
             Tab tabTabelas = new Tab("📈 Tabelas de Juros");
             tabTabelas.setContent(root);
             tabTabelas.setUserData(idTabelas);
-            tabTabelas.setClosable(true); // Esta aba o usuário pode fechar
+            tabTabelas.setClosable(true);
 
             tabPanePrincipal.getTabs().add(tabTabelas);
             tabPanePrincipal.getSelectionModel().select(tabTabelas);
-        } catch (IOException e) {
+
+        } catch (Exception e) { // Captura QUALQUER erro, não só IOException
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Abre ou foca na aba de Gestão de Bancos e Convênios.
+     * Utiliza o padrão de Cards para visualização.
+     */
+    public void abrirAbaBancosConvenios() {
+        try {
+            String idBancos = "ABA_BANCOS_CONVENIOS";
+
+            // 1. Verifica se a aba já está aberta para evitar duplicidade
+            for (Tab tab : tabPanePrincipal.getTabs()) {
+                if (idBancos.equals(tab.getUserData())) {
+                    tabPanePrincipal.getSelectionModel().select(tab);
+                    return;
+                }
+            }
+
+            // 2. Carrega o FXML integrando com o contexto do Spring
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/bancos_convenios.fxml"));
+            loader.setControllerFactory(context::getBean);
+            Parent root = loader.load();
+
+            // 3. Configura a nova Aba
+            Tab tabBancos = new Tab("🏦 Bancos e Convênios");
+            tabBancos.setContent(root);
+            tabBancos.setUserData(idBancos);
+            tabBancos.setClosable(true);
+
+            // 4. Adiciona e foca
+            tabPanePrincipal.getTabs().add(tabBancos);
+            tabPanePrincipal.getSelectionModel().select(tabBancos);
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

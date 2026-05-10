@@ -71,7 +71,7 @@ public class DashboardController {
 
         // Acesso ao nome do banco (Entidade Banco)
         colBanco.setCellValueFactory(
-                cellData -> new SimpleStringProperty(cellData.getValue().getBanco().getNomeBanco()));
+                cellData -> new SimpleStringProperty(cellData.getValue().getBanco().getNome()));
 
         colConvenio.setCellValueFactory(cellData -> {
             // 1. Pegamos o enum do proponente vinculado à proposta

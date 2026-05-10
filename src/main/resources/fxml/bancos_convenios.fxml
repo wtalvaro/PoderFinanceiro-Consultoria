@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.BancosConveniosController">
+
+    <VBox spacing="20" style="-fx-padding: 30; -fx-background-color: #f8f9fa;">
+
+        <HBox alignment="CENTER_LEFT" spacing="20">
+            <VBox spacing="5">
+                <Label text="🏦 Bancos e Convênios"
+                    style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+                <Label text="Acesso rápido aos portais e contatos de suporte das mesas de crédito."
+                    style="-fx-text-fill: #7f8c8d;" />
+            </VBox>
+            <Region HBox.hgrow="ALWAYS" />
+            <Button text="➕ Adicionar Parceiro" onAction="#abrirModalNovo" styleClass="accent"
+                style="-fx-font-weight: bold; -fx-padding: 10 20;" />
+        </HBox>
+
+        <TextField fx:id="txtBusca" promptText="🔍 Buscar por nome ou código do banco..."
+            style="-fx-font-size: 14px; -fx-padding: 10; -fx-background-radius: 8;" maxWidth="400" />
+
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;"
+            styleClass="edge-to-edge" VBox.vgrow="ALWAYS">
+            <FlowPane fx:id="muralBancos" hgap="20" vgap="20" style="-fx-padding: 10;" />
+        </ScrollPane>
+
+    </VBox>
+
+    <VBox fx:id="overlayFormulario" alignment="CENTER" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
+        <VBox spacing="15" maxWidth="450"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <Label fx:id="lblTituloModal" text="Novo Banco"
+                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+            <Label fx:id="lblAviso" visible="false" managed="false"
+                style="-fx-font-weight: bold; -fx-text-fill: red;" />
+
+            <VBox spacing="5">
+                <Label text="Código do Banco (Ex: 033, 341, 623):"
+                    style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d;" />
+                <TextField fx:id="txtCodigo" promptText="Ex: 623" />
+            </VBox>
+
+            <VBox spacing="5">
+                <Label text="Nome da Instituição:"
+                    style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d;" />
+                <TextField fx:id="txtNome" promptText="Ex: Banco PAN" />
+            </VBox>
+
+            <VBox spacing="5">
+                <Label text="Link do Portal do Correspondente:"
+                    style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d;" />
+                <TextField fx:id="txtLink" promptText="Ex: https://portal.bancopan.com.br" />
+            </VBox>
+
+            <VBox spacing="5">
+                <Label text="Telefone / WhatsApp (Suporte/Mesa):"
+                    style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d;" />
+                <TextField fx:id="txtTelefone" promptText="Ex: (11) 99999-9999" />
+            </VBox>
+
+            <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 15 0 0 0;">
+                <Button text="Cancelar" onAction="#fecharModal" styleClass="flat" />
+                <Button text="💾 Salvar Banco" onAction="#salvarBanco" styleClass="accent"
+                    style="-fx-font-weight: bold;" />
+            </HBox>
+        </VBox>
+    </VBox>
+
+</StackPane>
