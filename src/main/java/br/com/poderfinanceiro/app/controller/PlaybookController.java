@@ -70,9 +70,6 @@ public class PlaybookController implements Initializable {
         alternarModoVisualizacao(false); // Inicia bloqueado
     }
 
-    // ... [Mantenha os métodos configurarFiltroDeBusca e construirArvore iguais ao
-    // original] ...
-
     private void configurarFiltroDeBusca() {
         txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == null || newValue.trim().isEmpty()) {

@@ -107,6 +107,48 @@ public class DocumentoService {
         return repository.save(doc);
     }
 
+    @Transactional
+    public void excluirDocumento(Long documentoId) {
+        DocumentoProponente doc = repository.findById(documentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+
+        // Apaga o arquivo físico do computador para não lotar o HD
+        try {
+            Files.deleteIfExists(Paths.get(doc.getArquivoPath()));
+        } catch (Exception e) {
+            System.err.println("Aviso: Não foi possível deletar o arquivo físico: " + e.getMessage());
+        }
+
+        repository.delete(doc);
+    }
+
+    @Transactional
+    public DocumentoProponente atualizarTipoDocumento(Long documentoId, String novoTipo) throws Exception {
+        DocumentoProponente doc = repository.findById(documentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+
+        if (doc.getTipoDocumento().equals(novoTipo)) {
+            return doc; // Nada mudou
+        }
+
+        Path caminhoAntigo = Paths.get(doc.getArquivoPath());
+
+        // Se o arquivo físico existir, nós o renomeamos para refletir o novo tipo
+        if (Files.exists(caminhoAntigo)) {
+            String extensao = obterExtensao(caminhoAntigo.getFileName().toString());
+            String nomeLimpo = doc.getProponente().getNomeCompleto().replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
+            String novoNomeArquivo = novoTipo.replaceAll(" ", "_").toUpperCase() + "_" + nomeLimpo + extensao;
+
+            Path caminhoNovo = caminhoAntigo.getParent().resolve(novoNomeArquivo);
+            Files.move(caminhoAntigo, caminhoNovo, StandardCopyOption.REPLACE_EXISTING);
+
+            doc.setArquivoPath(caminhoNovo.toString());
+        }
+
+        doc.setTipoDocumento(novoTipo);
+        return repository.save(doc);
+    }
+
     // --- Utilitários Internos ---
 
     private String calcularHashSha256(File file) throws Exception {

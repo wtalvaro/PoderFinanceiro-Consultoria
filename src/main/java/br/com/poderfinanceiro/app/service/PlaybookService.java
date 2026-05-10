@@ -3,6 +3,8 @@ package br.com.poderfinanceiro.app.service;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,110 +25,148 @@ import br.com.poderfinanceiro.app.strategy.DocumentStrategy;
 @Service
 public class PlaybookService {
 
-        private final List<DocumentStrategy> documentStrategies;
-        private final ObjectMapper objectMapper;
+    private final List<DocumentStrategy> documentStrategies;
+    private final ObjectMapper objectMapper;
 
-        // Armazena em memória os itens estáticos carregados do JSON
-        private final List<PlaybookItem> itensEstaticos = new ArrayList<>();
+    // Armazena em memória os itens estáticos carregados do JSON (O Prontuário Ativo)
+    private final List<PlaybookItem> itensEstaticos = new ArrayList<>();
+    
+    // O prontuário agora tem um endereço dinâmico (resolve o problema de salvar dentro do JAR/EXE)
+    private String caminhoArquivoFinal;
 
-        public PlaybookService(List<DocumentStrategy> documentStrategies) {
-                this.documentStrategies = documentStrategies;
-                this.objectMapper = new ObjectMapper();
+    public PlaybookService(List<DocumentStrategy> documentStrategies) {
+        this.documentStrategies = documentStrategies;
+        this.objectMapper = new ObjectMapper();
+    }
+
+    @PostConstruct
+    public void init() {
+        // 1. Define o endereço da ala hospitalar baseada no SO (Windows/Linux/Mac)
+        this.caminhoArquivoFinal = obterCaminhoDoProntuario();
+        
+        // 2. Garante que o arquivo existe (ou clona o protocolo padrão do JAR)
+        garantirArquivoExiste();
+        
+        // 3. Carrega os dados para a memória da UTI
+        carregarPlaybook();
+    }
+
+    private String obterCaminhoDoProntuario() {
+        String os = System.getProperty("os.name").toLowerCase();
+        String home = System.getProperty("user.home");
+        String caminhoBase;
+
+        if (os.contains("win")) {
+            // Windows: O Arquivo Central (Roaming)
+            caminhoBase = System.getenv("APPDATA") + File.separator + "PoderFinanceiro";
+        } else if (os.contains("mac")) {
+            // macOS: O Suporte de Aplicação
+            caminhoBase = home + "/Library/Application Support/PoderFinanceiro";
+        } else {
+            // Linux e outros Unix: Seguindo o protocolo XDG
+            String xdgData = System.getenv("XDG_DATA_HOME");
+            caminhoBase = (xdgData != null && !xdgData.isEmpty()) 
+                          ? xdgData + File.separator + "PoderFinanceiro" 
+                          : home + File.separator + ".local" + File.separator + "share" + File.separator + "PoderFinanceiro";
         }
 
-        @PostConstruct
-        public void init() {
-                carregarDoJson();
+        // Garante que a "ala" do hospital existe
+        File pasta = new File(caminhoBase);
+        if (!pasta.exists()) {
+            pasta.mkdirs();
         }
 
-        private void carregarDoJson() {
-                try {
-                        ClassPathResource resource = new ClassPathResource("playbooks/playbook_scripts.json");
-                        if (!resource.exists()) {
-                                System.out.println("Arquivo de playbook não encontrado no classpath.");
-                                return;
-                        }
+        return caminhoBase + File.separator + "playbook_scripts.json";
+    }
 
-                        try (InputStream is = resource.getInputStream()) {
-                                List<PlaybookItemDTO> dtos = objectMapper.readValue(is,
-                                                new TypeReference<List<PlaybookItemDTO>>() {
-                                                });
-
-                                itensEstaticos.clear(); // Limpa a lista antes de recarregar
-                                for (PlaybookItemDTO dto : dtos) {
-                                        itensEstaticos.add(new PlaybookItem(
-                                                        dto.categoria(),
-                                                        dto.titulo(),
-                                                        dto.conteudo(),
-                                                        dto.dica()));
-                                }
-                        }
-                } catch (IOException e) {
-                        System.err.println("Erro ao carregar o playbook comercial: " + e.getMessage());
-                }
+    private void garantirArquivoExiste() {
+        File arquivo = new File(caminhoArquivoFinal);
+        
+        // Se o arquivo externo não existe, clonamos o padrão do JAR para fora
+        if (!arquivo.exists()) {
+            try (InputStream is = new ClassPathResource("playbooks/playbook_scripts.json").getInputStream()) {
+                Files.copy(is, arquivo.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Protocolo inicial clonado para a pasta de usuário: " + caminhoArquivoFinal);
+            } catch (IOException e) {
+                System.err.println("Erro crítico: Não foi possível criar o prontuário inicial.");
+            }
         }
+    }
 
-        public List<PlaybookItem> listarTudoParaOPlaybook() {
-                List<PlaybookItem> itens = new ArrayList<>(itensEstaticos);
-                itens.addAll(gerarChecklistsDeDocumentos());
-                return itens;
+    private void carregarPlaybook() {
+        try {
+            File arquivo = new File(caminhoArquivoFinal);
+            List<PlaybookItemDTO> dtos = objectMapper.readValue(arquivo, new TypeReference<List<PlaybookItemDTO>>() {});
+            
+            itensEstaticos.clear();
+            for (PlaybookItemDTO dto : dtos) {
+                itensEstaticos.add(new PlaybookItem(
+                        dto.categoria(),
+                        dto.titulo(),
+                        dto.conteudo(),
+                        dto.dica()));
+            }
+            
+            System.out.println("Sinais vitais do Playbook carregados com sucesso a partir de: " + caminhoArquivoFinal);
+        } catch (IOException e) {
+            System.err.println("Erro ao ler o prontuário: " + e.getMessage());
         }
+    }
 
-        // ==========================================
-        // NOVO MÉTODO DE SALVAMENTO (CRUD)
-        // ==========================================
+    public List<PlaybookItem> listarTudoParaOPlaybook() {
+        List<PlaybookItem> itens = new ArrayList<>(itensEstaticos);
+        // Injeta as prescrições dinâmicas (checklists) que não devem ser salvas no JSON
+        itens.addAll(gerarChecklistsDeDocumentos());
+        return itens;
+    }
 
-        public void salvarTodos(List<PlaybookItem> todosOsItens) {
-                // 1. Filtramos as checklists dinâmicas para não gravá-las no JSON
-                List<PlaybookItemDTO> dtosParaSalvar = todosOsItens.stream()
-                                .filter(item -> item.getCategoria() != null
-                                                && !item.getCategoria().contains("Checklists de Documentos"))
-                                .map(item -> new PlaybookItemDTO(
-                                                item.getCategoria(),
-                                                item.getTitulo(),
-                                                item.getConteudo(),
-                                                item.getDica()))
-                                .collect(Collectors.toList());
+    // ==========================================
+    // NOVO MÉTODO DE SALVAMENTO (CRUD)
+    // ==========================================
 
-                // 2. Caminho fixo para o ambiente de desenvolvimento
-                File arquivoJson = new File("src/main/resources/playbooks/playbook_scripts.json");
+    public void salvarTodos(List<PlaybookItem> todosOsItens) {
+        // 1. Filtramos as checklists dinâmicas para não gravá-las no JSON
+        List<PlaybookItemDTO> dtosParaSalvar = todosOsItens.stream()
+                .filter(item -> item.getCategoria() != null && !item.getCategoria().contains("Checklists de Documentos"))
+                .map(item -> new PlaybookItemDTO(
+                        item.getCategoria(), 
+                        item.getTitulo(), 
+                        item.getConteudo(), 
+                        item.getDica()))
+                .collect(Collectors.toList());
 
-                try {
-                        // Grava o JSON de forma indentada e bonita (Pretty Printer)
-                        objectMapper.writerWithDefaultPrettyPrinter().writeValue(arquivoJson, dtosParaSalvar);
-
-                        // 3. Atualiza a memória estática
-                        itensEstaticos.clear();
-                        todosOsItens.stream()
-                                        .filter(item -> item.getCategoria() != null
-                                                        && !item.getCategoria().contains("Checklists de Documentos"))
-                                        .forEach(itensEstaticos::add);
-
-                        System.out.println("Playbook salvo com sucesso!");
-
-                } catch (IOException e) {
-                        System.err.println("Erro ao salvar o playbook: " + e.getMessage());
-                }
+        try {
+            // 2. Grava o JSON de forma indentada e bonita (Pretty Printer) sempre no arquivo externo dinâmico
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(caminhoArquivoFinal), dtosParaSalvar);
+            
+            // 3. Atualiza a memória estática de curto prazo
+            itensEstaticos.clear();
+            todosOsItens.stream()
+                    .filter(item -> item.getCategoria() != null && !item.getCategoria().contains("Checklists de Documentos"))
+                    .forEach(itensEstaticos::add);
+            
+            System.out.println("Prontuário atualizado e persistido com segurança no disco.");
+        } catch (IOException e) {
+            System.err.println("Erro na 'cirurgia' de salvamento do playbook: " + e.getMessage());
         }
+    }
 
-        private List<PlaybookItem> gerarChecklistsDeDocumentos() {
-                List<PlaybookItem> checklists = new ArrayList<>();
+    private List<PlaybookItem> gerarChecklistsDeDocumentos() {
+        List<PlaybookItem> checklists = new ArrayList<>();
 
-                for (TipoConvenio convenio : TipoConvenio.values()) {
-                        documentStrategies.stream()
-                                        .filter(s -> s.supports(convenio.name()))
-                                        .findFirst()
-                                        .ifPresent(strategy -> {
-                                                String categoria = convenio.getLabel()
-                                                                + " / 4. Checklists de Documentos";
-                                                checklists.add(new PlaybookItem(
-                                                                categoria,
-                                                                "Documentação Exigida",
-                                                                strategy.getChecklist(),
-                                                                "Fotos nítidas, sem cortes e sem reflexos para o convênio "
-                                                                                + convenio.getLabel() + "."));
-                                        });
-                }
-                return checklists;
+        for (TipoConvenio convenio : TipoConvenio.values()) {
+            documentStrategies.stream()
+                    .filter(s -> s.supports(convenio.name()))
+                    .findFirst()
+                    .ifPresent(strategy -> {
+                        String categoria = convenio.getLabel() + " / 4. Checklists de Documentos";
+                        checklists.add(new PlaybookItem(
+                                categoria,
+                                "Documentação Exigida",
+                                strategy.getChecklist(),
+                                "Fotos nítidas, sem cortes e sem reflexos para o convênio " + convenio.getLabel() + "."));
+                    });
         }
+        return checklists;
+    }
 }

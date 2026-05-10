@@ -25,7 +25,7 @@ public class DocumentoController {
     @FXML
     private VBox panelClassificacao; // Nosso novo painel
     @FXML
-    private Label lblNomeArquivo;
+    private Label lblNomeArquivo, lblTituloPanel;
     @FXML
     private ComboBox<String> comboTipoDocumento;
     @FXML
@@ -38,7 +38,13 @@ public class DocumentoController {
     private TableColumn<DocumentoProponente, Void> colAcoes;
     @FXML
     private Label lblAviso;
+    @FXML
+    private VBox overlayExclusao;
+    @FXML
+    private ScrollPane scrollPrincipal;
 
+    private DocumentoProponente documentoParaExcluir;
+    private DocumentoProponente documentoEmEdicao;
     private final DocumentoService documentoService;
     private final MainController mainController;
 
@@ -135,17 +141,50 @@ public class DocumentoController {
 
     private void prepararUploadEmbutido(File file) {
         this.arquivoPendenteUpload = file;
+        this.documentoEmEdicao = null; // Garante que é um documento NOVO
+
+        this.lblTituloPanel.setText("Classifique o novo documento:");
         this.lblNomeArquivo.setText(file.getName());
         this.comboTipoDocumento.getSelectionModel().clearSelection();
 
-        // Alterna as views: esconde a dropzone e mostra o painel
+        abrirPainelAzul();
+    }
+
+    // NOVO MÉTODO: Abre o painel, mas com os dados do documento que já existe
+    private void prepararEdicaoEmbutida(DocumentoProponente doc) {
+        this.documentoEmEdicao = doc;
+        this.arquivoPendenteUpload = null;
+
+        this.lblTituloPanel.setText("✏️ Editando classificação do documento:");
+        File file = new File(doc.getArquivoPath());
+        this.lblNomeArquivo.setText(file.getName());
+        this.comboTipoDocumento.setValue(doc.getTipoDocumento());
+
+        abrirPainelAzul();
+    }
+
+    private void abrirPainelAzul() {
         dropZone.setVisible(false);
         dropZone.setManaged(false);
-
         panelClassificacao.setVisible(true);
         panelClassificacao.setManaged(true);
+        mostrarAviso("", true);
+        
+        // O SEGREDO ESTÁ AQUI: Força a rolagem para o topo
+        if (scrollPrincipal != null) {
+            scrollPrincipal.setVvalue(0.0);
+        }
+    }
 
-        mostrarAviso("", true); // Limpa avisos anteriores
+    @FXML
+    private void cancelarUploadInline() {
+        this.arquivoPendenteUpload = null;
+        this.documentoEmEdicao = null;
+
+        panelClassificacao.setVisible(false);
+        panelClassificacao.setManaged(false);
+        dropZone.setVisible(true);
+        dropZone.setManaged(true);
     }
 
     @FXML
@@ -158,28 +197,26 @@ public class DocumentoController {
         }
 
         try {
-            documentoService.processarUpload(this.arquivoPendenteUpload, tipoSelecionado, proponenteAtual);
+            // SE FOR EDIÇÃO
+            if (documentoEmEdicao != null) {
+                documentoService.atualizarTipoDocumento(documentoEmEdicao.getId(), tipoSelecionado);
+                mostrarAviso("Documento atualizado com sucesso!", true);
+            }
+            // SE FOR UPLOAD NOVO
+            else {
+                documentoService.processarUpload(this.arquivoPendenteUpload, tipoSelecionado, proponenteAtual);
+                mostrarAviso("Documento salvo com sucesso!", true);
+            }
+
             atualizarTabela();
-            mostrarAviso("Documento salvo com sucesso!", true);
-            cancelarUploadInline(); // Volta a tela ao normal
+            cancelarUploadInline();
+
         } catch (IllegalArgumentException e) {
             mostrarAviso(e.getMessage(), false);
         } catch (Exception e) {
             mostrarAviso("Erro ao processar arquivo.", false);
             e.printStackTrace();
         }
-    }
-
-    @FXML
-    private void cancelarUploadInline() {
-        this.arquivoPendenteUpload = null;
-
-        // Alterna as views de volta
-        panelClassificacao.setVisible(false);
-        panelClassificacao.setManaged(false);
-
-        dropZone.setVisible(true);
-        dropZone.setManaged(true);
     }
 
     // ==========================================================
@@ -232,30 +269,46 @@ public class DocumentoController {
         });
 
         colAcoes.setCellFactory(param -> new TableCell<>() {
-            private final Button btnAbrir = new Button("👁️ Abrir");
+            private final Button btnAbrir = new Button("👁️");
+            private final Button btnEditar = new Button("✏️");
+            private final Button btnExcluir = new Button("🗑️");
+            private final HBox container = new HBox(5, btnAbrir, btnEditar, btnExcluir);
 
             {
+                btnAbrir.getStyleClass().add("flat");
+                btnEditar.getStyleClass().add("flat");
+                btnExcluir.getStyleClass().addAll("flat", "danger");
+
                 btnAbrir.setOnAction(event -> {
                     DocumentoProponente doc = getTableView().getItems().get(getIndex());
                     File file = new File(doc.getArquivoPath());
-
                     if (file.exists()) {
-                        // Usando o HostServices do MainController de forma elegante!
                         mainController.getHostServices().showDocument(file.toURI().toString());
                     } else {
                         mostrarAviso("Erro: O arquivo físico não foi encontrado no disco.", false);
                     }
                 });
-                btnAbrir.setStyle("-fx-background-color: transparent; -fx-text-fill: #2196F3; -fx-cursor: hand;");
+
+                btnEditar.setOnAction(event -> {
+                    DocumentoProponente doc = getTableView().getItems().get(getIndex());
+                    prepararEdicaoEmbutida(doc);
+                });
+
+                // Ação de Excluir: Chama o OVERLAY em vez do Alert do sistema
+                btnExcluir.setOnAction(event -> {
+                    documentoParaExcluir = getTableView().getItems().get(getIndex());
+                    overlayExclusao.setVisible(true); // Exibe a tela escura
+                });
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty)
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
                     setGraphic(null);
-                else
-                    setGraphic(new HBox(btnAbrir));
+                } else {
+                    setGraphic(container);
+                }
             }
         });
     }
@@ -271,5 +324,35 @@ public class DocumentoController {
                 : "-fx-text-fill: #c62828; -fx-font-weight: bold;");
         lblAviso.setVisible(true);
         lblAviso.setManaged(true);
+    }
+
+    // ==========================================================
+    // LÓGICA DO OVERLAY DE EXCLUSÃO
+    // ==========================================================
+
+    @FXML
+    private void cancelarExclusao() {
+        this.documentoParaExcluir = null;
+        overlayExclusao.setVisible(false);
+    }
+
+    @FXML
+    private void confirmarExclusao() {
+        if (this.documentoParaExcluir != null) {
+            try {
+                // 1. Remove do banco e do disco
+                documentoService.excluirDocumento(documentoParaExcluir.getId());
+
+                // 2. Remove da interface imediatamente
+                tableDocumentos.getItems().remove(documentoParaExcluir);
+
+                mostrarAviso("Documento apagado.", true);
+            } catch (Exception e) {
+                mostrarAviso("Erro ao apagar: " + e.getMessage(), false);
+            } finally {
+                // 3. Esconde o overlay e limpa a variável
+                cancelarExclusao();
+            }
+        }
     }
 }
