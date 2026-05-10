@@ -13,14 +13,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.UUID; // <-- IMPORTANTE: Adicionado para gerar IDs únicos
+import java.util.UUID;
 
 @Component
 public class WorkspaceController {
 
     @FXML
     private TabPane tabPanePrincipal;
-
     private final ApplicationContext context;
 
     public WorkspaceController(ApplicationContext context) {
@@ -29,57 +28,84 @@ public class WorkspaceController {
 
     @FXML
     public void initialize() {
-        Platform.runLater(() -> {
-            Node headerArea = tabPanePrincipal.lookup(".tab-header-area");
-
-            if (headerArea != null) {
-                headerArea.setOnScroll(event -> {
-                    double dy = event.getDeltaY();
-                    double dx = event.getDeltaX();
-
-                    // Prioriza o eixo com maior deslocamento para evitar trocas acidentais
-                    if (Math.abs(dy) > Math.abs(dx)) {
-                        // Scroll Vertical
-                        if (dy < 0) {
-                            tabPanePrincipal.getSelectionModel().selectNext();
-                        } else if (dy > 0) {
-                            tabPanePrincipal.getSelectionModel().selectPrevious();
-                        }
-                    } else if (Math.abs(dx) > 2) { // Pequena margem de tolerância (deadzone) para o X
-                        // Scroll Horizontal
-                        if (dx < 0) {
-                            tabPanePrincipal.getSelectionModel().selectNext();
-                        } else if (dx > 0) {
-                            tabPanePrincipal.getSelectionModel().selectPrevious();
-                        }
-                    }
-
-                    event.consume(); // Importante para o evento não subir para os controles dentro da aba
-                });
-            }
-        });
+        configurarScrollHorizontal();
     }
 
+    // ========================================================================
+    // PROTOCOLO DE ADMISSÃO (Motor de Abas)
+    // ========================================================================
+
     /**
-     * Foca em uma das abas fixas do sistema (0=Dashboard, 1=Playbook, 2=Clientes)
+     * Protocolo Padrão para abas de suporte/gestão (Links, Juros, Bancos,
+     * Comissões).
+     * Evita a duplicação de lógica de carregamento de FXML e criação de Tab.
      */
+    private void admitirAbaSimples(String id, String titulo, String fxmlPath) {
+        // 1. Verifica se a "ficha" já está aberta (aba existente)
+        for (Tab tab : tabPanePrincipal.getTabs()) {
+            if (id.equals(tab.getUserData())) {
+                tabPanePrincipal.getSelectionModel().select(tab);
+                return;
+            }
+        }
+
+        // 2. Se for uma nova admissão, carrega o equipamento (FXML)
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            loader.setControllerFactory(context::getBean);
+            Parent root = loader.load();
+
+            Tab novaAba = new Tab(titulo);
+            novaAba.setContent(root);
+            novaAba.setUserData(id);
+            novaAba.setClosable(true);
+
+            tabPanePrincipal.getTabs().add(novaAba);
+            tabPanePrincipal.getSelectionModel().select(novaAba);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ========================================================================
+    // MÉTODOS PÚBLICOS (Ordens de Serviço)
+    // ========================================================================
+
     public void focarAbaFixa(int index) {
         if (tabPanePrincipal != null && index >= 0 && index < tabPanePrincipal.getTabs().size()) {
             tabPanePrincipal.getSelectionModel().select(index);
         }
     }
 
+    public void abrirAbaLinks() {
+        admitirAbaSimples("ABA_LINKS", "🔗 Links Úteis", "/fxml/links_uteis.fxml");
+    }
+
+    public void abrirAbaTabelasJuros() {
+        admitirAbaSimples("ABA_JUROS", "📈 Tabelas de Juros", "/fxml/tabelas_juros.fxml");
+    }
+
+    public void abrirAbaBancosConvenios() {
+        admitirAbaSimples("ABA_BANCOS", "🏦 Bancos e Convênios", "/fxml/bancos_convenios.fxml");
+    }
+
+    public void abrirAbaComissoes() {
+        admitirAbaSimples("ABA_COMISSOES", "💰 Comissões", "/fxml/comissoes.fxml");
+    }
+
     /**
-     * Motor inteligente: Se proponente for null, abre um Novo Contato ÚNICO.
-     * Se existir, foca na aba já aberta ou cria uma nova aba Hub.
+     * Admissão Especial: Hub de Atendimento.
+     * Diferente das simples, esta requer injeção de dados do Proponente e Bindings
+     * de título.
      */
     public void abrirOuFocarAba(Proponente proponente) {
-        String idBuscado = null;
-        boolean isExistente = (proponente != null && proponente.getId() != null);
+        String idBuscado;
 
-        if (isExistente && proponente != null) {
+        // 1. Triagem Direta: Verificamos se o paciente existe e tem registro (ID)
+        if (proponente != null && proponente.getId() != null) {
             idBuscado = String.valueOf(proponente.getId());
-            // Busca aba existente pelo ID do banco
+
+            // Busca se o leito (aba) já está ocupado por este paciente
             for (Tab tab : tabPanePrincipal.getTabs()) {
                 if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
                     tabPanePrincipal.getSelectionModel().select(tab);
@@ -87,8 +113,7 @@ public class WorkspaceController {
                 }
             }
         } else {
-            // Para novos, geramos um ID temporário único para permitir várias abas de
-            // "Novo"
+            // Se for um novo atendimento, geramos o código de entrada único
             idBuscado = "NOVO_" + UUID.randomUUID().toString();
         }
 
@@ -98,38 +123,24 @@ public class WorkspaceController {
             Parent root = loader.load();
             AtendimentoHubController hub = loader.getController();
 
-            if (isExistente)
+            // 2. Aqui o compilador fica calmo: checamos o objeto proponente diretamente
+            if (proponente != null && proponente.getId() != null) {
                 hub.inicializarAtendimento(proponente);
-            else
+            } else {
                 hub.prepararNovoAtendimento();
+            }
 
             Tab novaAba = new Tab();
             novaAba.setContent(root);
-            novaAba.setUserData(idBuscado); // Identificador único da aba
+            novaAba.setUserData(idBuscado);
             hub.setTabPertencente(novaAba);
 
-            // Binding reativo: O título da aba "persegue" o nome no ViewModel
-            novaAba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
-                String nome = hub.getLeadController().getViewModel().nomeProperty().get();
-                if (nome == null || nome.trim().isEmpty()) {
-                    return "Novo Atendimento";
-                }
-                // Limita o tamanho para não quebrar o layout das abas
-                return nome.length() > 20 ? nome.substring(0, 17) + "..." : nome;
-            }, hub.getLeadController().getViewModel().nomeProperty()));
+            configurarTituloReativoLead(novaAba, hub);
 
-            // Opcional: Adicionar o ícone que tínhamos antes
-            Label iconeAba = new Label("👤");
-            iconeAba.setStyle("-fx-font-size: 14px;");
-            novaAba.setGraphic(iconeAba);
-
-            // Configura o fechamento SEGURO
             novaAba.setOnCloseRequest(event -> {
                 if (hub.temAlteracoesNaoSalvas()) {
-                    event.consume(); // Para o fechamento automático
-                    hub.solicitarFechamento(() -> {
-                        tabPanePrincipal.getTabs().remove(novaAba);
-                    });
+                    event.consume();
+                    hub.solicitarFechamento(() -> tabPanePrincipal.getTabs().remove(novaAba));
                 } else {
                     hub.limparRecursos();
                 }
@@ -137,110 +148,41 @@ public class WorkspaceController {
 
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * Abre ou foca na aba de Links Úteis.
-     * Diferente das abas fixas, esta é fechável.
-     */
-    public void abrirAbaLinks() {
-        String idLinks = "ABA_LINKS_UTEIS";
+    // ========================================================================
+    // UTILITÁRIOS INTERNOS (Suporte Vital)
+    // ========================================================================
 
-        // 1. Verificar se a aba já está aberta
-        for (Tab tab : tabPanePrincipal.getTabs()) {
-            if (idLinks.equals(tab.getUserData())) {
-                tabPanePrincipal.getSelectionModel().select(tab);
-                return;
-            }
-        }
+    private void configurarTituloReativoLead(Tab aba, AtendimentoHubController hub) {
+        aba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
+            String nome = hub.getLeadController().getViewModel().nomeProperty().get();
+            if (nome == null || nome.trim().isEmpty())
+                return "Novo Atendimento";
+            return nome.length() > 20 ? nome.substring(0, 17) + "..." : nome;
+        }, hub.getLeadController().getViewModel().nomeProperty()));
 
-        // 2. Se não estiver aberta, carregar o FXML
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/links_uteis.fxml"));
-            loader.setControllerFactory(context::getBean);
-            Parent root = loader.load();
-
-            Tab tabLinks = new Tab("🔗 Links Úteis");
-            tabLinks.setContent(root);
-            tabLinks.setUserData(idLinks);
-            tabLinks.setClosable(true); // Esta aba o usuário pode fechar
-
-            tabPanePrincipal.getTabs().add(tabLinks);
-            tabPanePrincipal.getSelectionModel().select(tabLinks);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Label icone = new Label("👤");
+        icone.setStyle("-fx-font-size: 14px;");
+        aba.setGraphic(icone);
     }
 
-    /**
-     * Abre ou foca na aba de Gestão de Tabelas de Juros.
-     * Segue a mesma arquitetura de aba fechável da tela de Links Úteis.
-     */
-    public void abrirAbaTabelasJuros() {
-        try {
-            String idTabelas = "ABA_TABELAS_JUROS";
-
-            // 1. Verifica se a aba já está aberta
-            for (Tab tab : tabPanePrincipal.getTabs()) {
-                if (idTabelas.equals(tab.getUserData())) {
-                    tabPanePrincipal.getSelectionModel().select(tab);
-                    return;
-                }
+    private void configurarScrollHorizontal() {
+        Platform.runLater(() -> {
+            Node header = tabPanePrincipal.lookup(".tab-header-area");
+            if (header != null) {
+                header.setOnScroll(event -> {
+                    if (event.getDeltaY() < 0 || event.getDeltaX() < 0)
+                        tabPanePrincipal.getSelectionModel().selectNext();
+                    else
+                        tabPanePrincipal.getSelectionModel().selectPrevious();
+                    event.consume();
+                });
             }
-
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/tabelas_juros.fxml"));
-            loader.setControllerFactory(context::getBean);
-            Parent root = loader.load();
-
-            Tab tabTabelas = new Tab("📈 Tabelas de Juros");
-            tabTabelas.setContent(root);
-            tabTabelas.setUserData(idTabelas);
-            tabTabelas.setClosable(true);
-
-            tabPanePrincipal.getTabs().add(tabTabelas);
-            tabPanePrincipal.getSelectionModel().select(tabTabelas);
-
-        } catch (Exception e) { // Captura QUALQUER erro, não só IOException
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Abre ou foca na aba de Gestão de Bancos e Convênios.
-     * Utiliza o padrão de Cards para visualização.
-     */
-    public void abrirAbaBancosConvenios() {
-        try {
-            String idBancos = "ABA_BANCOS_CONVENIOS";
-
-            // 1. Verifica se a aba já está aberta para evitar duplicidade
-            for (Tab tab : tabPanePrincipal.getTabs()) {
-                if (idBancos.equals(tab.getUserData())) {
-                    tabPanePrincipal.getSelectionModel().select(tab);
-                    return;
-                }
-            }
-
-            // 2. Carrega o FXML integrando com o contexto do Spring
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/bancos_convenios.fxml"));
-            loader.setControllerFactory(context::getBean);
-            Parent root = loader.load();
-
-            // 3. Configura a nova Aba
-            Tab tabBancos = new Tab("🏦 Bancos e Convênios");
-            tabBancos.setContent(root);
-            tabBancos.setUserData(idBancos);
-            tabBancos.setClosable(true);
-
-            // 4. Adiciona e foca
-            tabPanePrincipal.getTabs().add(tabBancos);
-            tabPanePrincipal.getSelectionModel().select(tabBancos);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 }

@@ -50,7 +50,7 @@ public class Comissao {
     private LocalDateTime dataRecebimento;
 
     @Column(name = "valor_pago_pela_poder")
-    private BigDecimal valorPagoPelaPoder;
+    private BigDecimal valorPagoPelaPoder = BigDecimal.ZERO;
 
     @Column(nullable = false)
     private boolean contestada = false;

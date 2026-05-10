@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Circle?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.ComissoesController">
+
+    <VBox spacing="20" style="-fx-padding: 30; -fx-background-color: -color-bg-subtle;">
+
+        <HBox alignment="CENTER_LEFT" spacing="15">
+            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <Label text="💰 Gestão de Repasses (RV)"
+                    style="-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                <Label text="Auditoria de glosas e monitoramento de fluxo de caixa."
+                    style="-fx-font-size: 14px; -fx-text-fill: -color-fg-muted;" />
+            </VBox>
+
+            <HBox spacing="15">
+                <VBox alignment="CENTER"
+                    style="-fx-background-color: white; -fx-padding: 10 20; -fx-background-radius: 10; -fx-border-color: #e1e4e8; -fx-border-radius: 10;">
+                    <Label text="PENDENTES"
+                        style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #f39c12;" />
+                    <Label fx:id="lblTotalPendente" text="R$ 0,00"
+                        style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                </VBox>
+                <VBox alignment="CENTER"
+                    style="-fx-background-color: white; -fx-padding: 10 20; -fx-background-radius: 10; -fx-border-color: #e1e4e8; -fx-border-radius: 10;">
+                    <Label text="RECEBIDOS"
+                        style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #27ae60;" />
+                    <Label fx:id="lblTotalRecebido" text="R$ 0,00"
+                        style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                </VBox>
+            </HBox>
+        </HBox>
+
+        <Separator />
+
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <TextField fx:id="txtBusca" promptText="🔍 Pesquisar por cliente, banco ou status..."
+                HBox.hgrow="ALWAYS"
+                style="-fx-font-size: 14px; -fx-background-radius: 20; -fx-padding: 8 15;" />
+            <Button text="🔄 Recarregar" onAction="#recarregarDados" styleClass="flat" />
+        </HBox>
+
+        <TableView fx:id="tableComissoes" VBox.vgrow="ALWAYS" styleClass="edge-to-edge">
+            <columns>
+                <TableColumn fx:id="colData" text="Previsão" prefWidth="120" />
+                <TableColumn fx:id="colCliente" text="Paciente / Cliente" prefWidth="250" />
+                <TableColumn fx:id="colBanco" text="Instituição (Banco)" prefWidth="150" />
+                <TableColumn fx:id="colValorBruto" text="Valor Bruto" prefWidth="130"
+                    style="-fx-alignment: CENTER-RIGHT;" />
+                <TableColumn fx:id="colStatus" text="Sinal Vital (Status)" prefWidth="150"
+                    style="-fx-alignment: CENTER;" />
+            </columns>
+            <placeholder>
+                <VBox alignment="CENTER" spacing="10">
+                    <Label text="Nenhum registro de repasse encontrado."
+                        style="-fx-text-fill: -color-fg-muted;" />
+                </VBox>
+            </placeholder>
+        </TableView>
+
+        <Label text="* Dica: Clique duas vezes em um registro para dar baixa ou contestar o valor."
+            style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted; -fx-font-style: italic;" />
+    </VBox>
+
+    <VBox fx:id="overlayAjuste" alignment="CENTER" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.7);">
+
+        <VBox spacing="20" maxWidth="450"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 15; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 20, 0, 0, 0);">
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label fx:id="lblTituloModal" text="Ajuste de Repasse"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+            </HBox>
+
+            <Separator />
+
+            <GridPane hgap="15" vgap="15">
+                <columnConstraints>
+                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
+                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
+                </columnConstraints>
+
+                <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                    <Label text="Data de Recebimento"
+                        style="-fx-font-size: 12px; -fx-text-fill: -color-fg-muted;" />
+                    <DatePicker fx:id="dpRecebimento" promptText="dd/mm/aaaa" maxWidth="Infinity" />
+                </VBox>
+
+                <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                    <Label text="Status da Glosa"
+                        style="-fx-font-size: 12px; -fx-text-fill: -color-fg-muted;" />
+                    <ComboBox fx:id="comboStatus" maxWidth="Infinity" />
+                </VBox>
+
+                <VBox spacing="5" GridPane.columnSpan="2" GridPane.rowIndex="1">
+                    <Label text="Valor Realmente Pago (Líquido)"
+                        style="-fx-font-size: 12px; -fx-text-fill: -color-fg-muted;" />
+                    <TextField fx:id="txtValorPago" promptText="R$ 0,00"
+                        style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                </VBox>
+
+                <HBox spacing="10" alignment="CENTER_LEFT" GridPane.columnSpan="2"
+                    GridPane.rowIndex="2"
+                    style="-fx-padding: 10; -fx-background-color: #fff5f5; -fx-background-radius: 5;">
+                    <CheckBox fx:id="cbContestada"
+                        text="CONTESTAR PAGAMENTO (Divergência de Valores)"
+                        style="-fx-text-fill: #c0392b; -fx-font-weight: bold;" />
+                </HBox>
+            </GridPane>
+
+            <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+                <Button text="Cancelar" onAction="#fecharModal" styleClass="flat" />
+                <Button text="💾 Confirmar Baixa" onAction="#salvarAjuste"
+                    styleClass="accent" style="-fx-font-weight: bold; -fx-padding: 10 20;" />
+            </HBox>
+        </VBox>
+    </VBox>
+
+</StackPane>

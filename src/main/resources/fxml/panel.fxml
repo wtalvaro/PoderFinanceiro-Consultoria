@@ -49,7 +49,7 @@
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelasJuros" />
 
         <Button fx:id="btnTabelaComissoes" text="💰 Tabela de Comissões" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" />
+            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelaComissoes" />
 
         <Button fx:id="btnLinks" text="🔗 Links e Atalhos" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirLinksUteis" />

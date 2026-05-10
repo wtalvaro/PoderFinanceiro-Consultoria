@@ -78,6 +78,12 @@ public class PanelController {
         mainController.irParaBancosConvenios();;
     }
 
+    @FXML
+    private void abrirTabelaComissoes() {
+        destacarBotaoAtivo(btnTabelaComissoes);
+        mainController.irParaTabelaComissoes();
+    }
+
     // ==========================================================
     // MÉTODOS AUXILIARES DE UI
     // ==========================================================

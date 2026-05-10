@@ -8,10 +8,12 @@ import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -20,11 +22,9 @@ import java.util.List;
 @Component
 public class DashboardController {
 
-    @Autowired
-    private PropostaRepository propostaRepository;
-
-    @Autowired
-    private ComissaoRepository comissaoRepository;
+    private final PropostaRepository propostaRepository;
+    private final ComissaoRepository comissaoRepository;
+    private final MainController mainController;
 
     // Elementos de UI vinculados ao dashboard.fxml
     @FXML
@@ -35,7 +35,8 @@ public class DashboardController {
     private Label lblVolumeAprovado;
     @FXML
     private Label lblComissaoEstimada;
-
+    @FXML
+    private TextField txtBuscaPropostas;
     @FXML
     private TableView<Proposta> tabelaPropostas;
     @FXML
@@ -49,54 +50,82 @@ public class DashboardController {
     @FXML
     private TableColumn<Proposta, StatusProposta> colStatus;
 
+    private final ObservableList<Proposta> masterData = FXCollections.observableArrayList();
+
+    // Injeção de Dependências Oficial do Spring
+    public DashboardController(PropostaRepository propostaRepository,
+            ComissaoRepository comissaoRepository,
+            MainController mainController) {
+        this.propostaRepository = propostaRepository;
+        this.comissaoRepository = comissaoRepository;
+        this.mainController = mainController;
+    }
+
     /**
      * Inicializa o dashboard configurando a tabela e carregando os dados do banco.
      */
     @FXML
     public void initialize() {
-        // Nome fixo conforme perfil do proprietário da Poder Financeiro
         lblNomeConsultor.setText("Wagner Teles Alvaro");
 
         configurarTabela();
-        carregarDadosReais();
+        configurarBuscaReativa(); // Liga o "Radar" de busca
+        carregarDadosReais(); // Coleta os primeiros exames
     }
 
     /**
      * Configura o mapeamento das colunas da TableView com os modelos de dados.
      */
     private void configurarTabela() {
-        // Acesso ao nome do proponente (Entidade Proponente)
         colCliente.setCellValueFactory(
-                cellData -> new SimpleStringProperty(cellData.getValue().getProponente().getNomeCompleto()));
+                data -> new SimpleStringProperty(data.getValue().getProponente().getNomeCompleto()));
+        colBanco.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBanco().getNome()));
 
-        // Acesso ao nome do banco (Entidade Banco)
-        colBanco.setCellValueFactory(
-                cellData -> new SimpleStringProperty(cellData.getValue().getBanco().getNome()));
-
-        colConvenio.setCellValueFactory(cellData -> {
-            // 1. Pegamos o enum do proponente vinculado à proposta
-            TipoVinculo vinculo = cellData.getValue().getProponente().getTipoVinculo();
-
-            // 2. Retornamos a descrição amigável ou vazio se estiver nulo
+        colConvenio.setCellValueFactory(data -> {
+            TipoVinculo vinculo = data.getValue().getProponente().getTipoVinculo();
             return new SimpleStringProperty(vinculo != null ? vinculo.getLabel() : "");
         });
-        
-        // Mapeamento direto de campos da Proposta
+
         colValor.setCellValueFactory(new PropertyValueFactory<>("valorAprovado"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        // Formatação monetária personalizada para a coluna de valor
         colValor.setCellFactory(tc -> new TableCell<>() {
             @Override
             protected void updateItem(BigDecimal item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
+                if (empty || item == null)
                     setText(null);
-                } else {
+                else
                     setText(FinanceiroUtils.formatarParaExibicao(item));
-                }
             }
         });
+    }
+
+    /**
+     * O Motor da Mágica: Filtra a lista instantaneamente enquanto a Solange digita.
+     */
+    private void configurarBuscaReativa() {
+        FilteredList<Proposta> filteredData = new FilteredList<>(masterData, p -> true);
+
+        txtBuscaPropostas.textProperty().addListener((obs, oldVal, newVal) -> {
+            filteredData.setPredicate(proposta -> {
+                if (newVal == null || newVal.isEmpty()) return true;
+                
+                String filtro = newVal.toLowerCase();
+                String nome = proposta.getProponente().getNomeCompleto().toLowerCase();
+                String cpf = proposta.getProponente().getCpf().replaceAll("[^0-9]", ""); // Limpa máscara para buscar
+                String banco = proposta.getBanco().getNome().toLowerCase();
+
+                // Procura no Nome, no CPF ou no Banco
+                return nome.contains(filtro) || cpf.contains(filtro) || banco.contains(filtro);
+            });
+        });
+
+        SortedList<Proposta> sortedData = new SortedList<>(filteredData);
+        sortedData.comparatorProperty().bind(tabelaPropostas.comparatorProperty());
+        
+        // Em vez de jogar a lista crua, jogamos a lista "Superpoderosa" na tabela
+        tabelaPropostas.setItems(sortedData);
     }
 
     /**
@@ -104,32 +133,40 @@ public class DashboardController {
      */
     @FXML
     public void carregarDadosReais() {
-        List<Proposta> propostas = propostaRepository.findAll();
+        // Usa a query com JOIN FETCH (O Raio-X completo) para evitar telas brancas
+        List<Proposta> propostas = propostaRepository.findAllComDetalhes();
 
-        // 1. Contador de propostas aguardando (Status DIGITADA ou PENDENTE)
+        // Atualiza a memória. A interface se ajusta sozinha, sem perder o que estiver
+        // digitado na busca!
+        masterData.setAll(propostas);
+
+        // --- Recálculo dos Monitores Vitais (KPIs) ---
         long aguardando = propostas.stream()
-                .filter(p -> p.getStatus() == StatusProposta.DIGITADA ||
-                        p.getStatus() == StatusProposta.PENDENTE)
+                .filter(p -> p.getStatus() == StatusProposta.DIGITADA || p.getStatus() == StatusProposta.PENDENTE)
                 .count();
 
-        // 2. Volume total aprovado (Status PAGO)
         BigDecimal volumePago = propostas.stream()
                 .filter(p -> p.getStatus() == StatusProposta.PAGO)
                 .map(p -> p.getValorAprovado() != null ? p.getValorAprovado() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 3. Soma das comissões pendentes (Tabela Comissoes)
         BigDecimal comissaoTotal = comissaoRepository.findAll().stream()
                 .filter(c -> "Pendente".equalsIgnoreCase(c.getStatusPagamento()))
                 .map(c -> c.getValorLiquidoConsultor() != null ? c.getValorLiquidoConsultor() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Atualização dos Labels na UI usando formatador oficial[cite: 13]
         lblQtdAguardando.setText(String.valueOf(aguardando));
         lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(volumePago));
         lblComissaoEstimada.setText(FinanceiroUtils.formatarParaExibicao(comissaoTotal));
+    }
 
-        // Atualiza a lista da tabela
-        tabelaPropostas.setItems(FXCollections.observableArrayList(propostas));
+    /**
+     * Ação do botão "Simular Novo".
+     * Avisa o sistema central para abrir uma ficha limpa.
+     */
+    @FXML
+    private void simularNovo() {
+        txtBuscaPropostas.clear(); // Limpa a busca antes de sair
+        mainController.abrirClienteNoWorkspace(null); // O 'null' avisa o Workspace que é um paciente NOVO
     }
 }

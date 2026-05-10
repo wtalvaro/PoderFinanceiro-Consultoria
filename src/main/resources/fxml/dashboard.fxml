@@ -71,8 +71,9 @@
                             styleClass="text-small" />
                     </VBox>
                     <Region HBox.hgrow="ALWAYS" />
-                    <TextField promptText="Buscar por Nome ou CPF..." prefWidth="250" />
-                    <Button text="Simular Novo" styleClass="flat" />
+                    <TextField fx:id="txtBuscaPropostas" promptText="Buscar por Nome ou CPF..."
+                        prefWidth="250" />
+                    <Button text="Simular Novo" styleClass="flat" onAction="#simularNovo" />
                     <Button text="Atualizar" onAction="#carregarDadosReais" />
                 </HBox>
 

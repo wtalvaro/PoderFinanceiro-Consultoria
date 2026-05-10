@@ -108,46 +108,62 @@ public class MainController {
         abrirClienteNoWorkspace(null); // Null indica "Novo Cadastro" para o Workspace
     }
 
+    // ========================================================================
+    // MOTOR DE NAVEGAÇÃO INTERNA (O "Protocolo Padrão")
+    // ========================================================================
+
+    /**
+     * Método funcional que centraliza a lógica de acesso ao Workspace.
+     * Encapsula a verificação de visibilidade, cache e tratamento de erros.
+     */
+    private void executarNoWorkspace(java.util.function.Consumer<WorkspaceController> acao) {
+        try {
+            garantirWorkspaceVisivel();
+            ViewPair pair = cacheDeViews.get("/fxml/workspace.fxml");
+
+            if (pair != null && pair.controller instanceof WorkspaceController) {
+                acao.accept((WorkspaceController) pair.controller);
+            }
+        } catch (Exception e) {
+            // Log enxuto para auditoria interna em caso de falha crítica
+            e.printStackTrace();
+        }
+    }
+
+    // ========================================================================
+    // MÉTODOS PÚBLICOS (As Ordens Diretas)
+    // ========================================================================
+
     public void focarAbaDashboard() {
-        acionarAbaFixaWorkspace(0);
+        executarNoWorkspace(ws -> ws.focarAbaFixa(0));
     }
 
     public void focarAbaPlaybook() {
-        acionarAbaFixaWorkspace(1);
+        executarNoWorkspace(ws -> ws.focarAbaFixa(1));
     }
 
     public void focarAbaClientes() {
-        acionarAbaFixaWorkspace(2);
-    }
-
-    private void acionarAbaFixaWorkspace(int index) {
-        garantirWorkspaceVisivel();
-        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
-        ws.focarAbaFixa(index);
+        executarNoWorkspace(ws -> ws.focarAbaFixa(2));
     }
 
     public void abrirClienteNoWorkspace(Proponente proponente) {
-        garantirWorkspaceVisivel();
-        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
-        ws.abrirOuFocarAba(proponente);
+        executarNoWorkspace(ws -> ws.abrirOuFocarAba(proponente));
     }
 
     public void irParaLinksUteis() {
-        garantirWorkspaceVisivel();
-        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
-        ws.abrirAbaLinks();
+        executarNoWorkspace(ws -> ws.abrirAbaLinks());
     }
 
     public void irParaTabelasJuros() {
-        garantirWorkspaceVisivel();
-        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
-        ws.abrirAbaTabelasJuros();
+        executarNoWorkspace(ws -> ws.abrirAbaTabelasJuros());
     }
 
     public void irParaBancosConvenios() {
-        garantirWorkspaceVisivel();
-        WorkspaceController ws = (WorkspaceController) cacheDeViews.get("/fxml/workspace.fxml").controller;
-        ws.abrirAbaBancosConvenios();
+        executarNoWorkspace(ws -> ws.abrirAbaBancosConvenios());
+    }
+
+    public void irParaTabelaComissoes() {
+        executarNoWorkspace(ws -> ws.abrirAbaComissoes());
     }
 
     private void garantirWorkspaceVisivel() {
