@@ -104,6 +104,7 @@ public class BancosConveniosController {
         btnPortal.setMaxWidth(Double.MAX_VALUE);
         btnPortal.setStyle(
                 "-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+        btnPortal.setCursor(javafx.scene.Cursor.HAND);
         btnPortal.setOnAction(e -> abrirLinkNoNavegador(banco.getSitePortal()));
 
         Button btnEditar = new Button("✏️ Editar");
