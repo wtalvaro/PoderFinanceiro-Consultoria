@@ -6,6 +6,7 @@ import br.com.poderfinanceiro.app.service.DocumentoService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.application.Platform;
 import javafx.scene.control.*;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.TransferMode;
@@ -23,7 +24,7 @@ public class DocumentoController {
     @FXML
     private VBox dropZone;
     @FXML
-    private VBox panelClassificacao; // Nosso novo painel
+    private VBox panelClassificacao;
     @FXML
     private Label lblNomeArquivo, lblTituloPanel;
     @FXML
@@ -49,9 +50,6 @@ public class DocumentoController {
     private final MainController mainController;
 
     private Proponente proponenteAtual;
-
-    // Variável para segurar o arquivo enquanto o usuário escolhe o tipo na
-    // interface
     private File arquivoPendenteUpload;
 
     public DocumentoController(DocumentoService documentoService, MainController mainController) {
@@ -111,7 +109,6 @@ public class DocumentoController {
         boolean success = false;
         if (event.getDragboard().hasFiles()) {
             success = true;
-            // Pegamos apenas o primeiro arquivo para simplificar a classificação inline
             File file = event.getDragboard().getFiles().get(0);
             prepararUploadEmbutido(file);
         }
@@ -136,12 +133,12 @@ public class DocumentoController {
     }
 
     // ==========================================================
-    // FLUXO DO PAINEL NATIVO (Adeus Dialogs do Sistema)
+    // FLUXO DO PAINEL NATIVO
     // ==========================================================
 
     private void prepararUploadEmbutido(File file) {
         this.arquivoPendenteUpload = file;
-        this.documentoEmEdicao = null; // Garante que é um documento NOVO
+        this.documentoEmEdicao = null;
 
         this.lblTituloPanel.setText("Classifique o novo documento:");
         this.lblNomeArquivo.setText(file.getName());
@@ -150,7 +147,6 @@ public class DocumentoController {
         abrirPainelAzul();
     }
 
-    // NOVO MÉTODO: Abre o painel, mas com os dados do documento que já existe
     private void prepararEdicaoEmbutida(DocumentoProponente doc) {
         this.documentoEmEdicao = doc;
         this.arquivoPendenteUpload = null;
@@ -169,8 +165,8 @@ public class DocumentoController {
         panelClassificacao.setVisible(true);
         panelClassificacao.setManaged(true);
         mostrarAviso("", true);
-        
-        // O SEGREDO ESTÁ AQUI: Força a rolagem para o topo
+
+        // Força a rolagem para o topo (onde está o painel)
         if (scrollPrincipal != null) {
             scrollPrincipal.setVvalue(0.0);
         }
@@ -178,13 +174,27 @@ public class DocumentoController {
 
     @FXML
     private void cancelarUploadInline() {
+        // 1. Congela a posição atual do scroll (tira uma "foto" de onde a tela está)
+        double posicaoScroll = scrollPrincipal != null ? scrollPrincipal.getVvalue() : 0.0;
+
         this.arquivoPendenteUpload = null;
         this.documentoEmEdicao = null;
 
+        // Alterna as views
         panelClassificacao.setVisible(false);
         panelClassificacao.setManaged(false);
         dropZone.setVisible(true);
         dropZone.setManaged(true);
+
+        // 2. Tira o foco do "nada" (que faria a tabela roubar a cena) e joga pro
+        // dropZone
+        dropZone.requestFocus();
+
+        // 3. Platform.runLater diz ao JavaFX: "Assim que você terminar de redesenhar
+        // a tela sem o painel azul, coloque o scroll exatamente onde estava".
+        if (scrollPrincipal != null) {
+            Platform.runLater(() -> scrollPrincipal.setVvalue(posicaoScroll));
+        }
     }
 
     @FXML
@@ -197,13 +207,10 @@ public class DocumentoController {
         }
 
         try {
-            // SE FOR EDIÇÃO
             if (documentoEmEdicao != null) {
                 documentoService.atualizarTipoDocumento(documentoEmEdicao.getId(), tipoSelecionado);
                 mostrarAviso("Documento atualizado com sucesso!", true);
-            }
-            // SE FOR UPLOAD NOVO
-            else {
+            } else {
                 documentoService.processarUpload(this.arquivoPendenteUpload, tipoSelecionado, proponenteAtual);
                 mostrarAviso("Documento salvo com sucesso!", true);
             }
@@ -236,11 +243,8 @@ public class DocumentoController {
                     setText(null);
                 } else {
                     DocumentoProponente doc = getTableRow().getItem();
-
-                    // Criamos um "botão" que parece um Label para ser discreto mas clicável
                     Hyperlink linkStatus = new Hyperlink(doc.getVerificado() ? "✅ Verificado" : "⏳ Pendente");
 
-                    // Estilização dinâmica baseada no estado
                     if (doc.getVerificado()) {
                         linkStatus.setStyle("-fx-text-fill: #2e7d32; -fx-underline: false; -fx-font-weight: bold;");
                     } else {
@@ -248,16 +252,11 @@ public class DocumentoController {
                     }
 
                     linkStatus.setOnAction(event -> {
+                        event.consume(); // Evita scroll/pulo acidental da tabela
                         try {
-                            // 1. Atualiza no Banco via Serviço
                             DocumentoProponente atualizado = documentoService.alternarVerificacao(doc.getId());
-
-                            // 2. Sincroniza o objeto da lista (sem recarregar do banco)
                             doc.setVerificado(atualizado.getVerificado());
-
-                            // 3. O SEGREDO: Repinta a tabela instantaneamente
                             tableDocumentos.refresh();
-
                         } catch (Exception e) {
                             mostrarAviso("Erro ao atualizar status: " + e.getMessage(), false);
                         }
@@ -280,6 +279,7 @@ public class DocumentoController {
                 btnExcluir.getStyleClass().addAll("flat", "danger");
 
                 btnAbrir.setOnAction(event -> {
+                    event.consume(); // Previne pulos na tela
                     DocumentoProponente doc = getTableView().getItems().get(getIndex());
                     File file = new File(doc.getArquivoPath());
                     if (file.exists()) {
@@ -290,14 +290,15 @@ public class DocumentoController {
                 });
 
                 btnEditar.setOnAction(event -> {
+                    event.consume(); // Previne pulos na tela
                     DocumentoProponente doc = getTableView().getItems().get(getIndex());
                     prepararEdicaoEmbutida(doc);
                 });
 
-                // Ação de Excluir: Chama o OVERLAY em vez do Alert do sistema
                 btnExcluir.setOnAction(event -> {
+                    event.consume(); // Previne pulos na tela
                     documentoParaExcluir = getTableView().getItems().get(getIndex());
-                    overlayExclusao.setVisible(true); // Exibe a tela escura
+                    overlayExclusao.setVisible(true);
                 });
             }
 
@@ -340,17 +341,20 @@ public class DocumentoController {
     private void confirmarExclusao() {
         if (this.documentoParaExcluir != null) {
             try {
-                // 1. Remove do banco e do disco
-                documentoService.excluirDocumento(documentoParaExcluir.getId());
+                // AQUI ESTÁ A CORREÇÃO DA "EDIÇÃO FANTASMA"
+                // Se o documento sendo apagado é o mesmo que está no painel de edição, fechamos
+                // o painel!
+                if (documentoEmEdicao != null && documentoEmEdicao.getId().equals(documentoParaExcluir.getId())) {
+                    cancelarUploadInline();
+                }
 
-                // 2. Remove da interface imediatamente
+                documentoService.excluirDocumento(documentoParaExcluir.getId());
                 tableDocumentos.getItems().remove(documentoParaExcluir);
 
                 mostrarAviso("Documento apagado.", true);
             } catch (Exception e) {
                 mostrarAviso("Erro ao apagar: " + e.getMessage(), false);
             } finally {
-                // 3. Esconde o overlay e limpa a variável
                 cancelarExclusao();
             }
         }
