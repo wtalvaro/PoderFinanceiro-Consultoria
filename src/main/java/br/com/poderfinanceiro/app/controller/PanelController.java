@@ -90,6 +90,12 @@ public class PanelController {
         mainController.irParaPropostas();
     }
 
+    @FXML
+    private void abrirPendenciasList() {
+        destacarBotaoAtivo(btnPendencias);
+        mainController.irParaPendencias(); // A nova rota de emergência
+    }
+
     // ==========================================================
     // MÉTODOS AUXILIARES DE UI
     // ==========================================================

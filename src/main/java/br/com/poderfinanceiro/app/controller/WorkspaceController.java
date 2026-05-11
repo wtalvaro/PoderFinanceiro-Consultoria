@@ -93,8 +93,51 @@ public class WorkspaceController {
         admitirAbaSimples("ABA_COMISSOES", "💰 Gestão de Repasses (RV)", "/fxml/comissoes.fxml");
     }
 
-    public void abrirAbaPropostas() {
-        admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/propostas_list.fxml");
+    /**
+     * Admissão Especial: Esteira de Propostas (Permite Múltiplas Instâncias)
+     */
+    public void abrirAbaPropostas(String filtroInicial) {
+        // 1. Dinamiza o ID e o Título com base no "Sintoma" (Filtro)
+        boolean isEmergencia = filtroInicial != null && !filtroInicial.trim().isEmpty();
+        String idAba = isEmergencia ? "ABA_PENDENCIAS" : "ABA_PROPOSTAS";
+        String tituloAba = isEmergencia ? "🚨 UTI: Pendências" : "📄 Esteira de Propostas";
+
+        // 2. Verifica se ESTA aba específica (Normal ou UTI) já está aberta
+        for (Tab tab : tabPanePrincipal.getTabs()) {
+            if (idAba.equals(tab.getUserData())) {
+                tabPanePrincipal.getSelectionModel().select(tab);
+                return; // Já está na tela, foca nela e preserva o trabalho!
+            }
+        }
+
+        // 3. Nova Admissão
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/propostas_list.fxml"));
+            loader.setControllerFactory(context::getBean);
+            Parent root = loader.load();
+
+            // Injeta o "remédio" se for caso de emergência
+            PropostasListController controller = loader.getController();
+            if (isEmergencia) {
+                controller.aplicarFiltroExterno(filtroInicial);
+            }
+
+            Tab novaAba = new Tab(tituloAba);
+            novaAba.setContent(root);
+            novaAba.setUserData(idAba);
+            novaAba.setClosable(true);
+
+            // BÔNUS UI: Deixa o texto da aba da UTI em negrito e vermelho para chamar
+            // atenção
+            if (isEmergencia) {
+                novaAba.setStyle("-fx-text-base-color: #c62828; -fx-font-weight: bold;");
+            }
+
+            tabPanePrincipal.getTabs().add(novaAba);
+            tabPanePrincipal.getSelectionModel().select(novaAba);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

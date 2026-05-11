@@ -166,8 +166,14 @@ public class MainController {
         executarNoWorkspace(ws -> ws.abrirAbaComissoes());
     }
 
+    // Abertura Normal (Sem Filtro)
     public void irParaPropostas() {
-        executarNoWorkspace(ws -> ws.abrirAbaPropostas());
+        executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
+    }
+
+    // Abertura de Emergência (Com Filtro de Pendências)
+    public void irParaPendencias() {
+        executarNoWorkspace(ws -> ws.abrirAbaPropostas("PENDENTE"));
     }
 
     private void garantirWorkspaceVisivel() {

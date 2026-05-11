@@ -48,6 +48,17 @@ public class PropostasListController {
         recarregarDados();
     }
 
+    /**
+     * Método público para injeção de filtros via rotas do sistema.
+     * 
+     * @param termo A palavra que será jogada na caixa de busca (Ex: "PENDENTE")
+     */
+    public void aplicarFiltroExterno(String termo) {
+        if (txtBusca != null) {
+            txtBusca.setText(termo);
+        }
+    }
+
     private void configurarTabela() {
         colData.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getDataSolicitacao() != null ? d.getValue().getDataSolicitacao().format(df) : "-"));

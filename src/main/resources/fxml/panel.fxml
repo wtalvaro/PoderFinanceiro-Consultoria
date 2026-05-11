@@ -36,7 +36,8 @@
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirPropostasList" />
 
         <Button fx:id="btnPendencias" text="⏳ Pendências / Exigências" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" style="-fx-text-fill: -color-danger-fg;" />
+            alignment="BASELINE_LEFT" styleClass="flat" style="-fx-text-fill: -color-danger-fg;"
+            onAction="#abrirPendenciasList" />
 
         <Label text="REGRAS E CONSULTAS"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
