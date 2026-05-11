@@ -1,0 +1,223 @@
+package br.com.poderfinanceiro.app.viewmodel;
+
+import br.com.poderfinanceiro.app.model.Banco;
+import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.Proposta;
+import br.com.poderfinanceiro.app.model.Usuario;
+import br.com.poderfinanceiro.app.model.enums.StatusProposta;
+import javafx.beans.Observable;
+import javafx.beans.property.*;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Objects;
+
+@Component
+@Scope("prototype")
+public class PropostaViewModel extends BaseViewModel<Proposta> {
+
+    // --- 1. PROPERTIES ESPECÍFICAS DA PROPOSTA ---
+    private final ObjectProperty<Proponente> proponente = new SimpleObjectProperty<>();
+    private final ObjectProperty<Banco> banco = new SimpleObjectProperty<>();
+    private final ObjectProperty<Usuario> usuario = new SimpleObjectProperty<>();
+
+    private final ObjectProperty<BigDecimal> valorSolicitado = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final ObjectProperty<BigDecimal> valorAprovado = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final ObjectProperty<BigDecimal> taxaAplicada = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final ObjectProperty<Integer> quantidadeParcelas = new SimpleObjectProperty<>(0);
+
+    private final ObjectProperty<StatusProposta> status = new SimpleObjectProperty<>(StatusProposta.DIGITADA);
+    private final ObjectProperty<BigDecimal> valorParcela = new SimpleObjectProperty<>(BigDecimal.ZERO);
+
+    // Propriedade crucial para o cálculo automatizado:
+    private final ObjectProperty<Integer> tabelaId = new SimpleObjectProperty<>();
+    private final ObjectProperty<BigDecimal> comissaoEstimada = new SimpleObjectProperty<>(BigDecimal.ZERO);
+
+    private final StringProperty observacoes = new SimpleStringProperty("");
+    private final ObjectProperty<LocalDate> dataSolicitacao = new SimpleObjectProperty<>();
+
+    // --- 2. ESTADOS ORIGINAIS (Prontuário de Referência) ---
+    private final ReadOnlyObjectWrapper<Proponente> proponenteOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<Banco> bancoOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<BigDecimal> valorSolicitadoOriginal = new ReadOnlyObjectWrapper<>(
+            BigDecimal.ZERO);
+    private final ReadOnlyObjectWrapper<BigDecimal> valorAprovadoOriginal = new ReadOnlyObjectWrapper<>(
+            BigDecimal.ZERO);
+    private final ReadOnlyObjectWrapper<StatusProposta> statusOriginal = new ReadOnlyObjectWrapper<>(
+            StatusProposta.DIGITADA);
+    private final ReadOnlyObjectWrapper<Integer> tabelaIdOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyStringWrapper observacoesOriginal = new ReadOnlyStringWrapper("");
+
+    // ==========================================================
+    // IMPLEMENTAÇÃO DO CONTRATO
+    // ==========================================================
+
+    @Override
+    protected void extrairId(Proposta model) {
+        this.id.set(model.getId());
+    }
+
+    @Override
+    protected void preencherCampos(Proposta model) {
+        proponente.set(model.getProponente());
+        banco.set(model.getBanco());
+        usuario.set(model.getUsuario());
+        valorSolicitado.set(model.getValorSolicitado() != null ? model.getValorSolicitado() : BigDecimal.ZERO);
+        valorAprovado.set(model.getValorAprovado() != null ? model.getValorAprovado() : BigDecimal.ZERO);
+        taxaAplicada.set(model.getTaxaAplicada() != null ? model.getTaxaAplicada() : BigDecimal.ZERO);
+        quantidadeParcelas.set(model.getQuantidadeParcelas() != null ? model.getQuantidadeParcelas() : 0);
+        status.set(model.getStatus() != null ? model.getStatus() : StatusProposta.DIGITADA);
+        valorParcela.set(model.getValorParcela() != null ? model.getValorParcela() : BigDecimal.ZERO);
+        tabelaId.set(model.getTabelaId());
+        comissaoEstimada.set(model.getComissaoEstimada() != null ? model.getComissaoEstimada() : BigDecimal.ZERO);
+        observacoes.set(model.getObservacoes() != null ? model.getObservacoes() : "");
+        dataSolicitacao.set(model.getDataSolicitacao());
+    }
+
+    @Override
+    protected void limparCampos() {
+        proponente.set(null);
+        banco.set(null);
+        usuario.set(null);
+        valorSolicitado.set(BigDecimal.ZERO);
+        valorAprovado.set(BigDecimal.ZERO);
+        taxaAplicada.set(BigDecimal.ZERO);
+        quantidadeParcelas.set(0);
+        status.set(StatusProposta.DIGITADA);
+        valorParcela.set(BigDecimal.ZERO);
+        tabelaId.set(null);
+        comissaoEstimada.set(BigDecimal.ZERO);
+        observacoes.set("");
+        dataSolicitacao.set(null);
+    }
+
+    @Override
+    protected void sincronizarEstadoOriginal() {
+        proponenteOriginal.set(proponente.get());
+        bancoOriginal.set(banco.get());
+        valorSolicitadoOriginal.set(valorSolicitado.get());
+        valorAprovadoOriginal.set(valorAprovado.get());
+        statusOriginal.set(status.get());
+        tabelaIdOriginal.set(tabelaId.get());
+        observacoesOriginal.set(observacoes.get());
+    }
+
+    @Override
+    protected boolean temAlteracoesPendentes() {
+        return !Objects.equals(proponente.get(), proponenteOriginal.get()) ||
+                !Objects.equals(banco.get(), bancoOriginal.get()) ||
+                compareBigDecimal(valorSolicitado.get(), valorSolicitadoOriginal.get()) ||
+                compareBigDecimal(valorAprovado.get(), valorAprovadoOriginal.get()) ||
+                !Objects.equals(status.get(), statusOriginal.get()) ||
+                !Objects.equals(tabelaId.get(), tabelaIdOriginal.get()) ||
+                !Objects.equals(observacoes.get(), observacoesOriginal.get());
+    }
+
+    private boolean compareBigDecimal(BigDecimal val1, BigDecimal val2) {
+        if (val1 == null && val2 == null)
+            return false;
+        if (val1 == null || val2 == null)
+            return true;
+        return val1.compareTo(val2) != 0;
+    }
+
+    @Override
+    public Proposta atualizarModel(Proposta model) {
+        if (model == null) {
+            model = new Proposta();
+        }
+        model.setId(this.id.get());
+        model.setProponente(this.proponente.get());
+        model.setBanco(this.banco.get());
+        model.setUsuario(this.usuario.get());
+        model.setValorSolicitado(this.valorSolicitado.get());
+        model.setValorAprovado(this.valorAprovado.get());
+        model.setTaxaAplicada(this.taxaAplicada.get());
+        model.setQuantidadeParcelas(this.quantidadeParcelas.get());
+        model.setStatus(this.status.get());
+        model.setValorParcela(this.valorParcela.get());
+        model.setTabelaId(this.tabelaId.get());
+        model.setComissaoEstimada(this.comissaoEstimada.get());
+        model.setObservacoes(this.observacoes.get());
+        model.setDataSolicitacao(this.dataSolicitacao.get());
+
+        return model;
+    }
+
+    @Override
+    protected Observable[] getObservaveisParaDirty() {
+        return new Observable[] {
+                proponente, banco, valorSolicitado, valorAprovado, status, tabelaId, observacoes,
+                proponenteOriginal.getReadOnlyProperty(),
+                bancoOriginal.getReadOnlyProperty(),
+                valorSolicitadoOriginal.getReadOnlyProperty(),
+                valorAprovadoOriginal.getReadOnlyProperty(),
+                statusOriginal.getReadOnlyProperty(),
+                tabelaIdOriginal.getReadOnlyProperty(),
+                observacoesOriginal.getReadOnlyProperty()
+        };
+    }
+
+    // ==========================================================
+    // GETTERS PARA BINDING NA UI
+    // ==========================================================
+
+    // ==========================================================
+    // GETTERS PARA BINDING NA UI
+    // ==========================================================
+
+    public ObjectProperty<Proponente> proponenteProperty() {
+        return proponente;
+    }
+
+    public ObjectProperty<Banco> bancoProperty() {
+        return banco;
+    }
+
+    public ObjectProperty<Usuario> usuarioProperty() {
+        return usuario;
+    }
+
+    public ObjectProperty<BigDecimal> valorSolicitadoProperty() {
+        return valorSolicitado;
+    }
+
+    public ObjectProperty<BigDecimal> valorAprovadoProperty() {
+        return valorAprovado;
+    }
+
+    public ObjectProperty<BigDecimal> taxaAplicadaProperty() {
+        return taxaAplicada;
+    } // Adicionado
+
+    public ObjectProperty<Integer> quantidadeParcelasProperty() {
+        return quantidadeParcelas;
+    }
+
+    public ObjectProperty<StatusProposta> statusProperty() {
+        return status;
+    }
+
+    public ObjectProperty<BigDecimal> valorParcelaProperty() {
+        return valorParcela;
+    } // O que estava faltando!
+
+    public ObjectProperty<Integer> tabelaIdProperty() {
+        return tabelaId;
+    }
+
+    public ObjectProperty<BigDecimal> comissaoEstimadaProperty() {
+        return comissaoEstimada;
+    }
+
+    public StringProperty observacoesProperty() {
+        return observacoes;
+    }
+
+    public ObjectProperty<LocalDate> dataSolicitacaoProperty() {
+        return dataSolicitacao;
+    }
+    
+}

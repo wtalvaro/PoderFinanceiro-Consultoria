@@ -33,11 +33,10 @@
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 15 0 0 5;" />
 
         <Button fx:id="btnPropostas" text="📄 Propostas (Em Andamento)" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" />
+            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirPropostasList" />
 
         <Button fx:id="btnPendencias" text="⏳ Pendências / Exigências" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat"
-            style="-fx-text-fill: -color-danger-fg;" />
+            alignment="BASELINE_LEFT" styleClass="flat" style="-fx-text-fill: -color-danger-fg;" />
 
         <Label text="REGRAS E CONSULTAS"
             style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
@@ -48,7 +47,7 @@
         <Button fx:id="btnTabelasJuros" text="📈 Tabelas de Juros" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelasJuros" />
 
-        <Button fx:id="btnTabelaComissoes" text="💰 Tabela de Comissões" maxWidth="Infinity"
+        <Button fx:id="btnTabelaComissoes" text="💰 Gestão de Repasses (RV)" maxWidth="Infinity"
             alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelaComissoes" />
 
         <Button fx:id="btnLinks" text="🔗 Links e Atalhos" maxWidth="Infinity"

@@ -59,6 +59,10 @@
                         <fx:include fx:id="abaDocumento" source="documentos.fxml" />
                     </Tab>
 
+                    <Tab text="📄 Proposta / Simulação">
+                        <fx:include fx:id="abaProposta" source="proposta.fxml" />
+                    </Tab>
+
                     <Tab text="🔗 Links Úteis">
                         <fx:include fx:id="abaLinks" source="links_uteis.fxml" />
                     </Tab>

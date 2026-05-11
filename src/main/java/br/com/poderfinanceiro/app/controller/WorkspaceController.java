@@ -90,7 +90,11 @@ public class WorkspaceController {
     }
 
     public void abrirAbaComissoes() {
-        admitirAbaSimples("ABA_COMISSOES", "💰 Comissões", "/fxml/comissoes.fxml");
+        admitirAbaSimples("ABA_COMISSOES", "💰 Gestão de Repasses (RV)", "/fxml/comissoes.fxml");
+    }
+
+    public void abrirAbaPropostas() {
+        admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/propostas_list.fxml");
     }
 
     /**

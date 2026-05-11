@@ -84,6 +84,12 @@ public class PanelController {
         mainController.irParaTabelaComissoes();
     }
 
+    @FXML
+    private void abrirPropostasList() {
+        destacarBotaoAtivo(btnPropostas);
+        mainController.irParaPropostas();
+    }
+
     // ==========================================================
     // MÉTODOS AUXILIARES DE UI
     // ==========================================================

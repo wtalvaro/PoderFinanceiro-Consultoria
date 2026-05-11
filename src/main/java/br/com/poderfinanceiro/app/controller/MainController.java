@@ -166,6 +166,10 @@ public class MainController {
         executarNoWorkspace(ws -> ws.abrirAbaComissoes());
     }
 
+    public void irParaPropostas() {
+        executarNoWorkspace(ws -> ws.abrirAbaPropostas());
+    }
+
     private void garantirWorkspaceVisivel() {
         if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
             // Executa o carregamento real do FXML e Controller caso ainda não esteja na

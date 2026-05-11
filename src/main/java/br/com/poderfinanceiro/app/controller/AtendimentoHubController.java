@@ -2,7 +2,11 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.EnderecoProponente;
 import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.Proposta;
+import br.com.poderfinanceiro.app.model.Usuario;
+import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.service.ProponenteService;
+import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -32,6 +36,8 @@ public class AtendimentoHubController {
     @FXML
     private DocumentoController abaDocumentoController;
     @FXML
+    private PropostaController abaPropostaController;
+    @FXML
     private LinkUtilController abaLinksController;
     @FXML
     private VBox overlayConfirmacaoSaida, overlayMensagem, overlayResumo;
@@ -42,23 +48,29 @@ public class AtendimentoHubController {
 
     private final ProponenteService atendimentoService;
     private final MainController mainController;
+    private final PropostaService propostaService;
+    private final PropostaRepository propostaRepository;
 
     private Proponente proponenteAberto;
     private Runnable acaoNavegacaoPendente;
     private String resumoGeradoParaCopia;
     private Tab tabPertencente;
 
-    public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController) {
+    public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController,
+            PropostaService propostaService, PropostaRepository propostaRepository) {
         this.atendimentoService = atendimentoService;
         this.mainController = mainController;
+        this.propostaService = propostaService;
+        this.propostaRepository = propostaRepository;
     }
 
     @FXML
     public void initialize() {
-        // 1. Estado de Alteração: O atendimento está "sujo" se QUALQUER UMA das abas
-        // for alterada
+        // 1. O atendimento está "sujo" se a Lead, o Endereço OU a Proposta forem
+        // alterados!
         BooleanBinding atendimentoSujo = abaLeadController.getViewModel().dirtyProperty()
-                .or(abaEnderecoController.getViewModel().dirtyProperty());
+                .or(abaEnderecoController.getViewModel().dirtyProperty())
+                .or(abaPropostaController.getViewModel().dirtyProperty());
 
         // 2. Validação Centralizada no Hub: Nome é obrigatório e CPF (se preenchido)
         // deve ter 11 dígitos
@@ -84,11 +96,13 @@ public class AtendimentoHubController {
     }
 
     public void inicializarAtendimento(Proponente proponente) {
-        // 1. Carregar Lead: Se o proponente for null, as abas devem resetar para estado "novo"
+        // 1. Carregar Lead: Se o proponente for null, as abas devem resetar para estado
+        // "novo"
         this.proponenteAberto = proponente;
         abaLeadController.getViewModel().loadFromModel(proponente);
 
-        // 2. Carregar Endereço: Se o proponente tiver endereços, carrega o primeiro. Caso
+        // 2. Carregar Endereço: Se o proponente tiver endereços, carrega o primeiro.
+        // Caso
         if (proponente != null && proponente.getEnderecos() != null && !proponente.getEnderecos().isEmpty()) {
             abaEnderecoController.getViewModel().loadFromModel(proponente.getEnderecos().get(0));
         } else {
@@ -106,21 +120,37 @@ public class AtendimentoHubController {
         if (abaLinksController != null) {
             abaLinksController.recarregarLinks();
         }
+
+        // 5. CARREGAR A PROPOSTA (Ligar o Monitor)
+        if (proponente != null && proponente.getId() != null) {
+            java.util.List<br.com.poderfinanceiro.app.model.Proposta> propostas = propostaRepository
+                    .findByProponenteId(proponente.getId());
+
+            if (!propostas.isEmpty()) {
+                // Se o cliente tem propostas, carrega a última na tela
+                abaPropostaController.getViewModel().loadFromModel(propostas.get(propostas.size() - 1));
+            } else {
+                // Se é um cliente antigo mas não tem proposta, zera a tela
+                abaPropostaController.getViewModel().reset();
+            }
+        } else {
+            // Se for um "Novo Contato" (sem ID), zera a tela
+            abaPropostaController.getViewModel().reset();
+        }
     }
 
     public void prepararNovoAtendimento() {
         this.proponenteAberto = new Proponente();
-
-        // Reseta (limpa e sincroniza o estado original) de todas as abas
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         abaDocumentoController.carregarDocumentos(null);
+        abaPropostaController.getViewModel().reset();
     }
 
     public boolean temAlteracoesNaoSalvas() {
-        // CORREÇÃO: Se QUALQUER aba estiver suja, o Hub está sujo.
         return abaLeadController.getViewModel().isDirty()
-                || abaEnderecoController.getViewModel().isDirty();
+                || abaEnderecoController.getViewModel().isDirty()
+                || abaPropostaController.getViewModel().isDirty(); // <- AQUI
     }
 
     @FXML
@@ -140,7 +170,7 @@ public class AtendimentoHubController {
         Task<Proponente> task = new Task<>() {
             @Override
             protected Proponente call() throws Exception {
-                // Consolida os modelos
+                // 1. Salva o Lead e o Endereço (Gera o ID do Cliente)
                 Proponente p = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
                 EnderecoProponente e = abaEnderecoController.getViewModel().atualizarModel(
                         (p.getEnderecos() != null && !p.getEnderecos().isEmpty()) ? p.getEnderecos().get(0) : null);
@@ -148,7 +178,22 @@ public class AtendimentoHubController {
                 e.setProponente(p);
                 p.setEnderecos(new ArrayList<>(java.util.List.of(e)));
 
-                return atendimentoService.salvarLead(p);
+                Proponente proponenteSalvo = atendimentoService.salvarLead(p);
+
+                // 2. Se a aba de proposta foi preenchida, salva a proposta vinculada a ele!
+                if (abaPropostaController.getViewModel().isDirty()) {
+                    Proposta prop = abaPropostaController.getViewModel().atualizarModel(new Proposta());
+                    prop.setProponente(proponenteSalvo);
+
+                    // Temporário: Define o usuário como ID 1 (Wagner) até ligarmos o login real
+                    Usuario u = new Usuario();
+                    u.setId(1L);
+                    prop.setUsuario(u);
+
+                    propostaService.salvarProposta(prop);
+                }
+
+                return proponenteSalvo;
             }
         };
 
