@@ -1,6 +1,7 @@
 package br.com.poderfinanceiro.app.model;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,6 +20,7 @@ import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
 @Getter
 @Setter
 @NoArgsConstructor
+@EqualsAndHashCode(of = "id")
 public class TabelaJuros {
 
     @Id

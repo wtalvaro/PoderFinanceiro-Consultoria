@@ -21,7 +21,7 @@ public class TabelaJurosService {
      * Busca apenas as taxas ativas (que não foram arquivadas).
      */
     public List<TabelaJuros> listarAtivas() {
-        return repository.findByAtivoTrueAndFimVigenciaIsNull();
+        return repository.buscarTodasAtivasComBanco();
     }
 
     /**

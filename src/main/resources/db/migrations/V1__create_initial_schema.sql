@@ -132,6 +132,7 @@ CREATE TABLE public.comissoes (
 CREATE TABLE public.documentos_proponente (
     documento_id bigint DEFAULT nextval('public.documentos_proponente_documento_id_seq'::regclass) NOT NULL,
     proponente_id bigint,
+    proposta_id bigint, -- NOVO: Vincula o exame à internação
     usuario_id bigint NOT NULL,
     tipo_documento character varying(50) NOT NULL,
     arquivo_path text NOT NULL,
@@ -236,6 +237,7 @@ CREATE TABLE public.enderecos_proponente (
     bairro character varying(100) NOT NULL,
     cidade character varying(100) NOT NULL,
     uf public.uf_enum NOT NULL,
+    principal boolean DEFAULT false, -- NOVO: Flag de endereço principal
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     ultima_atualizacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
@@ -246,6 +248,7 @@ CREATE TABLE public.links_uteis (
     url text NOT NULL,
     descricao character varying(255),
     categoria public.categoria_link_enum DEFAULT 'OUTROS'::public.categoria_link_enum,
+    tipo_convenio public.tipo_convenio_enum, -- NOVO: Filtro inteligente (Pode ser nulo para links gerais)
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT links_uteis_pkey PRIMARY KEY (link_id)
 );
@@ -301,6 +304,8 @@ ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_usuario_id_fkey FOREI
 
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
+-- NOVO: Chave estrangeira para a Proposta na tabela de documentos
+ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT fk_documento_proposta FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_proposta_id_fkey FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;

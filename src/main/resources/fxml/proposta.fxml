@@ -17,8 +17,8 @@
 
             <VBox alignment="CENTER"
                 style="-fx-background-color: #e8f5e9; -fx-padding: 10 20; -fx-border-radius: 8; -fx-border-color: #c8e6c9;">
-                <Label text="COMISSÃO ESTIMADA"
-                    style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #2e7d32;" />
+                <Label fx:id="lblTituloComissao" text="Comissão Estimada"
+                    style="-fx-font-weight: bold;" />
                 <Label fx:id="lblComissaoEstimada" text="R$ 0,00"
                     style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1b5e20;" />
             </VBox>
@@ -28,7 +28,36 @@
 
         <VBox spacing="15"
             style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
-            <Label text="Instituição e Produto"
+            <Label text="1. Triagem Inicial (Filtro Inteligente)"
+                style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+
+            <GridPane hgap="20" vgap="15">
+                <columnConstraints>
+                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
+                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
+                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
+                </columnConstraints>
+
+                <VBox spacing="5" GridPane.columnIndex="0">
+                    <Label text="Tipo de Convênio" style="-fx-font-weight: bold;" />
+                    <ComboBox fx:id="cbConvenio" maxWidth="Infinity" promptText="Ex: INSS, FGTS..." />
+                </VBox>
+
+                <VBox spacing="5" GridPane.columnIndex="1">
+                    <Label text="Valor Solicitado (R$)" style="-fx-font-weight: bold;" />
+                    <TextField fx:id="txtValorSolicitado" promptText="0,00" />
+                </VBox>
+
+                <VBox spacing="5" GridPane.columnIndex="2">
+                    <Label text="Status Atual" />
+                    <ComboBox fx:id="cbStatus" maxWidth="Infinity" />
+                </VBox>
+            </GridPane>
+        </VBox>
+
+        <VBox spacing="15"
+            style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
+            <Label text="2. Instituição e Produto Disponível"
                 style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
 
             <GridPane hgap="20" vgap="15">
@@ -39,20 +68,19 @@
 
                 <VBox spacing="5" GridPane.columnIndex="0">
                     <Label text="Banco Parceiro" />
-                    <ComboBox fx:id="cbBanco" maxWidth="Infinity" promptText="Selecione o banco..." />
+                    <ComboBox fx:id="cbBanco" maxWidth="Infinity" promptText="Aguardando triagem..." />
                 </VBox>
 
                 <VBox spacing="5" GridPane.columnIndex="1">
                     <Label text="Tabela / Regra de Juros" />
-                    <ComboBox fx:id="cbTabela" maxWidth="Infinity"
-                        promptText="Selecione primeiro o banco..." />
+                    <ComboBox fx:id="cbTabela" maxWidth="Infinity" promptText="Aguardando banco..." />
                 </VBox>
             </GridPane>
         </VBox>
 
         <VBox spacing="15"
             style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
-            <Label text="Valores e Condições"
+            <Label text="3. Condições Finais"
                 style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
 
             <GridPane hgap="20" vgap="15">
@@ -63,32 +91,26 @@
                 </columnConstraints>
 
                 <VBox spacing="5" GridPane.columnIndex="0">
-                    <Label text="Valor Solicitado (R$)" />
-                    <TextField fx:id="txtValorSolicitado" promptText="0,00" />
-                </VBox>
-
-                <VBox spacing="5" GridPane.columnIndex="1">
                     <Label text="Valor Aprovado (R$)"
                         style="-fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;" />
                     <TextField fx:id="txtValorAprovado" promptText="0,00" />
-                    <Label text="* Base para comissão"
-                        style="-fx-font-size: 10px; -fx-text-fill: -color-fg-muted;" />
+                    <Label text="* Base real para comissão"
+                        style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted;" />
                 </VBox>
 
-                <VBox spacing="5" GridPane.columnIndex="2">
-                    <Label text="Status Atual" />
-                    <ComboBox fx:id="cbStatus" maxWidth="Infinity" />
-                </VBox>
-
-                <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                <VBox spacing="5" GridPane.columnIndex="1">
                     <Label text="Prazo (Meses)" />
                     <Spinner fx:id="spinPrazo" maxWidth="Infinity" />
                 </VBox>
 
-                <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                <VBox spacing="5" GridPane.columnIndex="2">
                     <Label text="Valor da Parcela (R$)" />
                     <TextField fx:id="txtParcela" promptText="0,00" />
+
+                    <Label fx:id="lblTotalPago" text="Total a Pagar: R$ 0,00"
+                        style="-fx-text-fill: #555555; -fx-font-size: 11px; -fx-font-style: italic; -fx-font-weight: bold;" />
                 </VBox>
+
             </GridPane>
         </VBox>
 

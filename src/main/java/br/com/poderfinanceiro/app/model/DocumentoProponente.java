@@ -24,6 +24,10 @@ public class DocumentoProponente {
     @JoinColumn(name = "proponente_id")
     private Proponente proponente;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proposta_id")
+    private Proposta proposta;
+
     // Relacionamento com o Consultor que fez o upload
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)

@@ -11,48 +11,85 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.PanelController">
 
-    <VBox spacing="10" prefWidth="250" maxHeight="1.7976931348623157E308"
-        style="-fx-background-color: -color-bg-default; -fx-padding: 15 10; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;">
+    <VBox fx:id="conteinerBotoes" spacing="5" prefWidth="70" alignment="TOP_CENTER"
+        maxHeight="1.7976931348623157E308"
+        style="-fx-background-color: -color-bg-default; -fx-padding: 15 5; -fx-border-color: -color-border-muted; -fx-border-width: 0 1 0 0;">
 
-        <Label text="GERENCIAL"
-            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 0 0 0 5;" />
+        <Button fx:id="btnDashboard" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat, accent" onAction="#abrirWorkspace"
+            style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="📊" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnDashboard" text="📊 Visão Geral" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat, accent" onAction="#abrirWorkspace" />
+        <Separator style="-fx-padding: 5 0;" />
 
-        <Label text="VENDAS E CLIENTES"
-            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 10 0 0 5;" />
+        <Button fx:id="btnPlaybook" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat" onAction="#abrirPlaybook" style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="📖" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnPlaybook" text="📖 Playbook de Vendas" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirPlaybook" />
+        <Button fx:id="btnBaseClientes" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat" onAction="#abrirTelaBaseClientes"
+            style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="👥" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnBaseClientes" text="👥 Base de Contatos/Clientes" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTelaBaseClientes" />
+        <Separator style="-fx-padding: 5 0;" />
 
-        <Label text="ESTEIRA DE CRÉDITO"
-            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 15 0 0 5;" />
+        <Button fx:id="btnPropostas" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat" onAction="#abrirPropostasList"
+            style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="📄" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnPropostas" text="📄 Propostas (Em Andamento)" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirPropostasList" />
+        <Button fx:id="btnPendencias" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat" onAction="#abrirPendenciasList"
+            style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="⏳" style="-fx-font-size: 22px; -fx-text-fill: -color-danger-fg;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnPendencias" text="⏳ Pendências / Exigências" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" style="-fx-text-fill: -color-danger-fg;"
-            onAction="#abrirPendenciasList" />
+        <Separator style="-fx-padding: 5 0;" />
 
-        <Label text="REGRAS E CONSULTAS"
-            style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted; -fx-padding: 20 0 0 5;" />
+        <Button fx:id="btnBancosConvenios" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat" onAction="#abrirBancosConvenios"
+            style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="🏦" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnBancosConvenios" text="🏦 Bancos e Convênios" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirBancosConvenios" />
+        <Button fx:id="btnTabelasJuros" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat" onAction="#abrirTabelasJuros"
+            style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="📈" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnTabelasJuros" text="📈 Tabelas de Juros" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelasJuros" />
+        <Button fx:id="btnTabelaComissoes" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity"
+            styleClass="flat" onAction="#abrirTabelaComissoes"
+            style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="💰" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
-        <Button fx:id="btnTabelaComissoes" text="💰 Gestão de Repasses (RV)" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirTabelaComissoes" />
-
-        <Button fx:id="btnLinks" text="🔗 Links e Atalhos" maxWidth="Infinity"
-            alignment="BASELINE_LEFT" styleClass="flat" onAction="#abrirLinksUteis" />
+        <Button fx:id="btnLinks" contentDisplay="GRAPHIC_ONLY" maxWidth="Infinity" styleClass="flat"
+            onAction="#abrirLinksUteis" style="-fx-cursor: hand; -fx-padding: 5 0;">
+            <graphic>
+                <Label text="🔗" style="-fx-font-size: 22px;" />
+            </graphic>
+        </Button>
 
         <Region VBox.vgrow="ALWAYS" />
     </VBox>

@@ -24,8 +24,8 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJuros> {
     private final ObjectProperty<BigDecimal> comissaoPercentual = new SimpleObjectProperty<>(BigDecimal.ZERO);
 
     // Adicionei os limites pois o simulador vai precisar deles para a "triagem"
-    private final ObjectProperty<BigDecimal> valorMinimoEmprestimo = new SimpleObjectProperty<>(BigDecimal.ZERO);
-    private final ObjectProperty<BigDecimal> valorMaximoEmprestimo = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final ObjectProperty<BigDecimal> valorMinimoEmprestimo = new SimpleObjectProperty<>(null);
+    private final ObjectProperty<BigDecimal> valorMaximoEmprestimo = new SimpleObjectProperty<>(null);
 
     // --- 2. ESTADOS ORIGINAIS PARA DIRTY CHECKING ---
     private final ReadOnlyStringWrapper nomeOriginal = new ReadOnlyStringWrapper("");
@@ -65,8 +65,8 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJuros> {
         tipoConvenio.set(TipoConvenio.PADRAO);
         taxaMensal.set(BigDecimal.ZERO);
         comissaoPercentual.set(BigDecimal.ZERO);
-        valorMinimoEmprestimo.set(BigDecimal.ZERO);
-        valorMaximoEmprestimo.set(BigDecimal.ZERO);
+        valorMinimoEmprestimo.set(null);
+        valorMaximoEmprestimo.set(null);
     }
 
     @Override

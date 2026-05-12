@@ -1,6 +1,7 @@
 package br.com.poderfinanceiro.app.model;
 
 import br.com.poderfinanceiro.app.model.enums.CategoriaLink;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,6 +37,10 @@ public class LinkUtil {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "categoria", columnDefinition = "categoria_link_enum")
     private CategoriaLink categoria = CategoriaLink.OUTROS;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_convenio")
+    private TipoConvenio tipo_convenio;
 
     @Column(name = "criado_em", updatable = false)
     private LocalDateTime criadoEm;

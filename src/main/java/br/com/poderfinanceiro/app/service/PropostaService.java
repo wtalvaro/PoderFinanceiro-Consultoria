@@ -1,10 +1,12 @@
 package br.com.poderfinanceiro.app.service;
 
 import br.com.poderfinanceiro.app.model.Comissao;
+import br.com.poderfinanceiro.app.model.DocumentoProponente;
 import br.com.poderfinanceiro.app.model.Proposta;
 import br.com.poderfinanceiro.app.model.TabelaJuros;
 import br.com.poderfinanceiro.app.model.enums.StatusProposta;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
+import br.com.poderfinanceiro.app.repository.DocumentoProponenteRepository;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.repository.TabelaJurosRepository;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class PropostaService {
@@ -21,12 +24,17 @@ public class PropostaService {
     private final TabelaJurosRepository tabelaJurosRepository;
     private final ComissaoRepository comissaoRepository;
 
+    // NOVO: Adicionado apenas o repositório de documentos
+    private final DocumentoProponenteRepository documentoRepository;
+
     public PropostaService(PropostaRepository propostaRepository,
             TabelaJurosRepository tabelaJurosRepository,
-            ComissaoRepository comissaoRepository) {
+            ComissaoRepository comissaoRepository,
+            DocumentoProponenteRepository documentoRepository) {
         this.propostaRepository = propostaRepository;
         this.tabelaJurosRepository = tabelaJurosRepository;
         this.comissaoRepository = comissaoRepository;
+        this.documentoRepository = documentoRepository;
     }
 
     /**
@@ -48,7 +56,7 @@ public class PropostaService {
     }
 
     /**
-     * O "Centro Cirúrgico": Salva a proposta e automatiza o fluxo de repasses.
+     * O "Centro Cirúrgico" ORIGINAL (Contrato mantido intacto).
      */
     @Transactional
     public Proposta salvarProposta(Proposta proposta) {
@@ -67,6 +75,27 @@ public class PropostaService {
         // 3. SE A PROPOSTA TEVE ALTA (PAGO), GERAMOS O REPASSE NA TABELA DE COMISSÕES
         if (propostaSalva.getStatus() == StatusProposta.PAGO) {
             gerarOuAtualizarComissao(propostaSalva);
+        }
+
+        return propostaSalva;
+    }
+
+    /**
+     * NOVO "Centro Cirúrgico" EXPANDIDO (Sobrecarga de Método).
+     * Salva a proposta usando a lógica original e, em seguida, vincula os
+     * documentos.
+     */
+    @Transactional
+    public Proposta salvarProposta(Proposta proposta, List<DocumentoProponente> documentosParaVincular) {
+        // 1. Reaproveita 100% da lógica original (não quebra regras de comissão)
+        Proposta propostaSalva = this.salvarProposta(proposta);
+
+        // 2. Faz a sutura dos documentos com esta proposta específica
+        if (documentosParaVincular != null && !documentosParaVincular.isEmpty()) {
+            for (DocumentoProponente doc : documentosParaVincular) {
+                doc.setProposta(propostaSalva);
+                documentoRepository.save(doc);
+            }
         }
 
         return propostaSalva;

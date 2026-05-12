@@ -20,9 +20,15 @@ public interface PropostaRepository extends JpaRepository<Proposta, Long> {
     // 💉 A CURA: O JOIN FETCH força o Hibernate a trazer o Banco na mesma viagem,
     // evitando que o ComboBox do JavaFX encontre um proxy vazio ao chamar
     // getNome().
-    @Query("SELECT p FROM Proposta p JOIN FETCH p.proponente JOIN FETCH p.banco WHERE p.proponente.id = :proponenteId")
+    // No PropostaRepository.java
+    @Query("SELECT p FROM Proposta p " +
+            "JOIN FETCH p.proponente " +
+            "JOIN FETCH p.banco " +
+            "LEFT JOIN FETCH p.tabela " + // Agora o Hibernate vai encontrar o caminho!
+            "WHERE p.proponente.id = :proponenteId " +
+            "ORDER BY p.id DESC")
     List<Proposta> findByProponenteId(@Param("proponenteId") Long proponenteId);
-
+    
     /**
      * Busca as propostas e já traz os dados do Proponente e do Banco juntos.
      * Isso evita o erro de LazyInitializationException no JavaFX (Tabela em

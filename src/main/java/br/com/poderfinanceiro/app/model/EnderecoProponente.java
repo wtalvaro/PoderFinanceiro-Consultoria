@@ -56,6 +56,9 @@ public class EnderecoProponente {
     @Column(name = "uf", columnDefinition = "uf_enum")
     private Uf uf;
 
+    @Column(name = "principal")
+    private Boolean principal = false;
+
     @Column(name = "criado_em", updatable = false)
     private LocalDateTime criadoEm;
 

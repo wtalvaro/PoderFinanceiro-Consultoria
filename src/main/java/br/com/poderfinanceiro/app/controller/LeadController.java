@@ -55,6 +55,7 @@ public class LeadController {
     public void initialize() {
         configurarListasEFormatores();
         estabelecerBindings();
+        configurarAutoSelecao();
 
         // A Label agora vai reagir automaticamente a qualquer mudança no nome (seja do
         // banco ou da digitação)
@@ -145,6 +146,21 @@ public class LeadController {
         TextFormatter<String> telefoneFormatter = ContatoUtils.criarFormatadorTelefone();
         txtTelefone.setTextFormatter(telefoneFormatter);
         telefoneFormatter.valueProperty().bindBidirectional(viewModel.telefoneProperty());
+    }
+
+    private void configurarAutoSelecao() {
+        // Lista de campos que devem ser limpos ao focar
+        TextField[] camposFinanceiros = { txtRenda };
+
+        for (TextField campo : camposFinanceiros) {
+            campo.focusedProperty().addListener((obs, estavaFocado, agoraFocado) -> {
+                if (agoraFocado) {
+                    // Platform.runLater garante que a seleção ocorra após o JavaFX terminar de
+                    // processar o foco
+                    javafx.application.Platform.runLater(campo::selectAll);
+                }
+            });
+        }
     }
 
     public LeadViewModel getViewModel() {

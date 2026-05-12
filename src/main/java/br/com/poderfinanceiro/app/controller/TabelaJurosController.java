@@ -279,13 +279,13 @@ public class TabelaJurosController {
         @Override
         public BigDecimal fromString(String string) {
             if (string == null || string.trim().isEmpty()) {
-                return BigDecimal.ZERO;
+                return null;
             }
             try {
                 // Troca vírgula por ponto para evitar erro de parse no Java
                 return new BigDecimal(string.replace(",", "."));
             } catch (NumberFormatException e) {
-                return BigDecimal.ZERO;
+                return null;
             }
         }
     }

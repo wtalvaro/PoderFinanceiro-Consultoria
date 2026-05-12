@@ -98,12 +98,19 @@ public class Proposta {
     @Column(name = "ultima_atualizacao")
     private LocalDateTime ultimaAtualizacao;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tabela_id", insertable = false, updatable = false)
+    private TabelaJuros tabela;
+
     @Column(name = "tabela_id")
-    private Integer tabelaId;
+    private Long tabelaId;
 
     @Column(name = "usuario_atualizacao_id")
     private Long usuarioAtualizacaoId;
 
+    @OneToMany(mappedBy = "proposta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<DocumentoProponente> documentos = new java.util.ArrayList<>();
+    
     @PrePersist
     protected void onCreate() {
         this.dataSolicitacao = LocalDate.now();

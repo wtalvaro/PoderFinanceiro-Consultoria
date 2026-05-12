@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.repository;
 
 import br.com.poderfinanceiro.app.model.TabelaJuros;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -29,5 +30,10 @@ public interface TabelaJurosRepository extends JpaRepository<TabelaJuros, Long> 
      * taxas atualmente vigentes.
      */
     List<TabelaJuros> findByAtivoTrueAndFimVigenciaIsNull();
+
+    // O "JOIN FETCH t.banco" é o bisturi mágico. Ele obriga o Hibernate a 
+    // trazer o objeto Banco real junto com a Tabela em uma única viagem!
+    @Query("SELECT t FROM TabelaJuros t JOIN FETCH t.banco WHERE t.ativo = true AND t.fimVigencia IS NULL")
+    List<TabelaJuros> buscarTodasAtivasComBanco();
 
 }

@@ -73,7 +73,12 @@ public class WorkspaceController {
 
     public void focarAbaFixa(int index) {
         if (tabPanePrincipal != null && index >= 0 && index < tabPanePrincipal.getTabs().size()) {
-            tabPanePrincipal.getSelectionModel().select(index);
+
+            // 💉 O "Desfibrilador": Empurra a ação para o final da fila de renderização
+            javafx.application.Platform.runLater(() -> {
+                tabPanePrincipal.getSelectionModel().select(index);
+            });
+
         }
     }
 

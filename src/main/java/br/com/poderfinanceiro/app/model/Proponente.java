@@ -90,6 +90,12 @@ public class Proponente {
     @OneToMany(mappedBy = "proponente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<EnderecoProponente> enderecos = new ArrayList<>();
 
+    @OneToMany(mappedBy = "proponente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Proposta> propostas = new ArrayList<>();
+
+    @OneToMany(mappedBy = "proponente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DocumentoProponente> documentos = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         this.dataCadastro = LocalDateTime.now();

@@ -32,7 +32,7 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
     private final ObjectProperty<BigDecimal> valorParcela = new SimpleObjectProperty<>(BigDecimal.ZERO);
 
     // Propriedade crucial para o cálculo automatizado:
-    private final ObjectProperty<Integer> tabelaId = new SimpleObjectProperty<>();
+    private final ObjectProperty<Long> tabelaId = new SimpleObjectProperty<>();
     private final ObjectProperty<BigDecimal> comissaoEstimada = new SimpleObjectProperty<>(BigDecimal.ZERO);
 
     private final StringProperty observacoes = new SimpleStringProperty("");
@@ -47,8 +47,11 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
             BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<StatusProposta> statusOriginal = new ReadOnlyObjectWrapper<>(
             StatusProposta.DIGITADA);
-    private final ReadOnlyObjectWrapper<Integer> tabelaIdOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<Long> tabelaIdOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyStringWrapper observacoesOriginal = new ReadOnlyStringWrapper("");
+    private final ReadOnlyObjectWrapper<Integer> quantidadeParcelasOriginal = new ReadOnlyObjectWrapper<>(0);
+    private final ReadOnlyObjectWrapper<BigDecimal> valorParcelaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
+    private final ReadOnlyObjectWrapper<BigDecimal> taxaAplicadaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
 
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO
@@ -102,17 +105,41 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
         statusOriginal.set(status.get());
         tabelaIdOriginal.set(tabelaId.get());
         observacoesOriginal.set(observacoes.get());
+        quantidadeParcelasOriginal.set(quantidadeParcelas.get());
+        valorParcelaOriginal.set(valorParcela.get());
+        taxaAplicadaOriginal.set(taxaAplicada.get());
     }
 
     @Override
     protected boolean temAlteracoesPendentes() {
-        return !Objects.equals(proponente.get(), proponenteOriginal.get()) ||
-                !Objects.equals(banco.get(), bancoOriginal.get()) ||
+        return !isProponenteIgual(proponente.get(), proponenteOriginal.get()) ||
+                !isBancoIgual(banco.get(), bancoOriginal.get()) ||
                 compareBigDecimal(valorSolicitado.get(), valorSolicitadoOriginal.get()) ||
                 compareBigDecimal(valorAprovado.get(), valorAprovadoOriginal.get()) ||
                 !Objects.equals(status.get(), statusOriginal.get()) ||
                 !Objects.equals(tabelaId.get(), tabelaIdOriginal.get()) ||
-                !Objects.equals(observacoes.get(), observacoesOriginal.get());
+                !Objects.equals(observacoes.get(), observacoesOriginal.get()) ||
+                !Objects.equals(quantidadeParcelas.get(), quantidadeParcelasOriginal.get()) ||
+                compareBigDecimal(valorParcela.get(), valorParcelaOriginal.get()) ||
+                compareBigDecimal(taxaAplicada.get(), taxaAplicadaOriginal.get());
+    }
+
+    private boolean isBancoIgual(Banco b1, Banco b2) {
+        if (b1 == b2)
+            return true;
+        if (b1 == null || b2 == null)
+            return false;
+        // Compara apenas pelos IDs! O Proxy do Hibernate permite chamar getId() sem
+        // estourar erro.
+        return Objects.equals(b1.getId(), b2.getId());
+    }
+
+    private boolean isProponenteIgual(Proponente p1, Proponente p2) {
+        if (p1 == p2)
+            return true;
+        if (p1 == null || p2 == null)
+            return false;
+        return Objects.equals(p1.getId(), p2.getId());
     }
 
     private boolean compareBigDecimal(BigDecimal val1, BigDecimal val2) {
@@ -149,20 +176,23 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
     @Override
     protected Observable[] getObservaveisParaDirty() {
         return new Observable[] {
+                // AQUI ESTAVA FALTANDO OS 3 CAMPOS ATIVOS:
                 proponente, banco, valorSolicitado, valorAprovado, status, tabelaId, observacoes,
+                quantidadeParcelas, valorParcela, taxaAplicada,
+
+                // OS ORIGINAIS (Que você colocou certinho):
                 proponenteOriginal.getReadOnlyProperty(),
                 bancoOriginal.getReadOnlyProperty(),
                 valorSolicitadoOriginal.getReadOnlyProperty(),
                 valorAprovadoOriginal.getReadOnlyProperty(),
                 statusOriginal.getReadOnlyProperty(),
                 tabelaIdOriginal.getReadOnlyProperty(),
-                observacoesOriginal.getReadOnlyProperty()
+                observacoesOriginal.getReadOnlyProperty(),
+                quantidadeParcelasOriginal.getReadOnlyProperty(),
+                valorParcelaOriginal.getReadOnlyProperty(),
+                taxaAplicadaOriginal.getReadOnlyProperty()
         };
     }
-
-    // ==========================================================
-    // GETTERS PARA BINDING NA UI
-    // ==========================================================
 
     // ==========================================================
     // GETTERS PARA BINDING NA UI
@@ -204,7 +234,7 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
         return valorParcela;
     } // O que estava faltando!
 
-    public ObjectProperty<Integer> tabelaIdProperty() {
+    public ObjectProperty<Long> tabelaIdProperty() {
         return tabelaId;
     }
 
