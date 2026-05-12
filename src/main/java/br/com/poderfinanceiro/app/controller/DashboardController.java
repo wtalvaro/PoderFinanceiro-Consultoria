@@ -1,9 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.PropostaModel;
+import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
+import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import javafx.beans.property.SimpleStringProperty;
@@ -26,6 +28,7 @@ public class DashboardController {
     private final PropostaRepository propostaRepository;
     private final ComissaoRepository comissaoRepository;
     private final MainController mainController;
+    private final AuthService authService;
 
     @FXML
     private Label lblNomeConsultor;
@@ -54,15 +57,23 @@ public class DashboardController {
 
     public DashboardController(PropostaRepository propostaRepository,
             ComissaoRepository comissaoRepository,
-            MainController mainController) {
+            MainController mainController, AuthService authService) {
         this.propostaRepository = propostaRepository;
         this.comissaoRepository = comissaoRepository;
         this.mainController = mainController;
+        this.authService = authService;
     }
 
     @FXML
     public void initialize() {
-        lblNomeConsultor.setText("Wagner Teles Alvaro");
+        // 🧠 Triagem de Identidade: Busca o usuário logado no AuthService
+        UsuarioModel usuario = authService.getUsuarioLogado();
+        
+        if (usuario != null) {
+            lblNomeConsultor.setText(usuario.getNome());
+        } else {
+            lblNomeConsultor.setText("Consultor Offline");
+        }
 
         configurarTabela();
         configurarBuscaReativa();

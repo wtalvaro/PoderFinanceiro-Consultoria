@@ -14,7 +14,7 @@
     <HBox alignment="CENTER_LEFT" spacing="20"
         style="-fx-background-color: -color-bg-default; -fx-padding: 15 30; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
         <VBox>
-            <Label fx:id="lblNomeConsultor" styleClass="title-3" text="Wagner Teles Alvaro" /> <!--[cite: 23] -->
+            <Label fx:id="lblNomeConsultor" styleClass="title-3" /> <!--[cite: 23] -->
             <Label text="Poder Financeiro • Unidade Magé/RJ" styleClass="text-muted" /> <!-- -->
         </VBox>
         <Region HBox.hgrow="ALWAYS" />
