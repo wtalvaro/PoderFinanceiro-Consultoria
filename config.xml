@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/app-0.0.1-SNAPSHOT.jar</jar>
+  <outfile>/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/PoderFinanceiro.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl></downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/src/main/resources/icons/app.ico</icon>
+  <jre>
+    <path>%JAVA_HOME%;%PATH%</path>
+    <requiresJdk>false</requiresJdk>
+    <requires64Bit>false</requires64Bit>
+    <minVersion>25.0.0</minVersion>
+    <maxVersion></maxVersion>
+    <opt>--add-modules javafx.controls,javafx.fxml</opt>
+  </jre>
+</launch4jConfig>
