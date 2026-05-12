@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.model;
 
-import br.com.poderfinanceiro.app.model.enums.CategoriaLink;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.CategoriaLinkModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +17,7 @@ import org.hibernate.type.SqlTypes;
 @Getter
 @Setter
 @NoArgsConstructor
-public class LinkUtil {
+public class LinkUtilModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,11 +36,11 @@ public class LinkUtil {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "categoria", columnDefinition = "categoria_link_enum")
-    private CategoriaLink categoria = CategoriaLink.OUTROS;
+    private CategoriaLinkModel categoria = CategoriaLinkModel.OUTROS;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_convenio")
-    private TipoConvenio tipo_convenio;
+    private TipoConvenioModel tipo_convenio;
 
     @Column(name = "criado_em", updatable = false)
     private LocalDateTime criadoEm;
@@ -49,7 +49,7 @@ public class LinkUtil {
     protected void onCreate() {
         this.criadoEm = LocalDateTime.now();
         if (this.categoria == null) {
-            this.categoria = CategoriaLink.OUTROS;
+            this.categoria = CategoriaLinkModel.OUTROS;
         }
     }
 }

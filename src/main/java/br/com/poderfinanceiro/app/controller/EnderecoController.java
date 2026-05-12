@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.EnderecoProponente;
-import br.com.poderfinanceiro.app.model.Uf;
-import br.com.poderfinanceiro.app.model.enums.TipoLogradouro;
+import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
+import br.com.poderfinanceiro.app.model.UfModel;
+import br.com.poderfinanceiro.app.model.enums.TipoLogradouroModel;
 import br.com.poderfinanceiro.app.utils.EnderecoUtils;
 import br.com.poderfinanceiro.app.viewmodel.EnderecoViewModel;
 import javafx.collections.FXCollections;
@@ -20,7 +20,7 @@ public class EnderecoController {
     @FXML
     private TextField txtCep;
     @FXML
-    private ComboBox<TipoLogradouro> comboTipoLogradouro;
+    private ComboBox<TipoLogradouroModel> comboTipoLogradouro;
     @FXML
     private TextField txtLogradouro;
     @FXML
@@ -32,7 +32,7 @@ public class EnderecoController {
     @FXML
     private TextField txtCidade;
     @FXML
-    private ComboBox<Uf> comboUf;
+    private ComboBox<UfModel> comboUf;
 
     private final EnderecoViewModel viewModel;
 
@@ -54,8 +54,8 @@ public class EnderecoController {
      */
     private void configurarInterface() {
         // Preenche as ComboBoxes com os Enums que você já tem no Model
-        comboTipoLogradouro.setItems(FXCollections.observableArrayList(TipoLogradouro.values()));
-        comboUf.setItems(FXCollections.observableArrayList(Uf.values()));
+        comboTipoLogradouro.setItems(FXCollections.observableArrayList(TipoLogradouroModel.values()));
+        comboUf.setItems(FXCollections.observableArrayList(UfModel.values()));
 
         // Aplica a máscara de CEP do seu EnderecoUtils (00.000-000)
         txtCep.setTextFormatter(EnderecoUtils.criarFormatadorCep());
@@ -93,7 +93,7 @@ public class EnderecoController {
 
     // --- MÉTODOS DE PONTE PARA O HUB ---
 
-    public void carregarEndereco(EnderecoProponente endereco) {
+    public void carregarEndereco(EnderecoProponenteModel endereco) {
         viewModel.loadFromModel(endereco);
     }
 

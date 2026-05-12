@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.service;
 
-import br.com.poderfinanceiro.app.model.DocumentoProponente;
-import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.model.Usuario;
+import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.repository.DocumentoProponenteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,15 +40,15 @@ public class DocumentoService {
         }
     }
 
-    public DocumentoProponente processarUpload(File arquivoOriginal, String tipoDoc, Proponente proponente)
+    public DocumentoProponenteModel processarUpload(File arquivoOriginal, String tipoDoc, ProponenteModel proponente)
             throws Exception {
-        Usuario consultor = authService.getUsuarioLogado();
+        UsuarioModel consultor = authService.getUsuarioLogado();
         if (consultor == null)
             throw new IllegalStateException("Nenhum usuário logado.");
 
         // 1. Calcula o Hash para evitar duplicidade
         String hash = calcularHashSha256(arquivoOriginal);
-        Optional<DocumentoProponente> docExistente = repository.findByHashSha256(hash);
+        Optional<DocumentoProponenteModel> docExistente = repository.findByHashSha256(hash);
         if (docExistente.isPresent()) {
             throw new IllegalArgumentException("Este exato documento já foi anexado ao sistema.");
         }
@@ -70,7 +70,7 @@ public class DocumentoService {
         Files.copy(arquivoOriginal.toPath(), caminhoDestino, StandardCopyOption.REPLACE_EXISTING);
 
         // 4. Salva no Banco de Dados
-        DocumentoProponente doc = new DocumentoProponente();
+        DocumentoProponenteModel doc = new DocumentoProponenteModel();
         doc.setProponente(proponente);
         doc.setUsuario(consultor);
         doc.setTipoDocumento(tipoDoc);
@@ -81,11 +81,11 @@ public class DocumentoService {
         return repository.save(doc);
     }
 
-    public List<DocumentoProponente> listarDoProponente(Long proponenteId) {
+    public List<DocumentoProponenteModel> listarDoProponente(Long proponenteId) {
         return repository.findByProponenteIdOrderByIdAsc(proponenteId);
     }
 
-    public void abrirDocumento(DocumentoProponente doc) {
+    public void abrirDocumento(DocumentoProponenteModel doc) {
         try {
             File file = new File(doc.getArquivoPath());
             if (file.exists() && Desktop.isDesktopSupported()) {
@@ -97,8 +97,8 @@ public class DocumentoService {
     }
 
     @Transactional
-    public DocumentoProponente alternarVerificacao(Long documentoId) {
-        DocumentoProponente doc = repository.findById(documentoId)
+    public DocumentoProponenteModel alternarVerificacao(Long documentoId) {
+        DocumentoProponenteModel doc = repository.findById(documentoId)
                 .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
 
         // Inverte o status atual
@@ -109,7 +109,7 @@ public class DocumentoService {
 
     @Transactional
     public void excluirDocumento(Long documentoId) {
-        DocumentoProponente doc = repository.findById(documentoId)
+        DocumentoProponenteModel doc = repository.findById(documentoId)
                 .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
 
         // Apaga o arquivo físico do computador para não lotar o HD
@@ -123,8 +123,8 @@ public class DocumentoService {
     }
 
     @Transactional
-    public DocumentoProponente atualizarTipoDocumento(Long documentoId, String novoTipo) throws Exception {
-        DocumentoProponente doc = repository.findById(documentoId)
+    public DocumentoProponenteModel atualizarTipoDocumento(Long documentoId, String novoTipo) throws Exception {
+        DocumentoProponenteModel doc = repository.findById(documentoId)
                 .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
 
         if (doc.getTipoDocumento().equals(novoTipo)) {

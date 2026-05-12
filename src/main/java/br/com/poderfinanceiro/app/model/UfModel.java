@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.model;
 
-import br.com.poderfinanceiro.app.model.enums.Labeled;
+import br.com.poderfinanceiro.app.model.enums.LabeledModel;
 
-public enum Uf implements Labeled {
+public enum UfModel implements LabeledModel {
     AC("Acre"), AL("Alagoas"), AP("Amapá"), AM("Amazonas"),
     BA("Bahia"), CE("Ceará"), DF("Distrito Federal"), ES("Espírito Santo"),
     GO("Goiás"), MA("Maranhão"), MT("Mato Grosso"), MS("Mato Grosso do Sul"),
@@ -13,7 +13,7 @@ public enum Uf implements Labeled {
 
     private final String label;
 
-    Uf(String label) {
+    UfModel(String label) {
         this.label = label;
     }
 
@@ -22,12 +22,12 @@ public enum Uf implements Labeled {
         return label;
     }
 
-    public static Uf fromString(String value) {
+    public static UfModel fromString(String value) {
         if (value == null || value.isBlank()) {
             return RJ; // Default para Magé/RJ, ou null se preferir
         }
 
-        for (Uf uf : Uf.values()) {
+        for (UfModel uf : UfModel.values()) {
             if (uf.name().equalsIgnoreCase(value) || uf.getLabel().equalsIgnoreCase(value)) {
                 return uf;
             }

@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.DocumentoProponente;
-import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.service.DocumentoService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -30,13 +30,13 @@ public class DocumentoController {
     @FXML
     private ComboBox<String> comboTipoDocumento;
     @FXML
-    private TableView<DocumentoProponente> tableDocumentos;
+    private TableView<DocumentoProponenteModel> tableDocumentos;
     @FXML
-    private TableColumn<DocumentoProponente, String> colTipo;
+    private TableColumn<DocumentoProponenteModel, String> colTipo;
     @FXML
-    private TableColumn<DocumentoProponente, String> colStatus;
+    private TableColumn<DocumentoProponenteModel, String> colStatus;
     @FXML
-    private TableColumn<DocumentoProponente, Void> colAcoes;
+    private TableColumn<DocumentoProponenteModel, Void> colAcoes;
     @FXML
     private Label lblAviso;
     @FXML
@@ -44,12 +44,12 @@ public class DocumentoController {
     @FXML
     private ScrollPane scrollPrincipal;
 
-    private DocumentoProponente documentoParaExcluir;
-    private DocumentoProponente documentoEmEdicao;
+    private DocumentoProponenteModel documentoParaExcluir;
+    private DocumentoProponenteModel documentoEmEdicao;
     private final DocumentoService documentoService;
     private final MainController mainController;
 
-    private Proponente proponenteAtual;
+    private ProponenteModel proponenteAtual;
     private File arquivoPendenteUpload;
 
     public DocumentoController(DocumentoService documentoService, MainController mainController) {
@@ -66,7 +66,7 @@ public class DocumentoController {
                 "RG", "CNH", "CPF", "Comprovante de Residência", "Contracheque", "Outros"));
     }
 
-    public void carregarDocumentos(Proponente proponente) {
+    public void carregarDocumentos(ProponenteModel proponente) {
         this.proponenteAtual = proponente;
         cancelarUploadInline(); // Garante que o painel de upload é fechado se mudarmos de aba
 
@@ -82,7 +82,7 @@ public class DocumentoController {
 
     private void atualizarTabela() {
         if (proponenteAtual != null) {
-            List<DocumentoProponente> docs = documentoService.listarDoProponente(proponenteAtual.getId());
+            List<DocumentoProponenteModel> docs = documentoService.listarDoProponente(proponenteAtual.getId());
             tableDocumentos.setItems(FXCollections.observableArrayList(docs));
         }
     }
@@ -147,7 +147,7 @@ public class DocumentoController {
         abrirPainelAzul();
     }
 
-    private void prepararEdicaoEmbutida(DocumentoProponente doc) {
+    private void prepararEdicaoEmbutida(DocumentoProponenteModel doc) {
         this.documentoEmEdicao = doc;
         this.arquivoPendenteUpload = null;
 
@@ -242,7 +242,7 @@ public class DocumentoController {
                     setGraphic(null);
                     setText(null);
                 } else {
-                    DocumentoProponente doc = getTableRow().getItem();
+                    DocumentoProponenteModel doc = getTableRow().getItem();
                     Hyperlink linkStatus = new Hyperlink(doc.getVerificado() ? "✅ Verificado" : "⏳ Pendente");
 
                     if (doc.getVerificado()) {
@@ -254,7 +254,7 @@ public class DocumentoController {
                     linkStatus.setOnAction(event -> {
                         event.consume(); // Evita scroll/pulo acidental da tabela
                         try {
-                            DocumentoProponente atualizado = documentoService.alternarVerificacao(doc.getId());
+                            DocumentoProponenteModel atualizado = documentoService.alternarVerificacao(doc.getId());
                             doc.setVerificado(atualizado.getVerificado());
                             tableDocumentos.refresh();
                         } catch (Exception e) {
@@ -280,7 +280,7 @@ public class DocumentoController {
 
                 btnAbrir.setOnAction(event -> {
                     event.consume(); // Previne pulos na tela
-                    DocumentoProponente doc = getTableView().getItems().get(getIndex());
+                    DocumentoProponenteModel doc = getTableView().getItems().get(getIndex());
                     File file = new File(doc.getArquivoPath());
                     if (file.exists()) {
                         mainController.getHostServices().showDocument(file.toURI().toString());
@@ -291,7 +291,7 @@ public class DocumentoController {
 
                 btnEditar.setOnAction(event -> {
                     event.consume(); // Previne pulos na tela
-                    DocumentoProponente doc = getTableView().getItems().get(getIndex());
+                    DocumentoProponenteModel doc = getTableView().getItems().get(getIndex());
                     prepararEdicaoEmbutida(doc);
                 });
 

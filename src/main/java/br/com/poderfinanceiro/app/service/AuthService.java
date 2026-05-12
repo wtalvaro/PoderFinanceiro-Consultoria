@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.service;
 
-import br.com.poderfinanceiro.app.model.Usuario;
+import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.repository.UsuarioRepository;
 import lombok.Getter;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,7 +17,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder; // Injetado via Spring Security
 
     @Getter
-    private Usuario usuarioLogado; // Centraliza a sessão global do programa
+    private UsuarioModel usuarioLogado; // Centraliza a sessão global do programa
 
     public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
@@ -29,10 +29,10 @@ public class AuthService {
      */
     @Transactional
     public boolean login(String email, String senha) {
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmailAndAtivoTrue(email);
+        Optional<UsuarioModel> usuarioOpt = usuarioRepository.findByEmailAndAtivoTrue(email);
 
         if (usuarioOpt.isPresent()) {
-            Usuario u = usuarioOpt.get();
+            UsuarioModel u = usuarioOpt.get();
 
             // O BCrypt.matches descriptografa o salt do hash e valida a senha com segurança
             if (passwordEncoder.matches(senha, u.getSenhaHash())) {
@@ -50,14 +50,14 @@ public class AuthService {
      * sessão.
      */
     @Transactional
-    public Usuario cadastrar(String nome, String email, String senha) {
+    public UsuarioModel cadastrar(String nome, String email, String senha) {
         // 1. Verificação de unicidade de e-mail
         if (usuarioRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Este e-mail já está em uso no Poder Financeiro.");
         }
 
         // 2. Mapeamento dos dados para a entidade
-        Usuario novo = new Usuario();
+        UsuarioModel novo = new UsuarioModel();
         novo.setNome(nome);
         novo.setEmail(email);
 
@@ -68,7 +68,7 @@ public class AuthService {
         novo.setAtivo(true);
 
         // 3. Persistência no PostgreSQL
-        Usuario salvo = usuarioRepository.save(novo);
+        UsuarioModel salvo = usuarioRepository.save(novo);
 
         // 4. Autenticação Automática: Define a sessão para o novo usuário imediatamente
         this.usuarioLogado = salvo;

@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.model.Proposta;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
 import javafx.collections.FXCollections;
@@ -27,7 +27,7 @@ import java.util.List;
 public class PropostaHubController {
 
     @FXML
-    private ListView<Proposta> listPropostas;
+    private ListView<PropostaModel> listPropostas;
     @FXML
     private StackPane containerDetalhes;
 
@@ -63,7 +63,7 @@ public class PropostaHubController {
         // (tiver ID)
         btnRemover.disableProperty().bind(
                 javafx.beans.binding.Bindings.createBooleanBinding(() -> {
-                    Proposta selecionada = listPropostas.getSelectionModel().getSelectedItem();
+                    PropostaModel selecionada = listPropostas.getSelectionModel().getSelectedItem();
                     return selecionada == null || selecionada.getId() == null;
                 }, listPropostas.getSelectionModel().selectedItemProperty()));
     }
@@ -85,7 +85,7 @@ public class PropostaHubController {
             private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
             @Override
-            protected void updateItem(Proposta p, boolean empty) {
+            protected void updateItem(PropostaModel p, boolean empty) {
                 super.updateItem(p, empty);
                 if (empty || p == null) {
                     setText(null);
@@ -162,7 +162,7 @@ public class PropostaHubController {
         });
     }
 
-    public void inicializarPropostasDoCliente(Proponente proponente) {
+    public void inicializarPropostasDoCliente(ProponenteModel proponente) {
         // 🛡️ LIGA A ANESTESIA (Impede que o vigia da lista grite ao trocar de item)
         isAtualizandoInterface = true;
 
@@ -172,7 +172,7 @@ public class PropostaHubController {
                     : null;
 
             if (proponente != null && proponente.getId() != null) {
-                List<Proposta> propostas = repository.findByProponenteId(proponente.getId());
+                List<PropostaModel> propostas = repository.findByProponenteId(proponente.getId());
                 listPropostas.setItems(FXCollections.observableArrayList(propostas));
 
                 if (!propostas.isEmpty()) {
@@ -183,7 +183,7 @@ public class PropostaHubController {
                         listPropostas.getSelectionModel().select(0);
                     }
 
-                    Proposta selecionada = listPropostas.getSelectionModel().getSelectedItem();
+                    PropostaModel selecionada = listPropostas.getSelectionModel().getSelectedItem();
                     if (selecionada != null) {
                         propostaController.getViewModel().loadFromModel(selecionada);
                     }
@@ -230,7 +230,7 @@ public class PropostaHubController {
 
     @FXML
     public void solicitarRemocao() {
-        Proposta selecionada = listPropostas.getSelectionModel().getSelectedItem();
+        PropostaModel selecionada = listPropostas.getSelectionModel().getSelectedItem();
 
         if (selecionada != null && selecionada.getId() != null) {
             solicitarConfirmacao(
@@ -241,7 +241,7 @@ public class PropostaHubController {
         }
     }
 
-    private void executarRemocao(Proposta proposta) {
+    private void executarRemocao(PropostaModel proposta) {
         // 🛡️ Liga a anestesia para a tela não gritar enquanto mexemos na lista
         isAtualizandoInterface = true;
 

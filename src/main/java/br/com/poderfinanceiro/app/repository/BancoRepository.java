@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.repository;
 
-import br.com.poderfinanceiro.app.model.Banco;
+import br.com.poderfinanceiro.app.model.BancoModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,25 +8,25 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface BancoRepository extends JpaRepository<Banco, Long> {
+public interface BancoRepository extends JpaRepository<BancoModel, Long> {
 
     /**
      * Retorna todos os bancos que estão ativos (para preencher os cards).
      */
-    List<Banco> findByAtivoTrue();
+    List<BancoModel> findByAtivoTrue();
 
     /**
      * Retorna todos os bancos ativos, ordenados por nome.
      */
-    List<Banco> findByAtivoTrueOrderByNomeAsc();
+    List<BancoModel> findByAtivoTrueOrderByNomeAsc();
 
     /**
      * Busca um banco específico pelo nome (ignorando maiúsculas e minúsculas).
      */
-    Optional<Banco> findByNomeIgnoreCase(String nome);
+    Optional<BancoModel> findByNomeIgnoreCase(String nome);
 
     /**
      * Busca um banco pelo código (Ex: "623", "341"). Útil para integrações futuras.
      */
-    Optional<Banco> findByCodigo(String codigo);
+    Optional<BancoModel> findByCodigo(String codigo);
 }

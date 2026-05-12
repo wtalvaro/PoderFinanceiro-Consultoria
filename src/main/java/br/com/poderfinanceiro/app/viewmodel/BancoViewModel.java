@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.Banco;
+import br.com.poderfinanceiro.app.model.BancoModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Component
 @Scope("prototype") // Garante que cada tela/modal ganhe um ViewModel zerado
-public class BancoViewModel extends BaseViewModel<Banco> {
+public class BancoViewModel extends BaseViewModel<BancoModel> {
 
     // --- 1. PROPERTIES ESPECÍFICAS DO BANCO ---
     private final StringProperty codigo = new SimpleStringProperty("");
@@ -29,12 +29,12 @@ public class BancoViewModel extends BaseViewModel<Banco> {
     // ==========================================================
 
     @Override
-    protected void extrairId(Banco model) {
+    protected void extrairId(BancoModel model) {
         this.id.set(model.getId());
     }
 
     @Override
-    protected void preencherCampos(Banco model) {
+    protected void preencherCampos(BancoModel model) {
         codigo.set(model.getCodigo() != null ? model.getCodigo() : "");
         nome.set(model.getNome() != null ? model.getNome() : "");
         sitePortal.set(model.getSitePortal() != null ? model.getSitePortal() : "");
@@ -66,9 +66,9 @@ public class BancoViewModel extends BaseViewModel<Banco> {
     }
 
     @Override
-    public Banco atualizarModel(Banco model) {
+    public BancoModel atualizarModel(BancoModel model) {
         if (model == null) {
-            model = new Banco();
+            model = new BancoModel();
         }
 
         model.setId(this.id.get());

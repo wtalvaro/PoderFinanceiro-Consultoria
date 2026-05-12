@@ -2,13 +2,13 @@ package br.com.poderfinanceiro.app.strategy;
 
 import org.springframework.stereotype.Service;
 
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 
 @Service
 public class InssDocumentStrategy implements DocumentStrategy {
 
     public boolean supports(String c) {
-        return TipoConvenio.INSS_CONSIGNADO.name().equalsIgnoreCase(c);
+        return TipoConvenioModel.INSS_CONSIGNADO.name().equalsIgnoreCase(c);
     }
 
     public String getChecklist() {

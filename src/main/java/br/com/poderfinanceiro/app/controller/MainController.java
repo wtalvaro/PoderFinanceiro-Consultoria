@@ -3,12 +3,13 @@ package br.com.poderfinanceiro.app.controller;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
 
 import java.io.IOException;
 import javafx.application.HostServices;
@@ -29,7 +30,11 @@ public class MainController {
     private StackPane bottomBar;
     @FXML
     private VBox overlaySair;
-
+    @FXML
+    private VBox overlayLoading;
+    @FXML
+    private Label lblLoadingTexto;
+    
     private final HostServices hostServices;
     private final ApplicationContext context;
 
@@ -146,7 +151,7 @@ public class MainController {
         executarNoWorkspace(ws -> ws.focarAbaFixa(2));
     }
 
-    public void abrirClienteNoWorkspace(Proponente proponente) {
+    public void abrirClienteNoWorkspace(ProponenteModel proponente) {
         executarNoWorkspace(ws -> ws.abrirOuFocarAba(proponente));
     }
 
@@ -182,6 +187,19 @@ public class MainController {
             // tela
             navegarPara("/fxml/workspace.fxml", true);
         }
+    }
+
+    public void mostrarLoading(String mensagem) {
+        javafx.application.Platform.runLater(() -> {
+            lblLoadingTexto.setText(mensagem);
+            overlayLoading.setVisible(true);
+        });
+    }
+
+    public void ocultarLoading() {
+        javafx.application.Platform.runLater(() -> {
+            overlayLoading.setVisible(false);
+        });
     }
 
     // ========================================================================

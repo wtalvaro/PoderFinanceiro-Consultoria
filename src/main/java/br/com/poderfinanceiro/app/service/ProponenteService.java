@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.service;
 
-import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.model.Usuario;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.repository.ProponenteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +23,9 @@ public class ProponenteService {
      * Salva ou Atualiza um Lead atrelando-o ao consultor logado.
      */
     @Transactional
-    public Proponente salvarLead(Proponente lead) {
+    public ProponenteModel salvarLead(ProponenteModel lead) {
         // 1. Segurança: Verifica se há um consultor logado
-        Usuario consultorLogado = authService.getUsuarioLogado();
+        UsuarioModel consultorLogado = authService.getUsuarioLogado();
         if (consultorLogado == null) {
             throw new IllegalStateException("Erro de segurança: Nenhum consultor logado na sessão.");
         }
@@ -76,8 +76,8 @@ public class ProponenteService {
     /**
      * Retorna todos os clientes/leads da carteira do consultor logado.
      */
-    public List<Proponente> listarMinhaCarteira() {
-        Usuario consultorLogado = authService.getUsuarioLogado();
+    public List<ProponenteModel> listarMinhaCarteira() {
+        UsuarioModel consultorLogado = authService.getUsuarioLogado();
         if (consultorLogado == null) {
             return List.of(); // Retorna lista vazia se não tiver logado
         }
@@ -87,8 +87,8 @@ public class ProponenteService {
     /**
      * Utilizado pela barra de busca rápida no menu lateral.
      */
-    public List<Proponente> buscaRapida(String termo) {
-        Usuario consultorLogado = authService.getUsuarioLogado();
+    public List<ProponenteModel> buscaRapida(String termo) {
+        UsuarioModel consultorLogado = authService.getUsuarioLogado();
         if (consultorLogado == null || termo == null || termo.isBlank()) {
             return List.of();
         }
@@ -100,7 +100,7 @@ public class ProponenteService {
     /**
      * Busca a versão mais atualizada do Proponente diretamente do banco.
      */
-    public Proponente buscarPorId(Long id) {
+    public ProponenteModel buscarPorId(Long id) {
         if (id == null)
             return null;
         return proponenteRepository.findById(id).orElse(null);

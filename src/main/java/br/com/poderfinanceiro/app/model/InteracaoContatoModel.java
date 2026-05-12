@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class InteracaoContato {
+public class InteracaoContatoModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,12 +22,12 @@ public class InteracaoContato {
     // Relacionamento com o Cliente (Proponente)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proponente_id")
-    private Proponente proponente;
+    private ProponenteModel proponente;
 
     // Relacionamento com o Consultor que realizou o contato
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
+    private UsuarioModel usuario;
 
     @Column(length = 20)
     private String canal = "WhatsApp"; // Valor padrão conforme o banco

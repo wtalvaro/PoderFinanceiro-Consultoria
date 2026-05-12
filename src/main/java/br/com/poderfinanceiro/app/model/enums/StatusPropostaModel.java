@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model.enums;
 
-public enum StatusProposta implements Labeled {
+public enum StatusPropostaModel implements LabeledModel {
     DIGITADA("Digitada"),
     PENDENTE("Pendente"),
     ANALISE_BANCO("Análise do Banco"),
@@ -12,7 +12,7 @@ public enum StatusProposta implements Labeled {
 
     private final String label;
 
-    StatusProposta(String label) {
+    StatusPropostaModel(String label) {
         this.label = label;
     }
 
@@ -24,12 +24,12 @@ public enum StatusProposta implements Labeled {
      * Método de busca robusto para converter Strings em Enums.
      * Tenta encontrar pelo nome da constante ou pelo label amigável.
      */
-    public static StatusProposta fromString(String value) {
+    public static StatusPropostaModel fromString(String value) {
         if (value == null || value.isBlank()) {
             return DIGITADA; // Valor padrão para casos nulos ou em branco
         }
 
-        for (StatusProposta status : StatusProposta.values()) {
+        for (StatusPropostaModel status : StatusPropostaModel.values()) {
             if (status.name().equalsIgnoreCase(value) || status.getLabel().equalsIgnoreCase(value)) {
                 return status;
             }

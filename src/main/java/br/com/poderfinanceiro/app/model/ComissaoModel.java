@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Comissao {
+public class ComissaoModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,12 +24,12 @@ public class Comissao {
     // Relacionamento com a tabela Propostas
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proposta_id", nullable = false)
-    private Proposta proposta;
+    private PropostaModel proposta;
 
     // Relacionamento com a tabela Usuarios (Qual consultor recebe)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
+    private UsuarioModel usuario;
 
     @Column(name = "valor_bruto_comissao", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorBrutoComissao;

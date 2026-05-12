@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model.enums;
 
-public enum TipoLogradouro implements Labeled {
+public enum TipoLogradouroModel implements LabeledModel {
     RUA("Rua"),
     AVENIDA("Avenida"),
     TRAVESSA("Travessa"),
@@ -14,7 +14,7 @@ public enum TipoLogradouro implements Labeled {
 
     private final String label;
 
-    TipoLogradouro(String label) {
+    TipoLogradouroModel(String label) {
         this.label = label;
     }
 
@@ -23,12 +23,12 @@ public enum TipoLogradouro implements Labeled {
         return label;
     }
 
-    public static TipoLogradouro fromString(String value) {
+    public static TipoLogradouroModel fromString(String value) {
         if (value == null || value.isBlank()) {
             return RUA;
         }
 
-        for (TipoLogradouro tipo : TipoLogradouro.values()) {
+        for (TipoLogradouroModel tipo : TipoLogradouroModel.values()) {
             if (tipo.name().equalsIgnoreCase(value) || tipo.getLabel().equalsIgnoreCase(value)) {
                 return tipo;
             }

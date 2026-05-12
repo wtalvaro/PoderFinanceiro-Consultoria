@@ -1,13 +1,13 @@
 package br.com.poderfinanceiro.app.model.enums;
 
-public enum TipoRelacionamento implements Labeled {
+public enum TipoRelacionamentoModel implements LabeledModel {
     LEAD("Lead"),
     PROPONENTE("Proponente"),
     CLIENTE("Cliente");
 
     private final String label;
 
-    TipoRelacionamento(String label) {
+    TipoRelacionamentoModel(String label) {
         this.label = label;
     }
 
@@ -19,12 +19,12 @@ public enum TipoRelacionamento implements Labeled {
      * Método de busca robusto para converter Strings em Enums.
      * Tenta encontrar pelo nome da constante ou pelo label amigável.
      */
-    public static TipoRelacionamento fromString(String value) {
+    public static TipoRelacionamentoModel fromString(String value) {
         if (value == null || value.isBlank()) {
             return LEAD; // Valor padrão para casos nulos ou em branco
         }
 
-        for (TipoRelacionamento tipo : TipoRelacionamento.values()) {
+        for (TipoRelacionamentoModel tipo : TipoRelacionamentoModel.values()) {
             if (tipo.name().equalsIgnoreCase(value) || tipo.getLabel().equalsIgnoreCase(value)) {
                 return tipo;
             }

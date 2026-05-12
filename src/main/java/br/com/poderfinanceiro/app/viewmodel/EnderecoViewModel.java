@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.EnderecoProponente;
-import br.com.poderfinanceiro.app.model.Uf;
-import br.com.poderfinanceiro.app.model.enums.TipoLogradouro;
+import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
+import br.com.poderfinanceiro.app.model.UfModel;
+import br.com.poderfinanceiro.app.model.enums.TipoLogradouroModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -11,60 +11,60 @@ import java.util.Objects;
 
 @Component
 @Scope("prototype")
-public class EnderecoViewModel extends BaseViewModel<EnderecoProponente> {
+public class EnderecoViewModel extends BaseViewModel<EnderecoProponenteModel> {
 
     // --- PROPERTIES EXCLUSIVAS DE ENDEREÇO ---
     private final StringProperty cep = new SimpleStringProperty("");
-    private final ObjectProperty<TipoLogradouro> tipoLogradouro = new SimpleObjectProperty<>(TipoLogradouro.RUA);
+    private final ObjectProperty<TipoLogradouroModel> tipoLogradouro = new SimpleObjectProperty<>(TipoLogradouroModel.RUA);
     private final StringProperty logradouro = new SimpleStringProperty("");
     private final StringProperty numero = new SimpleStringProperty("");
     private final StringProperty complemento = new SimpleStringProperty("");
     private final StringProperty bairro = new SimpleStringProperty("");
     private final StringProperty cidade = new SimpleStringProperty("");
-    private final ObjectProperty<Uf> uf = new SimpleObjectProperty<>(Uf.RJ);
+    private final ObjectProperty<UfModel> uf = new SimpleObjectProperty<>(UfModel.RJ);
 
     // --- ESTADOS ORIGINAIS ---
     private final ReadOnlyStringWrapper cepOriginal = new ReadOnlyStringWrapper("");
-    private final ReadOnlyObjectWrapper<TipoLogradouro> tipoLogradouroOriginal = new ReadOnlyObjectWrapper<>(
-            TipoLogradouro.RUA);
+    private final ReadOnlyObjectWrapper<TipoLogradouroModel> tipoLogradouroOriginal = new ReadOnlyObjectWrapper<>(
+            TipoLogradouroModel.RUA);
     private final ReadOnlyStringWrapper logradouroOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper numeroOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper complementoOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper bairroOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper cidadeOriginal = new ReadOnlyStringWrapper("");
-    private final ReadOnlyObjectWrapper<Uf> ufOriginal = new ReadOnlyObjectWrapper<>(Uf.RJ);
+    private final ReadOnlyObjectWrapper<UfModel> ufOriginal = new ReadOnlyObjectWrapper<>(UfModel.RJ);
 
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO (Template Methods)
     // ==========================================================
 
     @Override
-    protected void extrairId(EnderecoProponente model) {
+    protected void extrairId(EnderecoProponenteModel model) {
         this.id.set(model.getId());
     }
 
     @Override
-    protected void preencherCampos(EnderecoProponente model) {
+    protected void preencherCampos(EnderecoProponenteModel model) {
         this.cep.set(model.getCep() != null ? model.getCep() : "");
-        this.tipoLogradouro.set(model.getTipoLogradouro() != null ? model.getTipoLogradouro() : TipoLogradouro.RUA);
+        this.tipoLogradouro.set(model.getTipoLogradouro() != null ? model.getTipoLogradouro() : TipoLogradouroModel.RUA);
         this.logradouro.set(model.getLogradouro() != null ? model.getLogradouro() : "");
         this.numero.set(model.getNumero() != null ? model.getNumero() : "");
         this.complemento.set(model.getComplemento() != null ? model.getComplemento() : "");
         this.bairro.set(model.getBairro() != null ? model.getBairro() : "");
         this.cidade.set(model.getCidade() != null ? model.getCidade() : "");
-        this.uf.set(model.getUf() != null ? model.getUf() : Uf.RJ);
+        this.uf.set(model.getUf() != null ? model.getUf() : UfModel.RJ);
     }
 
     @Override
     protected void limparCampos() {
         cep.set("");
-        tipoLogradouro.set(TipoLogradouro.RUA);
+        tipoLogradouro.set(TipoLogradouroModel.RUA);
         logradouro.set("");
         numero.set("");
         complemento.set("");
         bairro.set("");
         cidade.set("");
-        uf.set(Uf.RJ);
+        uf.set(UfModel.RJ);
     }
 
     @Override
@@ -92,9 +92,9 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponente> {
     }
 
     @Override
-    public EnderecoProponente atualizarModel(EnderecoProponente model) {
+    public EnderecoProponenteModel atualizarModel(EnderecoProponenteModel model) {
         if (model == null)
-            model = new EnderecoProponente();
+            model = new EnderecoProponenteModel();
 
         model.setId(this.id.get());
         model.setCep(this.cep.get());
@@ -124,7 +124,7 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponente> {
         return cep;
     }
 
-    public ObjectProperty<TipoLogradouro> tipoLogradouroProperty() {
+    public ObjectProperty<TipoLogradouroModel> tipoLogradouroProperty() {
         return tipoLogradouro;
     }
 
@@ -148,7 +148,7 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponente> {
         return cidade;
     }
 
-    public ObjectProperty<Uf> ufProperty() {
+    public ObjectProperty<UfModel> ufProperty() {
         return uf;
     }
 }

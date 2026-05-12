@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DocumentoProponente {
+public class DocumentoProponenteModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,16 +22,16 @@ public class DocumentoProponente {
     // Relacionamento com o Cliente (Proponente)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proponente_id")
-    private Proponente proponente;
+    private ProponenteModel proponente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proposta_id")
-    private Proposta proposta;
+    private PropostaModel proposta;
 
     // Relacionamento com o Consultor que fez o upload
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
+    private UsuarioModel usuario;
 
     @Column(name = "tipo_documento", nullable = false, length = 50)
     private String tipoDocumento;

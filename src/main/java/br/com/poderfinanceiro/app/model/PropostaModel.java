@@ -11,14 +11,14 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import br.com.poderfinanceiro.app.model.enums.StatusProposta;
+import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
 
 @Entity
 @Table(name = "propostas")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Proposta {
+public class PropostaModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,15 +27,15 @@ public class Proposta {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proponente_id", nullable = false)
-    private Proponente proponente;
+    private ProponenteModel proponente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "banco_id", nullable = false)
-    private Banco banco;
+    private BancoModel banco;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario; // Consultor responsável
+    private UsuarioModel usuario; // Consultor responsável
 
     @Column(name = "valor_solicitado", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorSolicitado;
@@ -53,7 +53,7 @@ public class Proposta {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", columnDefinition = "status_proposta_enum") // Nome EXATO do TYPE no seu SQL
-    private StatusProposta status = StatusProposta.DIGITADA;
+    private StatusPropostaModel status = StatusPropostaModel.DIGITADA;
 
     @Column(precision = 10, scale = 6)
     private BigDecimal coeficiente;
@@ -100,7 +100,7 @@ public class Proposta {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tabela_id", insertable = false, updatable = false)
-    private TabelaJuros tabela;
+    private TabelaJurosModel tabela;
 
     @Column(name = "tabela_id")
     private Long tabelaId;
@@ -109,7 +109,7 @@ public class Proposta {
     private Long usuarioAtualizacaoId;
 
     @OneToMany(mappedBy = "proposta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private java.util.List<DocumentoProponente> documentos = new java.util.ArrayList<>();
+    private java.util.List<DocumentoProponenteModel> documentos = new java.util.ArrayList<>();
     
     @PrePersist
     protected void onCreate() {

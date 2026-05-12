@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.TabelaJuros;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.TabelaJurosModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.viewmodel.TabelaJurosViewModel;
 import javafx.beans.binding.Bindings;
@@ -36,7 +36,7 @@ public class TabelaJurosController {
     @FXML
     private TextField txtNomeTabela;
     @FXML
-    private ComboBox<TipoConvenio> comboConvenio;
+    private ComboBox<TipoConvenioModel> comboConvenio;
     @FXML
     private TextField txtTaxaMensal;
     @FXML
@@ -50,27 +50,27 @@ public class TabelaJurosController {
     @FXML
     private TextField txtBusca;
     @FXML
-    private TableView<TabelaJuros> tableTabelas;
+    private TableView<TabelaJurosModel> tableTabelas;
     @FXML
-    private TableColumn<TabelaJuros, String> colConvenio;
+    private TableColumn<TabelaJurosModel, String> colConvenio;
     @FXML
-    private TableColumn<TabelaJuros, String> colNome;
+    private TableColumn<TabelaJurosModel, String> colNome;
     @FXML
-    private TableColumn<TabelaJuros, String> colTaxa;
+    private TableColumn<TabelaJurosModel, String> colTaxa;
     @FXML
-    private TableColumn<TabelaJuros, String> colComissao;
+    private TableColumn<TabelaJurosModel, String> colComissao;
     @FXML
-    private TableColumn<TabelaJuros, String> colLimites;
+    private TableColumn<TabelaJurosModel, String> colLimites;
     @FXML
-    private TableColumn<TabelaJuros, Void> colAcoes;
+    private TableColumn<TabelaJurosModel, Void> colAcoes;
 
     // Overlays
     @FXML
     private VBox overlayArquivar;
 
     // Estados Locais
-    private ObservableList<TabelaJuros> dadosOriginais;
-    private TabelaJuros tabelaSelecionadaParaArquivar;
+    private ObservableList<TabelaJurosModel> dadosOriginais;
+    private TabelaJurosModel tabelaSelecionadaParaArquivar;
 
     public TabelaJurosController(TabelaJurosService service, TabelaJurosViewModel viewModel) {
         this.service = service;
@@ -92,7 +92,7 @@ public class TabelaJurosController {
     // =========================================================
 
     private void configurarFormulario() {
-        comboConvenio.setItems(FXCollections.observableArrayList(TipoConvenio.values()));
+        comboConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
 
         // Conecta o FXML com a nossa "prancheta" (ViewModel)
         txtNomeTabela.textProperty().bindBidirectional(viewModel.getNomeTabela());
@@ -158,7 +158,7 @@ public class TabelaJurosController {
     }
 
     private void configurarFiltroBusca() {
-        FilteredList<TabelaJuros> filteredData = new FilteredList<>(dadosOriginais, b -> true);
+        FilteredList<TabelaJurosModel> filteredData = new FilteredList<>(dadosOriginais, b -> true);
         txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredData.setPredicate(tabela -> {
                 if (newValue == null || newValue.isEmpty())
@@ -184,7 +184,7 @@ public class TabelaJurosController {
 
         try {
             // Pega os dados do formulário e gera a entidade
-            TabelaJuros tabelaAtualizada = viewModel.atualizarModel(new TabelaJuros());
+            TabelaJurosModel tabelaAtualizada = viewModel.atualizarModel(new TabelaJurosModel());
 
             // Salva usando a Regra de Ouro (Cria nova versão, inativa a velha)
             service.salvarComRegraDeOuro(tabelaAtualizada);
@@ -206,14 +206,14 @@ public class TabelaJurosController {
         paneFormulario.setText("💊 Prescrever Nova Tabela (Cadastrar / Atualizar)");
     }
 
-    private void editarTabela(TabelaJuros tabela) {
+    private void editarTabela(TabelaJurosModel tabela) {
         viewModel.loadFromModel(tabela);
         paneFormulario.setExpanded(true);
         paneFormulario.setText("🔄 Editando Tabela: " + tabela.getNomeTabela() + " (Isso gerará uma nova versão)");
         txtNomeTabela.requestFocus();
     }
 
-    private void abrirConfirmacaoArquivamento(TabelaJuros tabela) {
+    private void abrirConfirmacaoArquivamento(TabelaJurosModel tabela) {
         this.tabelaSelecionadaParaArquivar = tabela;
         overlayArquivar.setVisible(true);
     }

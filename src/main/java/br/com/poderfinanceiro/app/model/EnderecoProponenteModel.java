@@ -7,7 +7,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import br.com.poderfinanceiro.app.model.enums.TipoLogradouro;
+import br.com.poderfinanceiro.app.model.enums.TipoLogradouroModel;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class EnderecoProponente {
+public class EnderecoProponenteModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,7 +26,7 @@ public class EnderecoProponente {
     // Relacionamento com o Proponente
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proponente_id", nullable = false)
-    private Proponente proponente;
+    private ProponenteModel proponente;
 
     @Column(nullable = false, length = 8)
     private String cep;
@@ -34,7 +34,7 @@ public class EnderecoProponente {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "tipo_logradouro", columnDefinition = "tipo_logradouro_enum")
-    private TipoLogradouro tipoLogradouro = TipoLogradouro.RUA;
+    private TipoLogradouroModel tipoLogradouro = TipoLogradouroModel.RUA;
 
     @Column(nullable = false, length = 255)
     private String logradouro;
@@ -54,7 +54,7 @@ public class EnderecoProponente {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "uf", columnDefinition = "uf_enum")
-    private Uf uf;
+    private UfModel uf;
 
     @Column(name = "principal")
     private Boolean principal = false;

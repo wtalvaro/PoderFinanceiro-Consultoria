@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 
 @Entity
 @Table(name = "tabelas_juros")
@@ -21,7 +21,7 @@ import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
-public class TabelaJuros {
+public class TabelaJurosModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +30,7 @@ public class TabelaJuros {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "banco_id", nullable = false)
-    private Banco banco;
+    private BancoModel banco;
 
     @Column(name = "nome_tabela", nullable = false, length = 100)
     private String nomeTabela;
@@ -53,7 +53,7 @@ public class TabelaJuros {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "tipo_convenio")
-    private TipoConvenio tipoConvenio;
+    private TipoConvenioModel tipoConvenio;
 
     @Column(name = "comissao_percentual")
     private BigDecimal comissaoPercentual;

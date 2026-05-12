@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.Banco;
-import br.com.poderfinanceiro.app.model.TabelaJuros;
-import br.com.poderfinanceiro.app.model.enums.StatusProposta;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.BancoModel;
+import br.com.poderfinanceiro.app.model.TabelaJurosModel;
+import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
@@ -28,14 +28,14 @@ public class PropostaController {
 
     // --- NOVOS ELEMENTOS DA TRIAGEM ---
     @FXML
-    private ComboBox<TipoConvenio> cbConvenio;
+    private ComboBox<TipoConvenioModel> cbConvenio;
 
     @FXML
-    private ComboBox<Banco> cbBanco;
+    private ComboBox<BancoModel> cbBanco;
     @FXML
-    private ComboBox<TabelaJuros> cbTabela;
+    private ComboBox<TabelaJurosModel> cbTabela;
     @FXML
-    private ComboBox<StatusProposta> cbStatus;
+    private ComboBox<StatusPropostaModel> cbStatus;
     @FXML
     private TextField txtValorSolicitado;
     @FXML
@@ -54,8 +54,8 @@ public class PropostaController {
     private Label lblTotalPago;
 
     // Caches da Memória
-    private List<TabelaJuros> todasTabelasAtivas;
-    private List<TabelaJuros> tabelasElegiveisDaTriagem; // Resultado do Filtro
+    private List<TabelaJurosModel> todasTabelasAtivas;
+    private List<TabelaJurosModel> tabelasElegiveisDaTriagem; // Resultado do Filtro
 
     public PropostaController(PropostaViewModel viewModel,
             PropostaService propostaService, TabelaJurosService tabelaJurosService) {
@@ -74,11 +74,11 @@ public class PropostaController {
 
     private void carregarListasBase() {
         todasTabelasAtivas = tabelaJurosService.listarAtivas();
-        cbStatus.setItems(FXCollections.observableArrayList(StatusProposta.values()));
+        cbStatus.setItems(FXCollections.observableArrayList(StatusPropostaModel.values()));
 
         // Inicializa o Combo de Convênio (Se você adicionou no FXML)
         if (cbConvenio != null) {
-            cbConvenio.setItems(FXCollections.observableArrayList(TipoConvenio.values()));
+            cbConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
 
             // Sugere o convênio automaticamente baseado no perfil do cliente
             viewModel.proponenteProperty().addListener((obs, old, paciente) -> {
@@ -91,25 +91,25 @@ public class PropostaController {
         // Conversores Visuais
         cbBanco.setConverter(new StringConverter<>() {
             @Override
-            public String toString(Banco b) {
+            public String toString(BancoModel b) {
                 return b != null ? b.getNome() : "Aguardando Triagem...";
             }
 
             @Override
-            public Banco fromString(String s) {
+            public BancoModel fromString(String s) {
                 return null;
             }
         });
 
         cbTabela.setConverter(new StringConverter<>() {
             @Override
-            public String toString(TabelaJuros t) {
+            public String toString(TabelaJurosModel t) {
                 return t != null ? t.getNomeTabela() + " (" + t.getComissaoPercentual() + "%)"
                         : "Selecione a Tabela...";
             }
 
             @Override
-            public TabelaJuros fromString(String s) {
+            public TabelaJurosModel fromString(String s) {
                 return null;
             }
         });
@@ -150,7 +150,7 @@ public class PropostaController {
         // Quando carrega uma proposta do banco, ajusta a UI
         viewModel.tabelaIdProperty().addListener((obs, old, idNovo) -> {
             if (idNovo != null) {
-                TabelaJuros tab = todasTabelasAtivas.stream().filter(t -> t.getId().equals(idNovo)).findFirst()
+                TabelaJurosModel tab = todasTabelasAtivas.stream().filter(t -> t.getId().equals(idNovo)).findFirst()
                         .orElse(null);
                 if (tab != null) {
                     if (cbConvenio != null && cbConvenio.getValue() == null)
@@ -221,12 +221,12 @@ public class PropostaController {
             if (bancoNovo != null && tabelasElegiveisDaTriagem != null) {
 
                 // Filtra as tabelas do banco selecionado e ORDENA pela maior comissão!
-                List<TabelaJuros> tabelasDoBanco = tabelasElegiveisDaTriagem.stream()
+                List<TabelaJurosModel> tabelasDoBanco = tabelasElegiveisDaTriagem.stream()
                         .filter(t -> t.getBanco().getId().equals(bancoNovo.getId()))
-                        .sorted(java.util.Comparator.comparing(TabelaJuros::getComissaoPercentual).reversed())
+                        .sorted(java.util.Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed())
                         .toList();
 
-                TabelaJuros tabelaAtual = cbTabela.getValue();
+                TabelaJurosModel tabelaAtual = cbTabela.getValue();
                 cbTabela.setItems(FXCollections.observableArrayList(tabelasDoBanco));
 
                 // 🧠 A Mágica do Piloto Automático para Tabelas
@@ -253,7 +253,7 @@ public class PropostaController {
     }
 
     private void realizarTriagem() {
-        TipoConvenio convenio = (cbConvenio != null) ? cbConvenio.getValue() : null;
+        TipoConvenioModel convenio = (cbConvenio != null) ? cbConvenio.getValue() : null;
         BigDecimal valorSolicitado = viewModel.valorSolicitadoProperty().get();
 
         if (convenio == null || valorSolicitado == null || valorSolicitado.compareTo(BigDecimal.ZERO) <= 0) {
@@ -278,14 +278,14 @@ public class PropostaController {
 
         // 2. Extrai os Bancos (Sem HashMap! Agora o Hibernate confia no distinct do
         // Java)
-        List<Banco> bancosElegiveis = tabelasElegiveisDaTriagem.stream()
-                .map(TabelaJuros::getBanco)
+        List<BancoModel> bancosElegiveis = tabelasElegiveisDaTriagem.stream()
+                .map(TabelaJurosModel::getBanco)
                 .filter(java.util.Objects::nonNull) // Evita nulos caso alguma tabela esteja sem banco
                 .distinct() // O Java usa o equals() nativo da entidade perfeitamente agora!
                 .toList();
 
         // 3. Atualiza o ComboBox de Bancos mantendo a seleção se for válida
-        Banco bancoAtual = cbBanco.getValue();
+        BancoModel bancoAtual = cbBanco.getValue();
         cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
 
         // 4. 🧠 A Mágica do Piloto Automático para Bancos
@@ -312,7 +312,7 @@ public class PropostaController {
     private void dispararCalculo() {
         BigDecimal vAprovado = viewModel.valorAprovadoProperty().get();
         BigDecimal vSolicitado = viewModel.valorSolicitadoProperty().get();
-        TabelaJuros tabela = cbTabela.getValue();
+        TabelaJurosModel tabela = cbTabela.getValue();
 
         // Qual valor usar para calcular? Se tem liberado, usa liberado. Senão, usa
         // solicitado.

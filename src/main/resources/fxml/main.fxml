@@ -58,4 +58,16 @@
                      </HBox>
               </VBox>
        </VBox>
+
+       <VBox fx:id="overlayLoading" visible="false" alignment="CENTER"
+              style="-fx-background-color: rgba(255, 255, 255, 0.8);">
+              <VBox alignment="CENTER" spacing="15" maxWidth="250"
+                     style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 15, 0, 0, 0);">
+
+                     <ProgressIndicator style="-fx-progress-color: -color-accent-fg;" />
+
+                     <Label fx:id="lblLoadingTexto" text="Buscando prontuários..."
+                            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555;" />
+              </VBox>
+       </VBox>
 </StackPane>

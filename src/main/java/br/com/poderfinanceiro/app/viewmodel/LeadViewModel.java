@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.model.enums.OrigemLead;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
-import br.com.poderfinanceiro.app.model.enums.TipoRelacionamento;
-import br.com.poderfinanceiro.app.model.enums.TipoVinculo;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.enums.OrigemLeadModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.model.enums.TipoRelacionamentoModel;
+import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -16,57 +16,57 @@ import java.util.Objects;
 
 @Component
 @Scope("prototype")
-public class LeadViewModel extends BaseViewModel<Proponente> {
+public class LeadViewModel extends BaseViewModel<ProponenteModel> {
 
     // --- 1. PROPERTIES ESPECÍFICAS DO LEAD ---
     private final StringProperty nome = new SimpleStringProperty("");
     private final StringProperty cpf = new SimpleStringProperty("");
     private final StringProperty telefone = new SimpleStringProperty("");
-    private final ObjectProperty<OrigemLead> origem = new SimpleObjectProperty<>(OrigemLead.WHATSAPP);
+    private final ObjectProperty<OrigemLeadModel> origem = new SimpleObjectProperty<>(OrigemLeadModel.WHATSAPP);
 
     private final ObjectProperty<LocalDate> dataNascimento = new SimpleObjectProperty<>();
-    private final ObjectProperty<TipoConvenio> convenio = new SimpleObjectProperty<>(TipoConvenio.PADRAO);
-    private final ObjectProperty<TipoVinculo> vinculo = new SimpleObjectProperty<>(TipoVinculo.CLT);
+    private final ObjectProperty<TipoConvenioModel> convenio = new SimpleObjectProperty<>(TipoConvenioModel.PADRAO);
+    private final ObjectProperty<TipoVinculoModel> vinculo = new SimpleObjectProperty<>(TipoVinculoModel.CLT);
     private final StringProperty matricula = new SimpleStringProperty("");
     private final ObjectProperty<BigDecimal> renda = new SimpleObjectProperty<>(BigDecimal.ZERO);
-    private final ObjectProperty<TipoRelacionamento> classificacao = new SimpleObjectProperty<>(
-            TipoRelacionamento.LEAD);
+    private final ObjectProperty<TipoRelacionamentoModel> classificacao = new SimpleObjectProperty<>(
+            TipoRelacionamentoModel.LEAD);
 
     // --- 2. ESTADOS ORIGINAIS ---
     private final ReadOnlyStringWrapper nomeOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper cpfOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper telefoneOriginal = new ReadOnlyStringWrapper("");
-    private final ReadOnlyObjectWrapper<OrigemLead> origemOriginal = new ReadOnlyObjectWrapper<>(OrigemLead.WHATSAPP);
+    private final ReadOnlyObjectWrapper<OrigemLeadModel> origemOriginal = new ReadOnlyObjectWrapper<>(OrigemLeadModel.WHATSAPP);
     private final ReadOnlyObjectWrapper<LocalDate> dataNascimentoOriginal = new ReadOnlyObjectWrapper<>(null);
-    private final ReadOnlyObjectWrapper<TipoConvenio> convenioOriginal = new ReadOnlyObjectWrapper<>(
-            TipoConvenio.PADRAO);
-    private final ReadOnlyObjectWrapper<TipoVinculo> vinculoOriginal = new ReadOnlyObjectWrapper<>(TipoVinculo.CLT);
+    private final ReadOnlyObjectWrapper<TipoConvenioModel> convenioOriginal = new ReadOnlyObjectWrapper<>(
+            TipoConvenioModel.PADRAO);
+    private final ReadOnlyObjectWrapper<TipoVinculoModel> vinculoOriginal = new ReadOnlyObjectWrapper<>(TipoVinculoModel.CLT);
     private final ReadOnlyStringWrapper matriculaOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<BigDecimal> rendaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
-    private final ReadOnlyObjectWrapper<TipoRelacionamento> classificacaoOriginal = new ReadOnlyObjectWrapper<>(
-            TipoRelacionamento.LEAD);
+    private final ReadOnlyObjectWrapper<TipoRelacionamentoModel> classificacaoOriginal = new ReadOnlyObjectWrapper<>(
+            TipoRelacionamentoModel.LEAD);
 
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO (Template Methods)
     // ==========================================================
 
     @Override
-    protected void extrairId(Proponente model) {
+    protected void extrairId(ProponenteModel model) {
         this.id.set(model.getId());
     }
 
     @Override
-    protected void preencherCampos(Proponente model) {
+    protected void preencherCampos(ProponenteModel model) {
         nome.set(model.getNomeCompleto() != null ? model.getNomeCompleto() : "");
         cpf.set(model.getCpf() != null ? model.getCpf() : "");
         telefone.set(model.getTelefone() != null ? model.getTelefone() : "");
-        origem.set(model.getOrigemConsentimento() != null ? model.getOrigemConsentimento() : OrigemLead.WHATSAPP);
+        origem.set(model.getOrigemConsentimento() != null ? model.getOrigemConsentimento() : OrigemLeadModel.WHATSAPP);
         dataNascimento.set(model.getDataNascimento());
-        convenio.set(model.getConvenioOrgao() != null ? model.getConvenioOrgao() : TipoConvenio.PADRAO);
-        vinculo.set(model.getTipoVinculo() != null ? model.getTipoVinculo() : TipoVinculo.CLT);
+        convenio.set(model.getConvenioOrgao() != null ? model.getConvenioOrgao() : TipoConvenioModel.PADRAO);
+        vinculo.set(model.getTipoVinculo() != null ? model.getTipoVinculo() : TipoVinculoModel.CLT);
         matricula.set(model.getMatricula() != null ? model.getMatricula() : "");
         renda.set(model.getRendaMensal() != null ? model.getRendaMensal() : BigDecimal.ZERO);
-        classificacao.set(model.getClassificacao() != null ? model.getClassificacao() : TipoRelacionamento.LEAD);
+        classificacao.set(model.getClassificacao() != null ? model.getClassificacao() : TipoRelacionamentoModel.LEAD);
     }
 
     @Override
@@ -74,13 +74,13 @@ public class LeadViewModel extends BaseViewModel<Proponente> {
         nome.set("");
         cpf.set("");
         telefone.set("");
-        origem.set(OrigemLead.WHATSAPP);
+        origem.set(OrigemLeadModel.WHATSAPP);
         dataNascimento.set(null);
-        convenio.set(TipoConvenio.PADRAO);
-        vinculo.set(TipoVinculo.CLT);
+        convenio.set(TipoConvenioModel.PADRAO);
+        vinculo.set(TipoVinculoModel.CLT);
         matricula.set("");
         renda.set(BigDecimal.ZERO);
-        classificacao.set(TipoRelacionamento.LEAD);
+        classificacao.set(TipoRelacionamentoModel.LEAD);
     }
 
     @Override
@@ -129,9 +129,9 @@ public class LeadViewModel extends BaseViewModel<Proponente> {
     }
 
     @Override
-    public Proponente atualizarModel(Proponente model) {
+    public ProponenteModel atualizarModel(ProponenteModel model) {
         if (model == null) {
-            model = new Proponente();
+            model = new ProponenteModel();
         }
         model.setId(this.id.get());
         model.setNomeCompleto(this.nome.get());
@@ -184,7 +184,7 @@ public class LeadViewModel extends BaseViewModel<Proponente> {
         return telefone;
     }
 
-    public ObjectProperty<OrigemLead> origemProperty() {
+    public ObjectProperty<OrigemLeadModel> origemProperty() {
         return origem;
     }
 
@@ -192,11 +192,11 @@ public class LeadViewModel extends BaseViewModel<Proponente> {
         return dataNascimento;
     }
 
-    public ObjectProperty<TipoConvenio> convenioProperty() {
+    public ObjectProperty<TipoConvenioModel> convenioProperty() {
         return convenio;
     }
 
-    public ObjectProperty<TipoVinculo> vinculoProperty() {
+    public ObjectProperty<TipoVinculoModel> vinculoProperty() {
         return vinculo;
     }
 
@@ -208,7 +208,7 @@ public class LeadViewModel extends BaseViewModel<Proponente> {
         return renda;
     }
 
-    public ObjectProperty<TipoRelacionamento> classificacaoProperty() {
+    public ObjectProperty<TipoRelacionamentoModel> classificacaoProperty() {
         return classificacao;
     }
 }

@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.PlaybookItem;
+import br.com.poderfinanceiro.app.model.PlaybookItemModel;
 import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.service.PlaybookService;
 import javafx.fxml.FXML;
@@ -49,11 +49,11 @@ public class PlaybookController implements Initializable {
 
     private final PlaybookService playbookService;
     private final AuthService authService;
-    private List<PlaybookItem> todosOsItens;
+    private List<PlaybookItemModel> todosOsItens;
 
     // Estado da tela
     private boolean modoEdicao = false;
-    private PlaybookItem itemSelecionadoAtual;
+    private PlaybookItemModel itemSelecionadoAtual;
     private boolean criandoNovo = false;
 
     public PlaybookController(PlaybookService playbookService, AuthService authService) {
@@ -77,7 +77,7 @@ public class PlaybookController implements Initializable {
                 return;
             }
             String termo = newValue.toLowerCase().trim();
-            List<PlaybookItem> itensFiltrados = todosOsItens.stream()
+            List<PlaybookItemModel> itensFiltrados = todosOsItens.stream()
                     .filter(item -> item.getTitulo().toLowerCase().contains(termo)
                             || item.getCategoria().toLowerCase().contains(termo)
                             || item.getConteudo().toLowerCase().contains(termo))
@@ -86,28 +86,28 @@ public class PlaybookController implements Initializable {
         });
     }
 
-    private void construirArvore(List<PlaybookItem> itensParaExibir, boolean expandirPastas) {
+    private void construirArvore(List<PlaybookItemModel> itensParaExibir, boolean expandirPastas) {
         if (itensParaExibir == null || itensParaExibir.isEmpty()) {
             treeViewScripts.setRoot(new TreeItem<>("Nenhum resultado encontrado"));
             return;
         }
 
-        Map<String, List<PlaybookItem>> itensPorCategoria = itensParaExibir.stream()
+        Map<String, List<PlaybookItemModel>> itensPorCategoria = itensParaExibir.stream()
                 .collect(
-                        Collectors.groupingBy(PlaybookItem::getCategoria, java.util.TreeMap::new, Collectors.toList()));
+                        Collectors.groupingBy(PlaybookItemModel::getCategoria, java.util.TreeMap::new, Collectors.toList()));
 
         TreeItem<String> rootItem = new TreeItem<>("Playbook");
         rootItem.setExpanded(true);
 
-        for (Map.Entry<String, List<PlaybookItem>> entry : itensPorCategoria.entrySet()) {
+        for (Map.Entry<String, List<PlaybookItemModel>> entry : itensPorCategoria.entrySet()) {
             TreeItem<String> categoriaNode = new TreeItem<>(entry.getKey());
             categoriaNode.setExpanded(expandirPastas);
 
-            List<PlaybookItem> scriptsOrdenados = entry.getValue().stream()
-                    .sorted(java.util.Comparator.comparing(PlaybookItem::getTitulo, String.CASE_INSENSITIVE_ORDER))
+            List<PlaybookItemModel> scriptsOrdenados = entry.getValue().stream()
+                    .sorted(java.util.Comparator.comparing(PlaybookItemModel::getTitulo, String.CASE_INSENSITIVE_ORDER))
                     .collect(Collectors.toList());
 
-            for (PlaybookItem item : scriptsOrdenados) {
+            for (PlaybookItemModel item : scriptsOrdenados) {
                 TreeItem<String> scriptNode = new TreeItem<>(item.getTitulo());
                 categoriaNode.getChildren().add(scriptNode);
             }
@@ -158,7 +158,7 @@ public class PlaybookController implements Initializable {
 
     @FXML
     private void handleNovo() {
-        this.itemSelecionadoAtual = new PlaybookItem();
+        this.itemSelecionadoAtual = new PlaybookItemModel();
         this.criandoNovo = true;
 
         txtTitulo.setText("");

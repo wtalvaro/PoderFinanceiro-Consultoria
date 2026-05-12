@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.service;
 
-import br.com.poderfinanceiro.app.model.TabelaJuros;
+import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.repository.TabelaJurosRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,7 @@ public class TabelaJurosService {
     /**
      * Busca apenas as taxas ativas (que não foram arquivadas).
      */
-    public List<TabelaJuros> listarAtivas() {
+    public List<TabelaJurosModel> listarAtivas() {
         return repository.buscarTodasAtivasComBanco();
     }
 
@@ -29,7 +29,7 @@ public class TabelaJurosService {
      * Nunca atualizamos uma tabela usada. Fechamos a antiga e criamos uma nova.
      */
     @Transactional
-    public TabelaJuros salvarComRegraDeOuro(TabelaJuros model) {
+    public TabelaJurosModel salvarComRegraDeOuro(TabelaJurosModel model) {
         // Se for um cadastro novo (sem ID), apenas salva
         if (model.getId() == null) {
             model.setInicioVigencia(LocalDate.now());
@@ -38,7 +38,7 @@ public class TabelaJurosService {
         }
 
         // Se for atualização, busca o prontuário antigo
-        TabelaJuros antiga = repository.findById(model.getId())
+        TabelaJurosModel antiga = repository.findById(model.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Tabela original não encontrada no sistema."));
 
         // 1. Dá "alta" na tabela antiga (arquiva)
@@ -47,7 +47,7 @@ public class TabelaJurosService {
         repository.save(antiga);
 
         // 2. Cria uma "nova vida" com os dados atualizados
-        TabelaJuros novaVersao = new TabelaJuros();
+        TabelaJurosModel novaVersao = new TabelaJurosModel();
         novaVersao.setBanco(antiga.getBanco()); // Mantém o vínculo do banco
         novaVersao.setNomeTabela(model.getNomeTabela());
         novaVersao.setTipoConvenio(model.getTipoConvenio());
@@ -64,9 +64,9 @@ public class TabelaJurosService {
     }
 
     @Transactional
-    public void arquivarTabela(TabelaJuros tabela) {
+    public void arquivarTabela(TabelaJurosModel tabela) {
         if (tabela != null && tabela.getId() != null) {
-            TabelaJuros managed = repository.findById(tabela.getId()).orElse(null);
+            TabelaJurosModel managed = repository.findById(tabela.getId()).orElse(null);
             if (managed != null) {
                 managed.setFimVigencia(LocalDate.now());
                 managed.setAtivo(false);

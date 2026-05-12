@@ -17,9 +17,9 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import br.com.poderfinanceiro.app.model.PlaybookItem;
+import br.com.poderfinanceiro.app.model.PlaybookItemModel;
 import br.com.poderfinanceiro.app.model.PlaybookItemDTO;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.strategy.DocumentStrategy;
 
 @Service
@@ -29,7 +29,7 @@ public class PlaybookService {
     private final ObjectMapper objectMapper;
 
     // Armazena em memória os itens estáticos carregados do JSON (O Prontuário Ativo)
-    private final List<PlaybookItem> itensEstaticos = new ArrayList<>();
+    private final List<PlaybookItemModel> itensEstaticos = new ArrayList<>();
     
     // O prontuário agora tem um endereço dinâmico (resolve o problema de salvar dentro do JAR/EXE)
     private String caminhoArquivoFinal;
@@ -100,7 +100,7 @@ public class PlaybookService {
             
             itensEstaticos.clear();
             for (PlaybookItemDTO dto : dtos) {
-                itensEstaticos.add(new PlaybookItem(
+                itensEstaticos.add(new PlaybookItemModel(
                         dto.categoria(),
                         dto.titulo(),
                         dto.conteudo(),
@@ -113,8 +113,8 @@ public class PlaybookService {
         }
     }
 
-    public List<PlaybookItem> listarTudoParaOPlaybook() {
-        List<PlaybookItem> itens = new ArrayList<>(itensEstaticos);
+    public List<PlaybookItemModel> listarTudoParaOPlaybook() {
+        List<PlaybookItemModel> itens = new ArrayList<>(itensEstaticos);
         // Injeta as prescrições dinâmicas (checklists) que não devem ser salvas no JSON
         itens.addAll(gerarChecklistsDeDocumentos());
         return itens;
@@ -124,7 +124,7 @@ public class PlaybookService {
     // NOVO MÉTODO DE SALVAMENTO (CRUD)
     // ==========================================
 
-    public void salvarTodos(List<PlaybookItem> todosOsItens) {
+    public void salvarTodos(List<PlaybookItemModel> todosOsItens) {
         // 1. Filtramos as checklists dinâmicas para não gravá-las no JSON
         List<PlaybookItemDTO> dtosParaSalvar = todosOsItens.stream()
                 .filter(item -> item.getCategoria() != null && !item.getCategoria().contains("Checklists de Documentos"))
@@ -151,16 +151,16 @@ public class PlaybookService {
         }
     }
 
-    private List<PlaybookItem> gerarChecklistsDeDocumentos() {
-        List<PlaybookItem> checklists = new ArrayList<>();
+    private List<PlaybookItemModel> gerarChecklistsDeDocumentos() {
+        List<PlaybookItemModel> checklists = new ArrayList<>();
 
-        for (TipoConvenio convenio : TipoConvenio.values()) {
+        for (TipoConvenioModel convenio : TipoConvenioModel.values()) {
             documentStrategies.stream()
                     .filter(s -> s.supports(convenio.name()))
                     .findFirst()
                     .ifPresent(strategy -> {
                         String categoria = convenio.getLabel() + " / 4. Checklists de Documentos";
-                        checklists.add(new PlaybookItem(
+                        checklists.add(new PlaybookItemModel(
                                 categoria,
                                 "Documentação Exigida",
                                 strategy.getChecklist(),

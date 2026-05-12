@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.repository;
 
-import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ProponenteRepository extends JpaRepository<Proponente, Long> {
+public interface ProponenteRepository extends JpaRepository<ProponenteModel, Long> {
 
-    List<Proponente> findByUsuarioIdAndDeletadoEmIsNull(Long usuarioId);
+    List<ProponenteModel> findByUsuarioIdAndDeletadoEmIsNull(Long usuarioId);
 
-    Optional<Proponente> findByCpfAndUsuarioIdAndDeletadoEmIsNull(String cpf, Long usuarioId);
+    Optional<ProponenteModel> findByCpfAndUsuarioIdAndDeletadoEmIsNull(String cpf, Long usuarioId);
 
     boolean existsByCpfAndUsuarioIdAndDeletadoEmIsNull(String cpf, Long usuarioId);
 
@@ -22,10 +22,12 @@ public interface ProponenteRepository extends JpaRepository<Proponente, Long> {
     // atual
     boolean existsByCpfAndUsuarioIdAndIdNotAndDeletadoEmIsNull(String cpf, Long usuarioId, Long id);
 
-    @Query("SELECT p FROM Proponente p WHERE p.usuario.id = :usuarioId AND p.deletadoEm IS NULL AND " +
+    // ✅ CORREÇÃO 1: Adicionado o "Model" no nome da Entidade
+    @Query("SELECT p FROM ProponenteModel p WHERE p.usuario.id = :usuarioId AND p.deletadoEm IS NULL AND " +
             "(LOWER(p.nomeCompleto) LIKE LOWER(CONCAT('%', :termo, '%')) OR p.cpf LIKE CONCAT('%', :termo, '%'))")
-    List<Proponente> buscarRapidaPorNomeOuCpf(@Param("termo") String termo, @Param("usuarioId") Long usuarioId);
+    List<ProponenteModel> buscarRapidaPorNomeOuCpf(@Param("termo") String termo, @Param("usuarioId") Long usuarioId);
 
-    @Query("SELECT p FROM Proponente p LEFT JOIN FETCH p.enderecos WHERE p.id = :id")
-    Optional<Proponente> findByIdWithEnderecos(@Param("id") Long id);
+    // ✅ CORREÇÃO 2: Adicionado o "Model" na busca por ID com endereços
+    @Query("SELECT p FROM ProponenteModel p LEFT JOIN FETCH p.enderecos WHERE p.id = :id")
+    Optional<ProponenteModel> findByIdWithEnderecos(@Param("id") Long id);
 }

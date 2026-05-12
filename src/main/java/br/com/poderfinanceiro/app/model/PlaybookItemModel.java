@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlaybookItem {
+public class PlaybookItemModel {
     private String categoria;
     private String titulo;
     private String conteudo;

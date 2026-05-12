@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.TabelaJuros;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
+import br.com.poderfinanceiro.app.model.TabelaJurosModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import lombok.Getter;
@@ -15,11 +15,11 @@ import java.util.Objects;
 @Scope("prototype")
 @Getter // <-- O Lombok atua aqui, gerando todos os getters (ex: getNomeTabela())
         // automaticamente!
-public class TabelaJurosViewModel extends BaseViewModel<TabelaJuros> {
+public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
 
     // --- 1. PROPERTIES DA TABELA DE JUROS ---
     private final StringProperty nomeTabela = new SimpleStringProperty("");
-    private final ObjectProperty<TipoConvenio> tipoConvenio = new SimpleObjectProperty<>(TipoConvenio.PADRAO);
+    private final ObjectProperty<TipoConvenioModel> tipoConvenio = new SimpleObjectProperty<>(TipoConvenioModel.PADRAO);
     private final ObjectProperty<BigDecimal> taxaMensal = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> comissaoPercentual = new SimpleObjectProperty<>(BigDecimal.ZERO);
 
@@ -29,8 +29,8 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJuros> {
 
     // --- 2. ESTADOS ORIGINAIS PARA DIRTY CHECKING ---
     private final ReadOnlyStringWrapper nomeOriginal = new ReadOnlyStringWrapper("");
-    private final ReadOnlyObjectWrapper<TipoConvenio> convenioOriginal = new ReadOnlyObjectWrapper<>(
-            TipoConvenio.PADRAO);
+    private final ReadOnlyObjectWrapper<TipoConvenioModel> convenioOriginal = new ReadOnlyObjectWrapper<>(
+            TipoConvenioModel.PADRAO);
     private final ReadOnlyObjectWrapper<BigDecimal> taxaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> comissaoOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> minEmprestimoOriginal = new ReadOnlyObjectWrapper<>(
@@ -43,14 +43,14 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJuros> {
     // ==========================================================
 
     @Override
-    protected void extrairId(TabelaJuros model) {
+    protected void extrairId(TabelaJurosModel model) {
         this.id.set(model.getId());
     }
 
     @Override
-    protected void preencherCampos(TabelaJuros model) {
+    protected void preencherCampos(TabelaJurosModel model) {
         nomeTabela.set(model.getNomeTabela() != null ? model.getNomeTabela() : "");
-        tipoConvenio.set(model.getTipoConvenio() != null ? model.getTipoConvenio() : TipoConvenio.PADRAO);
+        tipoConvenio.set(model.getTipoConvenio() != null ? model.getTipoConvenio() : TipoConvenioModel.PADRAO);
         taxaMensal.set(model.getTaxaMensal() != null ? model.getTaxaMensal() : BigDecimal.ZERO);
         comissaoPercentual.set(model.getComissaoPercentual() != null ? model.getComissaoPercentual() : BigDecimal.ZERO);
         valorMinimoEmprestimo
@@ -62,7 +62,7 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJuros> {
     @Override
     protected void limparCampos() {
         nomeTabela.set("");
-        tipoConvenio.set(TipoConvenio.PADRAO);
+        tipoConvenio.set(TipoConvenioModel.PADRAO);
         taxaMensal.set(BigDecimal.ZERO);
         comissaoPercentual.set(BigDecimal.ZERO);
         valorMinimoEmprestimo.set(null);
@@ -90,9 +90,9 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJuros> {
     }
 
     @Override
-    public TabelaJuros atualizarModel(TabelaJuros model) {
+    public TabelaJurosModel atualizarModel(TabelaJurosModel model) {
         if (model == null) {
-            model = new TabelaJuros();
+            model = new TabelaJurosModel();
         }
         model.setId(this.id.get());
         model.setNomeTabela(this.nomeTabela.get());

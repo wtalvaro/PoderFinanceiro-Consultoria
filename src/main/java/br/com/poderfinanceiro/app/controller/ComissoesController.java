@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.Comissao;
+import br.com.poderfinanceiro.app.model.ComissaoModel;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.viewmodel.ComissaoViewModel;
 import javafx.beans.property.SimpleStringProperty;
@@ -25,9 +25,9 @@ public class ComissoesController {
     private final ComissaoViewModel viewModel;
 
     @FXML
-    private TableView<Comissao> tableComissoes;
+    private TableView<ComissaoModel> tableComissoes;
     @FXML
-    private TableColumn<Comissao, String> colData, colCliente, colBanco, colValorBruto, colStatus;
+    private TableColumn<ComissaoModel, String> colData, colCliente, colBanco, colValorBruto, colStatus;
     @FXML
     private TextField txtBusca;
 
@@ -49,7 +49,7 @@ public class ComissoesController {
     @FXML
     private Label lblTotalRecebido;
 
-    private final ObservableList<Comissao> masterData = FXCollections.observableArrayList();
+    private final ObservableList<ComissaoModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public ComissoesController(ComissaoRepository repository,
@@ -93,7 +93,7 @@ public class ComissoesController {
                     setText(null);
                     setGraphic(null);
                 } else {
-                    Comissao c = getTableRow().getItem();
+                    ComissaoModel c = getTableRow().getItem();
                     setText(c.getStatusPagamento().toUpperCase());
 
                     // Sinalização por cores
@@ -112,7 +112,7 @@ public class ComissoesController {
 
         // Clique duplo para abrir "cirurgia" de ajuste
         tableComissoes.setRowFactory(tv -> {
-            TableRow<Comissao> row = new TableRow<>();
+            TableRow<ComissaoModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
                     prepararAjuste(row.getItem());
@@ -123,7 +123,7 @@ public class ComissoesController {
     }
 
     private void configurarFiltroReativo() {
-        FilteredList<Comissao> filteredData = new FilteredList<>(masterData, p -> true);
+        FilteredList<ComissaoModel> filteredData = new FilteredList<>(masterData, p -> true);
         txtBusca.textProperty().addListener((obs, old, newValue) -> {
             filteredData.setPredicate(comissao -> {
                 if (newValue == null || newValue.isEmpty())
@@ -136,7 +136,7 @@ public class ComissoesController {
                         comissao.getStatusPagamento().toLowerCase().contains(lowerCaseFilter);
             });
         });
-        SortedList<Comissao> sortedData = new SortedList<>(filteredData);
+        SortedList<ComissaoModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tableComissoes.comparatorProperty());
         tableComissoes.setItems(sortedData);
     }
@@ -175,7 +175,7 @@ public class ComissoesController {
 
     public void recarregarDados() {
         // 1. Usa a nova query que traz os dados completos (Evita tabela vazia)
-        List<Comissao> comissoesCompletas = repository.findAllComDetalhes();
+        List<ComissaoModel> comissoesCompletas = repository.findAllComDetalhes();
 
         // 2. Joga na tabela
         masterData.setAll(comissoesCompletas);
@@ -184,11 +184,11 @@ public class ComissoesController {
         atualizarCardsResumo(comissoesCompletas);
     }
 
-    private void atualizarCardsResumo(List<Comissao> comissoes) {
+    private void atualizarCardsResumo(List<ComissaoModel> comissoes) {
         BigDecimal totalPendente = BigDecimal.ZERO;
         BigDecimal totalRecebido = BigDecimal.ZERO;
 
-        for (Comissao c : comissoes) {
+        for (ComissaoModel c : comissoes) {
             if ("Pago".equalsIgnoreCase(c.getStatusPagamento())) {
                 // Se já pagou, soma o valor que a Poder Financeiro realmente recebeu
                 totalRecebido = totalRecebido.add(
@@ -207,7 +207,7 @@ public class ComissoesController {
         lblTotalRecebido.setText(String.format("R$ %,.2f", totalRecebido));
     }
 
-    private void prepararAjuste(Comissao comissao) {
+    private void prepararAjuste(ComissaoModel comissao) {
         viewModel.loadFromModel(comissao);
         lblTituloModal.setText("Ajuste de Comissão - " + comissao.getProposta().getProponente().getNomeCompleto());
         overlayAjuste.setVisible(true);
@@ -216,7 +216,7 @@ public class ComissoesController {
     @FXML
     private void salvarAjuste() {
         if (viewModel.isDirty()) {
-            Comissao atualizada = viewModel.atualizarModel(new Comissao());
+            ComissaoModel atualizada = viewModel.atualizarModel(new ComissaoModel());
             repository.save(atualizada);
             recarregarDados();
         }

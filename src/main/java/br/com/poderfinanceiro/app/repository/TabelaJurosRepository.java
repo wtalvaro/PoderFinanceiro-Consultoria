@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.repository;
 
-import br.com.poderfinanceiro.app.model.TabelaJuros;
+import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -8,19 +8,19 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface TabelaJurosRepository extends JpaRepository<TabelaJuros, Long> {
+public interface TabelaJurosRepository extends JpaRepository<TabelaJurosModel, Long> {
 
     /**
      * Lista todas as tabelas de juros ativas de um banco específico.
      * Útil para filtrar as opções no ComboBox "Tabela Vigente" do simulador.
      */
-    List<TabelaJuros> findByBancoIdAndAtivoTrue(Long bancoId);
+    List<TabelaJurosModel> findByBancoIdAndAtivoTrue(Long bancoId);
 
     /**
      * Lista tabelas ativas que atendam aos critérios de idade e prazo.
      * Ideal para o "Match Automático" de taxas mencionado no seu simulator.fxml.
      */
-    List<TabelaJuros> findByAtivoTrueAndIdadeMinimaLessThanEqualAndIdadeMaximaGreaterThanEqual(
+    List<TabelaJurosModel> findByAtivoTrueAndIdadeMinimaLessThanEqualAndIdadeMaximaGreaterThanEqual(
             Integer idadeMin, Integer idadeMax);
 
     /**
@@ -29,11 +29,11 @@ public interface TabelaJurosRepository extends JpaRepository<TabelaJuros, Long> 
      * Esta consulta é essencial para garantir que o simulador utilize apenas as
      * taxas atualmente vigentes.
      */
-    List<TabelaJuros> findByAtivoTrueAndFimVigenciaIsNull();
+    List<TabelaJurosModel> findByAtivoTrueAndFimVigenciaIsNull();
 
     // O "JOIN FETCH t.banco" é o bisturi mágico. Ele obriga o Hibernate a 
     // trazer o objeto Banco real junto com a Tabela em uma única viagem!
-    @Query("SELECT t FROM TabelaJuros t JOIN FETCH t.banco WHERE t.ativo = true AND t.fimVigencia IS NULL")
-    List<TabelaJuros> buscarTodasAtivasComBanco();
+    @Query("SELECT t FROM TabelaJurosModel t JOIN FETCH t.banco WHERE t.ativo = true AND t.fimVigencia IS NULL")
+    List<TabelaJurosModel> buscarTodasAtivasComBanco();
 
 }

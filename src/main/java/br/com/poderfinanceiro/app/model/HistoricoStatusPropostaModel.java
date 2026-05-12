@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class HistoricoStatusProposta {
+public class HistoricoStatusPropostaModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,12 +22,12 @@ public class HistoricoStatusProposta {
     // Relacionamento com a Proposta que sofreu a alteração
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proposta_id", nullable = false)
-    private Proposta proposta;
+    private PropostaModel proposta;
 
     // Relacionamento com o Usuário que fez a alteração (Auditoria)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id")
-    private Usuario usuario;
+    private UsuarioModel usuario;
 
     @Column(name = "status_anterior", length = 50)
     private String statusAnterior;

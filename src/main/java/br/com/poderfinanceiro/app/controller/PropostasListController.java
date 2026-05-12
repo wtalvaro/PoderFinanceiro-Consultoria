@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.Proposta;
+import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import javafx.beans.property.SimpleStringProperty;
@@ -25,15 +25,15 @@ public class PropostasListController {
     private final MainController mainController;
 
     @FXML
-    private TableView<Proposta> tablePropostas;
+    private TableView<PropostaModel> tablePropostas;
     @FXML
-    private TableColumn<Proposta, String> colData, colCliente, colBanco, colValor, colStatus;
+    private TableColumn<PropostaModel, String> colData, colCliente, colBanco, colValor, colStatus;
     @FXML
-    private TableColumn<Proposta, Void> colAcoes;
+    private TableColumn<PropostaModel, Void> colAcoes;
     @FXML
     private TextField txtBusca;
 
-    private final ObservableList<Proposta> masterData = FXCollections.observableArrayList();
+    private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public PropostasListController(PropostaRepository repository, MainController mainController) {
@@ -83,7 +83,7 @@ public class PropostasListController {
                     setText(null);
                     setGraphic(null);
                 } else {
-                    Proposta p = getTableRow().getItem();
+                    PropostaModel p = getTableRow().getItem();
                     setText(p.getStatus().name().replace("_", " "));
 
                     switch (p.getStatus()) {
@@ -114,7 +114,7 @@ public class PropostasListController {
                 btnAbrir.getStyleClass().add("flat");
                 btnAbrir.setStyle("-fx-text-fill: -color-accent-fg; -fx-font-weight: bold; -fx-font-size: 11px;");
                 btnAbrir.setOnAction(event -> {
-                    Proposta p = getTableView().getItems().get(getIndex());
+                    PropostaModel p = getTableView().getItems().get(getIndex());
                     mainController.abrirClienteNoWorkspace(p.getProponente());
                 });
             }
@@ -128,7 +128,7 @@ public class PropostasListController {
     }
 
     private void configurarFiltroReativo() {
-        FilteredList<Proposta> filteredData = new FilteredList<>(masterData, p -> true);
+        FilteredList<PropostaModel> filteredData = new FilteredList<>(masterData, p -> true);
         txtBusca.textProperty().addListener((obs, old, newValue) -> {
             filteredData.setPredicate(proposta -> {
                 if (newValue == null || newValue.isEmpty())
@@ -145,7 +145,7 @@ public class PropostasListController {
             });
         });
 
-        SortedList<Proposta> sortedData = new SortedList<>(filteredData);
+        SortedList<PropostaModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tablePropostas.comparatorProperty());
         tablePropostas.setItems(sortedData);
     }
@@ -153,7 +153,7 @@ public class PropostasListController {
     @FXML
     public void recarregarDados() {
         // Trazendo todas as propostas com os detalhes já carregados
-        List<Proposta> propostas = repository.findAllComDetalhes();
+        List<PropostaModel> propostas = repository.findAllComDetalhes();
         masterData.setAll(propostas);
     }
 }

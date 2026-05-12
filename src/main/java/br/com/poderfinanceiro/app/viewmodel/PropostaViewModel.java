@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.Banco;
-import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.model.Proposta;
-import br.com.poderfinanceiro.app.model.Usuario;
-import br.com.poderfinanceiro.app.model.enums.StatusProposta;
+import br.com.poderfinanceiro.app.model.BancoModel;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
+import br.com.poderfinanceiro.app.model.UsuarioModel;
+import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -16,19 +16,19 @@ import java.util.Objects;
 
 @Component
 @Scope("prototype")
-public class PropostaViewModel extends BaseViewModel<Proposta> {
+public class PropostaViewModel extends BaseViewModel<PropostaModel> {
 
     // --- 1. PROPERTIES ESPECÍFICAS DA PROPOSTA ---
-    private final ObjectProperty<Proponente> proponente = new SimpleObjectProperty<>();
-    private final ObjectProperty<Banco> banco = new SimpleObjectProperty<>();
-    private final ObjectProperty<Usuario> usuario = new SimpleObjectProperty<>();
+    private final ObjectProperty<ProponenteModel> proponente = new SimpleObjectProperty<>();
+    private final ObjectProperty<BancoModel> banco = new SimpleObjectProperty<>();
+    private final ObjectProperty<UsuarioModel> usuario = new SimpleObjectProperty<>();
 
     private final ObjectProperty<BigDecimal> valorSolicitado = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> valorAprovado = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> taxaAplicada = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<Integer> quantidadeParcelas = new SimpleObjectProperty<>(0);
 
-    private final ObjectProperty<StatusProposta> status = new SimpleObjectProperty<>(StatusProposta.DIGITADA);
+    private final ObjectProperty<StatusPropostaModel> status = new SimpleObjectProperty<>(StatusPropostaModel.DIGITADA);
     private final ObjectProperty<BigDecimal> valorParcela = new SimpleObjectProperty<>(BigDecimal.ZERO);
 
     // Propriedade crucial para o cálculo automatizado:
@@ -39,14 +39,14 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
     private final ObjectProperty<LocalDate> dataSolicitacao = new SimpleObjectProperty<>();
 
     // --- 2. ESTADOS ORIGINAIS (Prontuário de Referência) ---
-    private final ReadOnlyObjectWrapper<Proponente> proponenteOriginal = new ReadOnlyObjectWrapper<>();
-    private final ReadOnlyObjectWrapper<Banco> bancoOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<ProponenteModel> proponenteOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<BancoModel> bancoOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<BigDecimal> valorSolicitadoOriginal = new ReadOnlyObjectWrapper<>(
             BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> valorAprovadoOriginal = new ReadOnlyObjectWrapper<>(
             BigDecimal.ZERO);
-    private final ReadOnlyObjectWrapper<StatusProposta> statusOriginal = new ReadOnlyObjectWrapper<>(
-            StatusProposta.DIGITADA);
+    private final ReadOnlyObjectWrapper<StatusPropostaModel> statusOriginal = new ReadOnlyObjectWrapper<>(
+            StatusPropostaModel.DIGITADA);
     private final ReadOnlyObjectWrapper<Long> tabelaIdOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyStringWrapper observacoesOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<Integer> quantidadeParcelasOriginal = new ReadOnlyObjectWrapper<>(0);
@@ -58,12 +58,12 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
     // ==========================================================
 
     @Override
-    protected void extrairId(Proposta model) {
+    protected void extrairId(PropostaModel model) {
         this.id.set(model.getId());
     }
 
     @Override
-    protected void preencherCampos(Proposta model) {
+    protected void preencherCampos(PropostaModel model) {
         proponente.set(model.getProponente());
         banco.set(model.getBanco());
         usuario.set(model.getUsuario());
@@ -71,7 +71,7 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
         valorAprovado.set(model.getValorAprovado() != null ? model.getValorAprovado() : BigDecimal.ZERO);
         taxaAplicada.set(model.getTaxaAplicada() != null ? model.getTaxaAplicada() : BigDecimal.ZERO);
         quantidadeParcelas.set(model.getQuantidadeParcelas() != null ? model.getQuantidadeParcelas() : 0);
-        status.set(model.getStatus() != null ? model.getStatus() : StatusProposta.DIGITADA);
+        status.set(model.getStatus() != null ? model.getStatus() : StatusPropostaModel.DIGITADA);
         valorParcela.set(model.getValorParcela() != null ? model.getValorParcela() : BigDecimal.ZERO);
         tabelaId.set(model.getTabelaId());
         comissaoEstimada.set(model.getComissaoEstimada() != null ? model.getComissaoEstimada() : BigDecimal.ZERO);
@@ -88,7 +88,7 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
         valorAprovado.set(BigDecimal.ZERO);
         taxaAplicada.set(BigDecimal.ZERO);
         quantidadeParcelas.set(0);
-        status.set(StatusProposta.DIGITADA);
+        status.set(StatusPropostaModel.DIGITADA);
         valorParcela.set(BigDecimal.ZERO);
         tabelaId.set(null);
         comissaoEstimada.set(BigDecimal.ZERO);
@@ -124,7 +124,7 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
                 compareBigDecimal(taxaAplicada.get(), taxaAplicadaOriginal.get());
     }
 
-    private boolean isBancoIgual(Banco b1, Banco b2) {
+    private boolean isBancoIgual(BancoModel b1, BancoModel b2) {
         if (b1 == b2)
             return true;
         if (b1 == null || b2 == null)
@@ -134,7 +134,7 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
         return Objects.equals(b1.getId(), b2.getId());
     }
 
-    private boolean isProponenteIgual(Proponente p1, Proponente p2) {
+    private boolean isProponenteIgual(ProponenteModel p1, ProponenteModel p2) {
         if (p1 == p2)
             return true;
         if (p1 == null || p2 == null)
@@ -151,9 +151,9 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
     }
 
     @Override
-    public Proposta atualizarModel(Proposta model) {
+    public PropostaModel atualizarModel(PropostaModel model) {
         if (model == null) {
-            model = new Proposta();
+            model = new PropostaModel();
         }
         model.setId(this.id.get());
         model.setProponente(this.proponente.get());
@@ -198,15 +198,15 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
     // GETTERS PARA BINDING NA UI
     // ==========================================================
 
-    public ObjectProperty<Proponente> proponenteProperty() {
+    public ObjectProperty<ProponenteModel> proponenteProperty() {
         return proponente;
     }
 
-    public ObjectProperty<Banco> bancoProperty() {
+    public ObjectProperty<BancoModel> bancoProperty() {
         return banco;
     }
 
-    public ObjectProperty<Usuario> usuarioProperty() {
+    public ObjectProperty<UsuarioModel> usuarioProperty() {
         return usuario;
     }
 
@@ -226,7 +226,7 @@ public class PropostaViewModel extends BaseViewModel<Proposta> {
         return quantidadeParcelas;
     }
 
-    public ObjectProperty<StatusProposta> statusProperty() {
+    public ObjectProperty<StatusPropostaModel> statusProperty() {
         return status;
     }
 

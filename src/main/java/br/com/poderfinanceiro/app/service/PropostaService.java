@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.service;
 
-import br.com.poderfinanceiro.app.model.Comissao;
-import br.com.poderfinanceiro.app.model.DocumentoProponente;
-import br.com.poderfinanceiro.app.model.Proposta;
-import br.com.poderfinanceiro.app.model.TabelaJuros;
-import br.com.poderfinanceiro.app.model.enums.StatusProposta;
+import br.com.poderfinanceiro.app.model.ComissaoModel;
+import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
+import br.com.poderfinanceiro.app.model.TabelaJurosModel;
+import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.repository.DocumentoProponenteRepository;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
@@ -45,7 +45,7 @@ public class PropostaService {
             return BigDecimal.ZERO;
         }
 
-        TabelaJuros tabela = tabelaJurosRepository.findById(tabelaId).orElse(null);
+        TabelaJurosModel tabela = tabelaJurosRepository.findById(tabelaId).orElse(null);
         if (tabela == null || tabela.getComissaoPercentual() == null) {
             return BigDecimal.ZERO;
         }
@@ -59,7 +59,7 @@ public class PropostaService {
      * O "Centro Cirúrgico" ORIGINAL (Contrato mantido intacto).
      */
     @Transactional
-    public Proposta salvarProposta(Proposta proposta) {
+    public PropostaModel salvarProposta(PropostaModel proposta) {
 
         // 1. Garante que a comissão estimada está atualizada com a tabela escolhida
         if (proposta.getTabelaId() != null) {
@@ -70,10 +70,10 @@ public class PropostaService {
         }
 
         // 2. Salva o "Prontuário" da Proposta
-        Proposta propostaSalva = propostaRepository.save(proposta);
+        PropostaModel propostaSalva = propostaRepository.save(proposta);
 
         // 3. SE A PROPOSTA TEVE ALTA (PAGO), GERAMOS O REPASSE NA TABELA DE COMISSÕES
-        if (propostaSalva.getStatus() == StatusProposta.PAGO) {
+        if (propostaSalva.getStatus() == StatusPropostaModel.PAGO) {
             gerarOuAtualizarComissao(propostaSalva);
         }
 
@@ -86,13 +86,13 @@ public class PropostaService {
      * documentos.
      */
     @Transactional
-    public Proposta salvarProposta(Proposta proposta, List<DocumentoProponente> documentosParaVincular) {
+    public PropostaModel salvarProposta(PropostaModel proposta, List<DocumentoProponenteModel> documentosParaVincular) {
         // 1. Reaproveita 100% da lógica original (não quebra regras de comissão)
-        Proposta propostaSalva = this.salvarProposta(proposta);
+        PropostaModel propostaSalva = this.salvarProposta(proposta);
 
         // 2. Faz a sutura dos documentos com esta proposta específica
         if (documentosParaVincular != null && !documentosParaVincular.isEmpty()) {
-            for (DocumentoProponente doc : documentosParaVincular) {
+            for (DocumentoProponenteModel doc : documentosParaVincular) {
                 doc.setProposta(propostaSalva);
                 documentoRepository.save(doc);
             }
@@ -104,14 +104,14 @@ public class PropostaService {
     /**
      * Auxiliar: Cria a fatura de cobrança para o Banco na tela da Solange.
      */
-    private void gerarOuAtualizarComissao(Proposta proposta) {
+    private void gerarOuAtualizarComissao(PropostaModel proposta) {
         // Verifica se já existe uma comissão para não duplicar (caso a Solange edite
         // uma proposta já paga)
         boolean jaExiste = comissaoRepository.findAll().stream()
                 .anyMatch(c -> c.getProposta().getId().equals(proposta.getId()));
 
         if (!jaExiste && proposta.getComissaoEstimada().compareTo(BigDecimal.ZERO) > 0) {
-            Comissao novaComissao = new Comissao();
+            ComissaoModel novaComissao = new ComissaoModel();
             novaComissao.setProposta(proposta);
             novaComissao.setUsuario(proposta.getUsuario()); // A comissão vai pro dono da proposta
             novaComissao.setValorBrutoComissao(proposta.getComissaoEstimada());

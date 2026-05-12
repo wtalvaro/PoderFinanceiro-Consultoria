@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
-public class Banco {
+public class BancoModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -150,7 +150,7 @@ public class WorkspaceController {
      * Diferente das simples, esta requer injeção de dados do Proponente e Bindings
      * de título.
      */
-    public void abrirOuFocarAba(Proponente proponente) {
+    public void abrirOuFocarAba(ProponenteModel proponente) {
         String idBuscado;
 
         // 1. Triagem Direta: Verificamos se o paciente existe e tem registro (ID)

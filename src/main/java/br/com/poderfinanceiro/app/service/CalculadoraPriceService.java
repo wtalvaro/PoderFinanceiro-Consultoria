@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.service;
 
-import br.com.poderfinanceiro.app.model.TabelaJuros;
+import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -8,7 +8,7 @@ import java.math.RoundingMode;
 @Service
 public class CalculadoraPriceService {
 
-    public BigDecimal calcularParcela(BigDecimal valorEmprestimo, TabelaJuros tabela, int quantidadeParcelas) {
+    public BigDecimal calcularParcela(BigDecimal valorEmprestimo, TabelaJurosModel tabela, int quantidadeParcelas) {
         if (valorEmprestimo == null || tabela == null || quantidadeParcelas <= 0) {
             return BigDecimal.ZERO;
         }

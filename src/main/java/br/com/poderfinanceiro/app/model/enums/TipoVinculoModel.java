@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.model.enums;
 
-public enum TipoVinculo implements Labeled {
+public enum TipoVinculoModel implements LabeledModel {
     APOSENTADO("Aposentado"),
     PENSIONISTA("Pensionista"),
     SERVIDOR_ATIVO("Servidor Ativo"),
@@ -9,7 +9,7 @@ public enum TipoVinculo implements Labeled {
 
     private final String label;
 
-    TipoVinculo(String label) {
+    TipoVinculoModel(String label) {
         this.label = label;
     }
 
@@ -21,12 +21,12 @@ public enum TipoVinculo implements Labeled {
      * Método de busca robusto para converter Strings em Enums.
      * Tenta encontrar pelo nome da constante ou pelo label amigável.
      */
-    public static TipoVinculo fromString(String value) {
+    public static TipoVinculoModel fromString(String value) {
         if (value == null || value.isBlank()) {
             return CLT; // Valor padrão para casos nulos ou em branco
         }
 
-        for (TipoVinculo tipo : TipoVinculo.values()) {
+        for (TipoVinculoModel tipo : TipoVinculoModel.values()) {
             if (tipo.name().equalsIgnoreCase(value) || tipo.getLabel().equalsIgnoreCase(value)) {
                 return tipo;
             }

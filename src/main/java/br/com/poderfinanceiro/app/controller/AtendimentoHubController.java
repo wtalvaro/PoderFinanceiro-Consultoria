@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.EnderecoProponente;
-import br.com.poderfinanceiro.app.model.Proponente;
-import br.com.poderfinanceiro.app.model.Proposta;
-import br.com.poderfinanceiro.app.model.Usuario;
+import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
+import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
@@ -49,7 +49,7 @@ public class AtendimentoHubController {
     private final MainController mainController;
     private final PropostaService propostaService;
 
-    private Proponente proponenteAberto;
+    private ProponenteModel proponenteAberto;
     private Runnable acaoNavegacaoPendente;
     private String resumoGeradoParaCopia;
     private Tab tabPertencente;
@@ -92,7 +92,7 @@ public class AtendimentoHubController {
         btnSalvar.disableProperty().bind(atendimentoSujo.not().or(dadosValidos.not()));
     }
 
-    public void inicializarAtendimento(Proponente proponente) {
+    public void inicializarAtendimento(ProponenteModel proponente) {
         // 1. Carregar Lead: Se o proponente for null, as abas devem resetar para estado
         // "novo"
         this.proponenteAberto = proponente;
@@ -124,7 +124,7 @@ public class AtendimentoHubController {
     }
 
     public void prepararNovoAtendimento() {
-        this.proponenteAberto = new Proponente();
+        this.proponenteAberto = new ProponenteModel();
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         abaDocumentoController.carregarDocumentos(null);
@@ -151,26 +151,26 @@ public class AtendimentoHubController {
     }
 
     private void executarSalvamento(Runnable onSucesso) {
-        Task<Proponente> task = new Task<>() {
+        Task<ProponenteModel> task = new Task<>() {
             @Override
-            protected Proponente call() throws Exception {
+            protected ProponenteModel call() throws Exception {
                 // 1. Salva o Lead e o Endereço (Gera o ID do Cliente)
-                Proponente p = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
-                EnderecoProponente e = abaEnderecoController.getViewModel().atualizarModel(
+                ProponenteModel p = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
+                EnderecoProponenteModel e = abaEnderecoController.getViewModel().atualizarModel(
                         (p.getEnderecos() != null && !p.getEnderecos().isEmpty()) ? p.getEnderecos().get(0) : null);
 
                 e.setProponente(p);
                 p.setEnderecos(new ArrayList<>(java.util.List.of(e)));
 
-                Proponente proponenteSalvo = atendimentoService.salvarLead(p);
+                ProponenteModel proponenteSalvo = atendimentoService.salvarLead(p);
 
                 // 2. Se a aba de proposta foi preenchida, salva a proposta vinculada a ele!
                 if (abaPropostaHubController.getViewModel().isDirty()) {
-                    Proposta prop = abaPropostaHubController.getViewModel().atualizarModel(new Proposta());
+                    PropostaModel prop = abaPropostaHubController.getViewModel().atualizarModel(new PropostaModel());
                     prop.setProponente(proponenteSalvo);
 
                     // Temporário: Define o usuário como ID 1 (Wagner) até ligarmos o login real
-                    Usuario u = new Usuario();
+                    UsuarioModel u = new UsuarioModel();
                     u.setId(1L);
                     prop.setUsuario(u);
 
@@ -183,7 +183,7 @@ public class AtendimentoHubController {
 
         task.setOnSucceeded(ev -> {
             // 1. Pegamos o proponente que acabou de voltar do banco de dados (agora com ID)
-            Proponente proponenteSalvo = task.getValue();
+            ProponenteModel proponenteSalvo = task.getValue();
 
             // 2. A sua linha original intacta que reseta a tela e o estado 'Dirty'
             inicializarAtendimento(proponenteSalvo);

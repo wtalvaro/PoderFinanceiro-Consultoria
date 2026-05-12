@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.enums.Labeled;
-import br.com.poderfinanceiro.app.model.LinkUtil;
-import br.com.poderfinanceiro.app.model.enums.CategoriaLink;
+import br.com.poderfinanceiro.app.model.enums.LabeledModel;
+import br.com.poderfinanceiro.app.model.LinkUtilModel;
+import br.com.poderfinanceiro.app.model.enums.CategoriaLinkModel;
 import br.com.poderfinanceiro.app.repository.LinkUtilRepository;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 public class LinkUtilController {
 
     @FXML
-    private ComboBox<CategoriaLink> comboCategoria;
+    private ComboBox<CategoriaLinkModel> comboCategoria;
     @FXML
     private TextField txtTitulo, txtUrl, txtDescricao;
 
@@ -29,11 +29,11 @@ public class LinkUtilController {
     private TextField txtBusca;
 
     @FXML
-    private TableView<LinkUtil> tableLinks;
+    private TableView<LinkUtilModel> tableLinks;
     @FXML
-    private TableColumn<LinkUtil, String> colCategoria, colTitulo, colDescricao;
+    private TableColumn<LinkUtilModel, String> colCategoria, colTitulo, colDescricao;
     @FXML
-    private TableColumn<LinkUtil, Void> colAcao;
+    private TableColumn<LinkUtilModel, Void> colAcao;
     @FXML
     private TitledPane paneFormulario;
     @FXML
@@ -42,11 +42,11 @@ public class LinkUtilController {
     private final LinkUtilRepository repository;
     private final MainController mainController;
 
-    private LinkUtil linkEmEdicao;
+    private LinkUtilModel linkEmEdicao;
 
     // NOVO: Lista mestre que guarda todos os dados para o filtro não perder
     // informação
-    private final ObservableList<LinkUtil> masterData = FXCollections.observableArrayList();
+    private final ObservableList<LinkUtilModel> masterData = FXCollections.observableArrayList();
 
     public LinkUtilController(LinkUtilRepository repository, MainController mainController) {
         this.repository = repository;
@@ -56,7 +56,7 @@ public class LinkUtilController {
     @FXML
     public void initialize() {
         // 1. Usa o seu método genérico para configurar a ComboBox
-        configurarCombo(comboCategoria, CategoriaLink.values(), CategoriaLink::fromString);
+        configurarCombo(comboCategoria, CategoriaLinkModel.values(), CategoriaLinkModel::fromString);
 
         // 2. Configuração das colunas
         colCategoria.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategoria().getLabel()));
@@ -80,7 +80,7 @@ public class LinkUtilController {
      */
     private void configurarBuscaReativa() {
         // Envolve nossa ObservableList em um FilteredList (inicialmente mostra tudo)
-        FilteredList<LinkUtil> filteredData = new FilteredList<>(masterData, p -> true);
+        FilteredList<LinkUtilModel> filteredData = new FilteredList<>(masterData, p -> true);
 
         // Adiciona um listener (escutador) ao texto da barra de busca
         txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -112,14 +112,14 @@ public class LinkUtilController {
 
         // Envolve o FilteredList em um SortedList para permitir que o usuário ainda
         // clique nos cabeçalhos da tabela para ordenar
-        SortedList<LinkUtil> sortedData = new SortedList<>(filteredData);
+        SortedList<LinkUtilModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tableLinks.comparatorProperty());
 
         // Adiciona a lista final "superpoderosa" na tabela
         tableLinks.setItems(sortedData);
     }
 
-    private <T extends Enum<T> & Labeled> void configurarCombo(ComboBox<T> combo, T[] values,
+    private <T extends Enum<T> & LabeledModel> void configurarCombo(ComboBox<T> combo, T[] values,
             java.util.function.Function<String, T> searcher) {
         combo.getItems().setAll(values);
 
@@ -145,7 +145,7 @@ public class LinkUtilController {
 
             {
                 btnAbrir.setOnAction(e -> {
-                    LinkUtil item = getTableRow().getItem();
+                    LinkUtilModel item = getTableRow().getItem();
                     if (item != null)
                         mainController.getHostServices().showDocument(item.getUrl());
                 });
@@ -156,13 +156,13 @@ public class LinkUtilController {
                 btnExcluir.setCursor(Cursor.HAND);
 
                 btnEditar.setOnAction(e -> {
-                    LinkUtil item = getTableRow().getItem();
+                    LinkUtilModel item = getTableRow().getItem();
                     if (item != null)
                         prepararEdicao(item);
                 });
 
                 btnExcluir.setOnAction(e -> {
-                    LinkUtil item = getTableRow().getItem();
+                    LinkUtilModel item = getTableRow().getItem();
                     if (item != null)
                         handleExcluir(item);
                 });
@@ -190,7 +190,7 @@ public class LinkUtilController {
             return;
         }
 
-        LinkUtil link = (linkEmEdicao != null) ? linkEmEdicao : new LinkUtil();
+        LinkUtilModel link = (linkEmEdicao != null) ? linkEmEdicao : new LinkUtilModel();
         link.setTitulo(txtTitulo.getText());
         link.setUrl(txtUrl.getText());
         link.setDescricao(txtDescricao.getText());
@@ -201,7 +201,7 @@ public class LinkUtilController {
         recarregarLinks(); // Recarrega do banco e atualiza a masterData
     }
 
-    private void prepararEdicao(LinkUtil link) {
+    private void prepararEdicao(LinkUtilModel link) {
         this.linkEmEdicao = link;
         txtTitulo.setText(link.getTitulo());
         txtUrl.setText(link.getUrl());
@@ -213,7 +213,7 @@ public class LinkUtilController {
         txtTitulo.requestFocus();
     }
 
-    private void handleExcluir(LinkUtil link) {
+    private void handleExcluir(LinkUtilModel link) {
         repository.delete(link);
         recarregarLinks();
     }

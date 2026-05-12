@@ -1,5 +1,5 @@
 package br.com.poderfinanceiro.app.model.enums;
 
-public interface Labeled {
+public interface LabeledModel {
     String getLabel();
 }

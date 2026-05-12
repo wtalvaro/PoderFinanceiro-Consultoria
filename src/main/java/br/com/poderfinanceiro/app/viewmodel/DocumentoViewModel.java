@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.DocumentoProponente;
+import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -9,7 +9,7 @@ import java.util.Objects;
 
 @Component
 @Scope("prototype")
-public class DocumentoViewModel extends BaseViewModel<DocumentoProponente> {
+public class DocumentoViewModel extends BaseViewModel<DocumentoProponenteModel> {
 
     private final StringProperty tipoDocumento = new SimpleStringProperty("");
     private final StringProperty arquivoPath = new SimpleStringProperty("");
@@ -20,12 +20,12 @@ public class DocumentoViewModel extends BaseViewModel<DocumentoProponente> {
     private final ReadOnlyBooleanWrapper verificadoOriginal = new ReadOnlyBooleanWrapper(false);
 
     @Override
-    protected void extrairId(DocumentoProponente model) {
+    protected void extrairId(DocumentoProponenteModel model) {
         this.id.set(model.getId());
     }
 
     @Override
-    protected void preencherCampos(DocumentoProponente model) {
+    protected void preencherCampos(DocumentoProponenteModel model) {
         this.tipoDocumento.set(model.getTipoDocumento());
         this.arquivoPath.set(model.getArquivoPath());
         this.verificado.set(model.getVerificado());
@@ -51,9 +51,9 @@ public class DocumentoViewModel extends BaseViewModel<DocumentoProponente> {
     }
 
     @Override
-    public DocumentoProponente atualizarModel(DocumentoProponente model) {
+    public DocumentoProponenteModel atualizarModel(DocumentoProponenteModel model) {
         if (model == null)
-            model = new DocumentoProponente();
+            model = new DocumentoProponenteModel();
         model.setId(this.id.get());
         model.setTipoDocumento(this.tipoDocumento.get());
         model.setVerificado(this.verificado.get());

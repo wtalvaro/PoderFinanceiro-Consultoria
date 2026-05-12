@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.Comissao;
-import br.com.poderfinanceiro.app.model.Proposta;
-import br.com.poderfinanceiro.app.model.Usuario;
+import br.com.poderfinanceiro.app.model.ComissaoModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
+import br.com.poderfinanceiro.app.model.UsuarioModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -15,11 +15,11 @@ import java.util.Objects;
 
 @Component
 @Scope("prototype")
-public class ComissaoViewModel extends BaseViewModel<Comissao> {
+public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
 
     // --- 1. PROPERTIES ESPECÍFICAS (Monitoramento Atual) ---
-    private final ObjectProperty<Proposta> proposta = new SimpleObjectProperty<>();
-    private final ObjectProperty<Usuario> usuario = new SimpleObjectProperty<>();
+    private final ObjectProperty<PropostaModel> proposta = new SimpleObjectProperty<>();
+    private final ObjectProperty<UsuarioModel> usuario = new SimpleObjectProperty<>();
     private final ObjectProperty<BigDecimal> valorBrutoComissao = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> impostosRetidos = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> valorLiquidoConsultor = new SimpleObjectProperty<>(BigDecimal.ZERO);
@@ -30,8 +30,8 @@ public class ComissaoViewModel extends BaseViewModel<Comissao> {
     private final BooleanProperty contestada = new SimpleBooleanProperty(false);
 
     // --- 2. ESTADOS ORIGINAIS (Prontuário de Referência para Dirty Checking) ---
-    private final ReadOnlyObjectWrapper<Proposta> propostaOriginal = new ReadOnlyObjectWrapper<>();
-    private final ReadOnlyObjectWrapper<Usuario> usuarioOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<PropostaModel> propostaOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<UsuarioModel> usuarioOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<BigDecimal> valorBrutoOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> impostosOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> valorLiquidoOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
@@ -46,12 +46,12 @@ public class ComissaoViewModel extends BaseViewModel<Comissao> {
     // ==========================================================
 
     @Override
-    protected void extrairId(Comissao model) {
+    protected void extrairId(ComissaoModel model) {
         this.id.set(model.getId());
     }
 
     @Override
-    protected void preencherCampos(Comissao model) {
+    protected void preencherCampos(ComissaoModel model) {
         proposta.set(model.getProposta());
         usuario.set(model.getUsuario());
         valorBrutoComissao.set(model.getValorBrutoComissao());
@@ -118,9 +118,9 @@ public class ComissaoViewModel extends BaseViewModel<Comissao> {
     }
 
     @Override
-    public Comissao atualizarModel(Comissao model) {
+    public ComissaoModel atualizarModel(ComissaoModel model) {
         if (model == null) {
-            model = new Comissao();
+            model = new ComissaoModel();
         }
         model.setId(this.id.get());
         model.setProposta(this.proposta.get());
@@ -159,11 +159,11 @@ public class ComissaoViewModel extends BaseViewModel<Comissao> {
     // GETTERS DAS PROPERTIES (Binding com a UI)
     // ==========================================================
 
-    public ObjectProperty<Proposta> propostaProperty() {
+    public ObjectProperty<PropostaModel> propostaProperty() {
         return proposta;
     }
 
-    public ObjectProperty<Usuario> usuarioProperty() {
+    public ObjectProperty<UsuarioModel> usuarioProperty() {
         return usuario;
     }
 

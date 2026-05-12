@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.enums.Labeled;
-import br.com.poderfinanceiro.app.model.enums.OrigemLead;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
-import br.com.poderfinanceiro.app.model.enums.TipoRelacionamento;
-import br.com.poderfinanceiro.app.model.enums.TipoVinculo;
+import br.com.poderfinanceiro.app.model.enums.LabeledModel;
+import br.com.poderfinanceiro.app.model.enums.OrigemLeadModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.model.enums.TipoRelacionamentoModel;
+import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 import br.com.poderfinanceiro.app.utils.ContatoUtils;
 import br.com.poderfinanceiro.app.utils.DataUtils;
 import br.com.poderfinanceiro.app.utils.DocumentoUtils;
@@ -33,13 +33,13 @@ public class LeadController {
     @FXML
     private TextField txtNome, txtCpf, txtTelefone, txtMatricula, txtRenda;
     @FXML
-    private ComboBox<OrigemLead> cbOrigem;
+    private ComboBox<OrigemLeadModel> cbOrigem;
     @FXML
-    private ComboBox<TipoVinculo> cbVinculo;
+    private ComboBox<TipoVinculoModel> cbVinculo;
     @FXML
-    private ComboBox<TipoConvenio> cbConvenio;
+    private ComboBox<TipoConvenioModel> cbConvenio;
     @FXML
-    private ComboBox<TipoRelacionamento> cbClassificacao;
+    private ComboBox<TipoRelacionamentoModel> cbClassificacao;
     @FXML
     private DatePicker dpDataNascimento;
     @FXML
@@ -71,10 +71,10 @@ public class LeadController {
 
     private void configurarListasEFormatores() {
         // 1. Populando as listas
-        configurarCombo(cbOrigem, OrigemLead.values(), OrigemLead::fromString);
-        configurarCombo(cbVinculo, TipoVinculo.values(), TipoVinculo::fromString);
-        configurarCombo(cbConvenio, TipoConvenio.values(), TipoConvenio::fromString);
-        configurarCombo(cbClassificacao, TipoRelacionamento.values(), TipoRelacionamento::fromString);
+        configurarCombo(cbOrigem, OrigemLeadModel.values(), OrigemLeadModel::fromString);
+        configurarCombo(cbVinculo, TipoVinculoModel.values(), TipoVinculoModel::fromString);
+        configurarCombo(cbConvenio, TipoConvenioModel.values(), TipoConvenioModel::fromString);
+        configurarCombo(cbClassificacao, TipoRelacionamentoModel.values(), TipoRelacionamentoModel::fromString);
 
         // Formato de data brasileiro para o DatePicker
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -86,7 +86,7 @@ public class LeadController {
      * T: Deve ser um Enum e implementar Labeled.
      * searcher: Uma função que define como converter String de volta para o Enum.
      */
-    private <T extends Enum<T> & Labeled> void configurarCombo(ComboBox<T> combo, T[] values,
+    private <T extends Enum<T> & LabeledModel> void configurarCombo(ComboBox<T> combo, T[] values,
             java.util.function.Function<String, T> searcher) {
         combo.getItems().setAll(values);
 

@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.Banco;
+import br.com.poderfinanceiro.app.model.BancoModel;
 import br.com.poderfinanceiro.app.repository.BancoRepository;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -37,8 +37,8 @@ public class BancosConveniosController {
     @FXML
     private TextField txtTelefone;
 
-    private Banco bancoEmEdicao = null;
-    private List<Banco> todosBancos;
+    private BancoModel bancoEmEdicao = null;
+    private List<BancoModel> todosBancos;
 
     public BancosConveniosController(BancoRepository bancoRepository, MainController mainController) {
         this.bancoRepository = bancoRepository;
@@ -62,7 +62,7 @@ public class BancosConveniosController {
     private void filtrarMural(String termo) {
         muralBancos.getChildren().clear();
 
-        for (Banco banco : todosBancos) {
+        for (BancoModel banco : todosBancos) {
             if (termo == null || termo.isEmpty() ||
                     banco.getNome().toLowerCase().contains(termo.toLowerCase()) ||
                     (banco.getCodigo() != null && banco.getCodigo().contains(termo))) {
@@ -76,7 +76,7 @@ public class BancosConveniosController {
      * O SEGREDO DO DASHBOARD: Desenha um cartão bonito para cada banco direto no
      * código.
      */
-    private VBox criarCardBanco(Banco banco) {
+    private VBox criarCardBanco(BancoModel banco) {
         VBox card = new VBox(10);
         card.setPrefWidth(280);
         card.setPadding(new Insets(20));
@@ -124,7 +124,7 @@ public class BancosConveniosController {
 
     @FXML
     private void abrirModalNovo() {
-        bancoEmEdicao = new Banco();
+        bancoEmEdicao = new BancoModel();
         lblTituloModal.setText("➕ Novo Parceiro");
         txtCodigo.clear();
         txtNome.clear();
@@ -134,7 +134,7 @@ public class BancosConveniosController {
         overlayFormulario.setVisible(true);
     }
 
-    private void abrirModalEdicao(Banco banco) {
+    private void abrirModalEdicao(BancoModel banco) {
         bancoEmEdicao = banco;
         lblTituloModal.setText("✏️ Editando: " + banco.getNome());
         txtCodigo.setText(banco.getCodigo());

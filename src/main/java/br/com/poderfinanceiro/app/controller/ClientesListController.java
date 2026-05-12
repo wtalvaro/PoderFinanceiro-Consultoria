@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.Proponente;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.utils.ContatoUtils;
 import br.com.poderfinanceiro.app.utils.DocumentoUtils;
@@ -13,9 +13,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.concurrent.Task;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 @Component
 public class ClientesListController {
@@ -23,24 +25,24 @@ public class ClientesListController {
     private final ProponenteService proponenteService;
     private final MainController mainController;
     @FXML
-    private TableView<Proponente> tabelaClientes;
+    private TableView<ProponenteModel> tabelaClientes;
     @FXML
     private TextField txtBusca;
     @FXML
     private Label lblTotalRegistros;
     @FXML
-    private TableColumn<Proponente, String> colNome;
+    private TableColumn<ProponenteModel, String> colNome;
     @FXML
-    private TableColumn<Proponente, String> colCpf;
+    private TableColumn<ProponenteModel, String> colCpf;
     @FXML
-    private TableColumn<Proponente, String> colTelefone;
+    private TableColumn<ProponenteModel, String> colTelefone;
     @FXML
-    private TableColumn<Proponente, String> colOrigem;
+    private TableColumn<ProponenteModel, String> colOrigem;
     @FXML
-    private TableColumn<Proponente, String> colClassificacao;
+    private TableColumn<ProponenteModel, String> colClassificacao;
 
     // Lista observável que o JavaFX usa para atualizar a tabela em tempo real
-    private ObservableList<Proponente> listaContatos = FXCollections.observableArrayList();
+    private ObservableList<ProponenteModel> listaContatos = FXCollections.observableArrayList();
 
     public ClientesListController(ProponenteService proponenteService,
             MainController mainController,
@@ -52,52 +54,47 @@ public class ClientesListController {
     @FXML
     public void initialize() {
         tabelaClientes.setItems(listaContatos);
-
-        // 2. Aplica a formatação visual na coluna de CPF
         configurarFormatacaoCpfNaTabela();
         configurarFormatacaoTelefoneNaTabela();
 
         tabelaClientes.setRowFactory(tv -> {
-            TableRow<Proponente> row = new TableRow<>();
+            TableRow<ProponenteModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
-                    Proponente selecionado = row.getItem();
-                    // DELEGAMOS PARA O MAIN CONTROLLER!
+                    ProponenteModel selecionado = row.getItem();
                     mainController.abrirClienteNoWorkspace(selecionado);
                 }
             });
             return row;
         });
 
-        // Carrega os dados do banco assim que a tela abre
+        // 1. O primeiro exame: busca inicial ao abrir
         carregarDados();
     }
 
     /**
-     * Busca os dados no banco usando o Service.
+     * Aciona o maqueiro para buscar toda a carteira de clientes.
      */
     public void carregarDados() {
-        // Limpa a lista atual e busca tudo novamente
-        listaContatos.clear();
-        List<Proponente> carteira = proponenteService.listarMinhaCarteira();
-        listaContatos.addAll(carteira);
-
-        atualizarContador();
+        executarTarefaAssincrona(
+                () -> proponenteService.listarMinhaCarteira(),
+                "Carregando base de clientes...");
     }
 
+    /**
+     * Aciona o maqueiro para uma busca específica por termo.
+     */
     @FXML
     private void handleBusca() {
         String termo = txtBusca.getText();
-        listaContatos.clear();
 
         if (termo == null || termo.trim().isEmpty()) {
-            // Se a busca estiver vazia, traz todo mundo
-            listaContatos.addAll(proponenteService.listarMinhaCarteira());
+            carregarDados();
         } else {
-            // Se digitou algo, usa a busca rápida do Service
-            listaContatos.addAll(proponenteService.buscaRapida(termo.trim()));
+            executarTarefaAssincrona(
+                    () -> proponenteService.buscaRapida(termo.trim()),
+                    "Realizando triagem da busca...");
         }
-        atualizarContador();
     }
 
     @FXML
@@ -105,6 +102,44 @@ public class ClientesListController {
         mainController.irParaNovoContato();
     }
 
+    /**
+     * O MOTOR DA CLÍNICA: Método auxiliar que gerencia o Maqueiro (Task)
+     * e a Sala de Espera (Loading) de forma genérica.
+     */
+    private void executarTarefaAssincrona(Supplier<List<ProponenteModel>> busca, String mensagem) {
+        // A. Acende a luz da Sala de Espera no MainController
+        mainController.mostrarLoading(mensagem);
+
+        // B. Prepara o Maqueiro (A Task)
+        Task<List<ProponenteModel>> task = new Task<>() {
+            @Override
+            protected List<ProponenteModel> call() throws Exception {
+                // Trabalho pesado fora da recepção (UI Thread)
+                return busca.get();
+            }
+        };
+
+        // C. O que fazer ao finalizar o transporte com sucesso
+        task.setOnSucceeded(e -> {
+            // Atualiza a lista na recepção (UI Thread)
+            listaContatos.setAll(task.getValue());
+            atualizarContador();
+            mainController.ocultarLoading();
+        });
+
+        // D. Caso ocorra uma intercorrência (Erro no Banco)
+        task.setOnFailed(e -> {
+            mainController.ocultarLoading();
+            task.getException().printStackTrace();
+            // Dica: Aqui você pode chamar um overlay de erro no futuro
+        });
+
+        // E. Dispara o transporte em uma nova linha (Thread)
+        Thread thread = new Thread(task);
+        thread.setDaemon(true); // Garante que a thread feche se o app fechar
+        thread.start();
+    }
+    
     private void atualizarContador() {
         lblTotalRegistros.setText("Total: " + listaContatos.size() + " contato(s)");
     }
@@ -112,7 +147,7 @@ public class ClientesListController {
     private void configurarFormatacaoCpfNaTabela() {
         // Usamos o 'setCellFactory' garantindo que o retorno seja o esperado pela
         // coluna <Proponente, String>
-        colCpf.setCellFactory(tc -> new TableCell<Proponente, String>() {
+        colCpf.setCellFactory(tc -> new TableCell<ProponenteModel, String>() {
             @Override
             protected void updateItem(String cpf, boolean empty) {
                 super.updateItem(cpf, empty);
