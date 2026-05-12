@@ -1,5 +1,6 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
+import br.com.poderfinanceiro.app.model.BancoModel;
 import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import javafx.beans.Observable;
@@ -26,6 +27,7 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
     // Adicionei os limites pois o simulador vai precisar deles para a "triagem"
     private final ObjectProperty<BigDecimal> valorMinimoEmprestimo = new SimpleObjectProperty<>(null);
     private final ObjectProperty<BigDecimal> valorMaximoEmprestimo = new SimpleObjectProperty<>(null);
+    private final ObjectProperty<BancoModel> banco = new SimpleObjectProperty<>(null);
 
     // --- 2. ESTADOS ORIGINAIS PARA DIRTY CHECKING ---
     private final ReadOnlyStringWrapper nomeOriginal = new ReadOnlyStringWrapper("");
@@ -37,6 +39,7 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
             BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> maxEmprestimoOriginal = new ReadOnlyObjectWrapper<>(
             BigDecimal.ZERO);
+    private final ReadOnlyObjectWrapper<BancoModel> bancoOriginal = new ReadOnlyObjectWrapper<>(null);
 
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO (Template Methods)
@@ -57,6 +60,7 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
                 .set(model.getValorMinimoEmprestimo() != null ? model.getValorMinimoEmprestimo() : BigDecimal.ZERO);
         valorMaximoEmprestimo
                 .set(model.getValorMaximoEmprestimo() != null ? model.getValorMaximoEmprestimo() : BigDecimal.ZERO);
+        banco.set(model.getBanco());
     }
 
     @Override
@@ -67,6 +71,7 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         comissaoPercentual.set(BigDecimal.ZERO);
         valorMinimoEmprestimo.set(null);
         valorMaximoEmprestimo.set(null);
+        banco.set(null);
     }
 
     @Override
@@ -77,6 +82,7 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         comissaoOriginal.set(comissaoPercentual.get());
         minEmprestimoOriginal.set(valorMinimoEmprestimo.get());
         maxEmprestimoOriginal.set(valorMaximoEmprestimo.get());
+        bancoOriginal.set(banco.get());
     }
 
     @Override
@@ -86,7 +92,8 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
                 !valoresIguais(taxaMensal.get(), taxaOriginal.get()) ||
                 !valoresIguais(comissaoPercentual.get(), comissaoOriginal.get()) ||
                 !valoresIguais(valorMinimoEmprestimo.get(), minEmprestimoOriginal.get()) ||
-                !valoresIguais(valorMaximoEmprestimo.get(), maxEmprestimoOriginal.get());
+                !valoresIguais(valorMaximoEmprestimo.get(), maxEmprestimoOriginal.get()) ||
+                !Objects.equals(banco.get(), bancoOriginal.get());
     }
 
     @Override
@@ -101,19 +108,21 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         model.setComissaoPercentual(this.comissaoPercentual.get());
         model.setValorMinimoEmprestimo(this.valorMinimoEmprestimo.get());
         model.setValorMaximoEmprestimo(this.valorMaximoEmprestimo.get());
+        model.setBanco(this.banco.get());
         return model;
     }
 
     @Override
     protected Observable[] getObservaveisParaDirty() {
         return new Observable[] {
-                nomeTabela, tipoConvenio, taxaMensal, comissaoPercentual, valorMinimoEmprestimo, valorMaximoEmprestimo,
+                nomeTabela, tipoConvenio, taxaMensal, comissaoPercentual, valorMinimoEmprestimo, valorMaximoEmprestimo, banco,
                 nomeOriginal.getReadOnlyProperty(),
                 convenioOriginal.getReadOnlyProperty(),
                 taxaOriginal.getReadOnlyProperty(),
                 comissaoOriginal.getReadOnlyProperty(),
                 minEmprestimoOriginal.getReadOnlyProperty(),
-                maxEmprestimoOriginal.getReadOnlyProperty()
+                maxEmprestimoOriginal.getReadOnlyProperty(),
+                bancoOriginal.getReadOnlyProperty()
         };
     }
 

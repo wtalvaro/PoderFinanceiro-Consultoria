@@ -1,7 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.model.BancoModel;
 import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.repository.BancoRepository;
 import br.com.poderfinanceiro.app.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.viewmodel.TabelaJurosViewModel;
 import javafx.beans.binding.Bindings;
@@ -63,6 +65,8 @@ public class TabelaJurosController {
     private TableColumn<TabelaJurosModel, String> colLimites;
     @FXML
     private TableColumn<TabelaJurosModel, Void> colAcoes;
+    @FXML
+    private ComboBox<BancoModel> comboBanco;
 
     // Overlays
     @FXML
@@ -71,10 +75,13 @@ public class TabelaJurosController {
     // Estados Locais
     private ObservableList<TabelaJurosModel> dadosOriginais;
     private TabelaJurosModel tabelaSelecionadaParaArquivar;
+    private final BancoRepository bancoRepository;
 
-    public TabelaJurosController(TabelaJurosService service, TabelaJurosViewModel viewModel) {
+    public TabelaJurosController(TabelaJurosService service, TabelaJurosViewModel viewModel,
+            BancoRepository bancoRepository) {
         this.service = service;
         this.viewModel = viewModel;
+        this.bancoRepository = bancoRepository;
     }
 
     @FXML
@@ -92,6 +99,25 @@ public class TabelaJurosController {
     // =========================================================
 
     private void configurarFormulario() {
+        // 🩸 Carrega os bancos ativos do hospital
+        comboBanco.setItems(FXCollections.observableArrayList(bancoRepository.findByAtivoTrueOrderByNomeAsc()));
+
+        // 🏷️ Define como o banco aparece no ComboBox (apenas o Nome)
+        comboBanco.setConverter(new StringConverter<BancoModel>() {
+            @Override
+            public String toString(BancoModel b) {
+                return b != null ? b.getNome() : "";
+            }
+
+            @Override
+            public BancoModel fromString(String s) {
+                return null;
+            }
+        });
+
+        // 🔗 Bindings
+        comboBanco.valueProperty().bindBidirectional(viewModel.getBanco());
+
         comboConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
 
         // Conecta o FXML com a nossa "prancheta" (ViewModel)
@@ -110,8 +136,10 @@ public class TabelaJurosController {
 
     private void configurarColunasTabela() {
         colConvenio.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getTipoConvenio().name()));
-        colNome.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getNomeTabela()));
-
+        colNome.setCellValueFactory(cell -> {
+            String bancoNome = cell.getValue().getBanco() != null ? cell.getValue().getBanco().getNome() : "S/B";
+            return new SimpleStringProperty("[" + bancoNome + "] " + cell.getValue().getNomeTabela());
+        });
         colTaxa.setCellValueFactory(
                 cell -> new SimpleStringProperty(formatarPorcentagem(cell.getValue().getTaxaMensal())));
         colComissao.setCellValueFactory(
