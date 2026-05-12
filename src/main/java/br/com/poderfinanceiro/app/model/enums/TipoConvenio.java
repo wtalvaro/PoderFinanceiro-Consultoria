@@ -1,13 +1,12 @@
 package br.com.poderfinanceiro.app.model.enums;
 
 public enum TipoConvenio implements Labeled {
-    INSS("INSS"),
+    INSS_CONSIGNADO("INSS Consignado"),
+    CLT_CONSIGNADO("CLT Consignado"),
+    BOLSA_FAMILIA("Bolsa Família"),
+    CREDITO_PESSOAL("Crédito Pessoal"),
+    CONTA_LUZ("Conta de Luz"),
     SIAPE("SIAPE"),
-    EXERCITO("Exército"),
-    MARINHA("Marinha"),
-    AERONAUTICA("Aeronáutica"),
-    GOVERNO("Governo"),
-    PREFEITURA("Prefeitura"),
     PADRAO("Padrão");
 
     private final String label;

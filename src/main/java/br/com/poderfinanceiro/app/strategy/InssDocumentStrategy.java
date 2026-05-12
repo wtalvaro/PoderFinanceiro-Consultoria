@@ -8,7 +8,7 @@ import br.com.poderfinanceiro.app.model.enums.TipoConvenio;
 public class InssDocumentStrategy implements DocumentStrategy {
 
     public boolean supports(String c) {
-        return TipoConvenio.INSS.name().equalsIgnoreCase(c);
+        return TipoConvenio.INSS_CONSIGNADO.name().equalsIgnoreCase(c);
     }
 
     public String getChecklist() {
