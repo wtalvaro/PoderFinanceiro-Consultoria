@@ -41,13 +41,12 @@ CREATE TYPE public.tipo_vinculo_enum AS ENUM (
 );
 
 CREATE TYPE public.tipo_convenio_enum AS ENUM (
-    'INSS',
+    'INSS_CONSIGNADO',
+    'CLT_CONSIGNADO',
+    'BOLSA_FAMILIA',
+    'CREDITO_PESSOAL',
+    'CONTA_LUZ',
     'SIAPE',
-    'EXERCITO',
-    'MARINHA',
-    'AERONAUTICA',
-    'GOVERNO',
-    'PREFEITURA',
     'PADRAO'
 );
 
@@ -173,7 +172,7 @@ CREATE TABLE public.proponentes (
     matricula character varying(50),
     origem_consentimento public.origem_consentimento_enum DEFAULT 'WHATSAPP'::public.origem_consentimento_enum,
     classificacao public.tipo_relacionamento_enum DEFAULT 'LEAD'::public.tipo_relacionamento_enum,
-    indicado_por_id bigint REFERENCES public.proponentes(proponente_id),
+    indicado_por_id bigint,
     data_cadastro timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     deletado_em timestamp without time zone,
     data_nascimento date
@@ -301,29 +300,22 @@ CREATE UNIQUE INDEX proponentes_cpf_usuario_key ON public.proponentes (cpf, usua
 -- ==========================================
 ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_proposta_id_fkey FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.comissoes ADD CONSTRAINT comissoes_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT;
-
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT documentos_proponente_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
--- NOVO: Chave estrangeira para a Proposta na tabela de documentos
 ALTER TABLE ONLY public.documentos_proponente ADD CONSTRAINT fk_documento_proposta FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_proposta_id_fkey FOREIGN KEY (proposta_id) REFERENCES public.propostas(proposta_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.historico_status_proposta ADD CONSTRAINT historico_status_proposta_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
-
 ALTER TABLE ONLY public.interacoes_contato ADD CONSTRAINT interacoes_contato_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.interacoes_contato ADD CONSTRAINT interacoes_contato_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
-
 ALTER TABLE ONLY public.proponentes ADD CONSTRAINT proponentes_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT;
-
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_banco_id_fkey FOREIGN KEY (banco_id) REFERENCES public.bancos(banco_id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_tabela_id_fkey FOREIGN KEY (tabela_id) REFERENCES public.tabelas_juros(tabela_id);
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.propostas ADD CONSTRAINT propostas_usuario_atualizacao_id_fkey FOREIGN KEY (usuario_atualizacao_id) REFERENCES public.usuarios(usuario_id) ON DELETE SET NULL;
-
 ALTER TABLE ONLY public.tabelas_juros ADD CONSTRAINT tabelas_juros_banco_id_fkey FOREIGN KEY (banco_id) REFERENCES public.bancos(banco_id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.enderecos_proponente ADD CONSTRAINT enderecos_proponente_proponente_id_fkey FOREIGN KEY (proponente_id) REFERENCES public.proponentes(proponente_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.proponentes ADD CONSTRAINT fk_proponente_indicador FOREIGN KEY (indicado_por_id) REFERENCES public.proponentes(proponente_id);
 
 -- ==========================================
 -- 8. FUNÇÕES E TRIGGERS
