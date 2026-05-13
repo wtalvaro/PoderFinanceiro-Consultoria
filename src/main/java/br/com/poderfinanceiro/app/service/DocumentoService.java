@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.service;
 
 import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.repository.DocumentoProponenteRepository;
 import org.springframework.stereotype.Service;
@@ -40,8 +41,8 @@ public class DocumentoService {
         }
     }
 
-    public DocumentoProponenteModel processarUpload(File arquivoOriginal, String tipoDoc, ProponenteModel proponente)
-            throws Exception {
+    public DocumentoProponenteModel processarUpload(File arquivoOriginal, String tipoDoc, ProponenteModel proponente,
+            PropostaModel proposta) throws Exception {
         UsuarioModel consultor = authService.getUsuarioLogado();
         if (consultor == null)
             throw new IllegalStateException("Nenhum usuário logado.");
@@ -72,12 +73,13 @@ public class DocumentoService {
         // 4. Salva no Banco de Dados
         DocumentoProponenteModel doc = new DocumentoProponenteModel();
         doc.setProponente(proponente);
-        doc.setUsuario(consultor);
+        doc.setProposta(proposta); // 🩹 VINCULAÇÃO DIRETA À PROPOSTA
+        doc.setUsuario(authService.getUsuarioLogado());
         doc.setTipoDocumento(tipoDoc);
         doc.setArquivoPath(caminhoDestino.toString());
         doc.setHashSha256(hash);
-        doc.setVerificado(false); // Nasce como pendente de auditoria
-
+        doc.setVerificado(false);
+        
         return repository.save(doc);
     }
 
@@ -165,5 +167,20 @@ public class DocumentoService {
     private String obterExtensao(String nomeArquivo) {
         int i = nomeArquivo.lastIndexOf('.');
         return (i > 0) ? nomeArquivo.substring(i) : "";
+    }
+
+    /**
+     * Busca documentos vinculados especificamente a uma proposta (Esteira).
+     */
+    public List<DocumentoProponenteModel> buscarPorProposta(Long propostaId) {
+        return repository.findByPropostaId(propostaId);
+    }
+
+    /**
+     * Busca documentos gerais do proponente que não estão presos a nenhuma proposta
+     * (Lead).
+     */
+    public List<DocumentoProponenteModel> buscarPorProponenteSemProposta(Long proponenteId) {
+        return repository.findByProponenteIdAndPropostaIdIsNull(proponenteId);
     }
 }

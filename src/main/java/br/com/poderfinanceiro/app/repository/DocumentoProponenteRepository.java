@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface DocumentoProponenteRepository extends JpaRepository<DocumentoProponenteModel, Long> {
 
+    List<DocumentoProponenteModel> findByProponenteIdAndPropostaIdIsNull(Long proponenteId);
     /**
      * Busca todos os documentos de um proponente mantendo a ordem de inserção.
      * O OrderByIdAsc garante que a linha não pule para o final ao ser atualizada.
@@ -33,4 +34,10 @@ public interface DocumentoProponenteRepository extends JpaRepository<DocumentoPr
      * primeiro.
      */
     List<DocumentoProponenteModel> findByVerificadoFalseOrderByIdAsc();
+
+    // Busca exames gerais do paciente (Lead)
+    List<DocumentoProponenteModel> findByProponenteIdAndPropostaIsNull(Long proponenteId);
+
+    // Busca exames específicos de uma internação (Proposta)
+    List<DocumentoProponenteModel> findByPropostaId(Long propostaId);
 }

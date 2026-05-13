@@ -211,7 +211,7 @@ public class DocumentoController {
                 documentoService.atualizarTipoDocumento(documentoEmEdicao.getId(), tipoSelecionado);
                 mostrarAviso("Documento atualizado com sucesso!", true);
             } else {
-                documentoService.processarUpload(this.arquivoPendenteUpload, tipoSelecionado, proponenteAtual);
+                documentoService.processarUpload(this.arquivoPendenteUpload, tipoSelecionado, proponenteAtual, null);
                 mostrarAviso("Documento salvo com sucesso!", true);
             }
 

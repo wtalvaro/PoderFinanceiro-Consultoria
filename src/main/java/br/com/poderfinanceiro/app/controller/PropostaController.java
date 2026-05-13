@@ -1,20 +1,27 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.BancoModel;
+import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.service.DocumentoService;
 import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -25,11 +32,13 @@ public class PropostaController {
     private final PropostaViewModel viewModel;
     private final PropostaService propostaService;
     private final TabelaJurosService tabelaJurosService;
+    private final DocumentoService documentoService;
 
     // --- NOVOS ELEMENTOS DA TRIAGEM ---
     @FXML
     private ComboBox<TipoConvenioModel> cbConvenio;
-
+    @FXML
+    private TableView<DocumentoProponenteModel> tableDocumentos;
     @FXML
     private ComboBox<BancoModel> cbBanco;
     @FXML
@@ -52,24 +61,36 @@ public class PropostaController {
     private Label lblTituloComissao;
     @FXML
     private Label lblTotalPago;
+    @FXML
+    private TableColumn<DocumentoProponenteModel, String> colTipoDocumento; // Nome deve ser igual ao fx:id no FXML
+    @FXML
+    private TableColumn<DocumentoProponenteModel, String> colDataUpload; // Nome deve ser igual ao fx:id no FXML
 
     // Caches da Memória
     private List<TabelaJurosModel> todasTabelasAtivas;
     private List<TabelaJurosModel> tabelasElegiveisDaTriagem;
 
-    // 🛡️ ANESTESIA LOCAL: Evita que a triagem destrua os dados ao trocar de paciente
+    // 🛡️ ANESTESIA LOCAL: Evita que a triagem destrua os dados ao trocar de
+    // paciente
     private boolean isUpdatingInterface = false;
 
-    public PropostaController(PropostaViewModel viewModel,
+    private final ObservableList<DocumentoProponenteModel> listaDocumentos = FXCollections.observableArrayList();
+
+    public PropostaController(PropostaViewModel viewModel, DocumentoService documentoService,
             PropostaService propostaService, TabelaJurosService tabelaJurosService) {
         this.viewModel = viewModel;
+        this.documentoService = documentoService;
         this.propostaService = propostaService;
         this.tabelaJurosService = tabelaJurosService;
     }
 
     @FXML
     public void initialize() {
-        carregarListasBase();
+        // Conecte a tabela à lista mestre
+        tableDocumentos.setItems(listaDocumentos);
+
+        configurarColunasDocumentos();
+        carregarListasBase(); // Chamada única
         configurarFormatadoresEBindings();
         configurarGatilhosDaTriagem();
         configurarAutoSelecao();
@@ -181,6 +202,11 @@ public class PropostaController {
                         atualizarTabelasDoBanco(tab.getBanco()); // Carrega as tabelas do banco
                         cbTabela.setValue(tab);
                         dispararCalculo(); // Atualiza os R$ na tela
+                        // 🩹 O GATILHO: Dispara o carregamento dos documentos desta proposta específica
+                        Long propostaId = viewModel.idProperty().get();
+                        if (propostaId != null) {
+                            carregarDocumentosDaProposta(propostaId); // Agora o método é utilizado!
+                        }
                     } finally {
                         isUpdatingInterface = false; // 🔊 DESLIGA ANESTESIA
                     }
@@ -390,6 +416,119 @@ public class PropostaController {
                 }
             });
         }
+    }
+
+    private void carregarDocumentosDaProposta(Long propostaId) {
+        if (propostaId == null) {
+            listaDocumentos.clear();
+            return;
+        }
+
+        Task<List<DocumentoProponenteModel>> task = new Task<>() {
+            @Override
+            protected List<DocumentoProponenteModel> call() throws Exception {
+                return documentoService.buscarPorProposta(propostaId);
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            // Atualiza a lista observada com os novos dados do banco
+            listaDocumentos.setAll(task.getValue());
+            tableDocumentos.refresh(); // Garante que a UI redesenhe as linhas
+        });
+
+        new Thread(task).start();
+    }
+
+    @FXML
+    private void handleAnexarDocumento() {
+        // 1. Verificação de Pré-requisitos
+        if (viewModel.idProperty().get() == null) {
+            System.out.println("Erro: Salve a proposta antes de anexar documentos.");
+            // Opcional: Mostrar um alerta para a Solange aqui
+            return;
+        }
+
+        // 2. Abertura do Seletor de Arquivos
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Selecionar Documento da Proposta");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Documentos", "*.pdf", "*.jpg", "*.png", "*.jpeg"));
+
+        // Usa o rootPane como dono da janela (Window Owner)
+        File file = fileChooser.showOpenDialog(cbBanco.getScene().getWindow());
+
+        if (file != null) {
+            realizarUploadAssincrono(file);
+        }
+    }
+
+    private void realizarUploadAssincrono(File arquivo) {
+        // 3. Preparação do Procedimento (Task)
+        Task<DocumentoProponenteModel> uploadTask = new Task<>() {
+            @Override
+            protected DocumentoProponenteModel call() throws Exception {
+                // Sincroniza o estado da tela com o modelo
+                PropostaModel propostaAtual = viewModel.atualizarModel(new PropostaModel());
+
+                // 🩹 A CURA: Acessamos o proponente através do objeto da proposta
+                return documentoService.processarUpload(
+                        arquivo,
+                        "DOCUMENTO_PROPOSTA",
+                        propostaAtual.getProponente(),
+                        propostaAtual);
+            }
+        };
+
+        // 4. Pós-Operatório (Sucesso)
+        uploadTask.setOnSucceeded(e -> {
+            Long idAtual = viewModel.idProperty().get();
+            carregarDocumentosDaProposta(idAtual);
+        });
+
+        // 5. Tratamento de Rejeição (Erro)
+        uploadTask.setOnFailed(e -> {
+            Throwable erro = uploadTask.getException();
+            System.err.println("Falha no upload: " + erro.getMessage());
+            // Aqui você pode usar o Notifications do ControlsFX para avisar a Solange
+        });
+
+        // Dispara a Thread sem travar a UI
+        Thread t = new Thread(uploadTask);
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void configurarColunasDocumentos() {
+        // 🩹 Verificação de segurança (Triagem)
+        if (colTipoDocumento == null || colDataUpload == null) {
+            System.err.println("Erro Crítico: Colunas de documentos não injetadas. Verifique o fx:id no FXML.");
+            return;
+        }
+
+        // Mapeamento dos dados
+        colTipoDocumento.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTipoDocumento()));
+
+        colDataUpload.setCellValueFactory(cellData -> {
+            var data = cellData.getValue().getDataUpload();
+            if (data != null) {
+                return new javafx.beans.property.SimpleStringProperty(
+                        data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+            }
+            return new javafx.beans.property.SimpleStringProperty("-");
+        });
+
+        // Clique Duplo para abrir o arquivo
+        tableDocumentos.setRowFactory(tv -> {
+            TableRow<DocumentoProponenteModel> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    documentoService.abrirDocumento(row.getItem());
+                }
+            });
+            return row;
+        });
     }
 
     public PropostaViewModel getViewModel() {

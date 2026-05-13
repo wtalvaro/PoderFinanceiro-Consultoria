@@ -121,5 +121,22 @@
                 wrapText="true" />
         </VBox>
 
+        <VBox spacing="10" styleClass="card">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="📂 Documentação da Proposta" style="-fx-font-weight: bold;" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="➕ Anexar Documento" onAction="#handleAnexarDocumento"
+                    styleClass="flat, accent" />
+            </HBox>
+
+            <TableView fx:id="tableDocumentos" prefHeight="150">
+                <columns>
+                    <TableColumn fx:id="colTipoDocumento" text="Tipo de Exame" prefWidth="150" />
+                    <TableColumn fx:id="colDataUpload" text="Data de Upload" prefWidth="120" />
+                    <TableColumn fx:id="colAcoesDocumento" text="Ações" prefWidth="100" />
+                </columns>
+            </TableView>
+        </VBox>
+
     </VBox>
 </ScrollPane>
