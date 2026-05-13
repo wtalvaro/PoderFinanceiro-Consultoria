@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
 import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
-import br.com.poderfinanceiro.app.model.UfModel;
 import br.com.poderfinanceiro.app.model.enums.TipoLogradouroModel;
+import br.com.poderfinanceiro.app.model.enums.UfModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;

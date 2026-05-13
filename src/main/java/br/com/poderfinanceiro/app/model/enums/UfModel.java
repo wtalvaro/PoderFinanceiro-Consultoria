@@ -1,6 +1,4 @@
-package br.com.poderfinanceiro.app.model;
-
-import br.com.poderfinanceiro.app.model.enums.LabeledModel;
+package br.com.poderfinanceiro.app.model.enums;
 
 public enum UfModel implements LabeledModel {
     AC("Acre"), AL("Alagoas"), AP("Amapá"), AM("Amazonas"),
