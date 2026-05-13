@@ -72,11 +72,6 @@
                         <DatePicker fx:id="dpDataNascimento" promptText="DD/MM/AAAA"
                             maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                        <Label text="Convênio / Órgão:" GridPane.columnIndex="0"
-                            GridPane.rowIndex="1" />
-                        <ComboBox fx:id="cbConvenio" promptText="Ex: INSS, SIAPE, Exército..."
-                            maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-
                         <Label text="Tipo de Vínculo:" GridPane.columnIndex="0"
                             GridPane.rowIndex="2" />
                         <ComboBox fx:id="cbVinculo" promptText="Ex: Aposentado, Pensionista..."

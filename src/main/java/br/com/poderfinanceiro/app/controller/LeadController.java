@@ -4,7 +4,6 @@ import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.model.enums.LabeledModel;
 import br.com.poderfinanceiro.app.model.enums.OrigemLeadModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.model.enums.TipoRelacionamentoModel;
 import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 import br.com.poderfinanceiro.app.service.DocumentoService;
@@ -46,8 +45,6 @@ public class LeadController {
     private ComboBox<OrigemLeadModel> cbOrigem;
     @FXML
     private ComboBox<TipoVinculoModel> cbVinculo;
-    @FXML
-    private ComboBox<TipoConvenioModel> cbConvenio;
     @FXML
     private ComboBox<TipoRelacionamentoModel> cbClassificacao;
     @FXML
@@ -102,7 +99,6 @@ public class LeadController {
     private void configurarListasEFormatores() {
         configurarCombo(cbOrigem, OrigemLeadModel.values(), OrigemLeadModel::fromString);
         configurarCombo(cbVinculo, TipoVinculoModel.values(), TipoVinculoModel::fromString);
-        configurarCombo(cbConvenio, TipoConvenioModel.values(), TipoConvenioModel::fromString);
         configurarCombo(cbClassificacao, TipoRelacionamentoModel.values(), TipoRelacionamentoModel::fromString);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -135,7 +131,6 @@ public class LeadController {
         dataFormatter.valueProperty().bindBidirectional(viewModel.dataNascimentoProperty());
         dpDataNascimento.valueProperty().bindBidirectional(dataFormatter.valueProperty());
 
-        cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
         cbVinculo.valueProperty().bindBidirectional(viewModel.vinculoProperty());
         txtMatricula.textProperty().bindBidirectional(viewModel.matriculaProperty());
 

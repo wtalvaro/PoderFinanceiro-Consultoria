@@ -39,9 +39,6 @@ public class SummaryGeneratorUtils {
 
     private static void appendPerfilFinanceiro(StringBuilder sb, LeadViewModel vm, String renda) {
         sb.append("\n*[PERFIL FINANCEIRO]*\n");
-        sb.append("• *Convênio:* ")
-                .append(vm.convenioProperty().get() != null ? vm.convenioProperty().get().getLabel() : "A definir")
-                .append("\n");
         sb.append("• *Vínculo:* ")
                 .append(vm.vinculoProperty().get() == null ? "Não informado" : vm.vinculoProperty().get().getLabel())
                 .append("\n");

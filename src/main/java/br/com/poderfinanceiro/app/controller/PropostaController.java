@@ -126,13 +126,6 @@ public class PropostaController {
                     return null; // Apenas para exibição
                 }
             });
-
-            // Sugere o convênio...
-            viewModel.proponenteProperty().addListener((obs, old, paciente) -> {
-                if (paciente != null && paciente.getConvenioOrgao() != null && cbConvenio.getValue() == null) {
-                    cbConvenio.setValue(paciente.getConvenioOrgao());
-                }
-            });
         }
 
         // Conversores Visuais

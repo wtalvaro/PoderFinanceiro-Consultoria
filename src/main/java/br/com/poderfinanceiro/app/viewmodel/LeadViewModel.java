@@ -2,7 +2,6 @@ package br.com.poderfinanceiro.app.viewmodel;
 
 import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.model.enums.OrigemLeadModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.model.enums.TipoRelacionamentoModel;
 import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 import javafx.beans.Observable;
@@ -25,7 +24,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
     private final ObjectProperty<OrigemLeadModel> origem = new SimpleObjectProperty<>(OrigemLeadModel.WHATSAPP);
 
     private final ObjectProperty<LocalDate> dataNascimento = new SimpleObjectProperty<>();
-    private final ObjectProperty<TipoConvenioModel> convenio = new SimpleObjectProperty<>(TipoConvenioModel.PADRAO);
     private final ObjectProperty<TipoVinculoModel> vinculo = new SimpleObjectProperty<>(TipoVinculoModel.CLT);
     private final StringProperty matricula = new SimpleStringProperty("");
     private final ObjectProperty<BigDecimal> renda = new SimpleObjectProperty<>(BigDecimal.ZERO);
@@ -38,8 +36,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
     private final ReadOnlyStringWrapper telefoneOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<OrigemLeadModel> origemOriginal = new ReadOnlyObjectWrapper<>(OrigemLeadModel.WHATSAPP);
     private final ReadOnlyObjectWrapper<LocalDate> dataNascimentoOriginal = new ReadOnlyObjectWrapper<>(null);
-    private final ReadOnlyObjectWrapper<TipoConvenioModel> convenioOriginal = new ReadOnlyObjectWrapper<>(
-            TipoConvenioModel.PADRAO);
     private final ReadOnlyObjectWrapper<TipoVinculoModel> vinculoOriginal = new ReadOnlyObjectWrapper<>(TipoVinculoModel.CLT);
     private final ReadOnlyStringWrapper matriculaOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<BigDecimal> rendaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
@@ -62,7 +58,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
         telefone.set(model.getTelefone() != null ? model.getTelefone() : "");
         origem.set(model.getOrigemConsentimento() != null ? model.getOrigemConsentimento() : OrigemLeadModel.WHATSAPP);
         dataNascimento.set(model.getDataNascimento());
-        convenio.set(model.getConvenioOrgao() != null ? model.getConvenioOrgao() : TipoConvenioModel.PADRAO);
         vinculo.set(model.getTipoVinculo() != null ? model.getTipoVinculo() : TipoVinculoModel.CLT);
         matricula.set(model.getMatricula() != null ? model.getMatricula() : "");
         renda.set(model.getRendaMensal() != null ? model.getRendaMensal() : BigDecimal.ZERO);
@@ -76,7 +71,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
         telefone.set("");
         origem.set(OrigemLeadModel.WHATSAPP);
         dataNascimento.set(null);
-        convenio.set(TipoConvenioModel.PADRAO);
         vinculo.set(TipoVinculoModel.CLT);
         matricula.set("");
         renda.set(BigDecimal.ZERO);
@@ -90,7 +84,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
         this.telefoneOriginal.set(telefone.get());
         this.origemOriginal.set(origem.get());
         this.dataNascimentoOriginal.set(dataNascimento.get());
-        this.convenioOriginal.set(convenio.get());
         this.vinculoOriginal.set(vinculo.get());
         this.matriculaOriginal.set(matricula.get());
         this.rendaOriginal.set(renda.get());
@@ -121,7 +114,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
                 !telAtual.equals(telOrig) ||
                 !Objects.equals(origem.get(), origemOriginal.get()) ||
                 !Objects.equals(dataNascimento.get(), dataNascimentoOriginal.get()) ||
-                !Objects.equals(convenio.get(), convenioOriginal.get()) ||
                 !Objects.equals(vinculo.get(), vinculoOriginal.get()) ||
                 !Objects.equals(matricula.get(), matriculaOriginal.get()) ||
                 !Objects.equals(classificacao.get(), classificacaoOriginal.get()) ||
@@ -139,7 +131,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
         model.setTelefone(this.telefone.get());
         model.setOrigemConsentimento(this.origem.get());
         model.setDataNascimento(this.dataNascimento.get());
-        model.setConvenioOrgao(this.convenio.get());
         model.setTipoVinculo(this.vinculo.get());
         model.setMatricula(this.matricula.get());
         model.setRendaMensal(this.renda.get());
@@ -154,13 +145,12 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
     @Override
     protected Observable[] getObservaveisParaDirty() {
         return new Observable[] {
-                nome, cpf, telefone, origem, dataNascimento, convenio, vinculo, matricula, renda, classificacao,
+                nome, cpf, telefone, origem, dataNascimento, vinculo, matricula, renda, classificacao,
                 nomeOriginal.getReadOnlyProperty(),
                 cpfOriginal.getReadOnlyProperty(),
                 telefoneOriginal.getReadOnlyProperty(),
                 origemOriginal.getReadOnlyProperty(),
                 dataNascimentoOriginal.getReadOnlyProperty(),
-                convenioOriginal.getReadOnlyProperty(),
                 vinculoOriginal.getReadOnlyProperty(),
                 matriculaOriginal.getReadOnlyProperty(),
                 rendaOriginal.getReadOnlyProperty(),
@@ -190,10 +180,6 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
 
     public ObjectProperty<LocalDate> dataNascimentoProperty() {
         return dataNascimento;
-    }
-
-    public ObjectProperty<TipoConvenioModel> convenioProperty() {
-        return convenio;
     }
 
     public ObjectProperty<TipoVinculoModel> vinculoProperty() {

@@ -14,7 +14,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import br.com.poderfinanceiro.app.model.enums.OrigemLeadModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.model.enums.TipoRelacionamentoModel;
 import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 
@@ -51,11 +50,6 @@ public class ProponenteModel {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "tipo_vinculo", columnDefinition = "tipo_vinculo_enum")
     private TipoVinculoModel tipoVinculo;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "convenio_orgao", columnDefinition = "tipo_convenio_enum")
-     private TipoConvenioModel convenioOrgao;
 
     @Column(length = 50)
     private String matricula;

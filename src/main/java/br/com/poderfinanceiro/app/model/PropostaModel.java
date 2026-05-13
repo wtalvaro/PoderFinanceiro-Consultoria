@@ -12,6 +12,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 
 @Entity
 @Table(name = "propostas")
@@ -36,6 +37,11 @@ public class PropostaModel {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private UsuarioModel usuario; // Consultor responsável
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "convenio_orgao", columnDefinition = "tipo_convenio_enum")
+     private TipoConvenioModel convenioOrgao;
 
     @Column(name = "valor_solicitado", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorSolicitado;

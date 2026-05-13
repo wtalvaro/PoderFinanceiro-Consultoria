@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -23,6 +24,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     private final ObjectProperty<BancoModel> banco = new SimpleObjectProperty<>();
     private final ObjectProperty<UsuarioModel> usuario = new SimpleObjectProperty<>();
 
+    private final ObjectProperty<TipoConvenioModel> convenio = new SimpleObjectProperty<>(TipoConvenioModel.PADRAO);
     private final ObjectProperty<BigDecimal> valorSolicitado = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> valorAprovado = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> taxaAplicada = new SimpleObjectProperty<>(BigDecimal.ZERO);
@@ -41,6 +43,8 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     // --- 2. ESTADOS ORIGINAIS (Prontuário de Referência) ---
     private final ReadOnlyObjectWrapper<ProponenteModel> proponenteOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<BancoModel> bancoOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<TipoConvenioModel> convenioOriginal = new ReadOnlyObjectWrapper<>(
+            TipoConvenioModel.PADRAO);
     private final ReadOnlyObjectWrapper<BigDecimal> valorSolicitadoOriginal = new ReadOnlyObjectWrapper<>(
             BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> valorAprovadoOriginal = new ReadOnlyObjectWrapper<>(
@@ -67,6 +71,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         proponente.set(model.getProponente());
         banco.set(model.getBanco());
         usuario.set(model.getUsuario());
+        convenio.set(model.getConvenioOrgao() != null ? model.getConvenioOrgao() : TipoConvenioModel.PADRAO);
         valorSolicitado.set(model.getValorSolicitado() != null ? model.getValorSolicitado() : BigDecimal.ZERO);
         valorAprovado.set(model.getValorAprovado() != null ? model.getValorAprovado() : BigDecimal.ZERO);
         taxaAplicada.set(model.getTaxaAplicada() != null ? model.getTaxaAplicada() : BigDecimal.ZERO);
@@ -84,6 +89,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         proponente.set(null);
         banco.set(null);
         usuario.set(null);
+        convenio.set(TipoConvenioModel.PADRAO);
         valorSolicitado.set(BigDecimal.ZERO);
         valorAprovado.set(BigDecimal.ZERO);
         taxaAplicada.set(BigDecimal.ZERO);
@@ -98,22 +104,24 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
 
     @Override
     protected void sincronizarEstadoOriginal() {
-        proponenteOriginal.set(proponente.get());
-        bancoOriginal.set(banco.get());
-        valorSolicitadoOriginal.set(valorSolicitado.get());
-        valorAprovadoOriginal.set(valorAprovado.get());
-        statusOriginal.set(status.get());
-        tabelaIdOriginal.set(tabelaId.get());
-        observacoesOriginal.set(observacoes.get());
-        quantidadeParcelasOriginal.set(quantidadeParcelas.get());
-        valorParcelaOriginal.set(valorParcela.get());
-        taxaAplicadaOriginal.set(taxaAplicada.get());
+        this.proponenteOriginal.set(proponente.get());
+        this.bancoOriginal.set(banco.get());
+        this.convenioOriginal.set(convenio.get());
+        this.valorSolicitadoOriginal.set(valorSolicitado.get());
+        this.valorAprovadoOriginal.set(valorAprovado.get());
+        this.statusOriginal.set(status.get());
+        this.tabelaIdOriginal.set(tabelaId.get());
+        this.observacoesOriginal.set(observacoes.get());
+        this.quantidadeParcelasOriginal.set(quantidadeParcelas.get());
+        this.valorParcelaOriginal.set(valorParcela.get());
+        this.taxaAplicadaOriginal.set(taxaAplicada.get());
     }
 
     @Override
     protected boolean temAlteracoesPendentes() {
         return !isProponenteIgual(proponente.get(), proponenteOriginal.get()) ||
                 !isBancoIgual(banco.get(), bancoOriginal.get()) ||
+                !Objects.equals(convenio.get(), convenioOriginal.get()) ||
                 compareBigDecimal(valorSolicitado.get(), valorSolicitadoOriginal.get()) ||
                 compareBigDecimal(valorAprovado.get(), valorAprovadoOriginal.get()) ||
                 !Objects.equals(status.get(), statusOriginal.get()) ||
@@ -159,6 +167,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         model.setProponente(this.proponente.get());
         model.setBanco(this.banco.get());
         model.setUsuario(this.usuario.get());
+        model.setConvenioOrgao(this.convenio.get());
         model.setValorSolicitado(this.valorSolicitado.get());
         model.setValorAprovado(this.valorAprovado.get());
         model.setTaxaAplicada(this.taxaAplicada.get());
@@ -177,12 +186,13 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     protected Observable[] getObservaveisParaDirty() {
         return new Observable[] {
                 // AQUI ESTAVA FALTANDO OS 3 CAMPOS ATIVOS:
-                proponente, banco, valorSolicitado, valorAprovado, status, tabelaId, observacoes,
+                proponente, banco, convenio, valorSolicitado, valorAprovado, status, tabelaId, observacoes,
                 quantidadeParcelas, valorParcela, taxaAplicada,
 
                 // OS ORIGINAIS (Que você colocou certinho):
                 proponenteOriginal.getReadOnlyProperty(),
                 bancoOriginal.getReadOnlyProperty(),
+                convenioOriginal.getReadOnlyProperty(),
                 valorSolicitadoOriginal.getReadOnlyProperty(),
                 valorAprovadoOriginal.getReadOnlyProperty(),
                 statusOriginal.getReadOnlyProperty(),
@@ -204,6 +214,10 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
 
     public ObjectProperty<BancoModel> bancoProperty() {
         return banco;
+    }
+
+    public ObjectProperty<TipoConvenioModel> convenioProperty() {
+        return convenio;
     }
 
     public ObjectProperty<UsuarioModel> usuarioProperty() {
@@ -249,5 +263,5 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     public ObjectProperty<LocalDate> dataSolicitacaoProperty() {
         return dataSolicitacao;
     }
-    
+
 }
