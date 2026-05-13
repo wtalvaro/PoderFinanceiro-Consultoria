@@ -248,6 +248,7 @@ CREATE TABLE public.links_uteis (
     descricao character varying(255),
     categoria public.categoria_link_enum DEFAULT 'OUTROS'::public.categoria_link_enum,
     tipo_convenio public.tipo_convenio_enum, -- NOVO: Filtro inteligente (Pode ser nulo para links gerais)
+    tags_busca character varying(255),
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT links_uteis_pkey PRIMARY KEY (link_id)
 );

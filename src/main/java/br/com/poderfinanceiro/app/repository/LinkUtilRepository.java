@@ -3,6 +3,8 @@ package br.com.poderfinanceiro.app.repository;
 import br.com.poderfinanceiro.app.model.LinkUtilModel;
 import br.com.poderfinanceiro.app.model.enums.CategoriaLinkModel;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,4 +28,11 @@ public interface LinkUtilRepository extends JpaRepository<LinkUtilModel, Long> {
      * Busca rápida por título (ignore case) para filtros de pesquisa na interface.
      */
     List<LinkUtilModel> findByTituloContainingIgnoreCase(String titulo);
+
+    @Query("SELECT l FROM LinkUtilModel l WHERE " +
+            "LOWER(l.tags) LIKE LOWER(CONCAT('%', :tagBanco, '%')) OR " +
+            "LOWER(l.tags) LIKE LOWER(CONCAT('%', :tagConvenio, '%')) " +
+            "ORDER BY l.titulo ASC")
+    List<LinkUtilModel> buscarLinksContextuais(@Param("tagBanco") String tagBanco,
+            @Param("tagConvenio") String tagConvenio);
 }

@@ -21,10 +21,11 @@ public class LinkUtilController {
 
     @FXML
     private ComboBox<CategoriaLinkModel> comboCategoria;
-    @FXML
-    private TextField txtTitulo, txtUrl, txtDescricao;
 
-    // NOVO: Campo de busca
+    // Adicionado txtTags aqui:
+    @FXML
+    private TextField txtTitulo, txtUrl, txtDescricao, txtTags;
+
     @FXML
     private TextField txtBusca;
 
@@ -44,8 +45,6 @@ public class LinkUtilController {
 
     private LinkUtilModel linkEmEdicao;
 
-    // NOVO: Lista mestre que guarda todos os dados para o filtro não perder
-    // informação
     private final ObservableList<LinkUtilModel> masterData = FXCollections.observableArrayList();
 
     public LinkUtilController(LinkUtilRepository repository, MainController mainController) {
@@ -55,67 +54,53 @@ public class LinkUtilController {
 
     @FXML
     public void initialize() {
-        // 1. Usa o seu método genérico para configurar a ComboBox
         configurarCombo(comboCategoria, CategoriaLinkModel.values(), CategoriaLinkModel::fromString);
 
-        // 2. Configuração das colunas
         colCategoria.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategoria().getLabel()));
         colTitulo.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTitulo()));
         colDescricao.setCellValueFactory(data -> {
             String desc = data.getValue().getDescricao();
-            return new SimpleStringProperty(desc != null ? desc : ""); // Previne null pointer na interface
+            return new SimpleStringProperty(desc != null ? desc : "");
         });
 
         configurarColunaAcoes();
-
-        // 3. NOVO: Configura a mágica do filtro
         configurarBuscaReativa();
-
-        // 4. Carrega os dados do banco
         recarregarLinks();
     }
 
-    /**
-     * Configura o FilteredList para buscar instantaneamente no cliente.
-     */
     private void configurarBuscaReativa() {
-        // Envolve nossa ObservableList em um FilteredList (inicialmente mostra tudo)
         FilteredList<LinkUtilModel> filteredData = new FilteredList<>(masterData, p -> true);
 
-        // Adiciona um listener (escutador) ao texto da barra de busca
         txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredData.setPredicate(link -> {
-                // Se o texto de busca for vazio, mostra o link
                 if (newValue == null || newValue.isEmpty()) {
                     return true;
                 }
 
-                // Coloca tudo em minúsculo para a busca não ser sensível a maiúsculas
                 String filtro = newValue.toLowerCase();
 
-                // Busca no Título
                 if (link.getTitulo() != null && link.getTitulo().toLowerCase().contains(filtro)) {
                     return true;
                 }
-                // Busca na Descrição
                 if (link.getDescricao() != null && link.getDescricao().toLowerCase().contains(filtro)) {
                     return true;
                 }
-                // Busca na Categoria (pelo label Bonito)
                 if (link.getCategoria() != null && link.getCategoria().getLabel().toLowerCase().contains(filtro)) {
                     return true;
                 }
+                // NOVO: Permite que a Solange ache links pesquisando pelas tags na tela de
+                // gestão
+                if (link.getTags() != null && link.getTags().toLowerCase().contains(filtro)) {
+                    return true;
+                }
 
-                return false; // Não deu match em nada, esconde da tabela
+                return false;
             });
         });
 
-        // Envolve o FilteredList em um SortedList para permitir que o usuário ainda
-        // clique nos cabeçalhos da tabela para ordenar
         SortedList<LinkUtilModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tableLinks.comparatorProperty());
 
-        // Adiciona a lista final "superpoderosa" na tabela
         tableLinks.setItems(sortedData);
     }
 
@@ -150,7 +135,6 @@ public class LinkUtilController {
                         mainController.getHostServices().showDocument(item.getUrl());
                 });
 
-                // Define o cursor de mãozinha para todos os botões
                 btnAbrir.setCursor(Cursor.HAND);
                 btnEditar.setCursor(Cursor.HAND);
                 btnExcluir.setCursor(Cursor.HAND);
@@ -196,9 +180,12 @@ public class LinkUtilController {
         link.setDescricao(txtDescricao.getText());
         link.setCategoria(comboCategoria.getValue());
 
+        // NOVO: Adiciona a string de tags digitadas
+        link.setTags(txtTags.getText());
+
         repository.save(link);
         limparFormulario();
-        recarregarLinks(); // Recarrega do banco e atualiza a masterData
+        recarregarLinks();
     }
 
     private void prepararEdicao(LinkUtilModel link) {
@@ -207,6 +194,10 @@ public class LinkUtilController {
         txtUrl.setText(link.getUrl());
         txtDescricao.setText(link.getDescricao());
         comboCategoria.setValue(link.getCategoria());
+
+        // NOVO: Preenche a caixa de texto de tags ao editar
+        txtTags.setText(link.getTags() != null ? link.getTags() : "");
+
         paneFormulario.setText("✏️ Editando: " + link.getTitulo());
         paneFormulario.setExpanded(true);
         scrollPrincipal.setVvalue(0.0);
@@ -224,14 +215,15 @@ public class LinkUtilController {
         txtTitulo.clear();
         txtUrl.clear();
         txtDescricao.clear();
+
+        // NOVO: Limpa o campo de tags
+        txtTags.clear();
+
         comboCategoria.getSelectionModel().clearSelection();
         paneFormulario.setText("🔗 Gestão de Links e Atalhos");
     }
 
     public void recarregarLinks() {
-        // ATUALIZADO: Em vez de jogar direto na tabela, atualizamos a masterData.
-        // A interface vai reagir automaticamente mantendo o filtro de texto se houver
-        // algum!
         masterData.setAll(repository.findAllByOrderByCategoriaAscTituloAsc());
     }
 }

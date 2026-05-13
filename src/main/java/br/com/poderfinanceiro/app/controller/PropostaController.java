@@ -55,7 +55,10 @@ public class PropostaController {
 
     // Caches da Memória
     private List<TabelaJurosModel> todasTabelasAtivas;
-    private List<TabelaJurosModel> tabelasElegiveisDaTriagem; // Resultado do Filtro
+    private List<TabelaJurosModel> tabelasElegiveisDaTriagem;
+
+    // 🛡️ ANESTESIA LOCAL: Evita que a triagem destrua os dados ao trocar de paciente
+    private boolean isAnestesiado = false;
 
     public PropostaController(PropostaViewModel viewModel,
             PropostaService propostaService, TabelaJurosService tabelaJurosService) {
@@ -80,7 +83,20 @@ public class PropostaController {
         if (cbConvenio != null) {
             cbConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
 
-            // Sugere o convênio automaticamente baseado no perfil do cliente
+            // 🩹 CURATIVO 1: Ensina o ComboBox a mostrar o nome bonito (Label)
+            cbConvenio.setConverter(new StringConverter<>() {
+                @Override
+                public String toString(TipoConvenioModel tipo) {
+                    return tipo != null ? tipo.getLabel() : "Selecione o Convênio...";
+                }
+
+                @Override
+                public TipoConvenioModel fromString(String s) {
+                    return null; // Apenas para exibição
+                }
+            });
+
+            // Sugere o convênio...
             viewModel.proponenteProperty().addListener((obs, old, paciente) -> {
                 if (paciente != null && paciente.getConvenioOrgao() != null && cbConvenio.getValue() == null) {
                     cbConvenio.setValue(paciente.getConvenioOrgao());
@@ -147,25 +163,48 @@ public class PropostaController {
         txtParcela.setTextFormatter(fmtParcela);
         fmtParcela.valueProperty().bindBidirectional(viewModel.valorParcelaProperty());
 
-        // Quando carrega uma proposta do banco, ajusta a UI
+        // Quando carrega uma proposta do banco, ajusta a UI sob anestesia
         viewModel.tabelaIdProperty().addListener((obs, old, idNovo) -> {
+            if (isAnestesiado)
+                return; // Se está dopado, não repete a dose
+
             if (idNovo != null) {
-                TabelaJurosModel tab = todasTabelasAtivas.stream().filter(t -> t.getId().equals(idNovo)).findFirst()
-                        .orElse(null);
+                TabelaJurosModel tab = todasTabelasAtivas.stream()
+                        .filter(t -> t.getId().equals(idNovo)).findFirst().orElse(null);
+
                 if (tab != null) {
-                    if (cbConvenio != null && cbConvenio.getValue() == null)
+                    isAnestesiado = true; // 🛡️ LIGA ANESTESIA
+                    try {
                         cbConvenio.setValue(tab.getTipoConvenio());
-                    cbTabela.setValue(tab);
-                    cbBanco.setValue(tab.getBanco());
+                        realizarTriagem(); // Carrega os bancos do convênio, mas sem Piloto Automático
+                        cbBanco.setValue(tab.getBanco());
+                        atualizarTabelasDoBanco(tab.getBanco()); // Carrega as tabelas do banco
+                        cbTabela.setValue(tab);
+                        dispararCalculo(); // Atualiza os R$ na tela
+                    } finally {
+                        isAnestesiado = false; // 🔊 DESLIGA ANESTESIA
+                    }
                 }
             } else {
-                cbTabela.setValue(null);
+                isAnestesiado = true; // 🛡️ LIGA ANESTESIA PARA LIMPAR A TELA ("Nova Simulação")
+                try {
+                    cbConvenio.setValue(null);
+                    cbBanco.getItems().clear();
+                    cbTabela.getItems().clear();
+                    cbBanco.setValue(null);
+                    cbTabela.setValue(null);
+                    dispararCalculo();
+                } finally {
+                    isAnestesiado = false;
+                }
             }
         });
 
         cbTabela.valueProperty().addListener((obs, old, novaTabela) -> {
+            if (isAnestesiado)
+                return; // Impede que a UI suje o ViewModel enquanto carrega
             viewModel.tabelaIdProperty().set(novaTabela != null ? novaTabela.getId() : null);
-            dispararCalculo(); // Recalcula a comissão imediatamente ao escolher a tabela
+            dispararCalculo();
         });
 
         // Garante que o Banco selecionado no combo atualize o ViewModel (Para salvar no
@@ -209,47 +248,57 @@ public class PropostaController {
     // ========================================================================
 
     private void configurarGatilhosDaTriagem() {
-        // Se o valor solicitado ou o convênio mudarem, refaz a triagem
-        viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> realizarTriagem());
-        if (cbConvenio != null) {
-            cbConvenio.valueProperty().addListener((obs, old, val) -> realizarTriagem());
-        }
-
-        // Se o banco mudar, atualiza as tabelas disponíveis (dentro do que passou na
-        // triagem)
-        cbBanco.valueProperty().addListener((obs, old, bancoNovo) -> {
-            if (bancoNovo != null && tabelasElegiveisDaTriagem != null) {
-
-                // Filtra as tabelas do banco selecionado e ORDENA pela maior comissão!
-                List<TabelaJurosModel> tabelasDoBanco = tabelasElegiveisDaTriagem.stream()
-                        .filter(t -> t.getBanco().getId().equals(bancoNovo.getId()))
-                        .sorted(java.util.Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed())
-                        .toList();
-
-                TabelaJurosModel tabelaAtual = cbTabela.getValue();
-                cbTabela.setItems(FXCollections.observableArrayList(tabelasDoBanco));
-
-                // 🧠 A Mágica do Piloto Automático para Tabelas
-                if (tabelasDoBanco.size() == 1) {
-                    // Se só tem uma via, vira o volante sozinho
-                    cbTabela.setValue(tabelasDoBanco.get(0));
-                } else if (tabelaAtual != null && tabelasDoBanco.contains(tabelaAtual)) {
-                    // Se ela alterou o valor, mas a tabela que ela já tinha escolhido continua
-                    // válida, mantém!
-                    cbTabela.setValue(tabelaAtual);
-                } else {
-                    // Se tem várias opções e ela ainda não escolheu, deixa em branco (A mais
-                    // lucrativa estará no topo!)
-                    cbTabela.setValue(null);
-                }
-            } else {
-                cbTabela.getItems().clear();
-                cbTabela.setValue(null);
-            }
+        // Só dispara triagem se o usuário mexeu. Se for o sistema carregando, ignora.
+        viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> {
+            if (!isAnestesiado)
+                realizarTriagem();
         });
 
-        // Recalcula se o valor aprovado for digitado
-        viewModel.valorAprovadoProperty().addListener((obs, old, val) -> dispararCalculo());
+        if (cbConvenio != null) {
+            cbConvenio.valueProperty().addListener((obs, old, val) -> {
+                if (!isAnestesiado)
+                    realizarTriagem();
+            });
+        }
+
+        cbBanco.valueProperty().addListener((obs, old, bancoNovo) -> {
+            if (!isAnestesiado)
+                atualizarTabelasDoBanco(bancoNovo);
+        });
+
+        viewModel.valorAprovadoProperty().addListener((obs, old, val) -> {
+            if (!isAnestesiado)
+                dispararCalculo();
+        });
+    }
+
+    // 🩹 NOVO MÉTODO AUXILIAR: Isola o carregamento das tabelas
+    private void atualizarTabelasDoBanco(BancoModel bancoNovo) {
+        if (bancoNovo != null && tabelasElegiveisDaTriagem != null) {
+            List<TabelaJurosModel> tabelasDoBanco = tabelasElegiveisDaTriagem.stream()
+                    .filter(t -> t.getBanco().getId().equals(bancoNovo.getId()))
+                    .sorted(java.util.Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed())
+                    .toList();
+
+            TabelaJurosModel tabelaAtual = cbTabela.getValue();
+            cbTabela.setItems(FXCollections.observableArrayList(tabelasDoBanco));
+
+            // Piloto Automático só funciona se o paciente estiver acordado (não
+            // anestesiado)
+            if (!isAnestesiado) {
+                if (tabelasDoBanco.size() == 1) {
+                    cbTabela.setValue(tabelasDoBanco.get(0));
+                } else if (tabelaAtual != null && tabelasDoBanco.contains(tabelaAtual)) {
+                    cbTabela.setValue(tabelaAtual);
+                } else {
+                    cbTabela.setValue(null);
+                }
+            }
+        } else {
+            cbTabela.getItems().clear();
+            if (!isAnestesiado)
+                cbTabela.setValue(null);
+        }
     }
 
     private void realizarTriagem() {
@@ -288,20 +337,17 @@ public class PropostaController {
         BancoModel bancoAtual = cbBanco.getValue();
         cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
 
-        // 4. 🧠 A Mágica do Piloto Automático para Bancos
-        if (bancosElegiveis.size() == 1) {
-            // Rota única: Auto-seleciona o banco parceiro
-            cbBanco.setValue(bancosElegiveis.get(0));
-        } else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual)) {
-            // O paciente alterou o valor, mas o banco que estava selecionado ainda aceita a
-            // operação
-            cbBanco.setValue(bancoAtual);
-        } else {
-            // Múltiplos bancos disponíveis: Força a Consultora a avaliar as opções
-            cbBanco.setValue(null);
+        // 4. 🧠 Piloto Automático SOMENTE se não estiver carregando uma proposta salva
+        if (!isAnestesiado) {
+            if (bancosElegiveis.size() == 1) {
+                cbBanco.setValue(bancosElegiveis.get(0));
+            } else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual)) {
+                cbBanco.setValue(bancoAtual);
+            } else {
+                cbBanco.setValue(null);
+            }
+            dispararCalculo(); // Recalcula apenas se foi ação manual
         }
-
-        dispararCalculo();
     }
 
     /**

@@ -39,11 +39,15 @@ public class LinkUtilModel {
     private CategoriaLinkModel categoria = CategoriaLinkModel.OUTROS;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // 💉 A injeção que avisa que isso é um Enum nativo do Postgres
     @Column(name = "tipo_convenio")
-    private TipoConvenioModel tipo_convenio;
+    private TipoConvenioModel tipoConvenio;
 
     @Column(name = "criado_em", updatable = false)
     private LocalDateTime criadoEm;
+
+    @Column(name = "tags_busca", length = 255)
+    private String tags; // Exemplo de conteúdo: "inss, pan, refinanciamento"
 
     @PrePersist
     protected void onCreate() {
