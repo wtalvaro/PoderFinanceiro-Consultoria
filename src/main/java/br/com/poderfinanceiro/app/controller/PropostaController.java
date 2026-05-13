@@ -58,7 +58,7 @@ public class PropostaController {
     private List<TabelaJurosModel> tabelasElegiveisDaTriagem;
 
     // 🛡️ ANESTESIA LOCAL: Evita que a triagem destrua os dados ao trocar de paciente
-    private boolean isAnestesiado = false;
+    private boolean isUpdatingInterface = false;
 
     public PropostaController(PropostaViewModel viewModel,
             PropostaService propostaService, TabelaJurosService tabelaJurosService) {
@@ -165,7 +165,7 @@ public class PropostaController {
 
         // Quando carrega uma proposta do banco, ajusta a UI sob anestesia
         viewModel.tabelaIdProperty().addListener((obs, old, idNovo) -> {
-            if (isAnestesiado)
+            if (isUpdatingInterface)
                 return; // Se está dopado, não repete a dose
 
             if (idNovo != null) {
@@ -173,7 +173,7 @@ public class PropostaController {
                         .filter(t -> t.getId().equals(idNovo)).findFirst().orElse(null);
 
                 if (tab != null) {
-                    isAnestesiado = true; // 🛡️ LIGA ANESTESIA
+                    isUpdatingInterface = true; // 🛡️ LIGA ANESTESIA
                     try {
                         cbConvenio.setValue(tab.getTipoConvenio());
                         realizarTriagem(); // Carrega os bancos do convênio, mas sem Piloto Automático
@@ -182,11 +182,11 @@ public class PropostaController {
                         cbTabela.setValue(tab);
                         dispararCalculo(); // Atualiza os R$ na tela
                     } finally {
-                        isAnestesiado = false; // 🔊 DESLIGA ANESTESIA
+                        isUpdatingInterface = false; // 🔊 DESLIGA ANESTESIA
                     }
                 }
             } else {
-                isAnestesiado = true; // 🛡️ LIGA ANESTESIA PARA LIMPAR A TELA ("Nova Simulação")
+                isUpdatingInterface = true; // 🛡️ LIGA ANESTESIA PARA LIMPAR A TELA ("Nova Simulação")
                 try {
                     cbConvenio.setValue(null);
                     cbBanco.getItems().clear();
@@ -195,13 +195,13 @@ public class PropostaController {
                     cbTabela.setValue(null);
                     dispararCalculo();
                 } finally {
-                    isAnestesiado = false;
+                    isUpdatingInterface = false;
                 }
             }
         });
 
         cbTabela.valueProperty().addListener((obs, old, novaTabela) -> {
-            if (isAnestesiado)
+            if (isUpdatingInterface)
                 return; // Impede que a UI suje o ViewModel enquanto carrega
             viewModel.tabelaIdProperty().set(novaTabela != null ? novaTabela.getId() : null);
             dispararCalculo();
@@ -250,24 +250,24 @@ public class PropostaController {
     private void configurarGatilhosDaTriagem() {
         // Só dispara triagem se o usuário mexeu. Se for o sistema carregando, ignora.
         viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> {
-            if (!isAnestesiado)
+            if (!isUpdatingInterface)
                 realizarTriagem();
         });
 
         if (cbConvenio != null) {
             cbConvenio.valueProperty().addListener((obs, old, val) -> {
-                if (!isAnestesiado)
+                if (!isUpdatingInterface)
                     realizarTriagem();
             });
         }
 
         cbBanco.valueProperty().addListener((obs, old, bancoNovo) -> {
-            if (!isAnestesiado)
+            if (!isUpdatingInterface)
                 atualizarTabelasDoBanco(bancoNovo);
         });
 
         viewModel.valorAprovadoProperty().addListener((obs, old, val) -> {
-            if (!isAnestesiado)
+            if (!isUpdatingInterface)
                 dispararCalculo();
         });
     }
@@ -285,7 +285,7 @@ public class PropostaController {
 
             // Piloto Automático só funciona se o paciente estiver acordado (não
             // anestesiado)
-            if (!isAnestesiado) {
+            if (!isUpdatingInterface) {
                 if (tabelasDoBanco.size() == 1) {
                     cbTabela.setValue(tabelasDoBanco.get(0));
                 } else if (tabelaAtual != null && tabelasDoBanco.contains(tabelaAtual)) {
@@ -296,7 +296,7 @@ public class PropostaController {
             }
         } else {
             cbTabela.getItems().clear();
-            if (!isAnestesiado)
+            if (!isUpdatingInterface)
                 cbTabela.setValue(null);
         }
     }
@@ -338,7 +338,7 @@ public class PropostaController {
         cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
 
         // 4. 🧠 Piloto Automático SOMENTE se não estiver carregando uma proposta salva
-        if (!isAnestesiado) {
+        if (!isUpdatingInterface) {
             if (bancosElegiveis.size() == 1) {
                 cbBanco.setValue(bancosElegiveis.get(0));
             } else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual)) {

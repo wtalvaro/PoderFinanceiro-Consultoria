@@ -71,7 +71,7 @@ public class LoginController {
                 mainController.navegarPara("/fxml/workspace.fxml", true);
             } else {
                 setLoading(false);
-                exibirErro("E-mail ou senha incorretos.");
+                exibirErro("Nome de Usuário ou senha incorretos.");
             }
         });
 

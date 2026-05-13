@@ -24,20 +24,16 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Tenta autenticar o consultor comparando o hash BCrypt e registra o acesso.
-     */
     @Transactional
-    public boolean login(String email, String senha) {
-        Optional<UsuarioModel> usuarioOpt = usuarioRepository.findByEmailAndAtivoTrue(email);
+    public boolean login(String username, String senha) {
+        // Busca pelo nome de usuário agora
+        Optional<UsuarioModel> usuarioOpt = usuarioRepository.findByUsernameAndAtivoTrue(username.toLowerCase());
 
         if (usuarioOpt.isPresent()) {
             UsuarioModel u = usuarioOpt.get();
-
-            // O BCrypt.matches descriptografa o salt do hash e valida a senha com segurança
             if (passwordEncoder.matches(senha, u.getSenhaHash())) {
                 u.setUltimoAcesso(LocalDateTime.now());
-                usuarioRepository.save(u); // Atualiza o timestamp no Postgres[cite: 1]
+                usuarioRepository.save(u);
                 this.usuarioLogado = u;
                 return true;
             }

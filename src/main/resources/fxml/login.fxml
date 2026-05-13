@@ -26,9 +26,9 @@
                 <VBox spacing="15.0">
                     <children>
                         <VBox spacing="5.0">
-                            <Label text="E-mail" />
+                            <Label text="Usuário" />
                             <TextField fx:id="txtEmail" prefHeight="40.0"
-                                promptText="consultor@poderfinanceiro.com.br" />
+                                promptText="digite seu nome de usuário" />
                         </VBox>
                         <VBox spacing="5.0">
                             <Label text="Senha" />

@@ -92,13 +92,15 @@ CREATE SEQUENCE public.links_uteis_link_id_seq START WITH 1 INCREMENT BY 1 NO MI
 -- ==========================================
 CREATE TABLE public.usuarios (
     usuario_id bigint DEFAULT nextval('public.usuarios_usuario_id_seq'::regclass) NOT NULL,
+    username character varying(50) NOT NULL,
     nome character varying(255) NOT NULL,
     email character varying(255) NOT NULL,
     senha_hash character varying(255) NOT NULL,
     papel character varying(50) DEFAULT 'CONSULTOR'::character varying,
     ativo boolean DEFAULT true,
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    ultimo_acesso timestamp without time zone
+    ultimo_acesso timestamp without time zone,
+    CONSTRAINT usuarios_username_key UNIQUE (username)
 );
 
 CREATE TABLE public.bancos (

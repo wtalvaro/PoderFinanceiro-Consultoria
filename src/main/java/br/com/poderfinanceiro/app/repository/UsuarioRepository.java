@@ -8,17 +8,11 @@ import java.util.Optional;
 
 @Repository
 public interface UsuarioRepository extends JpaRepository<UsuarioModel, Long> {
+    // Usado para o Login
+    Optional<UsuarioModel> findByUsernameAndAtivoTrue(String username);
 
-    /**
-     * Busca um usuário pelo e-mail exato.
-     * Retorna um Optional para evitar NullPointerException caso o usuário não
-     * exista.
-     */
+    // Usado para checagem de cadastro
+    Optional<UsuarioModel> findByUsername(String username);
+
     Optional<UsuarioModel> findByEmail(String email);
-
-    /**
-     * Busca um usuário pelo e-mail, mas APENAS se ele estiver com a conta ativa.
-     * Perfeito para a validação de login na tela inicial.
-     */
-    Optional<UsuarioModel> findByEmailAndAtivoTrue(String email);
 }

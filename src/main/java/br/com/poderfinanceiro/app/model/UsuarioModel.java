@@ -19,6 +19,9 @@ public class UsuarioModel {
     @Column(name = "usuario_id")
     private Long id;
 
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
+    
     @Column(nullable = false, length = 255)
     private String nome;
 
