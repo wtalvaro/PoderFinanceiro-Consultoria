@@ -65,6 +65,8 @@ public class PropostaController {
     private TableColumn<DocumentoProponenteModel, String> colTipoDocumento; // Nome deve ser igual ao fx:id no FXML
     @FXML
     private TableColumn<DocumentoProponenteModel, String> colDataUpload; // Nome deve ser igual ao fx:id no FXML
+    @FXML
+    private TableColumn<DocumentoProponenteModel, Void> colAcoes;
 
     // Caches da Memória
     private List<TabelaJurosModel> todasTabelasAtivas;
@@ -500,26 +502,42 @@ public class PropostaController {
     }
 
     private void configurarColunasDocumentos() {
-        // 🩹 Verificação de segurança (Triagem)
-        if (colTipoDocumento == null || colDataUpload == null) {
-            System.err.println("Erro Crítico: Colunas de documentos não injetadas. Verifique o fx:id no FXML.");
-            return;
-        }
-
-        // Mapeamento dos dados
+        // 1. Resolve o "Nome Genérico": Mapeia a coluna para o tipo do documento
         colTipoDocumento.setCellValueFactory(
                 cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTipoDocumento()));
 
-        colDataUpload.setCellValueFactory(cellData -> {
-            var data = cellData.getValue().getDataUpload();
-            if (data != null) {
-                return new javafx.beans.property.SimpleStringProperty(
-                        data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+        // 2. Resolve a "Coluna Vazia": Cria os botões de ação (👁️ e 🗑️)
+        colAcoes.setCellFactory(param -> new TableCell<>() {
+            private final Button btnAbrir = new Button("👁️");
+            private final Button btnExcluir = new Button("🗑️");
+            private final javafx.scene.layout.HBox container = new javafx.scene.layout.HBox(8, btnAbrir, btnExcluir);
+
+            {
+                btnAbrir.getStyleClass().add("flat");
+                btnExcluir.getStyleClass().addAll("flat", "danger");
+                container.setAlignment(javafx.geometry.Pos.CENTER);
+
+                // Ação de Abrir
+                btnAbrir.setOnAction(event -> {
+                    DocumentoProponenteModel doc = getTableView().getItems().get(getIndex());
+                    documentoService.abrirDocumento(doc);
+                });
+
+                // Ação de Excluir
+                btnExcluir.setOnAction(event -> {
+                    DocumentoProponenteModel doc = getTableView().getItems().get(getIndex());
+                    confirmarExclusaoDocumento(doc);
+                });
             }
-            return new javafx.beans.property.SimpleStringProperty("-");
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : container);
+            }
         });
 
-        // Clique Duplo para abrir o arquivo
+        // 3. Clique duplo na linha também abre o documento
         tableDocumentos.setRowFactory(tv -> {
             TableRow<DocumentoProponenteModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -528,6 +546,23 @@ public class PropostaController {
                 }
             });
             return row;
+        });
+    }
+
+    private void confirmarExclusaoDocumento(DocumentoProponenteModel doc) {
+        // Aqui você pode usar um Alert do JavaFX para confirmar
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Excluir Documento");
+        alert.setHeaderText("Deseja remover este documento do prontuário?");
+        alert.setContentText(doc.getTipoDocumento());
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                documentoService.excluirDocumento(doc.getId());
+                // Atualiza a tabela após a exclusão
+                listaDocumentos.remove(doc);
+                System.out.println("Documento removido com sucesso.");
+            }
         });
     }
 

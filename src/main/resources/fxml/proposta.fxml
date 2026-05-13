@@ -133,7 +133,7 @@
                 <columns>
                     <TableColumn fx:id="colTipoDocumento" text="Tipo de Exame" prefWidth="150" />
                     <TableColumn fx:id="colDataUpload" text="Data de Upload" prefWidth="120" />
-                    <TableColumn fx:id="colAcoesDocumento" text="Ações" prefWidth="100" />
+                    <TableColumn fx:id="colAcoes" text="Ações" prefWidth="100" />
                 </columns>
             </TableView>
         </VBox>
