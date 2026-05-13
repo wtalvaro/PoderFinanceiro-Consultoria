@@ -230,6 +230,13 @@ public class PropostaController {
                     cbBanco.setValue(null);
                     cbTabela.setValue(null);
                     dispararCalculo();
+
+                    // 🩹 A CURA: Usamos o Platform.runLater para garantir que o
+                    // JavaFX já processou os valores antes de checar o bloqueio.
+                    javafx.application.Platform.runLater(() -> {
+                        aplicarBloqueioSePago();
+                    });
+                    
                 } finally {
                     isUpdatingInterface = false;
                 }
@@ -627,6 +634,30 @@ public class PropostaController {
             });
 
             new Thread(task).start();
+        }
+    }
+
+    /**
+     * 🔒 TRAVA DE PERSISTÊNCIA:
+     * Bloqueia a edição se a proposta já estiver liquidada no banco de dados.
+     */
+    public void aplicarBloqueioSePago() {
+        // A regra: Se tem ID (já existe no banco) E o status é PAGO, bloqueia.
+        boolean jaEstaPagoNoBanco = viewModel.idProperty().get() != null
+                && viewModel.statusProperty().get() == StatusPropostaModel.PAGO;
+
+        cbStatus.setDisable(jaEstaPagoNoBanco);
+        cbTabela.setDisable(jaEstaPagoNoBanco);
+        cbBanco.setDisable(jaEstaPagoNoBanco);
+        cbConvenio.setDisable(jaEstaPagoNoBanco);
+        txtValorAprovado.setDisable(jaEstaPagoNoBanco);
+        txtParcela.setDisable(jaEstaPagoNoBanco);
+        spinPrazo.setDisable(jaEstaPagoNoBanco);
+
+        if (jaEstaPagoNoBanco) {
+            txtObservacoes.setPromptText("Proposta liquidada. Alterações financeiras não permitidas.");
+        } else {
+            txtObservacoes.setPromptText("");
         }
     }
 

@@ -188,6 +188,13 @@ public class AtendimentoHubController {
             // 2. A sua linha original intacta que reseta a tela e o estado 'Dirty'
             inicializarAtendimento(proponenteSalvo);
 
+            // 2.1 🚀 A CURA: Se houver uma proposta salva e ela for PAGO,
+            // mandamos a aba de proposta aplicar o bloqueio imediatamente.
+            if (abaPropostaHubController != null) {
+                // 🚀 O COMANDO:
+                abaPropostaHubController.getAbaPropostaController().aplicarBloqueioSePago();
+            }
+
             // 3. A NOVA MÁGICA: Avisamos a Aba que este contato não é mais "NOVO",
             // e sim um contato real com ID no banco.
             if (tabPertencente != null && proponenteSalvo.getId() != null) {

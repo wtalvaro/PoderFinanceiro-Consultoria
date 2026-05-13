@@ -24,11 +24,15 @@ public interface PropostaRepository extends JpaRepository<PropostaModel, Long> {
     @Query("SELECT p FROM PropostaModel p JOIN FETCH p.proponente JOIN FETCH p.banco LEFT JOIN FETCH p.tabela WHERE p.proponente.id = :proponenteId ORDER BY p.id DESC")
     List<PropostaModel> findByProponenteId(@Param("proponenteId") Long proponenteId);
 
-    /**
-     * Busca as propostas e já traz os dados do Proponente e do Banco juntos.
-     * Isso evita o erro de LazyInitializationException no JavaFX (Tabela em
-     * branco).
-     */
+    // 🛡️ O DISTINCT garante que, se a proposta tiver 5 documentos,
+    // ela apareça apenas UMA vez na lista do Java.
+    @Query("SELECT DISTINCT p FROM PropostaModel p " +
+            "JOIN FETCH p.proponente " +
+            "JOIN FETCH p.banco " +
+            "WHERE p.usuario.id = :usuarioId " +
+            "ORDER BY p.id DESC")
+    List<PropostaModel> buscarProdutividadeDoConsultor(@Param("usuarioId") Long usuarioId);
+    
     @Query("SELECT p FROM PropostaModel p JOIN FETCH p.proponente JOIN FETCH p.banco")
     List<PropostaModel> findAllComDetalhes();
 }

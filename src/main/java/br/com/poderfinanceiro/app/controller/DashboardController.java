@@ -151,12 +151,12 @@ public class DashboardController {
 
                 BigDecimal volumePago = propostas.stream()
                         .filter(p -> p.getStatus() == StatusPropostaModel.PAGO)
-                        .map(p -> p.getValorAprovado() != null ? p.getValorAprovado() : BigDecimal.ZERO)
+                        .map(p -> p.getValorFinalCliente() != null ? p.getValorFinalCliente() : BigDecimal.ZERO)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 BigDecimal comissaoTotal = comissaoRepository.findAll().stream()
-                        .filter(c -> "Pendente".equalsIgnoreCase(c.getStatusPagamento()))
-                        .map(c -> c.getValorLiquidoConsultor() != null ? c.getValorLiquidoConsultor() : BigDecimal.ZERO)
+                        .filter(c -> "Pago".equalsIgnoreCase(c.getStatusPagamento()))
+                        .map(c -> c.getValorBrutoComissao() != null ? c.getValorBrutoComissao() : BigDecimal.ZERO)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 // Preenche a prancheta com todos os dados calculados e retorna

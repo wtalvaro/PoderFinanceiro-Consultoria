@@ -38,10 +38,11 @@ public class PropostaHubController {
     private Label lblConfirmacaoTexto;
     @FXML 
     private Button btnRemover;
+    @FXML
+    private PropostaController abaPropostaController;
 
     private final ApplicationContext context;
     private final PropostaRepository repository;
-    private PropostaController propostaController;
 
     // --- Variáveis de Controle de Estado ---
     private Runnable acaoPendente;
@@ -73,7 +74,7 @@ public class PropostaHubController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/proposta.fxml"));
             loader.setControllerFactory(context::getBean);
             Node view = loader.load();
-            propostaController = loader.getController();
+            abaPropostaController = loader.getController();
             containerDetalhes.getChildren().add(view);
         } catch (IOException e) {
             throw new RuntimeException("Erro ao carregar o formulário de detalhes da proposta", e);
@@ -129,7 +130,7 @@ public class PropostaHubController {
             // 💉 SE ESTAMOS SALVANDO/RECARREGANDO, NÃO FAZ PERGUNTAS, SÓ CARREGA!
             if (isAtualizandoInterface) {
                 if (novaProposta != null) {
-                    propostaController.getViewModel().loadFromModel(novaProposta);
+                    abaPropostaController.getViewModel().loadFromModel(novaProposta);
                 }
                 return;
             }
@@ -138,11 +139,11 @@ public class PropostaHubController {
                 // ⚠️ AQUI ESTÁ A MÁGICA: Removido o "old != null".
                 // Não importa se era uma proposta nova (null) ou velha. Se o formulário está
                 // sujo, tem que avisar!
-                if (propostaController.getViewModel().isDirty()) { // <-- MUDOU PARA isDirty()
+                if (abaPropostaController.getViewModel().isDirty()) { // <-- MUDOU PARA isDirty()
 
                     solicitarConfirmacao(
                             "Você tem alterações não salvas no formulário atual. Deseja descartá-las para abrir esta simulação?",
-                            () -> propostaController.getViewModel().loadFromModel(novaProposta), // Se Confirmar
+                            () -> abaPropostaController.getViewModel().loadFromModel(novaProposta), // Se Confirmar
                             () -> { // Se Cancelar
                                 isRevertendoSelecao = true; // Liga o escudo
                                 javafx.application.Platform.runLater(() -> {
@@ -156,7 +157,7 @@ public class PropostaHubController {
                             });
                 } else {
                     // Tudo limpo, pode carregar
-                    propostaController.getViewModel().loadFromModel(novaProposta);
+                    abaPropostaController.getViewModel().loadFromModel(novaProposta);
                 }
             }
         });
@@ -185,7 +186,14 @@ public class PropostaHubController {
 
                     PropostaModel selecionada = listPropostas.getSelectionModel().getSelectedItem();
                     if (selecionada != null) {
-                        propostaController.getViewModel().loadFromModel(selecionada);
+                        abaPropostaController.getViewModel().loadFromModel(selecionada);
+
+                        // 🚀 A CURA: Forçamos o bloqueio aqui, pois o listener está "anestesiado"
+                        // Usamos Platform.runLater para garantir que a UI já existe no momento do
+                        // disable
+                        javafx.application.Platform.runLater(() -> {
+                            abaPropostaController.aplicarBloqueioSePago();
+                        });
                     }
                 } else {
                     criarNovaSimulacao(false); // Ignora checagem se está abrindo cliente novo
@@ -208,7 +216,7 @@ public class PropostaHubController {
 
     private void criarNovaSimulacao(boolean checarAlteracoes) {
         // <-- MUDOU PARA isDirty() AQUI TAMBÉM
-        if (checarAlteracoes && propostaController.getViewModel().isDirty()) {
+        if (checarAlteracoes && abaPropostaController.getViewModel().isDirty()) {
             solicitarConfirmacao(
                     "Você tem alterações não salvas. Deseja descartar e iniciar uma simulação em branco?",
                     () -> resetarParaNova(),
@@ -221,7 +229,7 @@ public class PropostaHubController {
 
     private void resetarParaNova() {
         listPropostas.getSelectionModel().clearSelection();
-        propostaController.getViewModel().reset();
+        abaPropostaController.getViewModel().reset();
     }
     
     // ==========================================================
@@ -298,6 +306,11 @@ public class PropostaHubController {
     }
 
     public PropostaViewModel getViewModel() {
-        return propostaController.getViewModel();
+        return abaPropostaController.getViewModel();
+    }
+
+    // 🩹 O REPASSE: Método para o Hub conseguir acessar a Proposta
+    public PropostaController getAbaPropostaController() {
+        return abaPropostaController;
     }
 }

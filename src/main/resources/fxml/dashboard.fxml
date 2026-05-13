@@ -55,7 +55,7 @@
                     <Label text="COMISSÃO A RECEBER" styleClass="text-caption" />
                     <Label fx:id="lblComissaoEstimada" text="R$ 0,00" styleClass="title-2"
                         style="-fx-text-fill: -color-accent-emphasis;" /> <!--[cite: 13, 17] -->
-                    <Label text="Previsão líquida para sexta-feira" styleClass="text-small" />
+                    <Label text="Previsão bruta para sexta-feira" styleClass="text-small" />
                 </VBox>
             </HBox>
 

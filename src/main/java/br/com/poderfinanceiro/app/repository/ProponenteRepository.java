@@ -1,6 +1,8 @@
 package br.com.poderfinanceiro.app.repository;
 
 import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +32,8 @@ public interface ProponenteRepository extends JpaRepository<ProponenteModel, Lon
     // ✅ CORREÇÃO 2: Adicionado o "Model" na busca por ID com endereços
     @Query("SELECT p FROM ProponenteModel p LEFT JOIN FETCH p.enderecos WHERE p.id = :id")
     Optional<ProponenteModel> findByIdWithEnderecos(@Param("id") Long id);
+
+    // Busca todas as propostas de um consultor específico, ordenadas pela mais
+    // recente
+    List<PropostaModel> findByUsuarioId(Long usuarioId);
 }

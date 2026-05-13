@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -105,23 +105,32 @@ public class PropostaService {
      * Auxiliar: Cria a fatura de cobrança para o Banco na tela da Solange.
      */
     private void gerarOuAtualizarComissao(PropostaModel proposta) {
-        // Verifica se já existe uma comissão para não duplicar (caso a Solange edite
-        // uma proposta já paga)
-        boolean jaExiste = comissaoRepository.findAll().stream()
-                .anyMatch(c -> c.getProposta().getId().equals(proposta.getId()));
+    // 1. Tenta localizar uma comissão já existente para esta proposta
+    ComissaoModel comissao = comissaoRepository.findAll().stream()
+            .filter(c -> c.getProposta().getId().equals(proposta.getId()))
+            .findFirst()
+            .orElse(new ComissaoModel()); // Se não existir, prepara uma nova
 
-        if (!jaExiste && proposta.getComissaoEstimada().compareTo(BigDecimal.ZERO) > 0) {
-            ComissaoModel novaComissao = new ComissaoModel();
-            novaComissao.setProposta(proposta);
-            novaComissao.setUsuario(proposta.getUsuario()); // A comissão vai pro dono da proposta
-            novaComissao.setValorBrutoComissao(proposta.getComissaoEstimada());
-            novaComissao.setValorLiquidoConsultor(proposta.getComissaoEstimada()); // Inicialmente, bruto = líquido
-            novaComissao.setStatusPagamento("Pendente");
+    if (proposta.getComissaoEstimada() != null && proposta.getComissaoEstimada().compareTo(BigDecimal.ZERO) > 0) {
+        comissao.setProposta(proposta);
+        comissao.setUsuario(proposta.getUsuario());
+        
+        // Mantém a regra 1:1 conforme solicitado
+        comissao.setValorBrutoComissao(proposta.getComissaoEstimada());
+        comissao.setValorLiquidoConsultor(proposta.getComissaoEstimada());
 
-            // Estima o pagamento para daqui a 2 dias úteis (Exemplo de regra de negócio)
-            novaComissao.setDataPrevisaoPagamento(LocalDate.now().plusDays(2));
-
-            comissaoRepository.save(novaComissao);
+        // 🚀 A CURA: Se a proposta está PAGO, a comissão também recebe o status 'Pago'
+        if (proposta.getStatus() == StatusPropostaModel.PAGO) {
+            comissao.setStatusPagamento("Pago");
+            proposta.setValorFinalCliente(proposta.getValorAprovado()); // Se proposta aceita valor será o mesmo do valor_aprovado
+            comissao.setDataRecebimento(LocalDateTime.now().plusDays(1)); // Previsão de 1 dia para recebimento
+            comissao.setDataRecebimento(LocalDateTime.now()); // Registra o recebimento hoje
+        } else {
+            // Caso volte o status por algum motivo
+            comissao.setStatusPagamento("Pendente");
         }
+
+        comissaoRepository.save(comissao);
     }
+}
 }
