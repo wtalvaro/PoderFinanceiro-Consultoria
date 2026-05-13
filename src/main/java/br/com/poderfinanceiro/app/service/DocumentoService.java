@@ -16,29 +16,35 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class DocumentoService {
 
     private final DocumentoProponenteRepository repository;
     private final AuthService authService;
-
-    // Define a pasta raiz no diretório do usuário (OS-agnostic)
     private final Path ROOT_DIR = Paths.get(System.getProperty("user.home"), "PoderFinanceiro_Docs");
 
     public DocumentoService(DocumentoProponenteRepository repository, AuthService authService) {
         this.repository = repository;
         this.authService = authService;
-
-        // Garante que a pasta raiz exista ao iniciar o serviço
         try {
-            if (!Files.exists(ROOT_DIR)) {
+            if (!Files.exists(ROOT_DIR))
                 Files.createDirectories(ROOT_DIR);
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 🧪 GERADOR DE IDENTIDADE ÚNICA
+     * Cria nomes como: RG_WAGNER_1715585400123.pdf
+     */
+    private String gerarNomeArquivoUnico(String nomeCompleto, String tipoDoc, String extensao) {
+        String tipoSanitizado = tipoDoc.replaceAll("\\s+", "_").toUpperCase();
+        String nomeSanitizado = nomeCompleto.replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
+        long timestamp = System.currentTimeMillis(); // O segredo da unicidade
+
+        return String.format("%s_%s_%d%s", tipoSanitizado, nomeSanitizado, timestamp, extensao);
     }
 
     public DocumentoProponenteModel processarUpload(File arquivoOriginal, String tipoDoc, ProponenteModel proponente,
@@ -47,39 +53,63 @@ public class DocumentoService {
         if (consultor == null)
             throw new IllegalStateException("Nenhum usuário logado.");
 
-        // 1. Calcula o Hash para evitar duplicidade
+        // 1. Evita duplicidade exata (pelo conteúdo do arquivo)
         String hash = calcularHashSha256(arquivoOriginal);
-        Optional<DocumentoProponenteModel> docExistente = repository.findByHashSha256(hash);
-        if (docExistente.isPresent()) {
+        if (repository.findByHashSha256(hash).isPresent()) {
             throw new IllegalArgumentException("Este exato documento já foi anexado ao sistema.");
         }
 
-        // 2. Prepara o novo nome profissional e a pasta do cliente
+        // 2. Prepara a pasta e o NOME ÚNICO
         String extensao = obterExtensao(arquivoOriginal.getName());
-        String nomeLimpo = proponente.getNomeCompleto().replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
-        String novoNomeArquivo = tipoDoc.replaceAll(" ", "_").toUpperCase() + "_" + nomeLimpo + extensao;
-        String nomePasta = String.format("CLIENTE_%03d_%s", proponente.getId(), nomeLimpo);
+        String novoNomeArquivo = gerarNomeArquivoUnico(proponente.getNomeCompleto(), tipoDoc, extensao);
+
+        String nomePasta = String.format("CLIENTE_%03d_%s", proponente.getId(),
+                proponente.getNomeCompleto().replaceAll("[^a-zA-Z0-9]", "_").toUpperCase());
 
         Path pastaCliente = ROOT_DIR.resolve(nomePasta);
-        if (!Files.exists(pastaCliente)) {
+        if (!Files.exists(pastaCliente))
             Files.createDirectories(pastaCliente);
-        }
 
         Path caminhoDestino = pastaCliente.resolve(novoNomeArquivo);
 
-        // 3. Move/Copia o arquivo fisicamente
+        // 3. Gravação Física (Sem risco de sobrescrever)
         Files.copy(arquivoOriginal.toPath(), caminhoDestino, StandardCopyOption.REPLACE_EXISTING);
 
-        // 4. Salva no Banco de Dados
+        // 4. Registro no Prontuário (Banco de Dados)
         DocumentoProponenteModel doc = new DocumentoProponenteModel();
         doc.setProponente(proponente);
-        doc.setProposta(proposta); // 🩹 VINCULAÇÃO DIRETA À PROPOSTA
-        doc.setUsuario(authService.getUsuarioLogado());
+        doc.setProposta(proposta);
+        doc.setUsuario(consultor);
         doc.setTipoDocumento(tipoDoc);
         doc.setArquivoPath(caminhoDestino.toString());
         doc.setHashSha256(hash);
         doc.setVerificado(false);
-        
+
+        return repository.save(doc);
+    }
+
+    @Transactional
+    public DocumentoProponenteModel atualizarTipoDocumento(Long documentoId, String novoTipo) throws Exception {
+        DocumentoProponenteModel doc = repository.findById(documentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+
+        if (doc.getTipoDocumento().equals(novoTipo))
+            return doc;
+
+        Path caminhoAntigo = Paths.get(doc.getArquivoPath());
+
+        if (Files.exists(caminhoAntigo)) {
+            String extensao = obterExtensao(caminhoAntigo.getFileName().toString());
+            // 🩹 APLICANDO A UNICIDADE TAMBÉM NA RENOMEAÇÃO
+            String novoNomeArquivo = gerarNomeArquivoUnico(doc.getProponente().getNomeCompleto(), novoTipo, extensao);
+
+            Path caminhoNovo = caminhoAntigo.getParent().resolve(novoNomeArquivo);
+            Files.move(caminhoAntigo, caminhoNovo, StandardCopyOption.REPLACE_EXISTING);
+
+            doc.setArquivoPath(caminhoNovo.toString());
+        }
+
+        doc.setTipoDocumento(novoTipo);
         return repository.save(doc);
     }
 
@@ -122,33 +152,6 @@ public class DocumentoService {
         }
 
         repository.delete(doc);
-    }
-
-    @Transactional
-    public DocumentoProponenteModel atualizarTipoDocumento(Long documentoId, String novoTipo) throws Exception {
-        DocumentoProponenteModel doc = repository.findById(documentoId)
-                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
-
-        if (doc.getTipoDocumento().equals(novoTipo)) {
-            return doc; // Nada mudou
-        }
-
-        Path caminhoAntigo = Paths.get(doc.getArquivoPath());
-
-        // Se o arquivo físico existir, nós o renomeamos para refletir o novo tipo
-        if (Files.exists(caminhoAntigo)) {
-            String extensao = obterExtensao(caminhoAntigo.getFileName().toString());
-            String nomeLimpo = doc.getProponente().getNomeCompleto().replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
-            String novoNomeArquivo = novoTipo.replaceAll(" ", "_").toUpperCase() + "_" + nomeLimpo + extensao;
-
-            Path caminhoNovo = caminhoAntigo.getParent().resolve(novoNomeArquivo);
-            Files.move(caminhoAntigo, caminhoNovo, StandardCopyOption.REPLACE_EXISTING);
-
-            doc.setArquivoPath(caminhoNovo.toString());
-        }
-
-        doc.setTipoDocumento(novoTipo);
-        return repository.save(doc);
     }
 
     // --- Utilitários Internos ---

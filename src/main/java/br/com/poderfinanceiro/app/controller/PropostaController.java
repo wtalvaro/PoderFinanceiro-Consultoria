@@ -16,6 +16,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 import org.springframework.context.annotation.Scope;
@@ -33,6 +34,7 @@ public class PropostaController {
     private final PropostaService propostaService;
     private final TabelaJurosService tabelaJurosService;
     private final DocumentoService documentoService;
+    private final MainController mainController;
 
     // --- NOVOS ELEMENTOS DA TRIAGEM ---
     @FXML
@@ -67,6 +69,10 @@ public class PropostaController {
     private TableColumn<DocumentoProponenteModel, String> colDataUpload; // Nome deve ser igual ao fx:id no FXML
     @FXML
     private TableColumn<DocumentoProponenteModel, Void> colAcoes;
+    @FXML
+    private VBox overlayExclusao;
+    @FXML
+    private Label lblConfirmacaoExclusao;
 
     // Caches da Memória
     private List<TabelaJurosModel> todasTabelasAtivas;
@@ -75,15 +81,17 @@ public class PropostaController {
     // 🛡️ ANESTESIA LOCAL: Evita que a triagem destrua os dados ao trocar de
     // paciente
     private boolean isUpdatingInterface = false;
+    private DocumentoProponenteModel documentoParaExcluir;
 
     private final ObservableList<DocumentoProponenteModel> listaDocumentos = FXCollections.observableArrayList();
 
     public PropostaController(PropostaViewModel viewModel, DocumentoService documentoService,
-            PropostaService propostaService, TabelaJurosService tabelaJurosService) {
+            PropostaService propostaService, TabelaJurosService tabelaJurosService, MainController mainController) {
         this.viewModel = viewModel;
         this.documentoService = documentoService;
         this.propostaService = propostaService;
         this.tabelaJurosService = tabelaJurosService;
+        this.mainController = mainController;
     }
 
     @FXML
@@ -451,51 +459,57 @@ public class PropostaController {
             return;
         }
 
-        // 2. Abertura do Seletor de Arquivos
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Selecionar Documento da Proposta");
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Documentos", "*.pdf", "*.jpg", "*.png", "*.jpeg"));
+        // 1. Lista de opções para a Solange
+        List<String> opcoes = List.of("RG", "CPF", "CNH", "Contracheque", "Comprovante de Residência",
+                "Extrato Bancário", "Outros");
 
-        // Usa o rootPane como dono da janela (Window Owner)
-        File file = fileChooser.showOpenDialog(cbBanco.getScene().getWindow());
+        // 2. Abre o diálogo de escolha
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("RG", opcoes);
+        dialog.setTitle("Classificação de Documento");
+        dialog.setHeaderText("Qual documento você está anexando?");
+        dialog.setContentText("Tipo:");
 
-        if (file != null) {
-            realizarUploadAssincrono(file);
-        }
+        dialog.showAndWait().ifPresent(tipoSelecionado -> {
+            // 3. Se ela escolheu, abrimos o seletor de arquivos
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Selecionar Arquivo: " + tipoSelecionado);
+            fileChooser.getExtensionFilters()
+                    .add(new FileChooser.ExtensionFilter("Arquivos", "*.pdf", "*.jpg", "*.png", "*.jpeg"));
+
+            File file = fileChooser.showOpenDialog(tableDocumentos.getScene().getWindow());
+
+            if (file != null) {
+                // 🚀 Passamos o tipo selecionado para o método de upload
+                realizarUploadAssincrono(file, tipoSelecionado);
+            }
+        });
     }
 
-    private void realizarUploadAssincrono(File arquivo) {
-        // 3. Preparação do Procedimento (Task)
+    // 🩹 Alterada a assinatura para receber o tipo
+    private void realizarUploadAssincrono(File arquivo, String tipoDoc) {
         Task<DocumentoProponenteModel> uploadTask = new Task<>() {
             @Override
             protected DocumentoProponenteModel call() throws Exception {
-                // Sincroniza o estado da tela com o modelo
                 PropostaModel propostaAtual = viewModel.atualizarModel(new PropostaModel());
 
-                // 🩹 A CURA: Acessamos o proponente através do objeto da proposta
+                // 💉 Agora usamos a variável 'tipoDoc' que veio do diálogo!
                 return documentoService.processarUpload(
                         arquivo,
-                        "DOCUMENTO_PROPOSTA",
+                        tipoDoc,
                         propostaAtual.getProponente(),
                         propostaAtual);
             }
         };
 
-        // 4. Pós-Operatório (Sucesso)
         uploadTask.setOnSucceeded(e -> {
             Long idAtual = viewModel.idProperty().get();
             carregarDocumentosDaProposta(idAtual);
         });
 
-        // 5. Tratamento de Rejeição (Erro)
         uploadTask.setOnFailed(e -> {
-            Throwable erro = uploadTask.getException();
-            System.err.println("Falha no upload: " + erro.getMessage());
-            // Aqui você pode usar o Notifications do ControlsFX para avisar a Solange
+            System.err.println("Falha no upload: " + uploadTask.getException().getMessage());
         });
 
-        // Dispara a Thread sem travar a UI
         Thread t = new Thread(uploadTask);
         t.setDaemon(true);
         t.start();
@@ -505,6 +519,13 @@ public class PropostaController {
         // 1. Resolve o "Nome Genérico": Mapeia a coluna para o tipo do documento
         colTipoDocumento.setCellValueFactory(
                 cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTipoDocumento()));
+
+        // 🩹 ADICIONE ISSO: Para a data não aparecer vazia
+        colDataUpload.setCellValueFactory(cellData -> {
+            var data = cellData.getValue().getDataUpload();
+            return new javafx.beans.property.SimpleStringProperty(
+                    data != null ? data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "-");
+        });
 
         // 2. Resolve a "Coluna Vazia": Cria os botões de ação (👁️ e 🗑️)
         colAcoes.setCellFactory(param -> new TableCell<>() {
@@ -517,23 +538,48 @@ public class PropostaController {
                 btnExcluir.getStyleClass().addAll("flat", "danger");
                 container.setAlignment(javafx.geometry.Pos.CENTER);
 
-                // Ação de Abrir
+                // 🩹 A CURA PARA OS "...": Força o botão a não encolher
+                btnAbrir.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+                btnExcluir.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+
+                // Impede que o texto (emoji) sofra overrun
+                btnAbrir.setEllipsisString("");
+                btnExcluir.setEllipsisString("");
+
                 btnAbrir.setOnAction(event -> {
                     DocumentoProponenteModel doc = getTableView().getItems().get(getIndex());
-                    documentoService.abrirDocumento(doc);
+                    if (doc != null && doc.getArquivoPath() != null) {
+                        File file = new File(doc.getArquivoPath());
+
+                        if (file.exists()) {
+                            // 🩹 A CURA: Chamada via HostServices do MainController
+                            // Convertemos o File para URI (file:/home/...) e depois para String
+                            String uri = file.toURI().toString();
+                            mainController.getHostServices().showDocument(uri);
+                        } else {
+                            System.err.println("Arquivo físico não encontrado: " + doc.getArquivoPath());
+                        }
+                    }
                 });
 
-                // Ação de Excluir
                 btnExcluir.setOnAction(event -> {
-                    DocumentoProponenteModel doc = getTableView().getItems().get(getIndex());
-                    confirmarExclusaoDocumento(doc);
+                    // 🩹 Captura o item da linha e abre o overlay
+                    documentoParaExcluir = getTableView().getItems().get(getIndex());
+                    lblConfirmacaoExclusao.setText("Deseja remover '" + documentoParaExcluir.getTipoDocumento() + "'?");
+                    overlayExclusao.setVisible(true);
                 });
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : container);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(container);
+                    // Garante que a célula não tente mostrar texto, apenas o gráfico
+                    setText(null);
+                }
             }
         });
 
@@ -549,21 +595,39 @@ public class PropostaController {
         });
     }
 
-    private void confirmarExclusaoDocumento(DocumentoProponenteModel doc) {
-        // Aqui você pode usar um Alert do JavaFX para confirmar
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Excluir Documento");
-        alert.setHeaderText("Deseja remover este documento do prontuário?");
-        alert.setContentText(doc.getTipoDocumento());
+    @FXML
+    private void cancelarExclusao() {
+        this.documentoParaExcluir = null;
+        overlayExclusao.setVisible(false);
+    }
 
-        alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                documentoService.excluirDocumento(doc.getId());
-                // Atualiza a tabela após a exclusão
-                listaDocumentos.remove(doc);
+    @FXML
+    private void confirmarExclusao() {
+        if (documentoParaExcluir != null) {
+            // Disparamos a exclusão em Background para não travar a tela
+            Task<Void> task = new Task<>() {
+                @Override
+                protected Void call() throws Exception {
+                    documentoService.excluirDocumento(documentoParaExcluir.getId());
+                    return null;
+                }
+            };
+
+            task.setOnSucceeded(e -> {
+                // Remove da lista observada (a tabela atualiza sozinha)
+                listaDocumentos.remove(documentoParaExcluir);
+                cancelarExclusao();
                 System.out.println("Documento removido com sucesso.");
-            }
-        });
+            });
+
+            task.setOnFailed(e -> {
+                System.err.println("Erro ao excluir: " + task.getException().getMessage());
+                // Aqui você pode mudar a cor do lblConfirmacaoExclusao para vermelho indicando
+                // o erro
+            });
+
+            new Thread(task).start();
+        }
     }
 
     public PropostaViewModel getViewModel() {
