@@ -11,6 +11,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
@@ -18,6 +19,8 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
 
+import org.controlsfx.control.MasterDetailPane;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -52,11 +55,17 @@ public class AtendimentoHubController {
     private String resumoGeradoParaCopia;
     private Tab tabPertencente;
 
+    @FXML
+    private MasterDetailPane masterDetailPane;
+    private boolean slaveJaCarregado = false;
+    private final ApplicationContext context;
+
     public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController,
-            PropostaService propostaService) {
+            PropostaService propostaService, ApplicationContext context) {
         this.atendimentoService = atendimentoService;
         this.mainController = mainController;
         this.propostaService = propostaService;
+        this.context = context;
     }
 
     @FXML
@@ -300,5 +309,35 @@ public class AtendimentoHubController {
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         proponenteAberto = null;
+    }
+
+    // ==========================================================
+    // SISTEMA MASTER-SLAVE (Links Úteis)
+    // ==========================================================
+
+    @FXML
+    private void alternarPainelLinks() {
+        // Inverte o status de visibilidade
+        boolean isAberto = masterDetailPane.isShowDetailNode();
+
+        if (!isAberto && !slaveJaCarregado) {
+            carregarTelaDeLinks();
+        }
+
+        masterDetailPane.setShowDetailNode(!isAberto);
+    }
+
+    private void carregarTelaDeLinks() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/links_uteis.fxml"));
+            loader.setControllerFactory(context::getBean);
+            javafx.scene.Node viewLinks = loader.load();
+
+            masterDetailPane.setDetailNode(viewLinks);
+            slaveJaCarregado = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Erro ao carregar a tela de Links no Slave: " + e.getMessage());
+        }
     }
 }

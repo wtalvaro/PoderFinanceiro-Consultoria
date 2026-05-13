@@ -8,22 +8,26 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.ToolbarController">
 
-    <!-- Ação Global: Rápida e sempre visível -->
     <Button text="➕ Novo Contato" onAction="#handleNovoContato" styleClass="flat, accent"
         style="-fx-font-weight: bold;" />
 
     <Separator />
 
-    <Button text="🖩 Calc. Portabilidade" styleClass="flat" />
-    <Button text="🖩 Calc. Price" styleClass="flat" />
+    <Button text="📊 Dashboard" onAction="#abrirWorkspace" styleClass="flat" />
+    <Button text="📖 Playbook" onAction="#abrirPlaybook" styleClass="flat" />
+    <Button text="👥 Clientes" onAction="#abrirTelaBaseClientes" styleClass="flat" />
+    <Button text="📄 Propostas" onAction="#abrirPropostasList" styleClass="flat" />
+    <Button text="⏳ Pendências" onAction="#abrirPendenciasList" styleClass="flat"
+        style="-fx-text-fill: -color-danger-fg; -fx-font-weight: bold;" />
+
     <Separator />
-    <Button text="📥 Baixar HISCON" styleClass="flat, accent" />
-    <Button text="🖨️ Gerar CCB" styleClass="flat" />
 
-    <!-- ESPAÇADOR -->
-    <Region HBox.hgrow="ALWAYS" />
-
+    <Button text="🏦 Bancos" onAction="#abrirBancosConvenios" styleClass="flat" />
+    <Button text="📈 Tabelas" onAction="#abrirTabelasJuros" styleClass="flat" />
+    <Button text="💰 Comissões" onAction="#abrirTabelaComissoes" styleClass="flat" />
     <Button text="🔗 Links" onAction="#handleLinksUteis" styleClass="flat" />
+
+    <Region HBox.hgrow="ALWAYS" />
     <Separator orientation="VERTICAL" />
     <Button text="🚪 Sair" onAction="#handleLogout" styleClass="flat, danger"
         style="-fx-text-fill: -color-danger-emphasis; -fx-font-weight: bold;" />

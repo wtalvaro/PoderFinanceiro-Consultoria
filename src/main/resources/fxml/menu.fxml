@@ -16,8 +16,6 @@
         </Menu>
         <Menu text="_Operacional">
             <items>
-                <MenuItem text="Consultar HISCON (INSS)" />
-                <MenuItem text="Cálculo de Portabilidade (DCC)" />
                 <MenuItem text="Esteira de Digitação (Bancos)" />
                 <SeparatorMenuItem />
                 <MenuItem text="Playbook de Vendas" accelerator="Ctrl+P" onAction="#handlePlaybook" />
@@ -27,14 +25,10 @@
         <Menu text="_Financeiro">
             <items>
                 <MenuItem text="Controle de Comissões (RV)" />
-                <MenuItem text="Repasses a Parceiros" />
             </items>
         </Menu>
         <Menu text="Siste_ma">
             <items>
-                <MenuItem text="Configurações Gerais..." />
-                <MenuItem text="Gerenciar Usuários" />
-                <SeparatorMenuItem />
                 <MenuItem text="Backup do Banco de Dados" />
             </items>
         </Menu>

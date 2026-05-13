@@ -1,73 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.controlsfx.control.MasterDetailPane?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.AtendimentoHubController">
-    <BorderPane style="-fx-background-color: #f4f4f4;">
 
-        <!-- TOPO FIXO -->
-        <top>
-            <ToolBar
-                style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
-                <items>
-                    <Button text="💬 WhatsApp" onAction="#abrirWhatsappRapido" styleClass="flat"
-                        style="-fx-font-weight: bold;">
-                        <tooltip>
-                            <Tooltip text="Abrir Conversa no WhatsApp" />
-                        </tooltip>
-                    </Button>
+    <MasterDetailPane fx:id="masterDetailPane" detailSide="RIGHT" showDetailNode="false">
+        <masterNode>
+            <BorderPane style="-fx-background-color: #f4f4f4;">
 
+                <top>
+                    <ToolBar
+                        style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+                        <items>
+                            <Button text="💬 WhatsApp" onAction="#abrirWhatsappRapido"
+                                styleClass="flat"
+                                style="-fx-font-weight: bold;">
+                                <tooltip>
+                                    <Tooltip text="Abrir Conversa no WhatsApp" />
+                                </tooltip>
+                            </Button>
 
-                    <Button text="📋 Gerar Resumo" onAction="#copiarResumoLead" styleClass="flat"
-                        style="-fx-font-weight: bold;">
-                        <tooltip>
-                            <Tooltip text="Copiar Resumo para Área de Transferência" />
-                        </tooltip>
-                    </Button>
+                            <Button text="📋 Gerar Resumo" onAction="#copiarResumoLead"
+                                styleClass="flat"
+                                style="-fx-font-weight: bold;">
+                                <tooltip>
+                                    <Tooltip text="Copiar Resumo para Área de Transferência" />
+                                </tooltip>
+                            </Button>
 
-                    <Pane HBox.hgrow="ALWAYS" /> <!-- Empurra as ações principais para a direita -->
+                            <Separator orientation="VERTICAL" />
 
-                    <Separator orientation="VERTICAL" />
+                            <Button text="🔗 Links Úteis" onAction="#alternarPainelLinks"
+                                styleClass="flat"
+                                style="-fx-font-weight: bold;">
+                                <tooltip>
+                                    <Tooltip text="Mostrar ou ocultar atalhos úteis" />
+                                </tooltip>
+                            </Button>
 
-                    <!-- Ações de Fechamento (Mantendo o destaque no Salvar) -->
-                    <Button fx:id="btnSalvar" text="💾 Salvar Alterações"
-                        onAction="#handleSalvar"
-                        styleClass="accent"
-                        style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;">
-                        <tooltip>
-                            <Tooltip text="Salvar Informações" />
-                        </tooltip>
-                    </Button>
-                </items>
-            </ToolBar>
-        </top>
+                            <Pane HBox.hgrow="ALWAYS" />
+                            <Separator orientation="VERTICAL" />
 
-        <center>
-            <TabPane fx:id="subTabPane" side="LEFT" tabClosingPolicy="UNAVAILABLE"
-                tabMinWidth="30" tabMaxWidth="150" xmlns:fx="http://javafx.com/fxml/1">
-                <tabs>
-                    <Tab text="📝 Dados">
-                        <fx:include fx:id="abaLead" source="lead.fxml" />
-                    </Tab>
+                            <Button fx:id="btnSalvar" text="💾 Salvar Alterações"
+                                onAction="#handleSalvar"
+                                styleClass="accent"
+                                style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;">
+                                <tooltip>
+                                    <Tooltip text="Salvar Informações" />
+                                </tooltip>
+                            </Button>
+                        </items>
+                    </ToolBar>
+                </top>
 
-                    <Tab text="📍 Localização">
-                        <fx:include fx:id="abaEndereco" source="endereco.fxml" />
-                    </Tab>
+                <center>
+                    <TabPane fx:id="subTabPane" side="LEFT" tabClosingPolicy="UNAVAILABLE"
+                        tabMinWidth="30" tabMaxWidth="150" xmlns:fx="http://javafx.com/fxml/1">
+                        <tabs>
+                            <Tab text="📝 Dados">
+                                <fx:include fx:id="abaLead" source="lead.fxml" />
+                            </Tab>
 
-                    <Tab text="📄 Proposta / Simulação">
-                        <fx:include fx:id="abaPropostaHub" source="proposta_hub.fxml" />
-                    </Tab>
+                            <Tab text="📍 Localização">
+                                <fx:include fx:id="abaEndereco" source="endereco.fxml" />
+                            </Tab>
 
-                    <Tab text="🔗 Links Úteis">
-                        <fx:include fx:id="abaLinks" source="links_uteis.fxml" />
-                    </Tab>
-                </tabs>
-            </TabPane>
-        </center>
-    </BorderPane>
+                            <Tab text="📄 Proposta / Simulação">
+                                <fx:include fx:id="abaPropostaHub" source="proposta_hub.fxml" />
+                            </Tab>
 
-    <!-- NOVO: Overlay de Confirmação de Saída -->
+                        </tabs>
+                    </TabPane>
+                </center>
+            </BorderPane>
+        </masterNode>
+
+        <detailNode>
+            <VBox fx:id="containerLinksSlave" alignment="CENTER">
+                <Label text="Carregando links..." />
+            </VBox>
+        </detailNode>
+    </MasterDetailPane>
+
     <VBox fx:id="overlayConfirmacaoSaida" alignment="CENTER" spacing="20" visible="false"
         style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
         <VBox alignment="CENTER" spacing="20" maxWidth="450"
@@ -92,7 +109,6 @@
     </VBox>
 
 
-    <!-- NOVO: Overlay de Preview do Relatório Profissional -->
     <VBox fx:id="overlayResumo" alignment="CENTER" spacing="20" visible="false"
         style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 50;">
         <VBox alignment="TOP_LEFT" spacing="20" maxWidth="600" maxHeight="700"
@@ -107,7 +123,6 @@
 
             <ScrollPane fitToWidth="true"
                 style="-fx-background-color: transparent; -fx-background: #f9f9f9; -fx-padding: 10;">
-                <!-- Usamos um Label com fonte monoespaçada para simular como ficará no WhatsApp -->
                 <Label fx:id="lblResumoPreview" wrapText="true"
                     style="-fx-font-family: 'Monospaced'; -fx-font-size: 13px; -fx-text-fill: #333;" />
             </ScrollPane>

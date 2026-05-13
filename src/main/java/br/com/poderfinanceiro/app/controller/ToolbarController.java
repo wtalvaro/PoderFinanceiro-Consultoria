@@ -9,10 +9,67 @@ public class ToolbarController {
 
     private final StageInitializer stageInitializer;
     private final MainController mainController;
-    
+
     public ToolbarController(StageInitializer stageInitializer, MainController mainController) {
         this.stageInitializer = stageInitializer;
         this.mainController = mainController;
+    }
+
+    // ==========================================
+    // AÇÕES GLOBAIS
+    // ==========================================
+
+    @FXML
+    private void handleNovoContato() {
+        mainController.irParaNovoContato();
+    }
+
+    // ==========================================
+    // NAVEGAÇÃO PRINCIPAL (Transplantada)
+    // ==========================================
+
+    @FXML
+    private void abrirWorkspace() {
+        mainController.focarAbaDashboard();;
+    }
+
+    @FXML
+    private void abrirPlaybook() {
+        mainController.focarAbaPlaybook();;
+    }
+
+    @FXML
+    private void abrirTelaBaseClientes() {
+        mainController.focarAbaClientes();;
+    }
+
+    @FXML
+    private void abrirPropostasList() {
+        mainController.irParaPropostas();
+    }
+
+    @FXML
+    private void abrirPendenciasList() {
+        mainController.irParaPendencias();
+    }
+
+    // ==========================================
+    // CONFIGURAÇÕES E AUXILIARES
+    // ==========================================
+
+    @FXML
+    private void abrirBancosConvenios() {
+        mainController.irParaBancosConvenios();
+    }
+
+    @FXML
+    private void abrirTabelasJuros() {
+        mainController.irParaTabelasJuros();
+    }
+
+    @FXML
+    private void abrirTabelaComissoes() {
+        mainController.irParaTabelaComissoes();
     }
 
     @FXML
@@ -20,16 +77,12 @@ public class ToolbarController {
         mainController.irParaLinksUteis();
     }
 
+    // ==========================================
+    // SISTEMA
+    // ==========================================
+
     @FXML
     private void handleLogout() {
         stageInitializer.logout(); // Chama a lógica centralizada
-    }
-
-    // Lembre-se de injetar o MainController no construtor do ToolbarController
-    // primeiro!
-
-    @FXML
-    private void handleNovoContato() { // Ou o nome que você deu ao método no XML
-        mainController.irParaNovoContato();
     }
 }

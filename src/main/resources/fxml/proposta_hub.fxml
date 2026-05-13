@@ -5,10 +5,10 @@
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.PropostaHubController">
 
-    <SplitPane dividerPositions="0.3" xmlns="http://javafx.com/javafx/21"
-        xmlns:fx="http://javafx.com/fxml/1" >
+    <SplitPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
 
-        <VBox spacing="10" style="-fx-padding: 10; -fx-background-color: -color-bg-default;">
+        <VBox spacing="10" style="-fx-padding: 10; -fx-background-color: -color-bg-default;"
+            minWidth="260" prefWidth="260" maxWidth="260" SplitPane.resizableWithParent="false">
             <Label text="Histórico de Simulações"
                 style="-fx-font-weight: bold; -fx-font-size: 14px;" />
 
