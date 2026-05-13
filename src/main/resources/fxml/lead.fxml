@@ -3,16 +3,14 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<!-- O Root agora é um StackPane para permitir a sobreposição do
-Overlay -->
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.LeadController">
+
     <ScrollPane fx:id="scrollPrincipal" fitToWidth="true" fitToHeight="true"
         style="-fx-background-color: transparent;" styleClass="edge-to-edge">
         <content>
             <VBox spacing="20" style="-fx-background-color: #ffffff; -fx-padding: 30;">
 
-                <!-- Cabeçalho Dinâmico -->
                 <VBox spacing="5">
                     <Label fx:id="lblTituloTela" text="Cadastrar Novo Contato"
                         style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
@@ -23,7 +21,6 @@ Overlay -->
 
                 <Label fx:id="lblMensagem" visible="false" managed="false" wrapText="true" />
 
-                <!-- SEÇÃO 1: O Quebra-Gelo -->
                 <Label text="1. Contato Inicial (Obrigatório)"
                     style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
                 <Separator />
@@ -34,38 +31,31 @@ Overlay -->
                         <ColumnConstraints hgrow="ALWAYS" minWidth="200" maxWidth="400" />
                     </columnConstraints>
 
-                    <Label text="Nome Completo: *" GridPane.columnIndex="0"
-                        GridPane.rowIndex="0"
+                    <Label text="Nome Completo: *" GridPane.columnIndex="0" GridPane.rowIndex="0"
                         style="-fx-font-weight: bold;" />
                     <TextField fx:id="txtNome" promptText="Ex: João da Silva"
-                        GridPane.columnIndex="1"
-                        GridPane.rowIndex="0" />
+                        GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
                     <Label text="CPF:" GridPane.columnIndex="0" GridPane.rowIndex="1"
                         style="-fx-font-weight: bold;" />
-                    <TextField fx:id="txtCpf" promptText="000.000.000-00"
-                        GridPane.columnIndex="1"
+                    <TextField fx:id="txtCpf" promptText="000.000.000-00" GridPane.columnIndex="1"
                         GridPane.rowIndex="1" />
 
                     <Label text="WhatsApp:" GridPane.columnIndex="0" GridPane.rowIndex="2"
                         style="-fx-font-weight: bold;" />
                     <TextField fx:id="txtTelefone" promptText="(00) 00000-0000"
-                        GridPane.columnIndex="1"
-                        GridPane.rowIndex="2" />
+                        GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
                     <Label text="Origem:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
                     <ComboBox fx:id="cbOrigem" promptText="Onde o cliente te achou?"
-                        maxWidth="Infinity"
-                        GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                        maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="3" />
 
                     <Label text="Classificação:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
                     <ComboBox fx:id="cbClassificacao"
-                        promptText="Como você classifica este contato?"
-                        maxWidth="Infinity"
+                        promptText="Como você classifica este contato?" maxWidth="Infinity"
                         GridPane.columnIndex="1" GridPane.rowIndex="4" />
                 </GridPane>
 
-                <!-- SEÇÃO 2: Aprofundamento -->
                 <VBox spacing="10" style="-fx-padding: 20 0 0 0;">
                     <Label text="2. Perfil Operacional"
                         style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-accent-fg;" />
@@ -80,22 +70,17 @@ Overlay -->
                         <Label text="Data de Nascimento:" GridPane.columnIndex="0"
                             GridPane.rowIndex="0" />
                         <DatePicker fx:id="dpDataNascimento" promptText="DD/MM/AAAA"
-                            maxWidth="Infinity"
-                            GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                            maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
                         <Label text="Convênio / Órgão:" GridPane.columnIndex="0"
                             GridPane.rowIndex="1" />
-                        <ComboBox fx:id="cbConvenio"
-                            promptText="Ex: INSS, SIAPE, Exército..."
-                            maxWidth="Infinity" GridPane.columnIndex="1"
-                            GridPane.rowIndex="1" />
+                        <ComboBox fx:id="cbConvenio" promptText="Ex: INSS, SIAPE, Exército..."
+                            maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
                         <Label text="Tipo de Vínculo:" GridPane.columnIndex="0"
                             GridPane.rowIndex="2" />
-                        <ComboBox fx:id="cbVinculo"
-                            promptText="Ex: Aposentado, Pensionista..."
-                            maxWidth="Infinity" GridPane.columnIndex="1"
-                            GridPane.rowIndex="2" />
+                        <ComboBox fx:id="cbVinculo" promptText="Ex: Aposentado, Pensionista..."
+                            maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
                         <Label text="Matrícula/Benefício:" GridPane.columnIndex="0"
                             GridPane.rowIndex="3" />
@@ -104,17 +89,61 @@ Overlay -->
 
                         <Label text="Renda Mensal (R$):" GridPane.columnIndex="0"
                             GridPane.rowIndex="4" />
-                        <TextField fx:id="txtRenda" promptText="0,00"
-                            GridPane.columnIndex="1"
+                        <TextField fx:id="txtRenda" promptText="0,00" GridPane.columnIndex="1"
                             GridPane.rowIndex="4" />
                     </GridPane>
                 </VBox>
 
-                <ProgressIndicator fx:id="progress" visible="false" managed="false"
-                    prefHeight="30"
+                <VBox spacing="10" style="-fx-padding: 20 0 0 0;">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label text="3. Documentos Pessoais"
+                            style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: -color-accent-fg;" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button text="➕ Anexar Documento" onAction="#handleAnexarDocumento"
+                            styleClass="flat, accent" />
+                    </HBox>
+                    <Separator />
+
+                    <TableView fx:id="tableDocumentos" prefHeight="250" minHeight="200"
+                        VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colTipoDocumento" text="Tipo de Documento"
+                                prefWidth="180" />
+                            <TableColumn fx:id="colDataUpload" text="Data de Upload" prefWidth="150" />
+                            <TableColumn fx:id="colAcoes" text="Ações" prefWidth="100" />
+                        </columns>
+                        <placeholder>
+                            <Label
+                                text="Nenhum documento anexado a este cliente ainda. Salve o cadastro para habilitar." />
+                        </placeholder>
+                    </TableView>
+                </VBox>
+
+                <ProgressIndicator fx:id="progress" visible="false" managed="false" prefHeight="30"
                     prefWidth="30" />
-                <Region VBox.vgrow="ALWAYS" />
             </VBox>
         </content>
     </ScrollPane>
+
+    <VBox fx:id="overlayExclusao" visible="false" alignment="CENTER"
+        style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 20;">
+
+        <VBox spacing="20" alignment="CENTER" maxWidth="400" maxHeight="200"
+            styleClass="card"
+            style="-fx-background-color: -color-bg-default; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);">
+
+            <Label text="🗑️ Excluir Documento"
+                style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -color-danger-fg;" />
+
+            <Label fx:id="lblConfirmacaoExclusao"
+                text="Tem certeza que deseja remover este documento do cliente?"
+                wrapText="true" textAlignment="CENTER" style="-fx-font-size: 14px;" />
+
+            <HBox spacing="15" alignment="CENTER">
+                <Button text="Cancelar" onAction="#cancelarExclusao" styleClass="flat" />
+                <Button text="Sim, Excluir" onAction="#confirmarExclusao" styleClass="danger" />
+            </HBox>
+        </VBox>
+    </VBox>
+
 </StackPane>

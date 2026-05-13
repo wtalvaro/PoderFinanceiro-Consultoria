@@ -222,4 +222,30 @@ public class MainController {
         limparCacheDeTelas();
         navegarPara("/fxml/login.fxml", false);
     }
+
+    // ========================================================================
+    // SISTEMA DE NOTIFICAÇÕES GLOBAIS
+    // ========================================================================
+
+    public void notificarSucesso(String mensagem) {
+        javafx.application.Platform.runLater(() -> {
+            javafx.scene.control.Alert alerta = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.INFORMATION);
+            alerta.setTitle("Poder Financeiro");
+            alerta.setHeaderText(null);
+            alerta.setContentText(mensagem);
+            alerta.showAndWait();
+        });
+    }
+
+    public void notificarAviso(String mensagem) {
+        javafx.application.Platform.runLater(() -> {
+            javafx.scene.control.Alert alerta = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.WARNING);
+            alerta.setTitle("Atenção");
+            alerta.setHeaderText(null);
+            alerta.setContentText(mensagem);
+            alerta.showAndWait();
+        });
+    }
 }

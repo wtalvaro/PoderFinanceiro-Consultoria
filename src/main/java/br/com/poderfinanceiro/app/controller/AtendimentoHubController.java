@@ -33,8 +33,6 @@ public class AtendimentoHubController {
     @FXML
     private EnderecoController abaEnderecoController;
     @FXML
-    private DocumentoController abaDocumentoController;
-    @FXML
     private PropostaHubController abaPropostaHubController;
     @FXML
     private LinkUtilController abaLinksController;
@@ -106,28 +104,18 @@ public class AtendimentoHubController {
             abaEnderecoController.getViewModel().reset();
         }
 
-        // 3. Carregar Documentos
-        if (proponente != null && proponente.getId() != null) {
-            abaDocumentoController.carregarDocumentos(proponente);
-        } else {
-            abaDocumentoController.carregarDocumentos(null);
-        }
-
         // 4. Carregar Links Úteis (se a aba estiver presente)
         if (abaLinksController != null) {
             abaLinksController.recarregarLinks();
         }
 
         // 5. CARREGAR A PROPOSTA (Ligar o Monitor)
-        // 5. CARREGAR A PROPOSTA (Ligar o Monitor do Histórico)
         abaPropostaHubController.inicializarPropostasDoCliente(proponente);
     }
 
     public void prepararNovoAtendimento() {
         this.proponenteAberto = new ProponenteModel();
         abaLeadController.getViewModel().reset();
-        abaEnderecoController.getViewModel().reset();
-        abaDocumentoController.carregarDocumentos(null);
         abaPropostaHubController.getViewModel().reset();
     }
 
@@ -312,6 +300,5 @@ public class AtendimentoHubController {
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         proponenteAberto = null;
-        abaDocumentoController.carregarDocumentos(null);
     }
 }
