@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.BancoModel;
 import br.com.poderfinanceiro.app.repository.BancoRepository;
+import br.com.poderfinanceiro.app.utils.ContatoUtils;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -51,6 +52,10 @@ public class BancosConveniosController {
 
         // Filtro em tempo real
         txtBusca.textProperty().addListener((obs, oldVal, newVal) -> filtrarMural(newVal));
+
+        // 🚀 A SUTURA: Injetando a máscara no campo de texto do modal!
+        txtTelefone.setTextFormatter(ContatoUtils.criarFormatadorTelefone());
+        
         System.out.println("BancosConveniosController: Mural operante!");
     }
 
@@ -94,17 +99,30 @@ public class BancosConveniosController {
         HBox header = new HBox(10, lblNome, lblCodigo);
         header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-        // Contato
-        Label lblTel = new Label(
-                "📞 " + (banco.getTelefoneSuporte() != null ? banco.getTelefoneSuporte() : "Sem telefone"));
-        lblTel.setStyle("-fx-text-fill: #34495e;");
+        // Contato Formatado com WhatsApp
+        String telOriginal = banco.getTelefoneSuporte();
+        boolean temTelefone = telOriginal != null && !telOriginal.trim().isEmpty();
 
-        // Botões de Ação
+        String telExibicao = temTelefone ? ContatoUtils.formatarTelefone(telOriginal) : "Sem telefone";
+        Label lblTel = new Label("📞 " + telExibicao);
+        lblTel.setStyle("-fx-text-fill: #34495e; -fx-font-weight: bold;");
+
+        // Botão do WhatsApp (Só aparece se tiver telefone)
+        Button btnZap = new Button("💬 WhatsApp");
+        btnZap.setStyle(
+                "-fx-background-color: #e8f8f5; -fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        btnZap.setVisible(temTelefone);
+        btnZap.setManaged(temTelefone);
+        btnZap.setOnAction(e -> abrirWhatsApp(telOriginal));
+
+        HBox boxContato = new HBox(15, lblTel, btnZap);
+        boxContato.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        // Botões de Ação Principais
         Button btnPortal = new Button("🌐 Acessar Portal");
         btnPortal.setMaxWidth(Double.MAX_VALUE);
         btnPortal.setStyle(
                 "-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
-        btnPortal.setCursor(javafx.scene.Cursor.HAND);
         btnPortal.setOnAction(e -> abrirLinkNoNavegador(banco.getSitePortal()));
 
         Button btnEditar = new Button("✏️ Editar");
@@ -114,7 +132,8 @@ public class BancosConveniosController {
         HBox rodape = new HBox(btnEditar);
         rodape.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
 
-        card.getChildren().addAll(header, lblTel, new Region(), btnPortal, rodape);
+        // Montando o Card (Notar que lblTel foi trocado por boxContato)
+        card.getChildren().addAll(header, boxContato, new Region(), btnPortal, rodape);
         return card;
     }
 
@@ -170,7 +189,7 @@ public class BancosConveniosController {
     }
 
     // ==========================================
-    // UTILITÁRIO: ABRIR NAVEGADOR
+    // UTILITÁRIO: NAVEGADOR E WHATSAPP
     // ==========================================
 
     /**
@@ -186,6 +205,24 @@ public class BancosConveniosController {
             url = "https://" + url;
         }
 
+        mainController.getHostServices().showDocument(url);
+    }
+
+    private void abrirWhatsApp(String telefone) {
+        if (telefone == null || telefone.trim().isEmpty()) {
+            mainController.notificarAviso("Este banco não possui um telefone cadastrado.");
+            return;
+        }
+
+        // Pega apenas os números para a API do WhatsApp
+        String numeroLimpo = telefone.replaceAll("[^0-9]", "");
+
+        // Se o número tiver 11 dígitos ou menos (padrão Brasil sem DDI), adiciona o 55
+        if (numeroLimpo.length() <= 11) {
+            numeroLimpo = "55" + numeroLimpo;
+        }
+
+        String url = "https://wa.me/" + numeroLimpo;
         mainController.getHostServices().showDocument(url);
     }
 }

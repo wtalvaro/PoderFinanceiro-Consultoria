@@ -159,6 +159,9 @@ public class PropostaController {
         cbStatus.valueProperty().bindBidirectional(viewModel.statusProperty());
         txtObservacoes.textProperty().bindBidirectional(viewModel.observacoesProperty());
 
+        // 🚀 O FIO QUE ESTAVA FALTANDO! Liga o combo da tela à variável do ViewModel
+        cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
+
         // --- CONFIGURAÇÃO DO PRAZO (SPINNER) ---
         spinPrazo.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 0));
         spinPrazo.setEditable(true); // Permite digitação livre
@@ -643,6 +646,8 @@ public class PropostaController {
         cbTabela.setDisable(jaEstaPagoNoBanco);
         cbBanco.setDisable(jaEstaPagoNoBanco);
         cbConvenio.setDisable(jaEstaPagoNoBanco);
+        // 🚀 AQUI: Fechando a brecha do Valor Simulado/Solicitado
+        txtValorSolicitado.setDisable(jaEstaPagoNoBanco);
         txtValorAprovado.setDisable(jaEstaPagoNoBanco);
         txtParcela.setDisable(jaEstaPagoNoBanco);
         spinPrazo.setDisable(jaEstaPagoNoBanco);

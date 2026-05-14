@@ -3,7 +3,6 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.model.UsuarioModel;
 import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
@@ -85,9 +84,10 @@ public class DashboardController {
                 data -> new SimpleStringProperty(data.getValue().getProponente().getNomeCompleto()));
         colBanco.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBanco().getNome()));
 
+        // 🚀 O AJUSTE: Buscando o Convênio direto da Proposta
         colConvenio.setCellValueFactory(data -> {
-            TipoVinculoModel vinculo = data.getValue().getProponente().getTipoVinculo();
-            return new SimpleStringProperty(vinculo != null ? vinculo.getLabel() : "");
+            var convenio = data.getValue().getConvenioOrgao();
+            return new SimpleStringProperty(convenio != null ? convenio.getLabel() : "Sem Convênio");
         });
 
         colValor.setCellValueFactory(new PropertyValueFactory<>("valorAprovado"));
