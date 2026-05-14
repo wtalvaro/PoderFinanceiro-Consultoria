@@ -140,13 +140,7 @@ CREATE TABLE public.comissoes (
     
     -- Controle de Estado e Auditoria
     status_pagamento character varying(20) DEFAULT 'Pendente'::character varying,
-    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT comissoes_pkey PRIMARY KEY (comissao_id),
-    CONSTRAINT comissoes_proposta_id_fkey FOREIGN KEY (proposta_id) 
-        REFERENCES public.propostas(proposta_id) ON DELETE CASCADE,
-    CONSTRAINT comissoes_usuario_id_fkey FOREIGN KEY (usuario_id) 
-        REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE public.documentos_proponente (
@@ -307,7 +301,7 @@ ALTER TABLE ONLY public.enderecos_proponente ADD CONSTRAINT enderecos_proponente
 -- ==========================================
 -- 6. ÍNDICES
 -- ==========================================
-CREATE INDEX idx_comissoes_status_data ON public.comissoes USING btree (status_pagamento, data_previsao_pagamento);
+CREATE INDEX idx_comissoes_status_data ON public.comissoes USING btree (status_pagamento, data_pagamento_consultor);
 CREATE INDEX idx_interacoes_contexto ON public.interacoes_contato USING btree (proponente_id, data_interacao DESC);
 CREATE INDEX idx_proponentes_cpf_ativo ON public.proponentes USING btree (cpf) WHERE (deletado_em IS NULL);
 CREATE INDEX idx_propostas_status_busca ON public.propostas USING btree (status);
