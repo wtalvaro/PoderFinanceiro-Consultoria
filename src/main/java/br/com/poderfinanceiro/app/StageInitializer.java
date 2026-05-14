@@ -25,23 +25,34 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
         this.stage = event.getStage();
 
         try {
-            // 1. Carrega o CONTAINER MESTRE apenas uma vez na vida do App
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main.fxml"));
             loader.setControllerFactory(applicationContext::getBean);
             Parent root = loader.load();
 
-            // 2. Trava a geometria da janela para o KDE/Wayland ficar estável (1280x800)
-            stage.setScene(new Scene(root, 1280, 800));
+            // 🚀 A CURA: Captura os limites reais do monitor (descontando barras de
+            // tarefas/painéis)
+            javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+
+            // Define o tamanho como 90% da tela ou um valor seguro para 768p
+            double width = Math.min(1280, bounds.getWidth() * 0.9);
+            double height = Math.min(720, bounds.getHeight() * 0.9);
+
+            Scene scene = new Scene(root, width, height);
+            stage.setScene(scene);
+
+            // 🛡️ Blindagem de Geometria
+            stage.setMinWidth(1024);
+            stage.setMinHeight(700);
             stage.setTitle("Poder Financeiro - Consultoria");
+
             stage.show();
             stage.centerOnScreen();
 
-            // 3. Pede ao MainController para injetar o Login e Ocultar a Sidebar
             MainController mainController = applicationContext.getBean(MainController.class);
             mainController.navegarPara("/fxml/login.fxml", false);
 
         } catch (IOException e) {
-            throw new RuntimeException("Falha catastrófica ao inicializar o layout mestre.", e);
+            throw new RuntimeException("Falha ao inicializar o layout mestre.", e);
         }
     }
 

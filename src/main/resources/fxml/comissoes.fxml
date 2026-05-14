@@ -49,13 +49,18 @@
 
         <TableView fx:id="tableComissoes" VBox.vgrow="ALWAYS" styleClass="striped">
             <columns>
-                <TableColumn fx:id="colPrevisao" text="Data Pagto (Sexta)" prefWidth="130" />
-                <TableColumn fx:id="colCliente" text="Proponente" prefWidth="250" />
-                <TableColumn fx:id="colBanco" text="Instituição Bancária" prefWidth="150" />
-                <TableColumn fx:id="colValorBruto" text="Vlr. Bruto" prefWidth="130"
+                <TableColumn fx:id="colCliente" text="Proponente" prefWidth="220" />
+                <TableColumn fx:id="colBanco" text="Banco" prefWidth="120" />
+
+                <TableColumn fx:id="colValorBruto" text="Vlr. Bruto(R$)" prefWidth="110"
                     style="-fx-alignment: CENTER-RIGHT;" />
-                <TableColumn fx:id="colStatus" text="Status do Ciclo" prefWidth="150"
+                <TableColumn fx:id="colVlrPago" text="Vlr. Pago Poder(R$)" prefWidth="120"
+                    style="-fx-alignment: CENTER-RIGHT; -fx-font-weight: bold;" />
+
+                <TableColumn fx:id="colStatus" text="Status" prefWidth="130"
                     style="-fx-alignment: CENTER;" />
+                <TableColumn fx:id="colRecebBanco" text="Receb. Banco (4ª feira)" prefWidth="140" />
+                <TableColumn fx:id="colPrevisao" text="Previsão Pagto (6ª feira)" prefWidth="130" />
             </columns>
             <placeholder>
                 <Label text="Nenhum registro de repasse para o ciclo atual." />

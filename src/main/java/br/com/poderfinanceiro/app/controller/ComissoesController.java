@@ -61,6 +61,11 @@ public class ComissoesController {
     @FXML
     private Label lblTotalRecebido;
 
+    @FXML
+    private TableColumn<ComissaoModel, String> colRecebBanco;
+    @FXML
+    private TableColumn<ComissaoModel, String> colVlrPago;
+
     private final ObservableList<ComissaoModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -80,17 +85,28 @@ public class ComissoesController {
     }
 
     private void configurarTabela() {
-        // Mapeamento da Data de Previsão (Foco na Sexta-feira)
+        // Marco 1: Recebimento do Banco (Quarta)
+        colRecebBanco.setCellValueFactory(d -> new SimpleStringProperty(
+                d.getValue().getDataRecebimentoBanco() != null
+                        ? d.getValue().getDataRecebimentoBanco().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                        : "-"));
+
+        // Marco 3: Previsão de Pagamento (Sexta)
         colPrevisao.setCellValueFactory(d -> new SimpleStringProperty(
-                d.getValue().getPrevisaoPagamento() != null ? d.getValue().getPrevisaoPagamento().format(df) : "-"));
+                d.getValue().getPrevisaoPagamento() != null
+                        ? d.getValue().getPrevisaoPagamento().format(df)
+                        : "-"));
 
         colCliente.setCellValueFactory(
                 d -> new SimpleStringProperty(d.getValue().getProposta().getProponente().getNomeCompleto()));
         colBanco.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProposta().getBanco().getNome()));
 
-        // Uso do FinanceiroUtils para evitar formatação manual "R$"
+        // Financeiro: Expectativa vs Realidade
         colValorBruto.setCellValueFactory(d -> new SimpleStringProperty(
                 FinanceiroUtils.formatarParaExibicao(d.getValue().getValorBrutoComissao())));
+
+        colVlrPago.setCellValueFactory(d -> new SimpleStringProperty(
+                FinanceiroUtils.formatarParaExibicao(d.getValue().getValorPagoPelaPoder())));
 
         configurarCelulaStatus();
 
