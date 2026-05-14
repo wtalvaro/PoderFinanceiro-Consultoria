@@ -25,6 +25,8 @@ public class CadastroController {
     private Label lblMensagem;
     @FXML
     private Button btnCadastrar;
+    @FXML
+    private TextField txtUsername;
 
     public CadastroController(AuthService authService, MainController mainController) {
         this.authService = authService; // Inicializou!
@@ -38,14 +40,13 @@ public class CadastroController {
 
         setLoading(true);
 
-        // Task para garantir que o salvamento no Postgres e o Hash BCrypt
-        // ocorram fora da UI Thread
         Task<Void> cadastroTask = new Task<>() {
             @Override
             protected Void call() {
-                // O service já lida com o @Transactional e o PasswordEncoder
+                // Passando o novo parâmetro username
                 authService.cadastrar(
                         txtNome.getText().trim(),
+                        txtUsername.getText().trim(),
                         txtEmail.getText().toLowerCase().trim(),
                         txtSenha.getText());
                 return null;
@@ -74,8 +75,13 @@ public class CadastroController {
     }
 
     private boolean validarEntradas() {
-        if (txtNome.getText().isBlank() || txtEmail.getText().isBlank()) {
+        if (txtNome.getText().isBlank() || txtUsername.getText().isBlank() || txtEmail.getText().isBlank()) {
             exibirErro("Todos os campos são obrigatórios.");
+            return false;
+        }
+
+        if (txtUsername.getText().contains(" ")) {
+            exibirErro("O nome de usuário não pode conter espaços.");
             return false;
         }
 
@@ -101,6 +107,7 @@ public class CadastroController {
     private void setLoading(boolean loading) {
         btnCadastrar.setDisable(loading);
         txtNome.setDisable(loading);
+        txtUsername.setDisable(loading); // Desabilitar no loading
         txtEmail.setDisable(loading);
         txtSenha.setDisable(loading);
         txtConfirmarSenha.setDisable(loading);

@@ -46,27 +46,26 @@ public class AuthService {
      * sessão.
      */
     @Transactional
-    public UsuarioModel cadastrar(String nome, String email, String senha) {
-        // 1. Verificação de unicidade de e-mail
+    public UsuarioModel cadastrar(String nome, String username, String email, String senha) {
+        // 1. Verificação de unicidade de Username e E-mail
+        if (usuarioRepository.findByUsernameAndAtivoTrue(username.toLowerCase()).isPresent()) {
+            throw new RuntimeException("Este nome de usuário já está sendo usado.");
+        }
+
         if (usuarioRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Este e-mail já está em uso no Poder Financeiro.");
         }
 
-        // 2. Mapeamento dos dados para a entidade
+        // 2. Mapeamento
         UsuarioModel novo = new UsuarioModel();
         novo.setNome(nome);
-        novo.setEmail(email);
-
-        // Aplica o algoritmo de Hash BCrypt com Salting automático
+        novo.setUsername(username.toLowerCase().trim()); // Normalização para o login
+        novo.setEmail(email.toLowerCase().trim());
         novo.setSenhaHash(passwordEncoder.encode(senha));
-
-        novo.setPapel("CONSULTOR"); // Padrão conforme o script SQL do sistema
+        novo.setPapel("CONSULTOR");
         novo.setAtivo(true);
 
-        // 3. Persistência no PostgreSQL
         UsuarioModel salvo = usuarioRepository.save(novo);
-
-        // 4. Autenticação Automática: Define a sessão para o novo usuário imediatamente
         this.usuarioLogado = salvo;
 
         return salvo;
