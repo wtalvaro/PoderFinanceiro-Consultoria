@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,8 +24,6 @@ public class PropostaService {
     private final PropostaRepository propostaRepository;
     private final TabelaJurosRepository tabelaJurosRepository;
     private final ComissaoRepository comissaoRepository;
-
-    // NOVO: Adicionado apenas o repositório de documentos
     private final DocumentoProponenteRepository documentoRepository;
 
     public PropostaService(PropostaRepository propostaRepository,
@@ -38,99 +37,96 @@ public class PropostaService {
     }
 
     /**
-     * A "Calculadora de Dosagem": Descobre quanto a Solange vai ganhar.
+     * Calcula o repasse baseado na tabela de juros selecionada.
      */
     public BigDecimal calcularComissaoEstimada(BigDecimal valorAprovado, Long tabelaId) {
         if (valorAprovado == null || valorAprovado.compareTo(BigDecimal.ZERO) <= 0 || tabelaId == null) {
             return BigDecimal.ZERO;
         }
 
-        TabelaJurosModel tabela = tabelaJurosRepository.findById(tabelaId).orElse(null);
-        if (tabela == null || tabela.getComissaoPercentual() == null) {
-            return BigDecimal.ZERO;
-        }
-
-        // Fórmula: Valor Aprovado * (Percentual da Tabela / 100)
-        BigDecimal percentual = tabela.getComissaoPercentual().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-        return valorAprovado.multiply(percentual).setScale(2, RoundingMode.HALF_UP);
+        return tabelaJurosRepository.findById(tabelaId)
+                .map(tabela -> {
+                    BigDecimal percentual = tabela.getComissaoPercentual()
+                            .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+                    return valorAprovado.multiply(percentual).setScale(2, RoundingMode.HALF_UP);
+                })
+                .orElse(BigDecimal.ZERO);
     }
 
-    /**
-     * O "Centro Cirúrgico" ORIGINAL (Contrato mantido intacto).
-     */
     @Transactional
     public PropostaModel salvarProposta(PropostaModel proposta) {
+        // 1. Sincronização de metadados da Tabela de Juros
+        sincronizarDadosTabela(proposta);
 
-        // 1. Garante que a comissão estimada está atualizada com a tabela escolhida
-        if (proposta.getTabelaId() != null) {
-            BigDecimal comissaoCalculada = calcularComissaoEstimada(
-                    proposta.getValorAprovado() != null ? proposta.getValorAprovado() : proposta.getValorSolicitado(),
-                    proposta.getTabelaId().longValue());
-            proposta.setComissaoEstimada(comissaoCalculada);
-        }
-
-        // 2. Salva o "Prontuário" da Proposta
+        // 2. Persistência da Proposta
         PropostaModel propostaSalva = propostaRepository.save(proposta);
 
-        // 3. SE A PROPOSTA TEVE ALTA (PAGO), GERAMOS O REPASSE NA TABELA DE COMISSÕES
+        // 3. Gatilho de Ciclo Financeiro (Liquidação)
         if (propostaSalva.getStatus() == StatusPropostaModel.PAGO) {
-            gerarOuAtualizarComissao(propostaSalva);
+            processarCicloPagamento(propostaSalva);
         }
 
         return propostaSalva;
     }
 
-    /**
-     * NOVO "Centro Cirúrgico" EXPANDIDO (Sobrecarga de Método).
-     * Salva a proposta usando a lógica original e, em seguida, vincula os
-     * documentos.
-     */
     @Transactional
-    public PropostaModel salvarProposta(PropostaModel proposta, List<DocumentoProponenteModel> documentosParaVincular) {
-        // 1. Reaproveita 100% da lógica original (não quebra regras de comissão)
+    public PropostaModel salvarProposta(PropostaModel proposta, List<DocumentoProponenteModel> documentos) {
         PropostaModel propostaSalva = this.salvarProposta(proposta);
 
-        // 2. Faz a sutura dos documentos com esta proposta específica
-        if (documentosParaVincular != null && !documentosParaVincular.isEmpty()) {
-            for (DocumentoProponenteModel doc : documentosParaVincular) {
+        if (documentos != null && !documentos.isEmpty()) {
+            documentos.forEach(doc -> {
                 doc.setProposta(propostaSalva);
                 documentoRepository.save(doc);
-            }
+            });
         }
-
         return propostaSalva;
     }
 
     /**
-     * Auxiliar: Cria a fatura de cobrança para o Banco na tela da Solange.
+     * SRP: Isola a lógica de sincronização entre Proposta e Tabela de Juros.
      */
-    private void gerarOuAtualizarComissao(PropostaModel proposta) {
-    // 1. Tenta localizar uma comissão já existente para esta proposta
-    ComissaoModel comissao = comissaoRepository.findAll().stream()
-            .filter(c -> c.getProposta().getId().equals(proposta.getId()))
-            .findFirst()
-            .orElse(new ComissaoModel()); // Se não existir, prepara uma nova
+    private void sincronizarDadosTabela(PropostaModel proposta) {
+        if (proposta.getTabelaId() != null) {
+            TabelaJurosModel tabela = tabelaJurosRepository.findById(proposta.getTabelaId()).orElse(null);
+            if (tabela != null) {
+                // Herda o convênio da tabela para a proposta
+                proposta.setConvenioOrgao(tabela.getTipoConvenio());
 
-    if (proposta.getComissaoEstimada() != null && proposta.getComissaoEstimada().compareTo(BigDecimal.ZERO) > 0) {
-        comissao.setProposta(proposta);
-        comissao.setUsuario(proposta.getUsuario());
-        
-        // Mantém a regra 1:1 conforme solicitado
-        comissao.setValorBrutoComissao(proposta.getComissaoEstimada());
-        comissao.setValorLiquidoConsultor(proposta.getComissaoEstimada());
+                BigDecimal baseCalculo = proposta.getValorAprovado() != null ? proposta.getValorAprovado()
+                        : proposta.getValorSolicitado();
 
-        // 🚀 A CURA: Se a proposta está PAGO, a comissão também recebe o status 'Pago'
-        if (proposta.getStatus() == StatusPropostaModel.PAGO) {
-            comissao.setStatusPagamento("Pago");
-            proposta.setValorFinalCliente(proposta.getValorAprovado()); // Se proposta aceita valor será o mesmo do valor_aprovado
-            comissao.setDataRecebimento(LocalDateTime.now().plusDays(1)); // Previsão de 1 dia para recebimento
-            comissao.setDataRecebimento(LocalDateTime.now()); // Registra o recebimento hoje
-        } else {
-            // Caso volte o status por algum motivo
-            comissao.setStatusPagamento("Pendente");
+                proposta.setComissaoEstimada(calcularComissaoEstimada(baseCalculo, tabela.getId()));
+            }
         }
-
-        comissaoRepository.save(comissao);
     }
-}
+
+    /**
+     * SRP: Gerencia o Ciclo de Pagamento (Quarta/Quinta/Sexta).
+     */
+    private void processarCicloPagamento(PropostaModel proposta) {
+        // 🚀 Correção de Performance: Busca direta por PropostaID em vez de stream no
+        // findAll()
+        ComissaoModel comissao = comissaoRepository.findByPropostaId(proposta.getId())
+                .stream().findFirst().orElse(new ComissaoModel());
+
+        if (proposta.getComissaoEstimada() != null && proposta.getComissaoEstimada().compareTo(BigDecimal.ZERO) > 0) {
+            comissao.setProposta(proposta);
+            comissao.setUsuario(proposta.getUsuario());
+            comissao.setValorBrutoComissao(proposta.getComissaoEstimada());
+            comissao.setValorLiquidoConsultor(proposta.getComissaoEstimada());
+
+            // --- INÍCIO DO CICLO ---
+
+            // Marco 1: Recebimento do Banco (Ocorre hoje, Quarta-feira do sistema)
+            comissao.setDataRecebimentoBanco(LocalDateTime.now());
+
+            // Marco 3: Previsão de Pagamento ao Consultor (Sexta-feira seguinte)
+            comissao.setPrevisaoPagamento(LocalDate.now().plusDays(2));
+
+            comissao.setStatusPagamento("Pago");
+            proposta.setValorFinalCliente(proposta.getValorAprovado());
+
+            comissaoRepository.save(comissao);
+        }
+    }
 }

@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.model.ComissaoModel;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.viewmodel.ComissaoViewModel;
+import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -23,27 +24,38 @@ public class ComissoesController {
 
     private final ComissaoRepository repository;
     private final ComissaoViewModel viewModel;
+    private final MainController mainController;
 
     @FXML
     private TableView<ComissaoModel> tableComissoes;
+
+    // Nomenclatura técnica para as colunas do ciclo
     @FXML
-    private TableColumn<ComissaoModel, String> colData, colCliente, colBanco, colValorBruto, colStatus;
+    private TableColumn<ComissaoModel, String> colPrevisao; // Sexta-feira
+    @FXML
+    private TableColumn<ComissaoModel, String> colCliente, colBanco, colValorBruto, colStatus;
+
     @FXML
     private TextField txtBusca;
 
-    // Elementos do Overlay/Modal de Ajuste
+    // Elementos do Overlay de Ciclo Financeiro
     @FXML
     private VBox overlayAjuste;
     @FXML
     private Label lblTituloModal;
     @FXML
-    private DatePicker dpRecebimento;
+    private DatePicker dpRecebimentoBanco; // Quarta
     @FXML
-    private TextField txtValorPago;
+    private CheckBox cbVerificado; // Quinta
+    @FXML
+    private DatePicker dpPrevisaoPagamento; // Sexta
+    @FXML
+    private TextField txtValorPagoPoder;
     @FXML
     private CheckBox cbContestada;
     @FXML
     private ComboBox<String> comboStatus;
+
     @FXML
     private Label lblTotalPendente;
     @FXML
@@ -52,65 +64,36 @@ public class ComissoesController {
     private final ObservableList<ComissaoModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    public ComissoesController(ComissaoRepository repository,
-            ComissaoViewModel viewModel) {
+    public ComissoesController(ComissaoRepository repository, ComissaoViewModel viewModel,
+            MainController mainController) {
         this.repository = repository;
         this.viewModel = viewModel;
+        this.mainController = mainController;
     }
 
     @FXML
     public void initialize() {
         configurarTabela();
         configurarFiltroReativo();
-        configurarBindingsModal();
+        configurarBindingsCicloFinanceiro();
         recarregarDados();
     }
 
     private void configurarTabela() {
-        // Coluna de Data (Previsão)
-        colData.setCellValueFactory(d -> new SimpleStringProperty(
-                d.getValue().getDataPrevisaoPagamento() != null ? d.getValue().getDataPrevisaoPagamento().format(df)
-                        : "-"));
+        // Mapeamento da Data de Previsão (Foco na Sexta-feira)
+        colPrevisao.setCellValueFactory(d -> new SimpleStringProperty(
+                d.getValue().getPrevisaoPagamento() != null ? d.getValue().getPrevisaoPagamento().format(df) : "-"));
 
-        // Coluna de Cliente (Vindo da Proposta)
-        colCliente.setCellValueFactory(d -> new SimpleStringProperty(
-                d.getValue().getProposta().getProponente().getNomeCompleto()));
+        colCliente.setCellValueFactory(
+                d -> new SimpleStringProperty(d.getValue().getProposta().getProponente().getNomeCompleto()));
+        colBanco.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProposta().getBanco().getNome()));
 
-        // Coluna de Banco (Vindo da Proposta)
-        colBanco.setCellValueFactory(d -> new SimpleStringProperty(
-                d.getValue().getProposta().getBanco().getNome()));
-
-        // Coluna de Valor (Com formatação monetária)
+        // Uso do FinanceiroUtils para evitar formatação manual "R$"
         colValorBruto.setCellValueFactory(d -> new SimpleStringProperty(
-                "R$ " + d.getValue().getValorBrutoComissao().toString()));
+                FinanceiroUtils.formatarParaExibicao(d.getValue().getValorBrutoComissao())));
 
-        // Coluna de Status com Estilo Visual (Sinalização de Saúde Financeira)
-        colStatus.setCellFactory(column -> new TableCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                    setGraphic(null);
-                } else {
-                    ComissaoModel c = getTableRow().getItem();
-                    setText(c.getStatusPagamento().toUpperCase());
+        configurarCelulaStatus();
 
-                    // Sinalização por cores
-                    if ("Pago".equalsIgnoreCase(c.getStatusPagamento())) {
-                        setTextFill(Color.GREEN);
-                        setStyle("-fx-font-weight: bold;");
-                    } else if (c.isContestada()) {
-                        setTextFill(Color.RED);
-                        setText("⚠️ CONTESTADA");
-                    } else {
-                        setTextFill(Color.ORANGE);
-                    }
-                }
-            }
-        });
-
-        // Clique duplo para abrir "cirurgia" de ajuste
         tableComissoes.setRowFactory(tv -> {
             TableRow<ComissaoModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -122,103 +105,179 @@ public class ComissoesController {
         });
     }
 
+    /**
+     * Implementação do Filtro Reativo para a TableView.
+     * Motivo: Permitir busca dinâmica sem recarregar dados do banco (Performance).
+     */
     private void configurarFiltroReativo() {
         FilteredList<ComissaoModel> filteredData = new FilteredList<>(masterData, p -> true);
+
         txtBusca.textProperty().addListener((obs, old, newValue) -> {
             filteredData.setPredicate(comissao -> {
                 if (newValue == null || newValue.isEmpty())
                     return true;
-                String lowerCaseFilter = newValue.toLowerCase();
+                String filter = newValue.toLowerCase();
 
-                return comissao.getProposta().getProponente().getNomeCompleto().toLowerCase().contains(lowerCaseFilter)
-                        ||
-                        comissao.getProposta().getBanco().getNome().toLowerCase().contains(lowerCaseFilter) ||
-                        comissao.getStatusPagamento().toLowerCase().contains(lowerCaseFilter);
+                return comissao.getProposta().getProponente().getNomeCompleto().toLowerCase().contains(filter) ||
+                        comissao.getProposta().getBanco().getNome().toLowerCase().contains(filter) ||
+                        comissao.getStatusPagamento().toLowerCase().contains(filter);
             });
         });
+
         SortedList<ComissaoModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tableComissoes.comparatorProperty());
         tableComissoes.setItems(sortedData);
     }
 
-    private void configurarBindingsModal() {
-        // CORREÇÃO DO COMBOBOX: de textProperty() para valueProperty()
-        comboStatus.valueProperty().bindBidirectional(viewModel.statusPagamentoProperty());
+    private void configurarCelulaStatus() {
+        colStatus.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    ComissaoModel c = getTableRow().getItem();
+
+                    // Lógica de Sinalização Visual baseada no Ciclo
+                    if (c.isContestada()) {
+                        setText("⚠️ CONTESTADA");
+                        setTextFill(Color.RED);
+                    } else if ("Pago".equalsIgnoreCase(c.getStatusPagamento())) {
+                        setText("✅ PAGO");
+                        setTextFill(Color.GREEN);
+                    } else if (c.isVerificadoConsultor()) {
+                        setText("🔎 CONFERIDO");
+                        setTextFill(Color.BLUE);
+                    } else {
+                        setText("⏳ PENDENTE");
+                        setTextFill(Color.ORANGE);
+                    }
+                    setStyle("-fx-font-weight: bold;");
+                }
+            }
+        });
+    }
+
+    private void configurarBindingsCicloFinanceiro() {
+        // 1. Sincronia de Data (Marco 1 - Quarta): UI (LocalDate) -> ViewModel
+        // (LocalDateTime)
+        dpRecebimentoBanco.valueProperty().addListener((obs, old, newDate) -> {
+            viewModel.dataRecebimentoBancoProperty().set(newDate != null ? newDate.atStartOfDay() : null);
+        });
+
+        // 2. Sincronia de Data (Marco 3 - Sexta): Binding Direto (LocalDate <->
+        // LocalDate)
+        dpPrevisaoPagamento.valueProperty().bindBidirectional(viewModel.previsaoPagamentoProperty());
+
+        // 3. Status e Contestação
         comboStatus.getItems().setAll("Pendente", "Pago", "Estornado");
-
-        // BINDING DE VALOR: (Já estava correto, mantendo o padrão)
-        txtValorPago.textProperty().bindBidirectional(viewModel.valorPagoPelaPoderProperty(),
-                new javafx.util.converter.BigDecimalStringConverter());
-
-        // BINDING DE CHECKBOX:
+        comboStatus.valueProperty().bindBidirectional(viewModel.statusPagamentoProperty());
         cbContestada.selectedProperty().bindBidirectional(viewModel.contestadaProperty());
 
-        // CORREÇÃO DO DATEPICKER: Sincronia manual entre LocalDate e LocalDateTime
-        // Quando a data mudar no DatePicker, atualiza o ViewModel com "início do dia"
-        dpRecebimento.valueProperty().addListener((obs, oldDate, newDate) -> {
-            if (newDate != null) {
-                viewModel.dataRecebimentoProperty().set(newDate.atStartOfDay());
-            } else {
-                viewModel.dataRecebimentoProperty().set(null);
-            }
-        });
+        // 4. Conferência (Marco 2 - Quinta): Binding + Lógica de Deadline (15h)
+        cbVerificado.selectedProperty().bindBidirectional(viewModel.verificadoConsultorProperty());
+        aplicarTravaHorarioQuinta();
 
-        // Quando o ViewModel mudar (vinda do banco), atualiza o DatePicker
-        viewModel.dataRecebimentoProperty().addListener((obs, oldDateTime, newDateTime) -> {
-            if (newDateTime != null) {
-                dpRecebimento.setValue(newDateTime.toLocalDate());
-            } else {
-                dpRecebimento.setValue(null);
-            }
-        });
+        // 5. Valor Pago (Liquidação): String <-> BigDecimal com Conversor
+        txtValorPagoPoder.textProperty().bindBidirectional(viewModel.valorPagoPelaPoderProperty(),
+                new javafx.util.converter.BigDecimalStringConverter() {
+                    @Override
+                    public BigDecimal fromString(String value) {
+                        if (value == null || value.isEmpty())
+                            return BigDecimal.ZERO;
+                        // Remove R$, espaços e converte vírgula em ponto para o BigDecimal entender
+                        String limpo = value.replaceAll("[R$\\s]", "").replace(",", ".");
+                        try {
+                            return new BigDecimal(limpo);
+                        } catch (NumberFormatException e) {
+                            return BigDecimal.ZERO;
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Aplica a regra de negócio do Deadline de Quinta-feira.
+     * Se hoje for quinta-feira e passar das 15:00h, bloqueia a conferência.
+     */
+    private void aplicarTravaHorarioQuinta() {
+        java.time.LocalDateTime agora = java.time.LocalDateTime.now();
+
+        // Verifica se hoje é Quinta (DayOfWeek 4) e se já passou das 15:00
+        boolean prazoUltrapassado = agora.getDayOfWeek() == java.time.DayOfWeek.THURSDAY && agora.getHour() >= 15;
+
+        if (prazoUltrapassado) {
+            cbVerificado.setDisable(true);
+            cbVerificado.setTooltip(new Tooltip("Prazo de conferência encerrado às 15:00h."));
+        }
     }
 
     public void recarregarDados() {
-        // 1. Usa a nova query que traz os dados completos (Evita tabela vazia)
-        List<ComissaoModel> comissoesCompletas = repository.findAllComDetalhes();
-
-        // 2. Joga na tabela
-        masterData.setAll(comissoesCompletas);
-
-        // 3. Atualiza os monitores de sinais vitais (Cards do topo)
-        atualizarCardsResumo(comissoesCompletas);
+        mainController.mostrarLoading("Sincronizando fluxo de caixa...");
+        List<ComissaoModel> dados = repository.findAllComDetalhes();
+        masterData.setAll(dados);
+        atualizarCardsResumo(dados);
+        mainController.ocultarLoading();
     }
 
     private void atualizarCardsResumo(List<ComissaoModel> comissoes) {
-        BigDecimal totalPendente = BigDecimal.ZERO;
-        BigDecimal totalRecebido = BigDecimal.ZERO;
+        BigDecimal totalPendente = comissoes.stream()
+                .filter(c -> !"Pago".equalsIgnoreCase(c.getStatusPagamento()))
+                .map(c -> c.getValorBrutoComissao() != null ? c.getValorBrutoComissao() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        for (ComissaoModel c : comissoes) {
-            if ("Pago".equalsIgnoreCase(c.getStatusPagamento())) {
-                // Se já pagou, soma o valor que a Poder Financeiro realmente recebeu
-                totalRecebido = totalRecebido.add(
-                    c.getValorPagoPelaPoder() != null ? c.getValorPagoPelaPoder() : BigDecimal.ZERO
-                );
-            } else {
-                // Se está pendente, soma a expectativa (Valor Bruto)
-                totalPendente = totalPendente.add(
-                    c.getValorBrutoComissao() != null ? c.getValorBrutoComissao() : BigDecimal.ZERO
-                );
-            }
-        }
+        BigDecimal totalRecebido = comissoes.stream()
+                .filter(c -> "Pago".equalsIgnoreCase(c.getStatusPagamento()))
+                .map(c -> c.getValorPagoPelaPoder() != null ? c.getValorPagoPelaPoder() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Formata e joga na tela
-        lblTotalPendente.setText(String.format("R$ %,.2f", totalPendente));
-        lblTotalRecebido.setText(String.format("R$ %,.2f", totalRecebido));
+        lblTotalPendente.setText(FinanceiroUtils.formatarParaExibicao(totalPendente));
+        lblTotalRecebido.setText(FinanceiroUtils.formatarParaExibicao(totalRecebido));
     }
 
     private void prepararAjuste(ComissaoModel comissao) {
+        // 1. Carrega os dados no ViewModel (Garante que o ID e valores brutos fiquem
+        // prontos)
         viewModel.loadFromModel(comissao);
-        lblTituloModal.setText("Ajuste de Comissão - " + comissao.getProposta().getProponente().getNomeCompleto());
+
+        // 2. Sincronização Manual (Initial UI Setup)
+        // Converte LocalDateTime (Banco) para LocalDate (UI)
+        if (comissao.getDataRecebimentoBanco() != null) {
+            dpRecebimentoBanco.setValue(comissao.getDataRecebimentoBanco().toLocalDate());
+        } else {
+            dpRecebimentoBanco.setValue(null);
+        }
+
+        // Previsão de Pagamento (LocalDate para LocalDate)
+        if (comissao.getPrevisaoPagamento() != null) {
+            dpPrevisaoPagamento.setValue(comissao.getPrevisaoPagamento());
+        } else {
+            dpPrevisaoPagamento.setValue(null);
+        }
+
+        lblTituloModal.setText("Conciliação: " + comissao.getProposta().getProponente().getNomeCompleto());
+
+        // 3. Exibe o Overlay (State Transition)
         overlayAjuste.setVisible(true);
     }
 
     @FXML
     private void salvarAjuste() {
         if (viewModel.isDirty()) {
-            ComissaoModel atualizada = viewModel.atualizarModel(new ComissaoModel());
-            repository.save(atualizada);
-            recarregarDados();
+            // Buscamos a entidade que já está "atrelada" ao contexto do banco
+            repository.findById(viewModel.idProperty().get()).ifPresent(comissaoDoBanco -> {
+
+                // 🚀 O ViewModel injeta os valores da UI nesta entidade do banco
+                ComissaoModel paraSalvar = viewModel.atualizarModel(comissaoDoBanco);
+
+                // Log de depuração (opcional para o seu console do Fedora)
+                System.out.println("Salvando valor: " + paraSalvar.getValorPagoPelaPoder());
+
+                repository.save(paraSalvar);
+                recarregarDados();
+            });
         }
         fecharModal();
     }
@@ -227,5 +286,6 @@ public class ComissoesController {
     private void fecharModal() {
         overlayAjuste.setVisible(false);
         viewModel.reset();
+        dpRecebimentoBanco.setValue(null);
     }
 }

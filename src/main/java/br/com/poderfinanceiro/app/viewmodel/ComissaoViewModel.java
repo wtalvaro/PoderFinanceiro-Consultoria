@@ -23,27 +23,29 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
     private final ObjectProperty<BigDecimal> valorBrutoComissao = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> impostosRetidos = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> valorLiquidoConsultor = new SimpleObjectProperty<>(BigDecimal.ZERO);
-    private final ObjectProperty<LocalDate> dataPrevisaoPagamento = new SimpleObjectProperty<>();
-    private final StringProperty statusPagamento = new SimpleStringProperty("Pendente");
-    private final ObjectProperty<LocalDateTime> dataRecebimento = new SimpleObjectProperty<>();
     private final ObjectProperty<BigDecimal> valorPagoPelaPoder = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final StringProperty statusPagamento = new SimpleStringProperty("Pendente");
     private final BooleanProperty contestada = new SimpleBooleanProperty(false);
 
-    // --- 2. ESTADOS ORIGINAIS (Prontuário de Referência para Dirty Checking) ---
+    // Marcos Temporais do Ciclo
+    private final ObjectProperty<LocalDateTime> dataRecebimentoBanco = new SimpleObjectProperty<>();
+    private final BooleanProperty verificadoConsultor = new SimpleBooleanProperty(false);
+    private final ObjectProperty<LocalDateTime> dataVerificacao = new SimpleObjectProperty<>();
+    private final ObjectProperty<LocalDate> previsaoPagamento = new SimpleObjectProperty<>();
+    private final ObjectProperty<LocalDateTime> dataPagamentoConsultor = new SimpleObjectProperty<>();
+
+    // --- 2. ESTADOS ORIGINAIS (Referência para Dirty Checking) ---
     private final ReadOnlyObjectWrapper<PropostaModel> propostaOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<UsuarioModel> usuarioOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<BigDecimal> valorBrutoOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
-    private final ReadOnlyObjectWrapper<BigDecimal> impostosOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> valorLiquidoOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
-    private final ReadOnlyObjectWrapper<LocalDate> dataPrevisaoOriginal = new ReadOnlyObjectWrapper<>();
-    private final ReadOnlyStringWrapper statusOriginal = new ReadOnlyStringWrapper("Pendente");
-    private final ReadOnlyObjectWrapper<LocalDateTime> dataRecebimentoOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<BigDecimal> valorPagoOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
+    private final ReadOnlyStringWrapper statusOriginal = new ReadOnlyStringWrapper("Pendente");
     private final ReadOnlyBooleanWrapper contestadaOriginal = new ReadOnlyBooleanWrapper(false);
 
-    // ==========================================================
-    // IMPLEMENTAÇÃO DO CONTRATO (Template Methods)
-    // ==========================================================
+    private final ReadOnlyObjectWrapper<LocalDateTime> dataBancoOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyBooleanWrapper verificadoOriginal = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyObjectWrapper<LocalDate> previsaoOriginal = new ReadOnlyObjectWrapper<>();
 
     @Override
     protected void extrairId(ComissaoModel model) {
@@ -57,11 +59,16 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         valorBrutoComissao.set(model.getValorBrutoComissao());
         impostosRetidos.set(model.getImpostosRetidos());
         valorLiquidoConsultor.set(model.getValorLiquidoConsultor());
-        dataPrevisaoPagamento.set(model.getDataPrevisaoPagamento());
-        statusPagamento.set(model.getStatusPagamento() != null ? model.getStatusPagamento() : "Pendente");
-        dataRecebimento.set(model.getDataRecebimento());
         valorPagoPelaPoder.set(model.getValorPagoPelaPoder() != null ? model.getValorPagoPelaPoder() : BigDecimal.ZERO);
+        statusPagamento.set(model.getStatusPagamento() != null ? model.getStatusPagamento() : "Pendente");
         contestada.set(model.isContestada());
+
+        // Ciclo Financeiro
+        dataRecebimentoBanco.set(model.getDataRecebimentoBanco());
+        verificadoConsultor.set(model.isVerificadoConsultor());
+        dataVerificacao.set(model.getDataVerificacao());
+        previsaoPagamento.set(model.getPrevisaoPagamento());
+        dataPagamentoConsultor.set(model.getDataPagamentoConsultor());
     }
 
     @Override
@@ -71,11 +78,14 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         valorBrutoComissao.set(BigDecimal.ZERO);
         impostosRetidos.set(BigDecimal.ZERO);
         valorLiquidoConsultor.set(BigDecimal.ZERO);
-        dataPrevisaoPagamento.set(null);
-        statusPagamento.set("Pendente");
-        dataRecebimento.set(null);
         valorPagoPelaPoder.set(BigDecimal.ZERO);
+        statusPagamento.set("Pendente");
         contestada.set(false);
+        dataRecebimentoBanco.set(null);
+        verificadoConsultor.set(false);
+        dataVerificacao.set(null);
+        previsaoPagamento.set(null);
+        dataPagamentoConsultor.set(null);
     }
 
     @Override
@@ -83,32 +93,53 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         propostaOriginal.set(proposta.get());
         usuarioOriginal.set(usuario.get());
         valorBrutoOriginal.set(valorBrutoComissao.get());
-        impostosOriginal.set(impostosRetidos.get());
         valorLiquidoOriginal.set(valorLiquidoConsultor.get());
-        dataPrevisaoOriginal.set(dataPrevisaoPagamento.get());
-        statusOriginal.set(statusPagamento.get());
-        dataRecebimentoOriginal.set(dataRecebimento.get());
         valorPagoOriginal.set(valorPagoPelaPoder.get());
+        statusOriginal.set(statusPagamento.get());
         contestadaOriginal.set(contestada.get());
+
+        dataBancoOriginal.set(dataRecebimentoBanco.get());
+        verificadoOriginal.set(verificadoConsultor.get());
+        previsaoOriginal.set(previsaoPagamento.get());
     }
 
     @Override
     protected boolean temAlteracoesPendentes() {
         return !Objects.equals(proposta.get(), propostaOriginal.get()) ||
-                !Objects.equals(usuario.get(), usuarioOriginal.get()) ||
                 compareBigDecimal(valorBrutoComissao.get(), valorBrutoOriginal.get()) ||
-                compareBigDecimal(impostosRetidos.get(), impostosOriginal.get()) ||
-                compareBigDecimal(valorLiquidoConsultor.get(), valorLiquidoOriginal.get()) ||
-                !Objects.equals(dataPrevisaoPagamento.get(), dataPrevisaoOriginal.get()) ||
-                !Objects.equals(statusPagamento.get(), statusOriginal.get()) ||
-                !Objects.equals(dataRecebimento.get(), dataRecebimentoOriginal.get()) ||
                 compareBigDecimal(valorPagoPelaPoder.get(), valorPagoOriginal.get()) ||
+                !Objects.equals(statusPagamento.get(), statusOriginal.get()) ||
+                !Objects.equals(dataRecebimentoBanco.get(), dataBancoOriginal.get()) ||
+                verificadoConsultor.get() != verificadoOriginal.get() ||
+                !Objects.equals(previsaoPagamento.get(), previsaoOriginal.get()) ||
                 contestada.get() != contestadaOriginal.get();
     }
 
-    /**
-     * Auxiliar para comparar BigDecimals ignorando a escala (ex: 0.0 e 0.00)
-     */
+    @Override
+    public ComissaoModel atualizarModel(ComissaoModel model) {
+        if (model == null)
+            model = new ComissaoModel();
+
+        model.setId(this.id.get());
+        model.setProposta(this.proposta.get());
+        model.setUsuario(this.usuario.get());
+        model.setValorBrutoComissao(this.valorBrutoComissao.get());
+        model.setImpostosRetidos(this.impostosRetidos.get());
+        model.setValorLiquidoConsultor(this.valorLiquidoConsultor.get());
+        model.setValorPagoPelaPoder(this.valorPagoPelaPoder.get());
+        model.setContestada(this.contestada.get());
+        model.setStatusPagamento(this.statusPagamento.get());
+
+        // Ciclo
+        model.setDataRecebimentoBanco(this.dataRecebimentoBanco.get());
+        model.setVerificadoConsultor(this.verificadoConsultor.get());
+        model.setDataVerificacao(this.dataVerificacao.get());
+        model.setPrevisaoPagamento(this.previsaoPagamento.get());
+        model.setDataPagamentoConsultor(this.dataPagamentoConsultor.get());
+
+        return model;
+    }
+
     private boolean compareBigDecimal(BigDecimal val1, BigDecimal val2) {
         if (val1 == null && val2 == null)
             return false;
@@ -118,47 +149,21 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
     }
 
     @Override
-    public ComissaoModel atualizarModel(ComissaoModel model) {
-        if (model == null) {
-            model = new ComissaoModel();
-        }
-        model.setId(this.id.get());
-        model.setProposta(this.proposta.get());
-        model.setUsuario(this.usuario.get());
-        model.setValorBrutoComissao(this.valorBrutoComissao.get());
-        model.setImpostosRetidos(this.impostosRetidos.get());
-        model.setValorLiquidoConsultor(this.valorLiquidoConsultor.get());
-        model.setDataPrevisaoPagamento(this.dataPrevisaoPagamento.get());
-        model.setStatusPagamento(this.statusPagamento.get());
-        model.setDataRecebimento(this.dataRecebimento.get());
-        model.setValorPagoPelaPoder(this.valorPagoPelaPoder.get());
-        model.setContestada(this.contestada.get());
-
-        return model;
-    }
-
-    @Override
     protected Observable[] getObservaveisParaDirty() {
         return new Observable[] {
-                proposta, usuario, valorBrutoComissao, impostosRetidos, valorLiquidoConsultor,
-                dataPrevisaoPagamento, statusPagamento, dataRecebimento, valorPagoPelaPoder, contestada,
+                proposta, valorBrutoComissao, statusPagamento, dataRecebimentoBanco,
+                verificadoConsultor, previsaoPagamento, contestada,
                 propostaOriginal.getReadOnlyProperty(),
-                usuarioOriginal.getReadOnlyProperty(),
                 valorBrutoOriginal.getReadOnlyProperty(),
-                impostosOriginal.getReadOnlyProperty(),
-                valorLiquidoOriginal.getReadOnlyProperty(),
-                dataPrevisaoOriginal.getReadOnlyProperty(),
                 statusOriginal.getReadOnlyProperty(),
-                dataRecebimentoOriginal.getReadOnlyProperty(),
-                valorPagoOriginal.getReadOnlyProperty(),
+                dataBancoOriginal.getReadOnlyProperty(),
+                verificadoOriginal.getReadOnlyProperty(),
+                previsaoOriginal.getReadOnlyProperty(),
                 contestadaOriginal.getReadOnlyProperty()
         };
     }
 
-    // ==========================================================
-    // GETTERS DAS PROPERTIES (Binding com a UI)
-    // ==========================================================
-
+    // --- Getters das Properties (Binding) ---
     public ObjectProperty<PropostaModel> propostaProperty() {
         return proposta;
     }
@@ -171,31 +176,27 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         return valorBrutoComissao;
     }
 
-    public ObjectProperty<BigDecimal> impostosRetidosProperty() {
-        return impostosRetidos;
-    }
-
-    public ObjectProperty<BigDecimal> valorLiquidoConsultorProperty() {
-        return valorLiquidoConsultor;
-    }
-
-    public ObjectProperty<LocalDate> dataPrevisaoPagamentoProperty() {
-        return dataPrevisaoPagamento;
-    }
-
     public StringProperty statusPagamentoProperty() {
         return statusPagamento;
     }
 
-    public ObjectProperty<LocalDateTime> dataRecebimentoProperty() {
-        return dataRecebimento;
+    public BooleanProperty verificadoConsultorProperty() {
+        return verificadoConsultor;
     }
 
-    public ObjectProperty<BigDecimal> valorPagoPelaPoderProperty() {
-        return valorPagoPelaPoder;
+    public ObjectProperty<LocalDateTime> dataRecebimentoBancoProperty() {
+        return dataRecebimentoBanco;
+    }
+
+    public ObjectProperty<LocalDate> previsaoPagamentoProperty() {
+        return previsaoPagamento;
     }
 
     public BooleanProperty contestadaProperty() {
         return contestada;
+    }
+
+    public ObjectProperty<BigDecimal> valorPagoPelaPoderProperty() {
+        return valorPagoPelaPoder;
     }
 }

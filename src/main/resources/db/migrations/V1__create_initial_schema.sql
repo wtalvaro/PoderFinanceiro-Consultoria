@@ -119,15 +119,34 @@ CREATE TABLE public.comissoes (
     comissao_id bigint DEFAULT nextval('public.comissoes_comissao_id_seq'::regclass) NOT NULL,
     proposta_id bigint NOT NULL,
     usuario_id bigint NOT NULL,
+    
+    -- Financeiro (Valores)
     valor_bruto_comissao numeric(12,2) NOT NULL,
     impostos_retidos numeric(12,2) DEFAULT 0.00,
     valor_liquido_consultor numeric(12,2) NOT NULL,
-    valor_pago_pela_poder numeric(12,2) DEFAULT 0.00,
+    valor_pago_pela_poder numeric(12,2) DEFAULT 0.00, -- Confirmação do valor final transferido
     contestada boolean DEFAULT false,
-    data_previsao_pagamento date,
+    
+    -- Marco 1: Fluxo Banco -> Correspondente (Quarta-feira)
+    data_recebimento_banco timestamp without time zone,
+    
+    -- Marco 2: Fluxo de Conferência/Auditoria (Quinta-feira)
+    verificado_consultor boolean DEFAULT false,
+    data_verificacao timestamp without time zone,
+    
+    -- Marco 3: Fluxo Correspondente -> Consultor (Sexta-feira)
+    previsao_pagamento date, -- Data alvo (Sexta)
+    data_pagamento_consultor timestamp without time zone, -- Liquidação final
+    
+    -- Controle de Estado e Auditoria
     status_pagamento character varying(20) DEFAULT 'Pendente'::character varying,
-    data_recebimento timestamp without time zone,
-    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT comissoes_pkey PRIMARY KEY (comissao_id),
+    CONSTRAINT comissoes_proposta_id_fkey FOREIGN KEY (proposta_id) 
+        REFERENCES public.propostas(proposta_id) ON DELETE CASCADE,
+    CONSTRAINT comissoes_usuario_id_fkey FOREIGN KEY (usuario_id) 
+        REFERENCES public.usuarios(usuario_id) ON DELETE RESTRICT
 );
 
 CREATE TABLE public.documentos_proponente (
