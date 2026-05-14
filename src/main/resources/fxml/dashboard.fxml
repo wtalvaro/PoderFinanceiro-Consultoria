@@ -80,11 +80,16 @@
                 <TableView fx:id="tabelaPropostas" VBox.vgrow="ALWAYS"
                     styleClass="striped, bordered" minHeight="400">
                     <columns>
-                        <TableColumn fx:id="colCliente" text="Proponente" prefWidth="250" /> <!--[cite: 15] -->
-                        <TableColumn fx:id="colBanco" text="Banco" prefWidth="150" /> <!-- -->
-                        <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="120" /> <!--[cite: 15, 21] -->
-                        <TableColumn fx:id="colValor" text="Vlr. Aprovado" prefWidth="120" /> <!--[cite: 14] -->
-                        <TableColumn fx:id="colStatus" text="Status Atual" prefWidth="150" /> <!--[cite: 12] -->
+                        <TableColumn fx:id="colCliente" text="Proponente" prefWidth="250" />
+                        <TableColumn fx:id="colBanco" text="Banco" prefWidth="120" />
+                        <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="120" />
+                        <TableColumn fx:id="colValorSolicitado" text="Vlr. Solicitado"
+                            prefWidth="120" />
+                        <TableColumn fx:id="colValor" text="Vlr. Aprovado" prefWidth="120" />
+                        <TableColumn fx:id="colComissao" text="Comissão" prefWidth="100" />
+
+                        <TableColumn fx:id="colStatus" text="Status Atual" prefWidth="130" />
+                        <TableColumn fx:id="colAcoes" text="Ações" prefWidth="100" />
                     </columns>
                     <placeholder>
                         <Label text="Nenhuma proposta encontrada para este consultor." />

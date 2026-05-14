@@ -12,7 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
-import javafx.concurrent.Task; // 💉 IMPORTAÇÃO DO MAQUEIRO
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -39,6 +39,7 @@ public class DashboardController {
     private Label lblComissaoEstimada;
     @FXML
     private TextField txtBuscaPropostas;
+
     @FXML
     private TableView<PropostaModel> tabelaPropostas;
     @FXML
@@ -47,10 +48,18 @@ public class DashboardController {
     private TableColumn<PropostaModel, String> colBanco;
     @FXML
     private TableColumn<PropostaModel, String> colConvenio;
+
+    // Novas Colunas
     @FXML
-    private TableColumn<PropostaModel, BigDecimal> colValor;
+    private TableColumn<PropostaModel, BigDecimal> colValorSolicitado;
+    @FXML
+    private TableColumn<PropostaModel, BigDecimal> colValor; // Vlr. Aprovado
+    @FXML
+    private TableColumn<PropostaModel, BigDecimal> colComissao;
     @FXML
     private TableColumn<PropostaModel, StatusPropostaModel> colStatus;
+    @FXML
+    private TableColumn<PropostaModel, Void> colAcoes;
 
     private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
 
@@ -65,9 +74,8 @@ public class DashboardController {
 
     @FXML
     public void initialize() {
-        // 🧠 Triagem de Identidade: Busca o usuário logado no AuthService
         UsuarioModel usuario = authService.getUsuarioLogado();
-        
+
         if (usuario != null) {
             lblNomeConsultor.setText(usuario.getNome());
         } else {
@@ -80,27 +88,67 @@ public class DashboardController {
     }
 
     private void configurarTabela() {
+        // Data Mappings padrão
         colCliente.setCellValueFactory(
                 data -> new SimpleStringProperty(data.getValue().getProponente().getNomeCompleto()));
         colBanco.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBanco().getNome()));
 
-        // 🚀 O AJUSTE: Buscando o Convênio direto da Proposta
         colConvenio.setCellValueFactory(data -> {
             var convenio = data.getValue().getConvenioOrgao();
             return new SimpleStringProperty(convenio != null ? convenio.getLabel() : "Sem Convênio");
         });
 
-        colValor.setCellValueFactory(new PropertyValueFactory<>("valorAprovado"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        colValor.setCellFactory(tc -> new TableCell<>() {
+        // Data Mappings de Valores Monetários com reaproveitamento de código (DRY)
+        configurarColunaMoeda(colValorSolicitado, "valorSolicitado");
+        configurarColunaMoeda(colValor, "valorAprovado");
+        configurarColunaMoeda(colComissao, "comissaoEstimada");
+
+        // CellFactory para injetar um UI Control (Button) na TableView
+        colAcoes.setCellFactory(param -> new TableCell<>() {
+            private final Button btnAbrir = new Button("📂 Abrir");
+
+            {
+                btnAbrir.getStyleClass().addAll("flat", "accent");
+                btnAbrir.setCursor(javafx.scene.Cursor.HAND);
+
+                // Dispara o Roteamento de Tela enviando a entidade Proponente vinculada
+                btnAbrir.setOnAction(event -> {
+                    PropostaModel proposta = getTableView().getItems().get(getIndex());
+                    if (proposta != null && proposta.getProponente() != null) {
+                        mainController.abrirClienteNoWorkspace(proposta.getProponente());
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(btnAbrir);
+                    setAlignment(javafx.geometry.Pos.CENTER);
+                }
+            }
+        });
+    }
+
+    /**
+     * Utilitário para evitar código duplicado na formatação de colunas BigDecimal.
+     */
+    private void configurarColunaMoeda(TableColumn<PropostaModel, BigDecimal> coluna, String propertyName) {
+        coluna.setCellValueFactory(new PropertyValueFactory<>(propertyName));
+        coluna.setCellFactory(tc -> new TableCell<>() {
             @Override
             protected void updateItem(BigDecimal item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null)
-                    setText(null);
-                else
+                if (empty || item == null) {
+                    setText("-");
+                } else {
                     setText(FinanceiroUtils.formatarParaExibicao(item));
+                }
             }
         });
     }
@@ -128,22 +176,15 @@ public class DashboardController {
         tabelaPropostas.setItems(sortedData);
     }
 
-    /**
-     * 💉 Busca informações reais de forma assíncrona (Sem travar a tela)
-     */
     @FXML
     public void carregarDadosReais() {
-        // 1. Acende o aviso visual de carregamento
         mainController.mostrarLoading("Calculando métricas do Dashboard...");
 
-        // 2. Prepara a Task (O Maqueiro vai processar tudo na Thread Secundária)
         Task<ResultadoDashboard> taskBusca = new Task<>() {
             @Override
             protected ResultadoDashboard call() throws Exception {
-                // Consultas pesadas no banco
                 List<PropostaModel> propostas = propostaRepository.findAllComDetalhes();
 
-                // Processamento de matemática pesada FORA da tela!
                 long aguardando = propostas.stream()
                         .filter(p -> p.getStatus() == StatusPropostaModel.DIGITADA
                                 || p.getStatus() == StatusPropostaModel.PENDENTE)
@@ -159,34 +200,26 @@ public class DashboardController {
                         .map(c -> c.getValorBrutoComissao() != null ? c.getValorBrutoComissao() : BigDecimal.ZERO)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                // Preenche a prancheta com todos os dados calculados e retorna
                 return new ResultadoDashboard(propostas, aguardando, volumePago, comissaoTotal);
             }
         };
 
-        // 3. Quando o maqueiro voltar com a prancheta pronta:
         taskBusca.setOnSucceeded(event -> {
             ResultadoDashboard res = taskBusca.getValue();
-
-            // Atualiza a tabela
             masterData.setAll(res.propostas());
 
-            // Atualiza os Monitores Vitais (KPIs)
             lblQtdAguardando.setText(String.valueOf(res.qtdAguardando()));
             lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(res.volumeAprovado()));
             lblComissaoEstimada.setText(FinanceiroUtils.formatarParaExibicao(res.comissoesPendentes()));
 
-            // Apaga a luz da sala de espera
             mainController.ocultarLoading();
         });
 
-        // 4. Se houver falha de banco de dados
         taskBusca.setOnFailed(event -> {
             mainController.ocultarLoading();
             taskBusca.getException().printStackTrace();
         });
 
-        // 5. Dispara a Thread
         Thread thread = new Thread(taskBusca);
         thread.setDaemon(true);
         thread.start();
@@ -198,13 +231,6 @@ public class DashboardController {
         mainController.abrirClienteNoWorkspace(null);
     }
 
-    // ==========================================================
-    // DTO INTERNO (A "Prancheta de Exames")
-    // ==========================================================
-    /**
-     * Um 'record' é perfeito aqui: ele apenas transporta os dados
-     * da Thread secundária para a Thread da Interface de forma imutável e segura.
-     */
     private record ResultadoDashboard(
             List<PropostaModel> propostas,
             long qtdAguardando,
