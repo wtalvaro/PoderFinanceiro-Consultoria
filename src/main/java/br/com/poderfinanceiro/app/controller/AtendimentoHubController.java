@@ -189,7 +189,7 @@ public class AtendimentoHubController {
             // mandamos a aba de proposta aplicar o bloqueio imediatamente.
             if (abaPropostaHubController != null) {
                 // 🚀 O COMANDO:
-                abaPropostaHubController.getAbaPropostaController().aplicarBloqueioSePago();
+                abaPropostaHubController.getAbaPropostaController().aplicarBloqueio();
             }
 
             // 3. A NOVA MÁGICA: Avisamos a Aba que este contato não é mais "NOVO",

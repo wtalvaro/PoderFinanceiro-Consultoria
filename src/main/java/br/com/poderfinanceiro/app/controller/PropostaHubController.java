@@ -192,7 +192,7 @@ public class PropostaHubController {
                         // Usamos Platform.runLater para garantir que a UI já existe no momento do
                         // disable
                         javafx.application.Platform.runLater(() -> {
-                            abaPropostaController.aplicarBloqueioSePago();
+                            abaPropostaController.aplicarBloqueio();
                         });
                     }
                 } else {

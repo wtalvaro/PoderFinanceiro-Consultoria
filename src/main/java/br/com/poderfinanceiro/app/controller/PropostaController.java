@@ -230,9 +230,9 @@ public class PropostaController {
                     // 🩹 A CURA: Usamos o Platform.runLater para garantir que o
                     // JavaFX já processou os valores antes de checar o bloqueio.
                     javafx.application.Platform.runLater(() -> {
-                        aplicarBloqueioSePago();
+                        aplicarBloqueio();
                     });
-                    
+
                 } finally {
                     isUpdatingInterface = false;
                 }
@@ -637,22 +637,27 @@ public class PropostaController {
      * 🔒 TRAVA DE PERSISTÊNCIA:
      * Bloqueia a edição se a proposta já estiver liquidada no banco de dados.
      */
-    public void aplicarBloqueioSePago() {
-        // A regra: Se tem ID (já existe no banco) E o status é PAGO, bloqueia.
-        boolean jaEstaPagoNoBanco = viewModel.idProperty().get() != null
-                && viewModel.statusProperty().get() == StatusPropostaModel.PAGO;
+    public void aplicarBloqueio() {
+        StatusPropostaModel statusAtual = viewModel.statusProperty().get();
 
-        cbStatus.setDisable(jaEstaPagoNoBanco);
-        cbTabela.setDisable(jaEstaPagoNoBanco);
-        cbBanco.setDisable(jaEstaPagoNoBanco);
-        cbConvenio.setDisable(jaEstaPagoNoBanco);
+        // 🚀 Lógica de Estado Terminal: Verifica se o ID existe e se o status impede
+        // modificações
+        boolean isTerminalState = viewModel.idProperty().get() != null &&
+                (statusAtual == StatusPropostaModel.PAGO ||
+                        statusAtual == StatusPropostaModel.REPROVADA ||
+                        statusAtual == StatusPropostaModel.CANCELADO);
+
+        cbStatus.setDisable(isTerminalState);
+        cbTabela.setDisable(isTerminalState);
+        cbBanco.setDisable(isTerminalState);
+        cbConvenio.setDisable(isTerminalState);
         // 🚀 AQUI: Fechando a brecha do Valor Simulado/Solicitado
-        txtValorSolicitado.setDisable(jaEstaPagoNoBanco);
-        txtValorAprovado.setDisable(jaEstaPagoNoBanco);
-        txtParcela.setDisable(jaEstaPagoNoBanco);
-        spinPrazo.setDisable(jaEstaPagoNoBanco);
+        txtValorSolicitado.setDisable(isTerminalState);
+        txtValorAprovado.setDisable(isTerminalState);
+        txtParcela.setDisable(isTerminalState);
+        spinPrazo.setDisable(isTerminalState);
 
-        if (jaEstaPagoNoBanco) {
+        if (isTerminalState) {
             txtObservacoes.setPromptText("Proposta liquidada. Alterações financeiras não permitidas.");
         } else {
             txtObservacoes.setPromptText("");
