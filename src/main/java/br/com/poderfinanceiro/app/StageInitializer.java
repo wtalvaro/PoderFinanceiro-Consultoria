@@ -45,10 +45,9 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             // O getIcons() aceita uma lista, então você pode adicionar várias resoluções se
             // quiser
             try {
-                var iconStream = getClass().getResourceAsStream("/icons/app.ico");
+                var iconStream = getClass().getResourceAsStream("/icons/app.png");
                 if (iconStream != null) {
                     stage.getIcons().add(new javafx.scene.image.Image(iconStream));
-                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/app.png")));
                 }
             } catch (Exception e) {
                 System.err.println("Não foi possível carregar o ícone: " + e.getMessage());

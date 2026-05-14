@@ -21,7 +21,7 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponenteModel> {
     private final StringProperty complemento = new SimpleStringProperty("");
     private final StringProperty bairro = new SimpleStringProperty("");
     private final StringProperty cidade = new SimpleStringProperty("");
-    private final ObjectProperty<UfModel> uf = new SimpleObjectProperty<>(UfModel.RJ);
+    private final ObjectProperty<UfModel> uf = new SimpleObjectProperty<>(UfModel.SP);
 
     // --- ESTADOS ORIGINAIS ---
     private final ReadOnlyStringWrapper cepOriginal = new ReadOnlyStringWrapper("");
@@ -32,7 +32,7 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponenteModel> {
     private final ReadOnlyStringWrapper complementoOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper bairroOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper cidadeOriginal = new ReadOnlyStringWrapper("");
-    private final ReadOnlyObjectWrapper<UfModel> ufOriginal = new ReadOnlyObjectWrapper<>(UfModel.RJ);
+    private final ReadOnlyObjectWrapper<UfModel> ufOriginal = new ReadOnlyObjectWrapper<>(UfModel.SP);
 
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO (Template Methods)
@@ -52,7 +52,7 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponenteModel> {
         this.complemento.set(model.getComplemento() != null ? model.getComplemento() : "");
         this.bairro.set(model.getBairro() != null ? model.getBairro() : "");
         this.cidade.set(model.getCidade() != null ? model.getCidade() : "");
-        this.uf.set(model.getUf() != null ? model.getUf() : UfModel.RJ);
+        this.uf.set(model.getUf() != null ? model.getUf() : UfModel.SP);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponenteModel> {
         complemento.set("");
         bairro.set("");
         cidade.set("");
-        uf.set(UfModel.RJ);
+        uf.set(UfModel.SP);
     }
 
     @Override

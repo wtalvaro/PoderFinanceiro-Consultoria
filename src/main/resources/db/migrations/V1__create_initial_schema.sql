@@ -250,7 +250,7 @@ CREATE TABLE public.enderecos_proponente (
     complemento character varying(100),
     bairro character varying(100) NOT NULL,
     cidade character varying(100) NOT NULL,
-    uf public.uf_enum NOT NULL,
+    uf public.uf_enum DEFAULT 'SP'::public.uf_enum,
     principal boolean DEFAULT false, -- NOVO: Flag de endereço principal
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     ultima_atualizacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP
