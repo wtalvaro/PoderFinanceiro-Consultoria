@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
@@ -39,6 +40,19 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
 
             Scene scene = new Scene(root, width, height);
             stage.setScene(scene);
+
+            // 🎨 CONFIGURAÇÃO DO ÍCONE
+            // O getIcons() aceita uma lista, então você pode adicionar várias resoluções se
+            // quiser
+            try {
+                var iconStream = getClass().getResourceAsStream("/icons/app.ico");
+                if (iconStream != null) {
+                    stage.getIcons().add(new javafx.scene.image.Image(iconStream));
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/app.png")));
+                }
+            } catch (Exception e) {
+                System.err.println("Não foi possível carregar o ícone: " + e.getMessage());
+            }
 
             // 🛡️ Blindagem de Geometria
             stage.setMinWidth(1024);
