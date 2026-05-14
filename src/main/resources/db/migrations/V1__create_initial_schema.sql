@@ -138,8 +138,11 @@ CREATE TABLE public.comissoes (
     previsao_pagamento date, -- Data alvo (Sexta)
     data_pagamento_consultor timestamp without time zone, -- Liquidação final
     
-    -- Controle de Estado e Auditoria
+    -- Controle de Estado, Auditoria e Ciclos
     status_pagamento character varying(20) DEFAULT 'Pendente'::character varying,
+    ciclo_referencia character varying(10),
+    data_limite_contestacao timestamp without time zone,
+    observacao_ajuste text,
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -302,6 +305,7 @@ ALTER TABLE ONLY public.enderecos_proponente ADD CONSTRAINT enderecos_proponente
 -- 6. ÍNDICES
 -- ==========================================
 CREATE INDEX idx_comissoes_status_data ON public.comissoes USING btree (status_pagamento, data_pagamento_consultor);
+CREATE INDEX idx_comissoes_ciclo ON public.comissoes USING btree (ciclo_referencia);
 CREATE INDEX idx_interacoes_contexto ON public.interacoes_contato USING btree (proponente_id, data_interacao DESC);
 CREATE INDEX idx_proponentes_cpf_ativo ON public.proponentes USING btree (cpf) WHERE (deletado_em IS NULL);
 CREATE INDEX idx_propostas_status_busca ON public.propostas USING btree (status);

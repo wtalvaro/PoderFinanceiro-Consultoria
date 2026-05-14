@@ -34,6 +34,11 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
     private final ObjectProperty<LocalDate> previsaoPagamento = new SimpleObjectProperty<>();
     private final ObjectProperty<LocalDateTime> dataPagamentoConsultor = new SimpleObjectProperty<>();
 
+    // CIRURGIA: Novas Properties
+    private final StringProperty cicloReferencia = new SimpleStringProperty("");
+    private final ObjectProperty<LocalDateTime> dataLimiteContestacao = new SimpleObjectProperty<>();
+    private final StringProperty observacaoAjuste = new SimpleStringProperty("");
+
     // --- 2. ESTADOS ORIGINAIS (Referência para Dirty Checking) ---
     private final ReadOnlyObjectWrapper<PropostaModel> propostaOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<UsuarioModel> usuarioOriginal = new ReadOnlyObjectWrapper<>();
@@ -46,6 +51,11 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
     private final ReadOnlyObjectWrapper<LocalDateTime> dataBancoOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyBooleanWrapper verificadoOriginal = new ReadOnlyBooleanWrapper(false);
     private final ReadOnlyObjectWrapper<LocalDate> previsaoOriginal = new ReadOnlyObjectWrapper<>();
+
+    // CIRURGIA: Estados Originais
+    private final ReadOnlyStringWrapper cicloOriginal = new ReadOnlyStringWrapper("");
+    private final ReadOnlyObjectWrapper<LocalDateTime> limiteOriginal = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyStringWrapper observacaoOriginal = new ReadOnlyStringWrapper("");
 
     @Override
     protected void extrairId(ComissaoModel model) {
@@ -63,12 +73,16 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         statusPagamento.set(model.getStatusPagamento() != null ? model.getStatusPagamento() : "Pendente");
         contestada.set(model.isContestada());
 
-        // Ciclo Financeiro
         dataRecebimentoBanco.set(model.getDataRecebimentoBanco());
         verificadoConsultor.set(model.isVerificadoConsultor());
         dataVerificacao.set(model.getDataVerificacao());
         previsaoPagamento.set(model.getPrevisaoPagamento());
         dataPagamentoConsultor.set(model.getDataPagamentoConsultor());
+
+        // CIRURGIA: Preenchimento
+        cicloReferencia.set(model.getCicloReferencia() != null ? model.getCicloReferencia() : "");
+        dataLimiteContestacao.set(model.getDataLimiteContestacao());
+        observacaoAjuste.set(model.getObservacaoAjuste() != null ? model.getObservacaoAjuste() : "");
     }
 
     @Override
@@ -86,6 +100,11 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         dataVerificacao.set(null);
         previsaoPagamento.set(null);
         dataPagamentoConsultor.set(null);
+
+        // CIRURGIA: Limpeza
+        cicloReferencia.set("");
+        dataLimiteContestacao.set(null);
+        observacaoAjuste.set("");
     }
 
     @Override
@@ -97,10 +116,14 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         valorPagoOriginal.set(valorPagoPelaPoder.get());
         statusOriginal.set(statusPagamento.get());
         contestadaOriginal.set(contestada.get());
-
         dataBancoOriginal.set(dataRecebimentoBanco.get());
         verificadoOriginal.set(verificadoConsultor.get());
         previsaoOriginal.set(previsaoPagamento.get());
+
+        // CIRURGIA: Sincronização
+        cicloOriginal.set(cicloReferencia.get());
+        limiteOriginal.set(dataLimiteContestacao.get());
+        observacaoOriginal.set(observacaoAjuste.get());
     }
 
     @Override
@@ -112,7 +135,11 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
                 !Objects.equals(dataRecebimentoBanco.get(), dataBancoOriginal.get()) ||
                 verificadoConsultor.get() != verificadoOriginal.get() ||
                 !Objects.equals(previsaoPagamento.get(), previsaoOriginal.get()) ||
-                contestada.get() != contestadaOriginal.get();
+                contestada.get() != contestadaOriginal.get() ||
+                // CIRURGIA: Validação de Dirty State
+                !Objects.equals(cicloReferencia.get(), cicloOriginal.get()) ||
+                !Objects.equals(dataLimiteContestacao.get(), limiteOriginal.get()) ||
+                !Objects.equals(observacaoAjuste.get(), observacaoOriginal.get());
     }
 
     @Override
@@ -130,12 +157,16 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         model.setContestada(this.contestada.get());
         model.setStatusPagamento(this.statusPagamento.get());
 
-        // Ciclo
         model.setDataRecebimentoBanco(this.dataRecebimentoBanco.get());
         model.setVerificadoConsultor(this.verificadoConsultor.get());
         model.setDataVerificacao(this.dataVerificacao.get());
         model.setPrevisaoPagamento(this.previsaoPagamento.get());
         model.setDataPagamentoConsultor(this.dataPagamentoConsultor.get());
+
+        // CIRURGIA: Injeção no Model
+        model.setCicloReferencia(this.cicloReferencia.get());
+        model.setDataLimiteContestacao(this.dataLimiteContestacao.get());
+        model.setObservacaoAjuste(this.observacaoAjuste.get());
 
         return model;
     }
@@ -153,13 +184,17 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         return new Observable[] {
                 proposta, valorBrutoComissao, statusPagamento, dataRecebimentoBanco,
                 verificadoConsultor, previsaoPagamento, contestada,
+                cicloReferencia, dataLimiteContestacao, observacaoAjuste, // CIRURGIA: Inseridos
                 propostaOriginal.getReadOnlyProperty(),
                 valorBrutoOriginal.getReadOnlyProperty(),
                 statusOriginal.getReadOnlyProperty(),
                 dataBancoOriginal.getReadOnlyProperty(),
                 verificadoOriginal.getReadOnlyProperty(),
                 previsaoOriginal.getReadOnlyProperty(),
-                contestadaOriginal.getReadOnlyProperty()
+                contestadaOriginal.getReadOnlyProperty(),
+                cicloOriginal.getReadOnlyProperty(), // CIRURGIA: Inseridos
+                limiteOriginal.getReadOnlyProperty(),
+                observacaoOriginal.getReadOnlyProperty()
         };
     }
 
@@ -198,5 +233,18 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
 
     public ObjectProperty<BigDecimal> valorPagoPelaPoderProperty() {
         return valorPagoPelaPoder;
+    }
+
+    // CIRURGIA: Getters das novas Properties
+    public StringProperty cicloReferenciaProperty() {
+        return cicloReferencia;
+    }
+
+    public ObjectProperty<LocalDateTime> dataLimiteContestacaoProperty() {
+        return dataLimiteContestacao;
+    }
+
+    public StringProperty observacaoAjusteProperty() {
+        return observacaoAjuste;
     }
 }

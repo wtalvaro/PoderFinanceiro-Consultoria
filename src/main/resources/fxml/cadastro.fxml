@@ -34,7 +34,7 @@
                         <VBox spacing="5.0">
                             <Label text="Nome de Usuário (Login)" />
                             <TextField fx:id="txtUsername" prefHeight="35.0"
-                                promptText="ex: wagner.financeiro" />
+                                promptText="ex: user.financeiro" />
                         </VBox>
                         <VBox spacing="5.0">
                             <Label text="Senha (Mínimo 8 caracteres)" />
