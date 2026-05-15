@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.model.UsuarioModel;
+import br.com.poderfinanceiro.app.model.ComissaoModel;
 import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.service.AuthService;
@@ -35,8 +36,13 @@ public class DashboardController {
     private Label lblQtdAguardando;
     @FXML
     private Label lblVolumeAprovado;
+
+    // ✅ NOVOS LABELS: Expectativa x Realidade
     @FXML
-    private Label lblComissaoEstimada;
+    private Label lblComissaoPendente;
+    @FXML
+    private Label lblComissaoPaga;
+
     @FXML
     private TextField txtBuscaPropostas;
 
@@ -48,12 +54,10 @@ public class DashboardController {
     private TableColumn<PropostaModel, String> colBanco;
     @FXML
     private TableColumn<PropostaModel, String> colConvenio;
-
-    // Novas Colunas
     @FXML
     private TableColumn<PropostaModel, BigDecimal> colValorSolicitado;
     @FXML
-    private TableColumn<PropostaModel, BigDecimal> colValor; // Vlr. Aprovado
+    private TableColumn<PropostaModel, BigDecimal> colValor;
     @FXML
     private TableColumn<PropostaModel, BigDecimal> colComissao;
     @FXML
@@ -88,11 +92,9 @@ public class DashboardController {
     }
 
     private void configurarTabela() {
-        // Data Mappings padrão
         colCliente.setCellValueFactory(
                 data -> new SimpleStringProperty(data.getValue().getProponente().getNomeCompleto()));
         colBanco.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBanco().getNome()));
-
         colConvenio.setCellValueFactory(data -> {
             var convenio = data.getValue().getConvenioOrgao();
             return new SimpleStringProperty(convenio != null ? convenio.getLabel() : "Sem Convênio");
@@ -100,20 +102,15 @@ public class DashboardController {
 
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        // Data Mappings de Valores Monetários com reaproveitamento de código (DRY)
         configurarColunaMoeda(colValorSolicitado, "valorSolicitado");
         configurarColunaMoeda(colValor, "valorAprovado");
         configurarColunaMoeda(colComissao, "comissaoEstimada");
 
-        // CellFactory para injetar um UI Control (Button) na TableView
         colAcoes.setCellFactory(param -> new TableCell<>() {
             private final Button btnAbrir = new Button("📂 Abrir");
-
             {
                 btnAbrir.getStyleClass().addAll("flat", "accent");
                 btnAbrir.setCursor(javafx.scene.Cursor.HAND);
-
-                // Dispara o Roteamento de Tela enviando a entidade Proponente vinculada
                 btnAbrir.setOnAction(event -> {
                     PropostaModel proposta = getTableView().getItems().get(getIndex());
                     if (proposta != null && proposta.getProponente() != null) {
@@ -135,9 +132,6 @@ public class DashboardController {
         });
     }
 
-    /**
-     * Utilitário para evitar código duplicado na formatação de colunas BigDecimal.
-     */
     private void configurarColunaMoeda(TableColumn<PropostaModel, BigDecimal> coluna, String propertyName) {
         coluna.setCellValueFactory(new PropertyValueFactory<>(propertyName));
         coluna.setCellFactory(tc -> new TableCell<>() {
@@ -172,7 +166,6 @@ public class DashboardController {
 
         SortedList<PropostaModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tabelaPropostas.comparatorProperty());
-
         tabelaPropostas.setItems(sortedData);
     }
 
@@ -184,23 +177,35 @@ public class DashboardController {
             @Override
             protected ResultadoDashboard call() throws Exception {
                 List<PropostaModel> propostas = propostaRepository.findAllComDetalhes();
+                List<ComissaoModel> comissoes = comissaoRepository.findAll();
 
+                // 1. O que está travado na esteira
                 long aguardando = propostas.stream()
                         .filter(p -> p.getStatus() == StatusPropostaModel.DIGITADA
                                 || p.getStatus() == StatusPropostaModel.PENDENTE)
                         .count();
 
-                BigDecimal volumePago = propostas.stream()
+                // 2. Produção Aprovada Total
+                BigDecimal volumeAprovado = propostas.stream()
                         .filter(p -> p.getStatus() == StatusPropostaModel.PAGO)
                         .map(p -> p.getValorFinalCliente() != null ? p.getValorFinalCliente() : BigDecimal.ZERO)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                BigDecimal comissaoTotal = comissaoRepository.findAll().stream()
-                        .filter(c -> "Pago".equalsIgnoreCase(c.getStatusPagamento()))
+                // 3. EXPECTATIVA: Comissões que não estão pagas (Ciclo Atual/Semanal)
+                BigDecimal comissaoPendente = comissoes.stream()
+                        .filter(c -> !"Pago".equalsIgnoreCase(c.getStatusPagamento())
+                                && !"Liquidado".equalsIgnoreCase(c.getStatusPagamento()))
                         .map(c -> c.getValorBrutoComissao() != null ? c.getValorBrutoComissao() : BigDecimal.ZERO)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                return new ResultadoDashboard(propostas, aguardando, volumePago, comissaoTotal);
+                // 4. REALIDADE: Comissões já pagas ao consultor
+                BigDecimal comissaoPaga = comissoes.stream()
+                        .filter(c -> "Pago".equalsIgnoreCase(c.getStatusPagamento())
+                                || "Liquidado".equalsIgnoreCase(c.getStatusPagamento()))
+                        .map(c -> c.getValorPagoPelaPoder() != null ? c.getValorPagoPelaPoder() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                return new ResultadoDashboard(propostas, aguardando, volumeAprovado, comissaoPendente, comissaoPaga);
             }
         };
 
@@ -210,7 +215,10 @@ public class DashboardController {
 
             lblQtdAguardando.setText(String.valueOf(res.qtdAguardando()));
             lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(res.volumeAprovado()));
-            lblComissaoEstimada.setText(FinanceiroUtils.formatarParaExibicao(res.comissoesPendentes()));
+
+            // ✅ Atualiza os novos componentes
+            lblComissaoPendente.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPendente()));
+            lblComissaoPaga.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPaga()));
 
             mainController.ocultarLoading();
         });
@@ -231,10 +239,12 @@ public class DashboardController {
         mainController.abrirClienteNoWorkspace(null);
     }
 
+    // Record atualizado para refletir a separação
     private record ResultadoDashboard(
             List<PropostaModel> propostas,
             long qtdAguardando,
             BigDecimal volumeAprovado,
-            BigDecimal comissoesPendentes) {
+            BigDecimal comissaoPendente,
+            BigDecimal comissaoPaga) {
     }
 }
