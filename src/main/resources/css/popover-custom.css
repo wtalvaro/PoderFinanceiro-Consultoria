@@ -1,0 +1,13 @@
+/* Remove o fundo padrão e o preenchimento da casca do PopOver */
+.popover {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-effect: null;
+    /* Remove sombras extras que podem causar atraso no desenho */
+}
+
+.popover>.content {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}

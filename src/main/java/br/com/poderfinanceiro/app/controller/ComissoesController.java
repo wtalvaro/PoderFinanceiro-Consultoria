@@ -20,6 +20,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.controlsfx.control.PopOver;
+import javafx.scene.Node; 
+
 @Component
 public class ComissoesController {
 
@@ -39,9 +42,8 @@ public class ComissoesController {
     @FXML
     private TextField txtBusca;
 
-    // Elementos do Overlay de Ciclo Financeiro
     @FXML
-    private VBox overlayAjuste;
+    private VBox boxFormularioAjuste; // O ID que definimos no fx:define
     @FXML
     private Label lblTituloModal;
     @FXML
@@ -84,6 +86,8 @@ public class ComissoesController {
     private final ObservableList<ComissaoModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    private PopOver popOverAjuste; // Nossa nova janela flutuante
+
     public ComissoesController(ComissaoRepository repository, ComissaoViewModel viewModel,
             MainController mainController) {
         this.repository = repository;
@@ -97,6 +101,24 @@ public class ComissoesController {
         configurarFiltroReativo();
         configurarBindingsCicloFinanceiro();
         recarregarDados();
+
+        // INICIALIZA O POPOVER
+        popOverAjuste = new PopOver(boxFormularioAjuste);
+
+        // 1. Zera todos os tempos de transição (remove o flicker de opacidade)
+        popOverAjuste.setAnimated(false);
+        popOverAjuste.setFadeInDuration(javafx.util.Duration.ZERO);
+        popOverAjuste.setFadeOutDuration(javafx.util.Duration.ZERO);
+
+        // 2. Aplica o CSS
+        String css = getClass().getResource("/css/popover-custom.css").toExternalForm();
+        popOverAjuste.getRoot().getStylesheets().add(css);
+
+        // 3. Configurações visuais
+        popOverAjuste.setArrowSize(0);
+        popOverAjuste.setDetachable(true);
+        popOverAjuste.setTitle("Ajuste de Comissão");
+        popOverAjuste.setCornerRadius(0); // Deixe 0 para alinhar com o design moderno
     }
 
     private void configurarTabela() {
@@ -129,7 +151,8 @@ public class ComissoesController {
             TableRow<ComissaoModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
-                    prepararAjuste(row.getItem());
+                    // ✅ Agora passamos também a 'row', para o balão saber onde abrir!
+                    prepararAjuste(row.getItem(), row);
                 }
             });
             return row;
@@ -270,10 +293,10 @@ public class ComissoesController {
         lblTotalRecebido.setText(FinanceiroUtils.formatarParaExibicao(totalRecebido));
     }
 
-    private void prepararAjuste(ComissaoModel comissao) {
+    // Adicione o Node anchor na assinatura
+    private void prepararAjuste(ComissaoModel comissao, Node anchor) {
         viewModel.loadFromModel(comissao);
 
-        // 1. Sincronização de Datas para a UI
         if (comissao.getDataRecebimentoBanco() != null) {
             dpRecebimentoBanco.setValue(comissao.getDataRecebimentoBanco().toLocalDate());
         }
@@ -286,7 +309,25 @@ public class ComissoesController {
                 "Ciclo: " + (comissao.getCicloReferencia() != null ? comissao.getCicloReferencia() : "Legado"));
 
         atualizarEstadoInterfaceCiclo(comissao);
-        overlayAjuste.setVisible(true);
+
+        atualizarEstadoInterfaceCiclo(comissao);
+
+        // ✅ LÓGICA DE CENTRALIZAÇÃO
+        javafx.stage.Window window = tableComissoes.getScene().getWindow();
+
+        // Mostramos o PopOver primeiro para ele calcular o tamanho interno
+        // Mas com opacidade 0 para evitar o "flicker"
+        popOverAjuste.setOpacity(0);
+        popOverAjuste.show(window);
+
+        // Calculamos o centro exato
+        double x = window.getX() + (window.getWidth() / 2) - (popOverAjuste.getWidth() / 2);
+        double y = window.getY() + (window.getHeight() / 2) - (popOverAjuste.getHeight() / 2);
+
+        // Movemos para o centro e mostramos
+        popOverAjuste.setX(x);
+        popOverAjuste.setY(y);
+        popOverAjuste.setOpacity(1);
     }
 
     private void atualizarEstadoInterfaceCiclo(ComissaoModel comissao) {
@@ -361,7 +402,10 @@ public class ComissoesController {
 
     @FXML
     private void fecharModal() {
-        overlayAjuste.setVisible(false);
+        // ❌ REMOVA: overlayAjuste.setVisible(false);
+        if (popOverAjuste != null && popOverAjuste.isShowing()) {
+            popOverAjuste.hide(); // Recolhe o balão
+        }
         viewModel.reset();
         dpRecebimentoBanco.setValue(null);
     }

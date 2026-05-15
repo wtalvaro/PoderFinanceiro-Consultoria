@@ -5,7 +5,97 @@
 <?import javafx.scene.shape.Circle?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.ComissoesController">
+    fx:controller="br.com.poderfinanceiro.app.controller.ComissoesController"
+    stylesheets="@../css/popover-custom.css">
+
+    <fx:define>
+        <VBox fx:id="boxFormularioAjuste" spacing="15" prefWidth="550"
+            style="-fx-background-color: -color-bg-default; -fx-padding: 20;">
+            <HBox alignment="CENTER_LEFT">
+                <Label fx:id="lblTituloModal" text="Conciliação: Nome do Cliente"
+                    styleClass="title-3" HBox.hgrow="ALWAYS" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Label fx:id="lblCicloBadge" text="Ciclo: 2026-W20"
+                    style="-fx-background-color: -color-accent-subtle; -fx-padding: 5 10; -fx-background-radius: 15; -fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;" />
+            </HBox>
+
+            <VBox fx:id="bannerStatusCiclo" alignment="CENTER"
+                style="-fx-padding: 10; -fx-background-radius: 5; -fx-background-color: -color-bg-subtle;">
+                <Label fx:id="lblStatusCiclo" text="Status do Ciclo"
+                    style="-fx-font-weight: bold; -fx-font-size: 14px;" />
+            </VBox>
+
+            <VBox spacing="10"
+                style="-fx-border-color: -color-border-default; -fx-border-radius: 8; -fx-padding: 15;">
+                <Label text="⚖️ Fase 1: Conferência do Consultor (Prazo: Quinta 15:00)"
+                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+
+                <GridPane hgap="15" vgap="15">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50" />
+                        <ColumnConstraints percentWidth="50" />
+                    </columnConstraints>
+
+                    <CheckBox fx:id="cbVerificado" text="Tudo Certo (Conferido)"
+                        style="-fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;"
+                        GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                    <CheckBox fx:id="cbContestada" text="⚠️ Contestar Valores"
+                        style="-fx-font-weight: bold; -fx-text-fill: -color-danger-emphasis;"
+                        GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                    <VBox spacing="5" GridPane.columnSpan="2" GridPane.rowIndex="1">
+                        <Label text="Observações / Motivo da Contestação:" styleClass="text-caption" />
+                        <TextArea fx:id="txtObservacao"
+                            promptText="Descreva se houver alguma divergência..." prefRowCount="2"
+                            wrapText="true"
+                            style="-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;" />
+                    </VBox>
+                </GridPane>
+            </VBox>
+
+            <VBox spacing="10"
+                style="-fx-border-color: -color-success-muted; -fx-border-radius: 8; -fx-padding: 15; -fx-background-color: -color-success-subtle;">
+                <Label text="🏦 Fase 2: Liquidação Poder Financeiro (Sexta-feira)"
+                    style="-fx-font-weight: bold; -fx-text-fill: -color-success-emphasis;" />
+
+                <GridPane hgap="10" vgap="15">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="25" />
+                        <ColumnConstraints percentWidth="25" />
+                        <ColumnConstraints percentWidth="25" />
+                        <ColumnConstraints percentWidth="25" />
+                    </columnConstraints>
+
+                    <VBox spacing="5" GridPane.columnIndex="0">
+                        <Label text="Receb. Banco (4ª)" styleClass="text-caption" />
+                        <DatePicker fx:id="dpRecebimentoBanco" maxWidth="Infinity" />
+                    </VBox>
+
+                    <VBox spacing="5" GridPane.columnIndex="1">
+                        <Label text="Previsão (Sexta)" styleClass="text-caption" />
+                        <DatePicker fx:id="dpPrevisaoPagamento" maxWidth="Infinity" />
+                    </VBox>
+
+                    <VBox spacing="5" GridPane.columnIndex="2">
+                        <Label text="Valor Final Pago" styleClass="text-caption" />
+                        <TextField fx:id="txtValorPagoPoder" promptText="R$ 0,00"
+                            style="-fx-font-weight: bold;" />
+                    </VBox>
+
+                    <VBox spacing="5" GridPane.columnIndex="3">
+                        <Label text="Status Repasse" styleClass="text-caption" />
+                        <ComboBox fx:id="comboStatus" maxWidth="Infinity" />
+                    </VBox>
+                </GridPane>
+            </VBox>
+
+            <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+                <Button text="Cancelar" onAction="#fecharModal" styleClass="flat" />
+                <Button fx:id="btnSalvarConciliacao" text="💾 Salvar e Atualizar"
+                    onAction="#salvarAjuste" styleClass="accent" />
+            </HBox>
+        </VBox>
+    </fx:define>
 
     <VBox spacing="20" style="-fx-padding: 30; -fx-background-color: -color-bg-subtle;">
 
@@ -73,96 +163,4 @@
         </TableView>
     </VBox>
 
-    <VBox fx:id="overlayAjuste" alignment="CENTER" visible="false"
-        style="-fx-background-color: rgba(0, 0, 0, 0.65);">
-
-        <VBox spacing="15" maxWidth="550"
-            style="-fx-background-color: -color-bg-default; -fx-padding: 25; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 15, 0, 0, 0);">
-
-            <HBox alignment="CENTER_LEFT">
-                <Label fx:id="lblTituloModal" text="Conciliação: Nome do Cliente"
-                    styleClass="title-3" HBox.hgrow="ALWAYS" />
-                <Region HBox.hgrow="ALWAYS" />
-                <Label fx:id="lblCicloBadge" text="Ciclo: 2026-W20"
-                    style="-fx-background-color: -color-accent-subtle; -fx-padding: 5 10; -fx-background-radius: 15; -fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;" />
-            </HBox>
-
-            <VBox fx:id="bannerStatusCiclo" alignment="CENTER"
-                style="-fx-padding: 10; -fx-background-radius: 5; -fx-background-color: -color-bg-subtle;">
-                <Label fx:id="lblStatusCiclo" text="Status do Ciclo"
-                    style="-fx-font-weight: bold; -fx-font-size: 14px;" />
-            </VBox>
-
-            <VBox spacing="10"
-                style="-fx-border-color: -color-border-default; -fx-border-radius: 8; -fx-padding: 15;">
-                <Label text="⚖️ Fase 1: Conferência do Consultor (Prazo: Quinta 15:00)"
-                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-
-                <GridPane hgap="15" vgap="15">
-                    <columnConstraints>
-                        <ColumnConstraints percentWidth="50" />
-                        <ColumnConstraints percentWidth="50" />
-                    </columnConstraints>
-
-                    <CheckBox fx:id="cbVerificado" text="Tudo Certo (Conferido)"
-                        style="-fx-font-weight: bold; -fx-text-fill: -color-accent-emphasis;"
-                        GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                    <CheckBox fx:id="cbContestada" text="⚠️ Contestar Valores"
-                        style="-fx-font-weight: bold; -fx-text-fill: -color-danger-emphasis;"
-                        GridPane.columnIndex="1" GridPane.rowIndex="0" />
-
-                    <VBox spacing="5" GridPane.columnSpan="2" GridPane.rowIndex="1">
-                        <Label text="Observações / Motivo da Contestação:" styleClass="text-caption" />
-                        <TextArea fx:id="txtObservacao"
-                            promptText="Descreva se houver alguma divergência de valores ou auditoria automática do sistema..."
-                            prefRowCount="2" wrapText="true"
-                            style="-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;" />
-                    </VBox>
-                </GridPane>
-            </VBox>
-
-            <VBox spacing="10"
-                style="-fx-border-color: -color-success-muted; -fx-border-radius: 8; -fx-padding: 15; -fx-background-color: -color-success-subtle;">
-                <Label text="🏦 Fase 2: Liquidação Poder Financeiro (Sexta-feira)"
-                    style="-fx-font-weight: bold; -fx-text-fill: -color-success-emphasis;" />
-
-                <GridPane hgap="15" vgap="15">
-                    <columnConstraints>
-                        <ColumnConstraints percentWidth="25" />
-                        <ColumnConstraints percentWidth="25" />
-                        <ColumnConstraints percentWidth="25" />
-                        <ColumnConstraints percentWidth="25" />
-                    </columnConstraints>
-
-                    <VBox spacing="5" GridPane.columnIndex="0">
-                        <Label text="Receb. Banco (4ª)" styleClass="text-caption" />
-                        <DatePicker fx:id="dpRecebimentoBanco" maxWidth="Infinity" />
-                    </VBox>
-
-                    <VBox spacing="5" GridPane.columnIndex="1">
-                        <Label text="Previsão (Sexta)" styleClass="text-caption" />
-                        <DatePicker fx:id="dpPrevisaoPagamento" maxWidth="Infinity" />
-                    </VBox>
-
-                    <VBox spacing="5" GridPane.columnIndex="2">
-                        <Label text="Valor Final Pago" styleClass="text-caption" />
-                        <TextField fx:id="txtValorPagoPoder" promptText="R$ 0,00"
-                            style="-fx-font-weight: bold;" />
-                    </VBox>
-
-                    <VBox spacing="5" GridPane.columnIndex="3">
-                        <Label text="Status Repasse" styleClass="text-caption" />
-                        <ComboBox fx:id="comboStatus" maxWidth="Infinity" />
-                    </VBox>
-                </GridPane>
-            </VBox>
-
-            <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
-                <Button text="Cancelar" onAction="#fecharModal" styleClass="flat" />
-                <Button fx:id="btnSalvarConciliacao" text="💾 Salvar e Atualizar"
-                    onAction="#salvarAjuste" styleClass="accent" />
-            </HBox>
-
-        </VBox>
-    </VBox>
 </StackPane>
