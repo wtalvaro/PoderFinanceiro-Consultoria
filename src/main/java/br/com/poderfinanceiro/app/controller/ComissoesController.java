@@ -116,9 +116,20 @@ public class ComissoesController {
 
         // 3. Configurações visuais
         popOverAjuste.setArrowSize(0);
-        popOverAjuste.setDetachable(true);
         popOverAjuste.setTitle("Ajuste de Comissão");
-        popOverAjuste.setCornerRadius(0); // Deixe 0 para alinhar com o design moderno
+        popOverAjuste.setHeaderAlwaysVisible(true);
+        popOverAjuste.setDetachable(true);
+        popOverAjuste.setCornerRadius(0);
+
+        // BLOQUEIO DE INTEGRIDADE FINANCEIRA: Datas são calculadas pelo sistema, não
+        // digitadas.
+        dpRecebimentoBanco.setEditable(false); // Impede de digitar a data
+        dpRecebimentoBanco.setMouseTransparent(true); // Impede de clicar no calendário
+        dpRecebimentoBanco.setFocusTraversable(false); // Impede de chegar lá com a tecla TAB
+
+        dpPrevisaoPagamento.setEditable(false);
+        dpPrevisaoPagamento.setMouseTransparent(true);
+        dpPrevisaoPagamento.setFocusTraversable(false);
     }
 
     private void configurarTabela() {
@@ -215,6 +226,31 @@ public class ComissoesController {
     }
 
     private void configurarBindingsCicloFinanceiro() {
+        // 0. FORÇA O FORMATO BRASILEIRO NOS DATEPICKERS (Evita truncamento ou formatos
+        // do Linux)
+        javafx.util.StringConverter<java.time.LocalDate> conversorData = new javafx.util.StringConverter<>() {
+            java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter
+                    .ofPattern("dd/MM/yyyy");
+
+            @Override
+            public String toString(java.time.LocalDate date) {
+                if (date != null)
+                    return dateFormatter.format(date);
+                return "";
+            }
+
+            @Override
+            public java.time.LocalDate fromString(String string) {
+                if (string != null && !string.isEmpty()) {
+                    return java.time.LocalDate.parse(string, dateFormatter);
+                }
+                return null;
+            }
+        };
+
+        dpRecebimentoBanco.setConverter(conversorData);
+        dpPrevisaoPagamento.setConverter(conversorData);
+        
         // 1. Sincronia de Data (Marco 1 - Quarta): UI (LocalDate) -> ViewModel
         // (LocalDateTime)
         dpRecebimentoBanco.valueProperty().addListener((obs, old, newDate) -> {
@@ -305,8 +341,18 @@ public class ComissoesController {
         }
 
         lblTituloModal.setText("Conciliação: " + comissao.getProposta().getProponente().getNomeCompleto());
-        lblCicloBadge.setText(
-                "Ciclo: " + (comissao.getCicloReferencia() != null ? comissao.getCicloReferencia() : "Legado"));
+        
+        // ✅ Pela Lógica de Resgate:
+        String cicloBadge = comissao.getCicloReferencia();
+
+        // Se estiver nulo no banco, mas tiver a data de recebimento, calculamos na
+        // hora!
+        if (cicloBadge == null && comissao.getDataRecebimentoBanco() != null) {
+            cicloBadge = br.com.poderfinanceiro.app.utils.CicloFinanceiroUtils
+                    .identificarCiclo(comissao.getDataRecebimentoBanco());
+        }
+
+        lblCicloBadge.setText("Ciclo: " + (cicloBadge != null ? cicloBadge : "Legado"));
 
         atualizarEstadoInterfaceCiclo(comissao);
 

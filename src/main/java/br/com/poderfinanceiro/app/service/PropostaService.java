@@ -128,7 +128,11 @@ public class PropostaService {
             comissao.setPrevisaoPagamento(
                     CicloFinanceiroUtils.calcularSextaDePagamento(agora).toLocalDate());
 
-            comissao.setStatusPagamento("Pago");
+            comissao.setCicloReferencia(CicloFinanceiroUtils.identificarCiclo(agora));
+            comissao.setDataLimiteContestacao(CicloFinanceiroUtils.calcularLimiteContestacao(agora));
+
+            // ✅ A CORREÇÃO: A comissão nasce "Pendente" aguardando o ciclo correr
+            comissao.setStatusPagamento("Pendente");
             proposta.setValorFinalCliente(proposta.getValorAprovado());
 
             comissaoRepository.save(comissao);
