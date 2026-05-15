@@ -13,7 +13,7 @@
 
     <Separator />
 
-    <Button text="📊 Dashboard" onAction="#abrirWorkspace" styleClass="flat" />
+    <Button text="📊 Visão Geral" onAction="#abrirWorkspace" styleClass="flat" />
     <Button text="📖 Playbook" onAction="#abrirPlaybook" styleClass="flat" />
     <Button text="👥 Clientes" onAction="#abrirTelaBaseClientes" styleClass="flat" />
     <Button text="📄 Propostas" onAction="#abrirPropostasList" styleClass="flat" />

@@ -21,7 +21,7 @@ public class MenuController {
 
     @FXML
     private void handlePlaybook() {
-        mainController.focarAbaPlaybook();
+        mainController.abrirPlaybook();;
     }
 
     @FXML

@@ -8,18 +8,4 @@
     fx:controller="br.com.poderfinanceiro.app.controller.WorkspaceController"
     styleClass="classic, workspace-container">
 
-    <!-- ABA 0: VISÃO GERAL (FIXA) -->
-    <Tab text="📊 Visão Geral" closable="false">
-        <fx:include source="dashboard.fxml" />
-    </Tab>
-
-    <!-- ABA 1: PLAYBOOK (FIXA) -->
-    <Tab text="📖 Playbook de Vendas" closable="false">
-        <fx:include source="playbook.fxml" />
-    </Tab>
-
-    <!-- ABA 2: GESTÃO DE CARTEIRA (FIXA) -->
-    <Tab text="👥 Base de Contatos" closable="false">
-        <fx:include source="clientes_list.fxml" />
-    </Tab>
 </TabPane>

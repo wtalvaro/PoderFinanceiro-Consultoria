@@ -25,6 +25,15 @@ import java.util.List;
 @Component
 public class DashboardController {
 
+    private final String[] FRASES_MOTIVACIONAIS = {
+            "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+            "Bons negócios não caem do céu, são construídos. Ótimo dia de vendas!",
+            "Cada 'não' te deixa mais perto do próximo 'sim'. Vamos em frente!",
+            "Consultoria de excelência gera clientes para a vida toda.",
+            "Acredite no seu potencial. O fechamento perfeito começa agora!",
+            "O único lugar onde o sucesso vem antes do trabalho é no dicionário."
+    };
+
     private final PropostaRepository propostaRepository;
     private final ComissaoRepository comissaoRepository;
     private final MainController mainController;
@@ -210,17 +219,27 @@ public class DashboardController {
         };
 
         taskBusca.setOnSucceeded(event -> {
+            // 1. Atualiza os dados por trás dos panos (o usuário ainda não está vendo)
             ResultadoDashboard res = taskBusca.getValue();
             masterData.setAll(res.propostas());
 
             lblQtdAguardando.setText(String.valueOf(res.qtdAguardando()));
             lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(res.volumeAprovado()));
-
-            // ✅ Atualiza os novos componentes
             lblComissaoPendente.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPendente()));
             lblComissaoPaga.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPaga()));
 
-            mainController.ocultarLoading();
+            // 2. Sorteia uma frase motivacional
+            int indiceSorteado = new java.util.Random().nextInt(FRASES_MOTIVACIONAIS.length);
+            String fraseMotivacional = "💡 " + FRASES_MOTIVACIONAIS[indiceSorteado];
+
+            // 3. Muda o texto do Loading atual para a frase
+            mainController.mostrarLoading(fraseMotivacional);
+
+            // 4. Cria o "Delay Artificial" de 2.5 segundos antes de liberar a tela
+            javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.seconds(3.5));
+            delay.setOnFinished(e -> mainController.ocultarLoading());
+            delay.play();
         });
 
         taskBusca.setOnFailed(event -> {

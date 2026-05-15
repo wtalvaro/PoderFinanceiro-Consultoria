@@ -139,16 +139,16 @@ public class MainController {
     // MÉTODOS PÚBLICOS (As Ordens Diretas)
     // ========================================================================
 
-    public void focarAbaDashboard() {
-        executarNoWorkspace(ws -> ws.focarAbaFixa(0));
+    public void abrirDashboard() {
+        executarNoWorkspace(ws -> ws.abrirAbaDashboard());
     }
 
-    public void focarAbaPlaybook() {
-        executarNoWorkspace(ws -> ws.focarAbaFixa(1));
+    public void abrirPlaybook() {
+        executarNoWorkspace(ws -> ws.abrirAbaPlaybook());
     }
 
-    public void focarAbaClientes() {
-        executarNoWorkspace(ws -> ws.focarAbaFixa(2));
+    public void abrirClientes() {
+        executarNoWorkspace(ws -> ws.abrirAbaClientes());
     }
 
     public void abrirClienteNoWorkspace(ProponenteModel proponente) {

@@ -66,8 +66,11 @@
 
                      <ProgressIndicator style="-fx-progress-color: -color-accent-fg;" />
 
-                     <Label fx:id="lblLoadingTexto" text="Buscando prontuários..."
-                            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555;" />
+                     <Label fx:id="lblLoadingTexto"
+                            wrapText="true"
+                            textAlignment="CENTER"
+                            style="-fx-font-size: 14px; -fx-text-fill: -color-fg-default;" />
+                            
               </VBox>
        </VBox>
 </StackPane>

@@ -30,17 +30,17 @@ public class ToolbarController {
 
     @FXML
     private void abrirWorkspace() {
-        mainController.focarAbaDashboard();;
+        mainController.abrirDashboard();
     }
 
     @FXML
     private void abrirPlaybook() {
-        mainController.focarAbaPlaybook();;
+        mainController.abrirPlaybook();
     }
 
     @FXML
     private void abrirTelaBaseClientes() {
-        mainController.focarAbaClientes();;
+        mainController.abrirClientes();
     }
 
     @FXML

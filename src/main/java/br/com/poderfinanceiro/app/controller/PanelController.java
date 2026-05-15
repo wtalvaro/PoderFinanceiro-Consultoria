@@ -73,19 +73,19 @@ public class PanelController {
     @FXML
     private void abrirWorkspace() {
         destacarBotaoAtivo(btnDashboard);
-        mainController.focarAbaDashboard();
+        mainController.abrirDashboard();;
     }
 
     @FXML
     private void abrirPlaybook() {
         destacarBotaoAtivo(btnPlaybook);
-        mainController.focarAbaPlaybook();
+        mainController.abrirPlaybook();;
     }
 
     @FXML
     private void abrirTelaBaseClientes() {
         destacarBotaoAtivo(btnBaseClientes);
-        mainController.focarAbaClientes();
+        mainController.abrirClientes();;
     }
 
     @FXML

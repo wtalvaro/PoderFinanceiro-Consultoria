@@ -71,15 +71,17 @@ public class WorkspaceController {
     // MÉTODOS PÚBLICOS (Ordens de Serviço)
     // ========================================================================
 
-    public void focarAbaFixa(int index) {
-        if (tabPanePrincipal != null && index >= 0 && index < tabPanePrincipal.getTabs().size()) {
+    public void abrirAbaDashboard() {
+        admitirAbaSimples("ABA_DASHBOARD", "📊 Visão Geral", "/fxml/dashboard.fxml");
+    }
 
-            // 💉 O "Desfibrilador": Empurra a ação para o final da fila de renderização
-            javafx.application.Platform.runLater(() -> {
-                tabPanePrincipal.getSelectionModel().select(index);
-            });
+    public void abrirAbaPlaybook() {
+        admitirAbaSimples("ABA_PLAYBOOK", "📚 Playbook", "/fxml/playbook.fxml");
+    }
 
-        }
+    public void abrirAbaClientes() {
+        // Confirme se o caminho do seu FXML de clientes é este mesmo:
+        admitirAbaSimples("ABA_CLIENTES", "👥 Clientes", "/fxml/clientes_list.fxml");
     }
 
     public void abrirAbaLinks() {
