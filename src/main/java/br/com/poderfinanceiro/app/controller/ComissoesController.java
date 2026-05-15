@@ -16,6 +16,7 @@ import javafx.scene.paint.Color;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -65,6 +66,20 @@ public class ComissoesController {
     private TableColumn<ComissaoModel, String> colRecebBanco;
     @FXML
     private TableColumn<ComissaoModel, String> colVlrPago;
+
+    @FXML
+    private Label lblStatusCiclo; // Um Label de destaque no topo do modal de ajuste
+    @FXML
+    private Button btnSalvarAjuste;
+
+    @FXML
+    private Label lblCicloBadge;
+    @FXML
+    private VBox bannerStatusCiclo;
+    @FXML
+    private TextArea txtObservacao;
+    @FXML
+    private Button btnSalvarConciliacao;
 
     private final ObservableList<ComissaoModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -212,6 +227,8 @@ public class ComissoesController {
                         }
                     }
                 });
+
+        txtObservacao.textProperty().bindBidirectional(viewModel.observacaoAjusteProperty());
     }
 
     /**
@@ -254,29 +271,73 @@ public class ComissoesController {
     }
 
     private void prepararAjuste(ComissaoModel comissao) {
-        // 1. Carrega os dados no ViewModel (Garante que o ID e valores brutos fiquem
-        // prontos)
         viewModel.loadFromModel(comissao);
 
-        // 2. Sincronização Manual (Initial UI Setup)
-        // Converte LocalDateTime (Banco) para LocalDate (UI)
+        // 1. Sincronização de Datas para a UI
         if (comissao.getDataRecebimentoBanco() != null) {
             dpRecebimentoBanco.setValue(comissao.getDataRecebimentoBanco().toLocalDate());
-        } else {
-            dpRecebimentoBanco.setValue(null);
         }
-
-        // Previsão de Pagamento (LocalDate para LocalDate)
         if (comissao.getPrevisaoPagamento() != null) {
             dpPrevisaoPagamento.setValue(comissao.getPrevisaoPagamento());
-        } else {
-            dpPrevisaoPagamento.setValue(null);
         }
 
         lblTituloModal.setText("Conciliação: " + comissao.getProposta().getProponente().getNomeCompleto());
+        lblCicloBadge.setText(
+                "Ciclo: " + (comissao.getCicloReferencia() != null ? comissao.getCicloReferencia() : "Legado"));
 
-        // 3. Exibe o Overlay (State Transition)
+        atualizarEstadoInterfaceCiclo(comissao);
         overlayAjuste.setVisible(true);
+    }
+
+    private void atualizarEstadoInterfaceCiclo(ComissaoModel comissao) {
+        LocalDateTime agora = LocalDateTime.now();
+        boolean jaLiquidado = "Pago".equalsIgnoreCase(comissao.getStatusPagamento())
+                || "Liquidado".equalsIgnoreCase(comissao.getStatusPagamento());
+
+        boolean prazoContestacaoExpirado = false;
+        if (comissao.getDataLimiteContestacao() != null) {
+            prazoContestacaoExpirado = agora.isAfter(comissao.getDataLimiteContestacao());
+        }
+
+        if (jaLiquidado) {
+            configurarSemoforo("✅ CICLO LIQUIDADO: Registro imutável e Arquivado.", "-color-success-subtle",
+                    "-color-success-emphasis", true, true);
+        } else if (prazoContestacaoExpirado) {
+            configurarSemoforo("🟡 AGUARDANDO LIQUIDAÇÃO: O prazo de contestação do consultor expirou.",
+                    "-color-warning-subtle", "-color-warning-emphasis", true, false);
+        } else {
+            configurarSemoforo("🔵 CICLO ABERTO: Conferência do consultor disponível até Quinta às 15:00.",
+                    "-color-accent-subtle", "-color-accent-emphasis", false, false);
+        }
+    }
+
+    // Método utilitário para controlar o layout de forma limpa
+    private void configurarSemoforo(String texto, String corFundo, String corTexto, boolean travarConsultor,
+            boolean travarTudo) {
+        lblStatusCiclo.setText(texto);
+        bannerStatusCiclo
+                .setStyle("-fx-background-color: " + corFundo + "; -fx-padding: 10; -fx-background-radius: 5;");
+        lblStatusCiclo.setStyle("-fx-text-fill: " + corTexto + "; -fx-font-weight: bold;");
+
+        // Trava de Quinta-feira (Fase 1)
+        if (cbVerificado != null)
+            cbVerificado.setDisable(travarConsultor);
+        if (cbContestada != null)
+            cbContestada.setDisable(travarConsultor);
+
+        // Trava de Sexta-feira (Fase 2)
+        if (txtValorPagoPoder != null)
+            txtValorPagoPoder.setDisable(travarTudo);
+        if (comboStatus != null)
+            comboStatus.setDisable(travarTudo);
+        if (dpPrevisaoPagamento != null)
+            dpPrevisaoPagamento.setDisable(travarTudo);
+        if (dpRecebimentoBanco != null)
+            dpRecebimentoBanco.setDisable(travarTudo); // <- ADICIONE ESTA LINHA
+        if (txtObservacao != null)
+            txtObservacao.setDisable(travarTudo);
+        if (btnSalvarConciliacao != null)
+            btnSalvarConciliacao.setDisable(travarTudo);
     }
 
     @FXML

@@ -9,12 +9,13 @@ import br.com.poderfinanceiro.app.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.repository.DocumentoProponenteRepository;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.repository.TabelaJurosRepository;
+import br.com.poderfinanceiro.app.utils.CicloFinanceiroUtils;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -103,25 +104,29 @@ public class PropostaService {
     /**
      * SRP: Gerencia o Ciclo de Pagamento (Quarta/Quinta/Sexta).
      */
+    /**
+     * SRP: Gerencia o Ciclo de Pagamento (Quarta/Quinta/Sexta).
+     */
     private void processarCicloPagamento(PropostaModel proposta) {
-        // 🚀 Correção de Performance: Busca direta por PropostaID em vez de stream no
-        // findAll()
         ComissaoModel comissao = comissaoRepository.findByPropostaId(proposta.getId())
                 .stream().findFirst().orElse(new ComissaoModel());
 
         if (proposta.getComissaoEstimada() != null && proposta.getComissaoEstimada().compareTo(BigDecimal.ZERO) > 0) {
+            LocalDateTime agora = LocalDateTime.now(); // Ponto de referência único
+
             comissao.setProposta(proposta);
             comissao.setUsuario(proposta.getUsuario());
             comissao.setValorBrutoComissao(proposta.getComissaoEstimada());
             comissao.setValorLiquidoConsultor(proposta.getComissaoEstimada());
 
-            // --- INÍCIO DO CICLO ---
+            // --- CALIBRAÇÃO DO CICLO ---
 
-            // Marco 1: Recebimento do Banco (Ocorre hoje, Quarta-feira do sistema)
-            comissao.setDataRecebimentoBanco(LocalDateTime.now());
+            // ✅ CORREÇÃO: Em vez de .now(), pegamos a Quarta de Fechamento do Ciclo
+            comissao.setDataRecebimentoBanco(CicloFinanceiroUtils.obterQuartaDeFechamento(agora));
 
-            // Marco 3: Previsão de Pagamento ao Consultor (Sexta-feira seguinte)
-            comissao.setPrevisaoPagamento(LocalDate.now().plusDays(2));
+            // Marco 3: Previsão de Pagamento (Sexta-feira seguinte à quarta de fechamento)
+            comissao.setPrevisaoPagamento(
+                    CicloFinanceiroUtils.calcularSextaDePagamento(agora).toLocalDate());
 
             comissao.setStatusPagamento("Pago");
             proposta.setValorFinalCliente(proposta.getValorAprovado());

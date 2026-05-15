@@ -247,4 +247,5 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
     public StringProperty observacaoAjusteProperty() {
         return observacaoAjuste;
     }
+
 }
