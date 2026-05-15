@@ -13,7 +13,7 @@
   <stayAlive>false</stayAlive>
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>
-  <icon>/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/src/main/resources/icons/app.png</icon>
+  <icon>/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/src/main/resources/icons/app.ico</icon>
   <jre>
     <path>%JAVA_HOME%;%PATH%</path>
     <requiresJdk>false</requiresJdk>
