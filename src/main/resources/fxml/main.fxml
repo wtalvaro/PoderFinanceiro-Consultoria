@@ -17,15 +17,6 @@
                      </VBox>
               </top>
 
-              <!-- SIDEBAR LEFT -->
-              <left>
-                     <!-- Adicionado maxHeight para garantir que a área da esquerda ocupe tudo -->
-                     <VBox fx:id="sideBar" maxHeight="1.7976931348623157E308">
-                            <!-- VBox.vgrow="ALWAYS" empurra o painel até o rodapé -->
-                            <fx:include source="panel.fxml" VBox.vgrow="ALWAYS" />
-                     </VBox>
-              </left>
-
               <!-- MAIN CONTENT: A ÁREA DE INJEÇÃO VAZIA -->
               <center>
                      <StackPane fx:id="contentArea" minHeight="0" />

@@ -1,37 +1,85 @@
 package br.com.poderfinanceiro.app.controller;
 
-import javafx.application.Platform;
-import javafx.fxml.FXML;
 import org.springframework.stereotype.Component;
+import javafx.fxml.FXML;
+import javafx.application.Platform;
 
 @Component
 public class MenuController {
 
     private final MainController mainController;
 
-    // Injeta o MainController via construtor
     public MenuController(MainController mainController) {
         this.mainController = mainController;
     }
 
+    // --- GRUPO: PODER FINANCEIRO ---
+    @FXML
+    private void handleDashboard() {
+        mainController.abrirDashboard();
+    }
+
     @FXML
     private void handleNovoContato() {
-        mainController.irParaNovoContato(); // Agora criará uma aba Hub "Novo Atendimento"
+        mainController.irParaNovoContato();
     }
 
+    @FXML
+    private void handleLogout() {
+        mainController.mostrarOverlaySair();
+    }
+
+    @FXML
+    private void handleSair() {
+        Platform.exit();
+        System.exit(0);
+    }
+
+    // --- GRUPO: OPERACIONAL ---
+    @FXML
+    private void handleClientes() {
+        mainController.abrirClientes();
+    }
+
+    @FXML
+    private void handlePropostas() {
+        mainController.irParaPropostas();
+    }
+
+    @FXML
+    private void handlePendencias() {
+        mainController.irParaPendencias();
+    }
+
+    // --- GRUPO: FINANCEIRO ---
+    @FXML
+    private void handleComissoes() {
+        mainController.irParaTabelaComissoes();
+    }
+
+    @FXML
+    private void handleJuros() {
+        mainController.irParaTabelasJuros();
+    }
+
+    // --- GRUPO: FERRAMENTAS ---
     @FXML
     private void handlePlaybook() {
-        mainController.abrirPlaybook();;
+        mainController.abrirPlaybook();
+    }
+    
+    @FXML
+    private void handleBancos() {
+        mainController.irParaBancosConvenios();
     }
 
     @FXML
-    private void handleLinksUteis() {
+    private void handleLinks() {
         mainController.irParaLinksUteis();
     }
 
     @FXML
-    private void handleMenuSair() {
-        Platform.exit();
-        System.exit(0);
+    private void handleLimparCache() {
+        mainController.limparCacheDeTelas();
     }
 }

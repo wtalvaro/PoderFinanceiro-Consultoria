@@ -25,8 +25,6 @@ public class MainController {
     @FXML
     private VBox topBar;
     @FXML
-    private VBox sideBar;
-    @FXML
     private StackPane bottomBar;
     @FXML
     private VBox overlaySair;
@@ -88,8 +86,7 @@ public class MainController {
 
             topBar.setVisible(mostrarEstrutura);
             topBar.setManaged(mostrarEstrutura);
-            sideBar.setVisible(mostrarEstrutura);
-            sideBar.setManaged(mostrarEstrutura);
+            
             bottomBar.setVisible(mostrarEstrutura);
             bottomBar.setManaged(mostrarEstrutura);
 

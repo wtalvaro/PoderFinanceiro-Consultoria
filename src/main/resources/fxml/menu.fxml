@@ -1,36 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
 
 <MenuBar xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.MenuController">
-    <menus>
-        <Menu text="_Arquivo">
-            <items>
-                <MenuItem text="Novo Contato..." accelerator="Ctrl+N" onAction="#handleNovoContato" />
-                <SeparatorMenuItem />
-                <MenuItem text="Sincronizar Matriz de Taxas" />
-                <SeparatorMenuItem />
-                <MenuItem text="Sair" accelerator="Ctrl+Q" onAction="#handleMenuSair" />
-            </items>
-        </Menu>
-        <Menu text="_Operacional">
-            <items>
-                <MenuItem text="Esteira de Digitação (Bancos)" />
-                <SeparatorMenuItem />
-                <MenuItem text="Playbook de Vendas" accelerator="Ctrl+P" onAction="#handlePlaybook" />
-                <MenuItem text="Links Úteis" accelerator="Ctrl+L" onAction="#handleLinksUteis" />
-            </items>
-        </Menu>
-        <Menu text="_Financeiro">
-            <items>
-                <MenuItem text="Controle de Comissões (RV)" />
-            </items>
-        </Menu>
-        <Menu text="Siste_ma">
-            <items>
-                <MenuItem text="Backup do Banco de Dados" />
-            </items>
-        </Menu>
-    </menus>
+
+    <Menu text="_Poder Financeiro">
+        <MenuItem text="📊 Visão Geral" onAction="#handleDashboard" accelerator="Shortcut+D" />
+        <MenuItem text="👤 Novo Contato" onAction="#handleNovoContato" accelerator="Shortcut+N" />
+        <SeparatorMenuItem />
+        <MenuItem text="🚪 Encerrar Sessão (Logout)" onAction="#handleLogout" />
+        <MenuItem text="❌ Sair do Sistema" onAction="#handleSair" />
+    </Menu>
+
+    <Menu text="_Operacional">
+        <MenuItem text="👥 Gestão de Clientes" onAction="#handleClientes" accelerator="Shortcut+G" />
+        <MenuItem text="📄 Esteira de Propostas" onAction="#handlePropostas"
+            accelerator="Shortcut+P" />
+        <MenuItem text="🚨 Pendências Críticas" onAction="#handlePendencias" />
+    </Menu>
+
+    <Menu text="_Financeiro">
+        <MenuItem text="💰 Comissões (RV)" onAction="#handleComissoes" accelerator="Shortcut+F" />
+        <MenuItem text="📈 Tabelas de Juros" onAction="#handleJuros" accelerator="Shortcut+J" />
+    </Menu>
+
+    <Menu text="_Ferramentas">
+        <MenuItem text="📚 Playbook de Vendas" onAction="#handlePlaybook" accelerator="Shortcut+B" />
+        <SeparatorMenuItem />
+        <MenuItem text="🏦 Bancos &amp; Convênios" onAction="#handleBancos" />
+        <MenuItem text="🔗 Links Úteis" onAction="#handleLinks" accelerator="Shortcut+L" />
+        <SeparatorMenuItem />
+        <MenuItem text="🔄 Limpar Cache de Telas" onAction="#handleLimparCache" />
+    </Menu>
 </MenuBar>
