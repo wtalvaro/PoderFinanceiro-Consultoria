@@ -123,7 +123,8 @@ public class DashboardController {
                 btnAbrir.setOnAction(event -> {
                     PropostaModel proposta = getTableView().getItems().get(getIndex());
                     if (proposta != null && proposta.getProponente() != null) {
-                        mainController.abrirClienteNoWorkspace(proposta.getProponente());
+                        // 🚀 A CURA: Agora usa o novo método que envia a Proposta completa!
+                        mainController.abrirPropostaNoWorkspace(proposta);
                     }
                 });
             }

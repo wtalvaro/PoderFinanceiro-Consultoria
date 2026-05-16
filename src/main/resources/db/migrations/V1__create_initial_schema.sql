@@ -202,6 +202,7 @@ CREATE TABLE public.propostas (
     usuario_id bigint NOT NULL,
     convenio_orgao public.tipo_convenio_enum DEFAULT 'PADRAO'::public.tipo_convenio_enum,
     valor_solicitado numeric(12,2) NOT NULL,
+    prazo_desejado integer,
     valor_aprovado numeric(12,2),
     taxa_aplicada numeric(5,2),
     quantidade_parcelas integer,

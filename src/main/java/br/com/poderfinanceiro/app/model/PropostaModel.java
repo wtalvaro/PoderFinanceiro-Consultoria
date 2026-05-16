@@ -46,6 +46,9 @@ public class PropostaModel {
     @Column(name = "valor_solicitado", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorSolicitado;
 
+    @Column(name = "prazo_desejado")
+    private Integer prazoDesejado;
+    
     @Column(name = "valor_aprovado", precision = 12, scale = 2)
     private BigDecimal valorAprovado;
 

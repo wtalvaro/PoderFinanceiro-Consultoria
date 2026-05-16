@@ -27,6 +27,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     private final ObjectProperty<TipoConvenioModel> convenio = new SimpleObjectProperty<>(TipoConvenioModel.PADRAO);
     private final ObjectProperty<BigDecimal> valorSolicitado = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> valorAprovado = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final ObjectProperty<Integer> prazoDesejado = new SimpleObjectProperty<>(null);
     private final ObjectProperty<BigDecimal> taxaAplicada = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<Integer> quantidadeParcelas = new SimpleObjectProperty<>(1);
 
@@ -47,6 +48,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
             TipoConvenioModel.PADRAO);
     private final ReadOnlyObjectWrapper<BigDecimal> valorSolicitadoOriginal = new ReadOnlyObjectWrapper<>(
             BigDecimal.ZERO);
+    private final ReadOnlyObjectWrapper<Integer> prazoDesejadoOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<BigDecimal> valorAprovadoOriginal = new ReadOnlyObjectWrapper<>(
             BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<StatusPropostaModel> statusOriginal = new ReadOnlyObjectWrapper<>(
@@ -56,9 +58,6 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     private final ReadOnlyObjectWrapper<Integer> quantidadeParcelasOriginal = new ReadOnlyObjectWrapper<>(1);
     private final ReadOnlyObjectWrapper<BigDecimal> valorParcelaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> taxaAplicadaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
-
-    // --- CAMPO FANTASMA PARA TRIAGEM (Não vai para o Banco de Dados) ---
-    private final ObjectProperty<Integer> prazoDesejado = new SimpleObjectProperty<>(null);
 
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO
@@ -85,6 +84,9 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         comissaoEstimada.set(model.getComissaoEstimada() != null ? model.getComissaoEstimada() : BigDecimal.ZERO);
         observacoes.set(model.getObservacoes() != null ? model.getObservacoes() : "");
         dataSolicitacao.set(model.getDataSolicitacao());
+
+        // 🚀 AQUI: Carrega o prazo desejado do banco
+        prazoDesejado.set(model.getPrazoDesejado());
     }
 
     @Override
@@ -103,6 +105,9 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         comissaoEstimada.set(BigDecimal.ZERO);
         observacoes.set("");
         dataSolicitacao.set(null);
+
+        // 🚀 AQUI: Limpa o prazo desejado
+        prazoDesejado.set(null);
     }
 
     @Override
@@ -118,6 +123,9 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         this.quantidadeParcelasOriginal.set(quantidadeParcelas.get());
         this.valorParcelaOriginal.set(valorParcela.get());
         this.taxaAplicadaOriginal.set(taxaAplicada.get());
+
+        // 🚀 AQUI: Sincroniza o prazo desejado original
+        this.prazoDesejadoOriginal.set(prazoDesejado.get());
     }
 
     @Override
@@ -132,7 +140,58 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
                 !Objects.equals(observacoes.get(), observacoesOriginal.get()) ||
                 !Objects.equals(quantidadeParcelas.get(), quantidadeParcelasOriginal.get()) ||
                 compareBigDecimal(valorParcela.get(), valorParcelaOriginal.get()) ||
-                compareBigDecimal(taxaAplicada.get(), taxaAplicadaOriginal.get());
+                compareBigDecimal(taxaAplicada.get(), taxaAplicadaOriginal.get()) ||
+                // 🚀 AQUI: Compara se o prazo desejado foi alterado na tela
+                !Objects.equals(prazoDesejado.get(), prazoDesejadoOriginal.get());
+    }
+
+    @Override
+    public PropostaModel atualizarModel(PropostaModel model) {
+        if (model == null) {
+            model = new PropostaModel();
+        }
+        model.setId(this.id.get());
+        model.setProponente(this.proponente.get());
+        model.setBanco(this.banco.get());
+        model.setUsuario(this.usuario.get());
+        model.setConvenioOrgao(this.convenio.get());
+        model.setValorSolicitado(this.valorSolicitado.get());
+        model.setValorAprovado(this.valorAprovado.get());
+        model.setTaxaAplicada(this.taxaAplicada.get());
+        model.setQuantidadeParcelas(this.quantidadeParcelas.get());
+        model.setStatus(this.status.get());
+        model.setValorParcela(this.valorParcela.get());
+        model.setTabelaId(this.tabelaId.get());
+        model.setComissaoEstimada(this.comissaoEstimada.get());
+        model.setObservacoes(this.observacoes.get());
+        model.setDataSolicitacao(this.dataSolicitacao.get());
+
+        // 🚀 AQUI: Salva o dado da UI no model para ir pro banco
+        model.setPrazoDesejado(this.prazoDesejado.get());
+
+        return model;
+    }
+
+    @Override
+    protected Observable[] getObservaveisParaDirty() {
+        return new Observable[] {
+                proponente, banco, convenio, valorSolicitado, valorAprovado, status, tabelaId, observacoes,
+                quantidadeParcelas, valorParcela, taxaAplicada,
+                prazoDesejado, // 🚀 Adicionado
+
+                proponenteOriginal.getReadOnlyProperty(),
+                bancoOriginal.getReadOnlyProperty(),
+                convenioOriginal.getReadOnlyProperty(),
+                valorSolicitadoOriginal.getReadOnlyProperty(),
+                valorAprovadoOriginal.getReadOnlyProperty(),
+                statusOriginal.getReadOnlyProperty(),
+                tabelaIdOriginal.getReadOnlyProperty(),
+                observacoesOriginal.getReadOnlyProperty(),
+                quantidadeParcelasOriginal.getReadOnlyProperty(),
+                valorParcelaOriginal.getReadOnlyProperty(),
+                taxaAplicadaOriginal.getReadOnlyProperty(),
+                prazoDesejadoOriginal.getReadOnlyProperty() // 🚀 Adicionado
+        };
     }
 
     private boolean isBancoIgual(BancoModel b1, BancoModel b2) {
@@ -159,52 +218,6 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         if (val1 == null || val2 == null)
             return true;
         return val1.compareTo(val2) != 0;
-    }
-
-    @Override
-    public PropostaModel atualizarModel(PropostaModel model) {
-        if (model == null) {
-            model = new PropostaModel();
-        }
-        model.setId(this.id.get());
-        model.setProponente(this.proponente.get());
-        model.setBanco(this.banco.get());
-        model.setUsuario(this.usuario.get());
-        model.setConvenioOrgao(this.convenio.get());
-        model.setValorSolicitado(this.valorSolicitado.get());
-        model.setValorAprovado(this.valorAprovado.get());
-        model.setTaxaAplicada(this.taxaAplicada.get());
-        model.setQuantidadeParcelas(this.quantidadeParcelas.get());
-        model.setStatus(this.status.get());
-        model.setValorParcela(this.valorParcela.get());
-        model.setTabelaId(this.tabelaId.get());
-        model.setComissaoEstimada(this.comissaoEstimada.get());
-        model.setObservacoes(this.observacoes.get());
-        model.setDataSolicitacao(this.dataSolicitacao.get());
-
-        return model;
-    }
-
-    @Override
-    protected Observable[] getObservaveisParaDirty() {
-        return new Observable[] {
-                // AQUI ESTAVA FALTANDO OS 3 CAMPOS ATIVOS:
-                proponente, banco, convenio, valorSolicitado, valorAprovado, status, tabelaId, observacoes,
-                quantidadeParcelas, valorParcela, taxaAplicada,
-
-                // OS ORIGINAIS (Que você colocou certinho):
-                proponenteOriginal.getReadOnlyProperty(),
-                bancoOriginal.getReadOnlyProperty(),
-                convenioOriginal.getReadOnlyProperty(),
-                valorSolicitadoOriginal.getReadOnlyProperty(),
-                valorAprovadoOriginal.getReadOnlyProperty(),
-                statusOriginal.getReadOnlyProperty(),
-                tabelaIdOriginal.getReadOnlyProperty(),
-                observacoesOriginal.getReadOnlyProperty(),
-                quantidadeParcelasOriginal.getReadOnlyProperty(),
-                valorParcelaOriginal.getReadOnlyProperty(),
-                taxaAplicadaOriginal.getReadOnlyProperty()
-        };
     }
 
     // ==========================================================
