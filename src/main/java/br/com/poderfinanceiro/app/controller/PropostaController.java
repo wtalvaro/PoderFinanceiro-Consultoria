@@ -163,7 +163,7 @@ public class PropostaController {
         cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
 
         // --- CONFIGURAÇÃO DO PRAZO (SPINNER) ---
-        spinPrazo.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 0));
+        spinPrazo.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 1));
         spinPrazo.setEditable(true); // Permite digitação livre
 
         // "Hack" nativo de UX do JavaFX:
@@ -220,11 +220,8 @@ public class PropostaController {
             } else {
                 isUpdatingInterface = true; // 🛡️ LIGA ANESTESIA PARA LIMPAR A TELA ("Nova Simulação")
                 try {
-                    cbConvenio.setValue(null);
                     cbBanco.getItems().clear();
                     cbTabela.getItems().clear();
-                    cbBanco.setValue(null);
-                    cbTabela.setValue(null);
                     dispararCalculo();
 
                     // 🩹 A CURA: Usamos o Platform.runLater para garantir que o
@@ -309,6 +306,105 @@ public class PropostaController {
             if (!isUpdatingInterface)
                 dispararCalculo();
         });
+
+        // 🚀 NOVO GATILHO: Dispara nova triagem instantânea caso o consultor altere o
+        // prazo
+        viewModel.quantidadeParcelasProperty().addListener((obs, old, val) -> {
+            if (!isUpdatingInterface)
+                realizarTriagem();
+        });
+    }
+
+    private void realizarTriagem() {
+        TipoConvenioModel convenio = (cbConvenio != null) ? cbConvenio.getValue() : null;
+        BigDecimal valorSolicitado = viewModel.valorSolicitadoProperty().get();
+        Integer prazo = viewModel.quantidadeParcelasProperty().get();
+
+        // 🚀 Busca dados do paciente (Proponente) para cruzar com as regras de Renda e
+        // Idade
+        var proponente = viewModel.proponenteProperty().get();
+        BigDecimal rendaProponente = (proponente != null && proponente.getRendaMensal() != null) ? proponente.getRendaMensal()
+                : BigDecimal.ZERO;
+
+        // 🩹 CURATIVO: Declaração única (efetivamente final) para permitir o uso dentro
+        // do Lambda do Stream
+        final int idadeProponente = (proponente != null && proponente.getDataNascimento() != null)
+                ? java.time.Period.between(proponente.getDataNascimento(), java.time.LocalDate.now()).getYears()
+                : 0;
+
+        if (convenio == null || valorSolicitado == null || valorSolicitado.compareTo(BigDecimal.ZERO) <= 0) {
+            cbBanco.getItems().clear();
+            cbTabela.getItems().clear();
+            tabelasElegiveisDaTriagem = null;
+            return;
+        }
+
+        // 1. Filtra as Tabelas Elegíveis com regras robustas (Lidando com nulos e
+        // flexibilidades)
+        tabelasElegiveisDaTriagem = todasTabelasAtivas.stream()
+                // Regra 1: Convênio exato
+                .filter(t -> t.getTipoConvenio() == convenio)
+
+                // Regra 2: Enquadramento de Valor Solicitado
+                .filter(t -> {
+                    BigDecimal min = t.getValorMinimoEmprestimo() != null ? t.getValorMinimoEmprestimo()
+                            : BigDecimal.ZERO;
+                    return valorSolicitado.compareTo(min) >= 0;
+                })
+                .filter(t -> t.getValorMaximoEmprestimo() == null
+                        || t.getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) <= 0
+                        || valorSolicitado.compareTo(t.getValorMaximoEmprestimo()) <= 0)
+
+                // 🚀 Regra 3: Enquadramento de Prazo (se o consultor já digitou um prazo na UI)
+                .filter(t -> {
+                    if (prazo == null || prazo <= 0)
+                        return true; // Passa direto se a UI estiver vazia
+                    int minPrazo = t.getPrazoMinimo() != null ? t.getPrazoMinimo() : 1;
+                    int maxPrazo = t.getPrazoMaximo() != null ? t.getPrazoMaximo() : 999;
+                    return prazo >= minPrazo && prazo <= maxPrazo;
+                })
+
+                // 🚀 Regra 4: Renda Mínima Exigida
+                .filter(t -> {
+                    BigDecimal minRenda = t.getRendaMinima() != null ? t.getRendaMinima() : BigDecimal.ZERO;
+                    if (minRenda.compareTo(BigDecimal.ZERO) <= 0)
+                        return true; // Passa direto se a tabela é isenta de regra de renda
+                    return rendaProponente.compareTo(minRenda) >= 0;
+                })
+
+                // 🚀 Regra 5: Idade Limite
+                .filter(t -> {
+                    if (idadeProponente <= 0)
+                        return true; // Passa se o cadastro do cliente estiver incompleto (sem data de nascimento)
+                    int minIdade = t.getIdadeMinima() != null ? t.getIdadeMinima() : 0;
+                    int maxIdade = t.getIdadeMaxima() != null ? t.getIdadeMaxima() : 999;
+                    return idadeProponente >= minIdade && idadeProponente <= maxIdade;
+                })
+                .toList();
+
+        // 2. Extrai os Bancos (Sem HashMap! Agora o Hibernate confia no distinct do
+        // Java)
+        List<BancoModel> bancosElegiveis = tabelasElegiveisDaTriagem.stream()
+                .map(TabelaJurosModel::getBanco)
+                .filter(java.util.Objects::nonNull) // Evita nulos caso alguma tabela esteja sem banco
+                .distinct() // O Java usa o equals() nativo da entidade perfeitamente agora!
+                .toList();
+
+        // 3. Atualiza o ComboBox de Bancos mantendo a seleção se for válida
+        BancoModel bancoAtual = cbBanco.getValue();
+        cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
+
+        // 4. 🧠 Piloto Automático SOMENTE se não estiver carregando uma proposta salva
+        if (!isUpdatingInterface) {
+            if (bancosElegiveis.size() == 1) {
+                cbBanco.setValue(bancosElegiveis.get(0));
+            } else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual)) {
+                cbBanco.setValue(bancoAtual);
+            } else {
+                cbBanco.setValue(null);
+            }
+            dispararCalculo(); // Recalcula apenas se foi ação manual
+        }
     }
 
     // 🩹 NOVO MÉTODO AUXILIAR: Isola o carregamento das tabelas
@@ -337,55 +433,6 @@ public class PropostaController {
             cbTabela.getItems().clear();
             if (!isUpdatingInterface)
                 cbTabela.setValue(null);
-        }
-    }
-
-    private void realizarTriagem() {
-        TipoConvenioModel convenio = (cbConvenio != null) ? cbConvenio.getValue() : null;
-        BigDecimal valorSolicitado = viewModel.valorSolicitadoProperty().get();
-
-        if (convenio == null || valorSolicitado == null || valorSolicitado.compareTo(BigDecimal.ZERO) <= 0) {
-            cbBanco.getItems().clear();
-            cbTabela.getItems().clear();
-            tabelasElegiveisDaTriagem = null;
-            return;
-        }
-
-        // 1. Filtra as Tabelas Elegíveis (Poder do Stream Nativo)
-        tabelasElegiveisDaTriagem = todasTabelasAtivas.stream()
-                .filter(t -> t.getTipoConvenio() == convenio)
-                .filter(t -> {
-                    BigDecimal min = t.getValorMinimoEmprestimo() != null ? t.getValorMinimoEmprestimo()
-                            : BigDecimal.ZERO;
-                    return valorSolicitado.compareTo(min) >= 0;
-                })
-                .filter(t -> t.getValorMaximoEmprestimo() == null
-                        || t.getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) <= 0
-                        || valorSolicitado.compareTo(t.getValorMaximoEmprestimo()) <= 0)
-                .toList();
-
-        // 2. Extrai os Bancos (Sem HashMap! Agora o Hibernate confia no distinct do
-        // Java)
-        List<BancoModel> bancosElegiveis = tabelasElegiveisDaTriagem.stream()
-                .map(TabelaJurosModel::getBanco)
-                .filter(java.util.Objects::nonNull) // Evita nulos caso alguma tabela esteja sem banco
-                .distinct() // O Java usa o equals() nativo da entidade perfeitamente agora!
-                .toList();
-
-        // 3. Atualiza o ComboBox de Bancos mantendo a seleção se for válida
-        BancoModel bancoAtual = cbBanco.getValue();
-        cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
-
-        // 4. 🧠 Piloto Automático SOMENTE se não estiver carregando uma proposta salva
-        if (!isUpdatingInterface) {
-            if (bancosElegiveis.size() == 1) {
-                cbBanco.setValue(bancosElegiveis.get(0));
-            } else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual)) {
-                cbBanco.setValue(bancoAtual);
-            } else {
-                cbBanco.setValue(null);
-            }
-            dispararCalculo(); // Recalcula apenas se foi ação manual
         }
     }
 

@@ -28,7 +28,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     private final ObjectProperty<BigDecimal> valorSolicitado = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> valorAprovado = new SimpleObjectProperty<>(BigDecimal.ZERO);
     private final ObjectProperty<BigDecimal> taxaAplicada = new SimpleObjectProperty<>(BigDecimal.ZERO);
-    private final ObjectProperty<Integer> quantidadeParcelas = new SimpleObjectProperty<>(0);
+    private final ObjectProperty<Integer> quantidadeParcelas = new SimpleObjectProperty<>(1);
 
     private final ObjectProperty<StatusPropostaModel> status = new SimpleObjectProperty<>(StatusPropostaModel.DIGITADA);
     private final ObjectProperty<BigDecimal> valorParcela = new SimpleObjectProperty<>(BigDecimal.ZERO);
@@ -53,7 +53,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
             StatusPropostaModel.DIGITADA);
     private final ReadOnlyObjectWrapper<Long> tabelaIdOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyStringWrapper observacoesOriginal = new ReadOnlyStringWrapper("");
-    private final ReadOnlyObjectWrapper<Integer> quantidadeParcelasOriginal = new ReadOnlyObjectWrapper<>(0);
+    private final ReadOnlyObjectWrapper<Integer> quantidadeParcelasOriginal = new ReadOnlyObjectWrapper<>(1);
     private final ReadOnlyObjectWrapper<BigDecimal> valorParcelaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> taxaAplicadaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
 
@@ -93,7 +93,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         valorSolicitado.set(BigDecimal.ZERO);
         valorAprovado.set(BigDecimal.ZERO);
         taxaAplicada.set(BigDecimal.ZERO);
-        quantidadeParcelas.set(0);
+        quantidadeParcelas.set(1);
         status.set(StatusPropostaModel.DIGITADA);
         valorParcela.set(BigDecimal.ZERO);
         tabelaId.set(null);

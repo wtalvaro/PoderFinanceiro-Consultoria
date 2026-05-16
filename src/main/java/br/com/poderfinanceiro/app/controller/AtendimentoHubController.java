@@ -125,6 +125,7 @@ public class AtendimentoHubController {
     public void prepararNovoAtendimento() {
         this.proponenteAberto = new ProponenteModel();
         abaLeadController.getViewModel().reset();
+        abaEnderecoController.getViewModel().reset(); // 🚀 CORREÇÃO: Faltava resetar o endereço!
         abaPropostaHubController.getViewModel().reset();
     }
 
