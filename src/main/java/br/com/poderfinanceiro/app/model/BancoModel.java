@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "bancos")
@@ -45,8 +47,22 @@ public class BancoModel {
     @Column(name = "criado_em", updatable = false)
     private LocalDateTime criadoEm;
 
+    // 1. O MAPEAMENTO (Usando EAGER para a tela conseguir ler sem tomar
+    // LazyException)
+    @OneToMany(mappedBy = "banco", fetch = FetchType.EAGER)
+    private List<TabelaJurosModel> tabelas = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         this.criadoEm = LocalDateTime.now();
+    }
+
+    // 2. A BLINDAGEM CIRÚRGICA DE EXCLUSÃO
+    @PreRemove
+    protected void onRemove() {
+        if (this.tabelas != null && !this.tabelas.isEmpty()) {
+            throw new IllegalStateException(
+                    "Segurança Operacional: Não é possível excluir um Banco que possui Tabelas de Juros atreladas. Remova as tabelas primeiro.");
+        }
     }
 }

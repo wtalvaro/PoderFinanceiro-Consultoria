@@ -37,7 +37,12 @@ public class BancosConveniosController {
     private TextField txtLink;
     @FXML
     private TextField txtTelefone;
+    @FXML
+    private VBox overlayConfirmacaoExclusao;
+    @FXML
+    private Label lblConfirmacaoBanco;
 
+    private BancoModel bancoParaExcluir = null;
     private BancoModel bancoEmEdicao = null;
     private List<BancoModel> todosBancos;
 
@@ -55,7 +60,7 @@ public class BancosConveniosController {
 
         // 🚀 A SUTURA: Injetando a máscara no campo de texto do modal!
         txtTelefone.setTextFormatter(ContatoUtils.criarFormatadorTelefone());
-        
+
         System.out.println("BancosConveniosController: Mural operante!");
     }
 
@@ -129,12 +134,69 @@ public class BancosConveniosController {
         btnEditar.setStyle("-fx-background-color: transparent; -fx-text-fill: #7f8c8d; -fx-cursor: hand;");
         btnEditar.setOnAction(e -> abrirModalEdicao(banco));
 
-        HBox rodape = new HBox(btnEditar);
+        // 🚀 NOVO: O BOTÃO DE REMOVER COM INTELIGÊNCIA ARTIFICIAL
+        Button btnRemover = new Button("🗑️ Remover");
+        btnRemover.setStyle("-fx-background-color: transparent; -fx-text-fill: #e74c3c; -fx-cursor: hand;");
+
+        // A Mágica de UX: Verifica se tem tabelas atreladas
+        boolean temTabelas = banco.getTabelas() != null && !banco.getTabelas().isEmpty();
+        btnRemover.setDisable(temTabelas); // Fica cinza se tiver tabela
+
+        if (temTabelas) {
+            Tooltip.install(btnRemover, new Tooltip("Exclusão bloqueada: Este banco possui tabelas ativas."));
+        } else {
+            btnRemover.setOnAction(e -> solicitarExclusaoBanco(banco));
+        }
+
+        // Adicionando ambos os botões ao rodapé
+        HBox rodape = new HBox(15, btnRemover, btnEditar);
         rodape.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
 
-        // Montando o Card (Notar que lblTel foi trocado por boxContato)
+        // Montando o Card
         card.getChildren().addAll(header, boxContato, new Region(), btnPortal, rodape);
         return card;
+    }
+
+    // ==========================================
+    // PROCEDIMENTO DE EXCLUSÃO (UX COM OVERLAY)
+    // ==========================================
+    private void solicitarExclusaoBanco(BancoModel banco) {
+        // 1. Armazena o alvo na variável global da tela
+        this.bancoParaExcluir = banco;
+
+        // 2. Personaliza a mensagem
+        lblConfirmacaoBanco.setText("Você está prestes a excluir o banco:\n\n👉 " + banco.getNome());
+
+        // 3. Exibe o painel de confirmação
+        overlayConfirmacaoExclusao.setVisible(true);
+    }
+
+    @FXML
+    private void confirmarExclusaoBanco() {
+        if (this.bancoParaExcluir != null) {
+            try {
+                // Deleta fisicamente
+                bancoRepository.delete(this.bancoParaExcluir);
+                System.out.println("Banco excluído com sucesso.");
+
+                // Atualiza a tela para o card sumir
+                carregarBancos();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                // Opcional: mainController.notificarAviso("Erro ao excluir: " +
+                // ex.getMessage());
+            } finally {
+                // Esconde a tela e zera o alvo independente de dar erro ou sucesso
+                cancelarExclusaoBanco();
+            }
+        }
+    }
+
+    @FXML
+    private void cancelarExclusaoBanco() {
+        // Limpa o alvo e esconde o painel
+        this.bancoParaExcluir = null;
+        overlayConfirmacaoExclusao.setVisible(false);
     }
 
     // ==========================================

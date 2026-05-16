@@ -25,7 +25,7 @@
 
         <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;"
             styleClass="edge-to-edge" VBox.vgrow="ALWAYS">
-            <FlowPane fx:id="muralBancos" hgap="20" vgap="20" style="-fx-padding: 10;" />
+            <FlowPane fx:id="muralBancos" hgap="20" vgap="20" style="-fx-padding: 10 10 40 10;" />
         </ScrollPane>
 
     </VBox>
@@ -68,6 +68,29 @@
                 <Button text="Cancelar" onAction="#fecharModal" styleClass="flat" />
                 <Button text="💾 Salvar Banco" onAction="#salvarBanco" styleClass="accent"
                     style="-fx-font-weight: bold;" />
+            </HBox>
+        </VBox>
+    </VBox>
+
+    <VBox fx:id="overlayConfirmacaoExclusao" alignment="CENTER" visible="false"
+        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
+        <VBox spacing="15" maxWidth="400"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <Label text="🗑️ Exclusão de Parceiro"
+                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;" />
+
+            <Label fx:id="lblConfirmacaoBanco" wrapText="true"
+                style="-fx-font-size: 15px; -fx-text-fill: #2c3e50;" />
+
+            <Label text="Tem certeza? Esta ação não poderá ser desfeita." wrapText="true"
+                style="-fx-font-size: 13px; -fx-text-fill: #7f8c8d; -fx-font-weight: bold;" />
+
+            <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 15 0 0 0;">
+                <Button text="Cancelar" onAction="#cancelarExclusaoBanco" styleClass="flat"
+                    style="-fx-cursor: hand;" />
+                <Button text="Sim, Excluir Banco" onAction="#confirmarExclusaoBanco"
+                    style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" />
             </HBox>
         </VBox>
     </VBox>
