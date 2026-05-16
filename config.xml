@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
-  <headerType>gui</headerType>
+  <headerType>console</headerType>
   <jar>/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/app-0.0.1-SNAPSHOT.jar</jar>
   <outfile>/home/wtalvaro/Downloads/Container/dev-fedora/Downloads/Poder_Financeiro/PoderFinanceiro.exe</outfile>
   <errTitle></errTitle>

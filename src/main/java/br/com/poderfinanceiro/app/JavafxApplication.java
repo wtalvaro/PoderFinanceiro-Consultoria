@@ -72,6 +72,11 @@ public class JavafxApplication extends Application {
 
         // 3. Lança o Spring Boot de verdade no background
         CompletableFuture.supplyAsync(() -> {
+            // 🚀 A VACINA DO FAT JAR:
+            // Injeta o ClassLoader do Spring Boot na thread genérica de background
+            // para que ela consiga ler as bibliotecas dentro do executável (.exe)
+            Thread.currentThread().setContextClassLoader(JavafxApplication.class.getClassLoader());
+
             return new SpringApplicationBuilder()
                     .sources(AppApplication.class)
                     .initializers(initialContext -> {
