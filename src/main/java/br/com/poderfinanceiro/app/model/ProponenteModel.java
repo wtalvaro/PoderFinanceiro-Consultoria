@@ -84,7 +84,9 @@ public class ProponenteModel {
     @OneToMany(mappedBy = "proponente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<EnderecoProponenteModel> enderecos = new ArrayList<>();
 
-    @OneToMany(mappedBy = "proponente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // REMOVIDO o cascade e orphanRemoval. O Proponente não salva nem deleta
+    // Propostas automaticamente.
+    @OneToMany(mappedBy = "proponente", fetch = FetchType.LAZY)
     private List<PropostaModel> propostas = new ArrayList<>();
 
     @OneToMany(mappedBy = "proponente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

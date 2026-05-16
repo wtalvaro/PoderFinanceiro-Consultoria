@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
+import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -60,12 +61,21 @@ public class PropostaHubController {
         carregarFormularioInterno();
         configurarLista();
 
-        // 🧠 Inteligência do Botão: Só habilita se a proposta existir no banco de dados
-        // (tiver ID)
+        // 🧠 Inteligência do Botão (Blindagem Visual):
+        // Só habilita se a proposta existir no banco E NÃO estiver PAGA
         btnRemover.disableProperty().bind(
                 javafx.beans.binding.Bindings.createBooleanBinding(() -> {
                     PropostaModel selecionada = listPropostas.getSelectionModel().getSelectedItem();
-                    return selecionada == null || selecionada.getId() == null;
+
+                    // 1. Bloqueia se não tem nada selecionado ou se é uma proposta "Nova" (sem ID
+                    // no banco)
+                    if (selecionada == null || selecionada.getId() == null) {
+                        return true; // Retorna true para DISABLE = true
+                    }
+
+                    // 2. 🛡️ REGRA FINANCEIRA: Bloqueia se o status for PAGO
+                    return selecionada.getStatus() == StatusPropostaModel.PAGO;
+
                 }, listPropostas.getSelectionModel().selectedItemProperty()));
     }
 

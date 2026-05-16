@@ -127,4 +127,12 @@ public class PropostaModel {
     protected void onUpdate() {
         this.ultimaAtualizacao = LocalDateTime.now();
     }
+
+    @PreRemove
+    protected void onRemove() {
+        if (this.status == StatusPropostaModel.PAGO) {
+            throw new IllegalStateException(
+                    "Segurança Financeira: Não é permitido excluir uma proposta que já possui o status PAGO.");
+        }
+    }
 }

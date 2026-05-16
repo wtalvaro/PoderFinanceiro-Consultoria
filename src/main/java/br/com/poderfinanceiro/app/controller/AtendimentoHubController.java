@@ -151,7 +151,7 @@ public class AtendimentoHubController {
         Task<ProponenteModel> task = new Task<>() {
             @Override
             protected ProponenteModel call() throws Exception {
-                // 1. Salva o Lead e o Endereço (Gera o ID do Cliente)
+                // 1. Salva o Lead e o Endereço (Gera o ID do Cliente limpo no banco)
                 ProponenteModel p = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
                 EnderecoProponenteModel e = abaEnderecoController.getViewModel().atualizarModel(
                         (p.getEnderecos() != null && !p.getEnderecos().isEmpty()) ? p.getEnderecos().get(0) : null);
@@ -161,12 +161,13 @@ public class AtendimentoHubController {
 
                 ProponenteModel proponenteSalvo = atendimentoService.salvarLead(p);
 
-                // 2. Se a aba de proposta foi preenchida, salva a proposta vinculada a ele!
+                // 2. Independência Total: A Proposta se salva sozinha através do seu próprio
+                // Service
                 if (abaPropostaHubController.getViewModel().isDirty()) {
                     PropostaModel prop = abaPropostaHubController.getViewModel().atualizarModel(new PropostaModel());
                     prop.setProponente(proponenteSalvo);
 
-                    // Temporário: Define o usuário como ID 1 (Wagner) até ligarmos o login real
+                    // Temporário: Define o usuário como ID 1 até ligarmos o Auth
                     UsuarioModel u = new UsuarioModel();
                     u.setId(1L);
                     prop.setUsuario(u);
@@ -179,21 +180,14 @@ public class AtendimentoHubController {
         };
 
         task.setOnSucceeded(ev -> {
-            // 1. Pegamos o proponente que acabou de voltar do banco de dados (agora com ID)
             ProponenteModel proponenteSalvo = task.getValue();
-
-            // 2. A sua linha original intacta que reseta a tela e o estado 'Dirty'
             inicializarAtendimento(proponenteSalvo);
 
-            // 2.1 🚀 A CURA: Se houver uma proposta salva e ela for PAGO,
-            // mandamos a aba de proposta aplicar o bloqueio imediatamente.
+            // Se for salva como PAGA, já aplica a blindagem no frontend na mesma hora
             if (abaPropostaHubController != null) {
-                // 🚀 O COMANDO:
                 abaPropostaHubController.getAbaPropostaController().aplicarBloqueio();
             }
 
-            // 3. A NOVA MÁGICA: Avisamos a Aba que este contato não é mais "NOVO",
-            // e sim um contato real com ID no banco.
             if (tabPertencente != null && proponenteSalvo.getId() != null) {
                 tabPertencente.setUserData(String.valueOf(proponenteSalvo.getId()));
             }
@@ -206,12 +200,9 @@ public class AtendimentoHubController {
 
         task.setOnFailed(ev -> {
             Throwable erro = task.getException();
-
-            // Verifica se o erro foi uma validação de negócio que nós criamos
             if (erro instanceof IllegalArgumentException || erro instanceof IllegalStateException) {
                 exibirMensagem(erro.getMessage(), false);
             } else {
-                // Se foi um erro de banco (ex: DataIntegrityViolationException) ou de código
                 erro.printStackTrace();
                 exibirMensagem("Erro ao salvar: " + erro.getMessage(), false);
             }

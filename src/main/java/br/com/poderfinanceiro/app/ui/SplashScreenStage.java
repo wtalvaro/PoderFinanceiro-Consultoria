@@ -77,7 +77,7 @@ public class SplashScreenStage extends Stage {
         // Crava a barra na parte inferior, centro...
         StackPane.setAlignment(progressContainer, Pos.BOTTOM_CENTER);
         // ... e empurra exatos 60px para cima!
-        StackPane.setMargin(progressContainer, new Insets(280, 0, 0, 0));
+        StackPane.setMargin(progressContainer, new Insets(275, 0, 0, 0));
 
         // 6. Configuração da Cena Invisível
         Scene scene = new Scene(root);
