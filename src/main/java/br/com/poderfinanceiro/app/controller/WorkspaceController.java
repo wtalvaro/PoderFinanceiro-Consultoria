@@ -148,11 +148,18 @@ public class WorkspaceController {
     }
 
     /**
-     * Admissão Especial: Hub de Atendimento.
-     * Diferente das simples, esta requer injeção de dados do Proponente e Bindings
-     * de título.
+     * Admissão Especial Padrão: Hub de Atendimento (Redireciona para o método
+     * completo)
      */
     public void abrirOuFocarAba(ProponenteModel proponente) {
+        abrirOuFocarAbaComProposta(proponente, null);
+    }
+
+    /**
+     * 🚀 Rota Direcionada: Abre a aba do cliente e, opcionalmente, já foca numa
+     * proposta específica.
+     */
+    public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
         String idBuscado;
 
         // 1. Triagem Direta: Verificamos se o paciente existe e tem registro (ID)
@@ -163,7 +170,16 @@ public class WorkspaceController {
             for (Tab tab : tabPanePrincipal.getTabs()) {
                 if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
                     tabPanePrincipal.getSelectionModel().select(tab);
-                    return;
+
+                    // 🚀 O pulo do gato: A aba já existe, mas o consultor clicou na esteira.
+                    // Precisamos avisar o Controller da aba aberta para mudar para a proposta alvo!
+                    if (propostaIdAlvo != null
+                            && tab.getProperties().get("controller") instanceof AtendimentoHubController) {
+                        AtendimentoHubController hubExistente = (AtendimentoHubController) tab.getProperties()
+                                .get("controller");
+                        hubExistente.inicializarAtendimento(proponente, propostaIdAlvo);
+                    }
+                    return; // Sai do método pois a aba já foi focada e atualizada
                 }
             }
         } else {
@@ -171,15 +187,20 @@ public class WorkspaceController {
             idBuscado = "NOVO_" + UUID.randomUUID().toString();
         }
 
+        // 2. Se chegou aqui, a aba NÃO existe e precisa ser criada
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
             AtendimentoHubController hub = loader.getController();
 
-            // 2. Aqui o compilador fica calmo: checamos o objeto proponente diretamente
+            // 3. Inicialização Inteligente: Checa se tem cliente e se tem proposta alvo
             if (proponente != null && proponente.getId() != null) {
-                hub.inicializarAtendimento(proponente);
+                if (propostaIdAlvo != null) {
+                    hub.inicializarAtendimento(proponente, propostaIdAlvo);
+                } else {
+                    hub.inicializarAtendimento(proponente);
+                }
             } else {
                 hub.prepararNovoAtendimento();
             }
@@ -187,6 +208,11 @@ public class WorkspaceController {
             Tab novaAba = new Tab();
             novaAba.setContent(root);
             novaAba.setUserData(idBuscado);
+
+            // 🚀 Salva o controller dentro da aba para podermos resgatá-lo depois se o
+            // usuário clicar na esteira de novo
+            novaAba.getProperties().put("controller", hub);
+
             hub.setTabPertencente(novaAba);
 
             configurarTituloReativoLead(novaAba, hub);

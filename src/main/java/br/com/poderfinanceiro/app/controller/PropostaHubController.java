@@ -91,6 +91,19 @@ public class PropostaHubController {
         }
     }
 
+    /**
+     * 🚀 Seleciona cirurgicamente uma proposta específica na lista lateral
+     */
+    public void selecionarPropostaEspecifica(Long propostaIdAlvo) {
+        if (propostaIdAlvo == null || listPropostas.getItems() == null)
+            return;
+
+        listPropostas.getItems().stream()
+                .filter(p -> p.getId() != null && p.getId().equals(propostaIdAlvo))
+                .findFirst()
+                .ifPresent(p -> listPropostas.getSelectionModel().select(p));
+    }
+    
     private void configurarLista() {
         listPropostas.setCellFactory(param -> new ListCell<>() {
             private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");

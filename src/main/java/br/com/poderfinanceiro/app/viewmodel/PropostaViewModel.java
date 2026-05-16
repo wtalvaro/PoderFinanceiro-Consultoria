@@ -57,6 +57,9 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     private final ReadOnlyObjectWrapper<BigDecimal> valorParcelaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> taxaAplicadaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
 
+    // --- CAMPO FANTASMA PARA TRIAGEM (Não vai para o Banco de Dados) ---
+    private final ObjectProperty<Integer> prazoDesejado = new SimpleObjectProperty<>(null);
+
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO
     // ==========================================================
@@ -262,6 +265,10 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
 
     public ObjectProperty<LocalDate> dataSolicitacaoProperty() {
         return dataSolicitacao;
+    }
+
+    public ObjectProperty<Integer> prazoDesejadoProperty() {
+        return prazoDesejado;
     }
 
 }

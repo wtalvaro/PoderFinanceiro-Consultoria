@@ -73,6 +73,8 @@ public class PropostaController {
     private VBox overlayExclusao;
     @FXML
     private Label lblConfirmacaoExclusao;
+    @FXML
+    private Spinner<Integer> spinPrazoDesejado; // Ou TextField, dependendo do que você usar no FXML
 
     // Caches da Memória
     private List<TabelaJurosModel> todasTabelasAtivas;
@@ -176,6 +178,19 @@ public class PropostaController {
         });
 
         spinPrazo.getValueFactory().valueProperty().bindBidirectional(viewModel.quantidadeParcelasProperty());
+
+        // Binding do campo de pesquisa (Prazo Desejado)
+        if (spinPrazoDesejado != null) {
+            spinPrazoDesejado.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 1));
+            spinPrazoDesejado.setEditable(true);
+
+            spinPrazoDesejado.getEditor().focusedProperty().addListener((obs, old, novo) -> {
+                if (!novo)
+                    spinPrazoDesejado.increment(0);
+            });
+
+            spinPrazoDesejado.getValueFactory().valueProperty().bindBidirectional(viewModel.prazoDesejadoProperty());
+        }
 
         // Máscaras Monetárias
         TextFormatter<BigDecimal> fmtSolicitado = FinanceiroUtils.criarFormatadorMoeda();
@@ -307,9 +322,9 @@ public class PropostaController {
                 dispararCalculo();
         });
 
-        // 🚀 NOVO GATILHO: Dispara nova triagem instantânea caso o consultor altere o
-        // prazo
-        viewModel.quantidadeParcelasProperty().addListener((obs, old, val) -> {
+        // 🚀 GATILHO ATUALIZADO: Dispara triagem quando o Prazo DESEJADO muda, e não o
+        // prazo real
+        viewModel.prazoDesejadoProperty().addListener((obs, old, val) -> {
             if (!isUpdatingInterface)
                 realizarTriagem();
         });
@@ -318,7 +333,7 @@ public class PropostaController {
     private void realizarTriagem() {
         TipoConvenioModel convenio = (cbConvenio != null) ? cbConvenio.getValue() : null;
         BigDecimal valorSolicitado = viewModel.valorSolicitadoProperty().get();
-        Integer prazo = viewModel.quantidadeParcelasProperty().get();
+        Integer prazo = viewModel.prazoDesejadoProperty().get();
 
         // 🚀 Busca dados do paciente (Proponente) para cruzar com as regras de Renda e
         // Idade

@@ -15,6 +15,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
@@ -45,6 +46,8 @@ public class AtendimentoHubController {
     private Button btnSalvar;
     @FXML
     private Label lblMensagemTexto, lblMensagemTitulo, lblResumoPreview;
+    @FXML
+    private TabPane subTabPane;
 
     private final ProponenteService atendimentoService;
     private final MainController mainController;
@@ -120,6 +123,28 @@ public class AtendimentoHubController {
 
         // 5. CARREGAR A PROPOSTA (Ligar o Monitor)
         abaPropostaHubController.inicializarPropostasDoCliente(proponente);
+    }
+
+    /**
+     * 🚀 Inicialização Contextual: Carrega o cliente e força o foco na proposta
+     * selecionada
+     */
+    public void inicializarAtendimento(ProponenteModel proponente, Long propostaIdAlvo) {
+        // 1. Roda toda a inicialização base (Lead, Endereço, etc.)
+        inicializarAtendimento(proponente);
+
+        // 2. Se houver uma proposta vinda da esteira, substitui a seleção padrão
+        if (propostaIdAlvo != null && abaPropostaHubController != null) {
+
+            // A. Seleciona a proposta correta na lista (Nos bastidores)
+            abaPropostaHubController.selecionarPropostaEspecifica(propostaIdAlvo);
+
+            // B. Vira a página visualmente para a aba de Propostas!
+            if (subTabPane != null) {
+                // A aba "Proposta / Simulação" é a terceira aba no seu FXML, logo, índice 2.
+                subTabPane.getSelectionModel().select(2);
+            }
+        }
     }
 
     public void prepararNovoAtendimento() {

@@ -26,8 +26,12 @@ public class PropostasListController {
 
     @FXML
     private TableView<PropostaModel> tablePropostas;
+
+    // 🚀 NOVAS COLUNAS MAPEADAS
     @FXML
-    private TableColumn<PropostaModel, String> colData, colCliente, colBanco, colValor, colStatus;
+    private TableColumn<PropostaModel, String> colData, colCliente, colBanco, colTabela, colPrazo, colValorSol,
+            colValorApr, colParcela, colStatus;
+
     @FXML
     private TableColumn<PropostaModel, Void> colAcoes;
     @FXML
@@ -48,11 +52,6 @@ public class PropostasListController {
         recarregarDados();
     }
 
-    /**
-     * Método público para injeção de filtros via rotas do sistema.
-     * 
-     * @param termo A palavra que será jogada na caixa de busca (Ex: "PENDENTE")
-     */
     public void aplicarFiltroExterno(String termo) {
         if (txtBusca != null) {
             txtBusca.setText(termo);
@@ -67,11 +66,36 @@ public class PropostasListController {
                 d.getValue().getProponente().getNomeCompleto()));
 
         colBanco.setCellValueFactory(d -> new SimpleStringProperty(
-                d.getValue().getBanco().getNome()));
+                d.getValue().getBanco() != null ? d.getValue().getBanco().getNome() : "-"));
 
-        colValor.setCellValueFactory(d -> {
+        // 🚀 PREENCHENDO AS NOVAS COLUNAS
+        colTabela.setCellValueFactory(d -> new SimpleStringProperty(
+                d.getValue().getTabela() != null ? d.getValue().getTabela().getNomeTabela() : "-"));
+
+        colPrazo.setCellValueFactory(d -> new SimpleStringProperty(
+                (d.getValue().getQuantidadeParcelas() != null && d.getValue().getQuantidadeParcelas() > 0)
+                        ? d.getValue().getQuantidadeParcelas() + "x"
+                        : "-"));
+
+        colValorSol.setCellValueFactory(d -> {
             BigDecimal valor = d.getValue().getValorSolicitado();
-            return new SimpleStringProperty(valor != null ? FinanceiroUtils.formatarParaExibicao(valor) : "R$ 0,00");
+            return new SimpleStringProperty(
+                    valor != null && valor.compareTo(BigDecimal.ZERO) > 0 ? FinanceiroUtils.formatarParaExibicao(valor)
+                            : "-");
+        });
+
+        colValorApr.setCellValueFactory(d -> {
+            BigDecimal valor = d.getValue().getValorAprovado();
+            return new SimpleStringProperty(
+                    valor != null && valor.compareTo(BigDecimal.ZERO) > 0 ? FinanceiroUtils.formatarParaExibicao(valor)
+                            : "-");
+        });
+
+        colParcela.setCellValueFactory(d -> {
+            BigDecimal valor = d.getValue().getValorParcela();
+            return new SimpleStringProperty(
+                    valor != null && valor.compareTo(BigDecimal.ZERO) > 0 ? FinanceiroUtils.formatarParaExibicao(valor)
+                            : "-");
         });
 
         // Colorindo o Status para fácil visualização
@@ -108,14 +132,16 @@ public class PropostasListController {
         });
 
         // Adiciona um botão para abrir a ficha completa do cliente (Hub)
+        // Adiciona um botão para abrir a ficha completa do cliente (Hub)
         colAcoes.setCellFactory(param -> new TableCell<>() {
             private final Button btnAbrir = new Button("Abrir Ficha");
             {
                 btnAbrir.getStyleClass().add("flat");
-                btnAbrir.setStyle("-fx-text-fill: -color-accent-fg; -fx-font-weight: bold; -fx-font-size: 11px;");
+                btnAbrir.setStyle("-fx-text-fill: -color-accent-fg; -fx-font-weight: bold;");
                 btnAbrir.setOnAction(event -> {
                     PropostaModel p = getTableView().getItems().get(getIndex());
-                    mainController.abrirClienteNoWorkspace(p.getProponente());
+                    // 🚀 A CURA: Agora chamamos o novo motor passando a Proposta completa!
+                    mainController.abrirPropostaNoWorkspace(p);
                 });
             }
 
@@ -137,11 +163,15 @@ public class PropostasListController {
 
                 String nome = proposta.getProponente().getNomeCompleto().toLowerCase();
                 String cpf = proposta.getProponente().getCpf().replaceAll("[^0-9]", "");
-                String banco = proposta.getBanco().getNome().toLowerCase();
+                String banco = proposta.getBanco() != null ? proposta.getBanco().getNome().toLowerCase() : "";
                 String status = proposta.getStatus().name().toLowerCase();
 
+                // 🚀 ADICIONADO FILTRO POR NOME DA TABELA
+                String tabela = proposta.getTabela() != null ? proposta.getTabela().getNomeTabela().toLowerCase() : "";
+
                 return nome.contains(lowerCaseFilter) || cpf.contains(lowerCaseFilter)
-                        || banco.contains(lowerCaseFilter) || status.contains(lowerCaseFilter);
+                        || banco.contains(lowerCaseFilter) || status.contains(lowerCaseFilter)
+                        || tabela.contains(lowerCaseFilter);
             });
         });
 

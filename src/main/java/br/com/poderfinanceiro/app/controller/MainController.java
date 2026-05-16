@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
 
 import java.io.IOException;
 import javafx.application.HostServices;
@@ -150,6 +151,14 @@ public class MainController {
 
     public void abrirClienteNoWorkspace(ProponenteModel proponente) {
         executarNoWorkspace(ws -> ws.abrirOuFocarAba(proponente));
+    }
+
+    public void abrirPropostaNoWorkspace(PropostaModel proposta) {
+        if (proposta == null || proposta.getProponente() == null) return;
+        
+        // Delega a responsabilidade visual para o WorkspaceController,
+        // enviando tanto o cliente quanto a proposta alvo!
+        executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
     }
 
     public void irParaLinksUteis() {

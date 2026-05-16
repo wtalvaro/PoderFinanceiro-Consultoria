@@ -37,6 +37,7 @@
                         <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
                         <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
                         <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10" prefWidth="100" />
                     </columnConstraints>
 
                     <VBox spacing="5" GridPane.columnIndex="0">
@@ -51,6 +52,11 @@
                     </VBox>
 
                     <VBox spacing="5" GridPane.columnIndex="2">
+                        <Label text="Prazo Desejado" style="-fx-font-weight: bold;" />
+                        <Spinner fx:id="spinPrazoDesejado" maxWidth="Infinity" />
+                    </VBox>
+
+                    <VBox spacing="5" GridPane.columnIndex="3">
                         <Label text="Status Atual" />
                         <ComboBox fx:id="cbStatus" maxWidth="Infinity" />
                     </VBox>
