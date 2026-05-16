@@ -56,6 +56,13 @@ public class TabelaJurosService {
         novaVersao.setValorMinimoEmprestimo(model.getValorMinimoEmprestimo());
         novaVersao.setValorMaximoEmprestimo(model.getValorMaximoEmprestimo());
 
+        // 🚀 AQUI ESTÁ A SUTURA! TRANSFERINDO OS NOVOS LIMITES PARA A NOVA VERSÃO
+        novaVersao.setRendaMinima(model.getRendaMinima());
+        novaVersao.setPrazoMinimo(model.getPrazoMinimo());
+        novaVersao.setPrazoMaximo(model.getPrazoMaximo());
+        novaVersao.setIdadeMinima(model.getIdadeMinima());
+        novaVersao.setIdadeMaxima(model.getIdadeMaxima());
+
         // Inicia a nova vigência hoje
         novaVersao.setInicioVigencia(LocalDate.now());
         novaVersao.setAtivo(true);

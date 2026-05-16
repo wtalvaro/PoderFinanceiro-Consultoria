@@ -47,6 +47,9 @@ public class TabelaJurosModel {
     @Column(name = "renda_minima", precision = 12, scale = 2)
     private BigDecimal rendaMinima = BigDecimal.ZERO;
 
+    @Column(name = "prazo_minimo")
+    private Integer prazoMinimo = 1;
+    
     @Column(name = "prazo_maximo")
     private Integer prazoMaximo = 96;
 

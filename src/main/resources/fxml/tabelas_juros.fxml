@@ -34,8 +34,7 @@
                                 <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
                             </columnConstraints>
 
-                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="0"
-                                GridPane.columnSpan="1">
+                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="0">
                                 <Label text="Banco Parceiro:"
                                     style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
                                 <ComboBox fx:id="comboBanco" promptText="Selecione o Banco..."
@@ -70,34 +69,41 @@
                             </VBox>
 
                             <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="2">
-                                <Label text="Valor Mín/Máx (R$):"
-                                    style="-fx-text-fill: -color-fg-muted;" />
+                                <Label text="Valor Empréstimo (R$):"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
                                 <HBox spacing="5">
-                                    <TextField fx:id="txtValorMinimo" promptText="Min"
+                                    <TextField fx:id="txtValorMinimo" promptText="Mín"
                                         HBox.hgrow="ALWAYS" />
-                                    <TextField fx:id="txtValorMaximo" promptText="Max"
+                                    <TextField fx:id="txtValorMaximo" promptText="Máx"
                                         HBox.hgrow="ALWAYS" />
                                 </HBox>
                             </VBox>
 
                             <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="2">
-                                <Label text="Prazo Mín/Máx (Meses):"
-                                    style="-fx-text-fill: -color-fg-muted;" />
+                                <Label text="Prazo Operação (Meses):"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
                                 <HBox spacing="5">
-                                    <TextField fx:id="txtPrazoMinimo" promptText="Min"
+                                    <TextField fx:id="txtPrazoMinimo" promptText="Mín"
                                         HBox.hgrow="ALWAYS" />
-                                    <TextField fx:id="txtPrazoMaximo" promptText="Max"
+                                    <TextField fx:id="txtPrazoMaximo" promptText="Máx"
                                         HBox.hgrow="ALWAYS" />
                                 </HBox>
                             </VBox>
 
+                            <VBox spacing="5" GridPane.columnIndex="2" GridPane.rowIndex="2">
+                                <Label text="Renda Mínima (R$):"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                <TextField fx:id="txtRendaMinima" promptText="Ex: 1.412,00"
+                                    maxWidth="Infinity" />
+                            </VBox>
+
                             <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="3">
-                                <Label text="Idade Mín/Máx (Anos):"
-                                    style="-fx-text-fill: -color-fg-muted;" />
+                                <Label text="Idade Limite (Anos):"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
                                 <HBox spacing="5">
-                                    <TextField fx:id="txtIdadeMinima" promptText="Min"
+                                    <TextField fx:id="txtIdadeMinima" promptText="Mín"
                                         HBox.hgrow="ALWAYS" />
-                                    <TextField fx:id="txtIdadeMaxima" promptText="Max"
+                                    <TextField fx:id="txtIdadeMaxima" promptText="Máx"
                                         HBox.hgrow="ALWAYS" />
                                 </HBox>
                             </VBox>
@@ -123,14 +129,21 @@
 
                 <TableView fx:id="tableTabelas" minHeight="350" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="120" />
-                        <TableColumn fx:id="colNome" text="Nome da Tabela" prefWidth="280" />
-                        <TableColumn fx:id="colTaxa" text="Taxa Mês" prefWidth="90"
+                        <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="110" />
+                        <TableColumn fx:id="colNome" text="Nome da Tabela" prefWidth="210" />
+                        <TableColumn fx:id="colTaxa" text="Taxa Mês" prefWidth="80"
                             style="-fx-alignment: CENTER;" />
-                        <TableColumn fx:id="colComissao" text="Comissão" prefWidth="90"
+                        <TableColumn fx:id="colComissao" text="Comissão" prefWidth="80"
                             style="-fx-alignment: CENTER;" />
-                        <TableColumn fx:id="colLimites" text="Faixa Permitida (Min - Max)"
-                            prefWidth="180" />
+                        <TableColumn fx:id="colLimites" text="Valor Permitido"
+                            prefWidth="140" style="-fx-alignment: CENTER;" />
+
+                        <TableColumn fx:id="colRenda" text="Renda Mínima"
+                            prefWidth="120" style="-fx-alignment: CENTER;" />
+                        <TableColumn fx:id="colIdade" text="Idade Limite"
+                            prefWidth="110" style="-fx-alignment: CENTER;" />
+                        <TableColumn fx:id="colPrazo" text="Prazo"
+                            prefWidth="90" style="-fx-alignment: CENTER;" />
                         <TableColumn fx:id="colAcoes" text="Ações" prefWidth="120"
                             style="-fx-alignment: CENTER;" />
                     </columns>

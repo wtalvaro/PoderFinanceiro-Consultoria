@@ -1,16 +1,22 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
+import java.math.BigDecimal;
+import java.util.Objects;
+
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
 import br.com.poderfinanceiro.app.model.BancoModel;
 import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import javafx.beans.Observable;
-import javafx.beans.property.*;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import lombok.Getter;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.util.Objects;
 
 @Component
 @Scope("prototype")
@@ -29,6 +35,14 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
     private final ObjectProperty<BigDecimal> valorMaximoEmprestimo = new SimpleObjectProperty<>(null);
     private final ObjectProperty<BancoModel> banco = new SimpleObjectProperty<>(null);
 
+    // 🚀 UNIFICAÇÃO: Novas propriedades gráficas de limites de Renda, Prazos e
+    // Idades
+    private final ObjectProperty<BigDecimal> rendaMinima = new SimpleObjectProperty<>(BigDecimal.ZERO);
+    private final ObjectProperty<Integer> prazoMinimo = new SimpleObjectProperty<>(1);
+    private final ObjectProperty<Integer> prazoMaximo = new SimpleObjectProperty<>(96);
+    private final ObjectProperty<Integer> idadeMinima = new SimpleObjectProperty<>(18);
+    private final ObjectProperty<Integer> idadeMaxima = new SimpleObjectProperty<>(100);
+
     // --- 2. ESTADOS ORIGINAIS PARA DIRTY CHECKING ---
     private final ReadOnlyStringWrapper nomeOriginal = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<TipoConvenioModel> convenioOriginal = new ReadOnlyObjectWrapper<>(
@@ -41,6 +55,11 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
             BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BancoModel> bancoOriginal = new ReadOnlyObjectWrapper<>(null);
 
+    private final ReadOnlyObjectWrapper<BigDecimal> rendaMinOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
+    private final ReadOnlyObjectWrapper<Integer> prazoMinOriginal = new ReadOnlyObjectWrapper<>(1);
+    private final ReadOnlyObjectWrapper<Integer> prazoMaxOriginal = new ReadOnlyObjectWrapper<>(96);
+    private final ReadOnlyObjectWrapper<Integer> idadeMinOriginal = new ReadOnlyObjectWrapper<>(18);
+    private final ReadOnlyObjectWrapper<Integer> idadeMaxOriginal = new ReadOnlyObjectWrapper<>(100);
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO (Template Methods)
     // ==========================================================
@@ -61,6 +80,12 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         valorMaximoEmprestimo
                 .set(model.getValorMaximoEmprestimo() != null ? model.getValorMaximoEmprestimo() : BigDecimal.ZERO);
         banco.set(model.getBanco());
+        // Unificados
+        rendaMinima.set(model.getRendaMinima() != null ? model.getRendaMinima() : BigDecimal.ZERO);
+        prazoMinimo.set(model.getPrazoMinimo() != null ? model.getPrazoMinimo() : 1);
+        prazoMaximo.set(model.getPrazoMaximo() != null ? model.getPrazoMaximo() : 96);
+        idadeMinima.set(model.getIdadeMinima() != null ? model.getIdadeMinima() : 18);
+        idadeMaxima.set(model.getIdadeMaxima() != null ? model.getIdadeMaxima() : 100);
     }
 
     @Override
@@ -72,6 +97,12 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         valorMinimoEmprestimo.set(null);
         valorMaximoEmprestimo.set(null);
         banco.set(null);
+        // Unificados
+        rendaMinima.set(BigDecimal.ZERO);
+        prazoMinimo.set(1);
+        prazoMaximo.set(96);
+        idadeMinima.set(18);
+        idadeMaxima.set(100);
     }
 
     @Override
@@ -82,7 +113,12 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         comissaoOriginal.set(comissaoPercentual.get());
         minEmprestimoOriginal.set(valorMinimoEmprestimo.get());
         maxEmprestimoOriginal.set(valorMaximoEmprestimo.get());
-        bancoOriginal.set(banco.get());
+        bancoOriginal.set(banco.get());// Unificados
+        rendaMinOriginal.set(rendaMinima.get());
+        prazoMinOriginal.set(prazoMinimo.get());
+        prazoMaxOriginal.set(prazoMaximo.get());
+        idadeMinOriginal.set(idadeMinima.get());
+        idadeMaxOriginal.set(idadeMaxima.get());
     }
 
     @Override
@@ -93,7 +129,13 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
                 !valoresIguais(comissaoPercentual.get(), comissaoOriginal.get()) ||
                 !valoresIguais(valorMinimoEmprestimo.get(), minEmprestimoOriginal.get()) ||
                 !valoresIguais(valorMaximoEmprestimo.get(), maxEmprestimoOriginal.get()) ||
-                !Objects.equals(banco.get(), bancoOriginal.get());
+                !Objects.equals(banco.get(), bancoOriginal.get()) ||
+                // Checks Unificados
+                !valoresIguais(rendaMinima.get(), rendaMinOriginal.get()) ||
+                !Objects.equals(prazoMinimo.get(), prazoMinOriginal.get()) ||
+                !Objects.equals(prazoMaximo.get(), prazoMaxOriginal.get()) ||
+                !Objects.equals(idadeMinima.get(), idadeMinOriginal.get()) ||
+                !Objects.equals(idadeMaxima.get(), idadeMaxOriginal.get());
     }
 
     @Override
@@ -108,21 +150,27 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         model.setComissaoPercentual(this.comissaoPercentual.get());
         model.setValorMinimoEmprestimo(this.valorMinimoEmprestimo.get());
         model.setValorMaximoEmprestimo(this.valorMaximoEmprestimo.get());
-        model.setBanco(this.banco.get());
+        model.setBanco(this.banco.get());// Unificados
+        model.setRendaMinima(this.rendaMinima.get());
+        model.setPrazoMinimo(this.prazoMinimo.get());
+        model.setPrazoMaximo(this.prazoMaximo.get());
+        model.setIdadeMinima(this.idadeMinima.get());
+        model.setIdadeMaxima(this.idadeMaxima.get());
         return model;
     }
 
     @Override
     protected Observable[] getObservaveisParaDirty() {
         return new Observable[] {
-                nomeTabela, tipoConvenio, taxaMensal, comissaoPercentual, valorMinimoEmprestimo, valorMaximoEmprestimo, banco,
-                nomeOriginal.getReadOnlyProperty(),
-                convenioOriginal.getReadOnlyProperty(),
-                taxaOriginal.getReadOnlyProperty(),
-                comissaoOriginal.getReadOnlyProperty(),
-                minEmprestimoOriginal.getReadOnlyProperty(),
-                maxEmprestimoOriginal.getReadOnlyProperty(),
-                bancoOriginal.getReadOnlyProperty()
+                nomeTabela, tipoConvenio, taxaMensal, comissaoPercentual, valorMinimoEmprestimo, valorMaximoEmprestimo,
+                banco,
+                rendaMinima, prazoMinimo, prazoMaximo, idadeMinima, idadeMaxima,
+                nomeOriginal.getReadOnlyProperty(), convenioOriginal.getReadOnlyProperty(),
+                taxaOriginal.getReadOnlyProperty(), comissaoOriginal.getReadOnlyProperty(),
+                minEmprestimoOriginal.getReadOnlyProperty(), maxEmprestimoOriginal.getReadOnlyProperty(),
+                bancoOriginal.getReadOnlyProperty(), rendaMinOriginal.getReadOnlyProperty(),
+                prazoMinOriginal.getReadOnlyProperty(), prazoMaxOriginal.getReadOnlyProperty(),
+                idadeMinOriginal.getReadOnlyProperty(), idadeMaxOriginal.getReadOnlyProperty()
         };
     }
 

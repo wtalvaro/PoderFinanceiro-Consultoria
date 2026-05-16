@@ -6,7 +6,8 @@ import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.repository.BancoRepository;
 import br.com.poderfinanceiro.app.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.viewmodel.TabelaJurosViewModel;
-import javafx.beans.binding.Bindings;
+import br.com.poderfinanceiro.app.utils.FinanceiroUtils; // 🚀 SUA CLASSE UTILITÁRIA INJETADA
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,22 +20,19 @@ import javafx.util.StringConverter;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Component
 public class TabelaJurosController {
 
-    // --- DEPENDÊNCIAS (Injeção via Spring) ---
     private final TabelaJurosService service;
     private final TabelaJurosViewModel viewModel;
+    private final BancoRepository bancoRepository;
 
-    // --- ELEMENTOS DO FXML ---
     @FXML
     private TitledPane paneFormulario;
     @FXML
     private Label lblAviso;
 
-    // Campos do Formulário
     @FXML
     private TextField txtNomeTabela;
     @FXML
@@ -47,8 +45,17 @@ public class TabelaJurosController {
     private TextField txtValorMinimo;
     @FXML
     private TextField txtValorMaximo;
+    @FXML
+    private TextField txtPrazoMinimo;
+    @FXML
+    private TextField txtPrazoMaximo;
+    @FXML
+    private TextField txtIdadeMinima;
+    @FXML
+    private TextField txtIdadeMaxima;
+    @FXML
+    private TextField txtRendaMinima;
 
-    // Tabela e Filtro
     @FXML
     private TextField txtBusca;
     @FXML
@@ -64,18 +71,20 @@ public class TabelaJurosController {
     @FXML
     private TableColumn<TabelaJurosModel, String> colLimites;
     @FXML
+    private TableColumn<TabelaJurosModel, String> colRenda;
+    @FXML
+    private TableColumn<TabelaJurosModel, String> colIdade;
+    @FXML
+    private TableColumn<TabelaJurosModel, String> colPrazo;
+    @FXML
     private TableColumn<TabelaJurosModel, Void> colAcoes;
     @FXML
     private ComboBox<BancoModel> comboBanco;
-
-    // Overlays
     @FXML
     private VBox overlayArquivar;
 
-    // Estados Locais
     private ObservableList<TabelaJurosModel> dadosOriginais;
     private TabelaJurosModel tabelaSelecionadaParaArquivar;
-    private final BancoRepository bancoRepository;
 
     public TabelaJurosController(TabelaJurosService service, TabelaJurosViewModel viewModel,
             BancoRepository bancoRepository) {
@@ -91,7 +100,7 @@ public class TabelaJurosController {
         carregarDados();
         configurarFiltroBusca();
 
-        System.out.println("TabelaJurosController: Centro Cirúrgico Pronto!");
+        System.out.println("TabelaJurosController: Centro Cirúrgico Pronto com Utils!");
     }
 
     // =========================================================
@@ -99,10 +108,7 @@ public class TabelaJurosController {
     // =========================================================
 
     private void configurarFormulario() {
-        // 🩸 Carrega os bancos ativos do hospital
         comboBanco.setItems(FXCollections.observableArrayList(bancoRepository.findByAtivoTrueOrderByNomeAsc()));
-
-        // 🏷️ Define como o banco aparece no ComboBox (apenas o Nome)
         comboBanco.setConverter(new StringConverter<BancoModel>() {
             @Override
             public String toString(BancoModel b) {
@@ -115,23 +121,78 @@ public class TabelaJurosController {
             }
         });
 
-        // 🔗 Bindings
         comboBanco.valueProperty().bindBidirectional(viewModel.getBanco());
-
         comboConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
-
-        // Conecta o FXML com a nossa "prancheta" (ViewModel)
-        txtNomeTabela.textProperty().bindBidirectional(viewModel.getNomeTabela());
         comboConvenio.valueProperty().bindBidirectional(viewModel.getTipoConvenio());
+        txtNomeTabela.textProperty().bindBidirectional(viewModel.getNomeTabela());
 
-        // Para os números (BigDecimal), usamos um conversor customizado simples
-        StringConverter<BigDecimal> conversorDecimal = new BigDecimalConverter();
-        Bindings.bindBidirectional(txtTaxaMensal.textProperty(), viewModel.getTaxaMensal(), conversorDecimal);
-        Bindings.bindBidirectional(txtComissao.textProperty(), viewModel.getComissaoPercentual(), conversorDecimal);
-        Bindings.bindBidirectional(txtValorMinimo.textProperty(), viewModel.getValorMinimoEmprestimo(),
-                conversorDecimal);
-        Bindings.bindBidirectional(txtValorMaximo.textProperty(), viewModel.getValorMaximoEmprestimo(),
-                conversorDecimal);
+        // 🚀 BINDINGS COM O SEU FINANCEIRO UTILS (Para Moeda/Percentual)
+        // Precisamos instanciar um TextFormatter NOVO para CADA campo de texto
+        TextFormatter<BigDecimal> tfTaxa = FinanceiroUtils.criarFormatadorMoeda();
+        txtTaxaMensal.setTextFormatter(tfTaxa);
+        tfTaxa.valueProperty().bindBidirectional(viewModel.getTaxaMensal());
+
+        TextFormatter<BigDecimal> tfComissao = FinanceiroUtils.criarFormatadorMoeda();
+        txtComissao.setTextFormatter(tfComissao);
+        tfComissao.valueProperty().bindBidirectional(viewModel.getComissaoPercentual());
+
+        TextFormatter<BigDecimal> tfValorMin = FinanceiroUtils.criarFormatadorMoeda();
+        txtValorMinimo.setTextFormatter(tfValorMin);
+        tfValorMin.valueProperty().bindBidirectional(viewModel.getValorMinimoEmprestimo());
+
+        TextFormatter<BigDecimal> tfValorMax = FinanceiroUtils.criarFormatadorMoeda();
+        txtValorMaximo.setTextFormatter(tfValorMax);
+        tfValorMax.valueProperty().bindBidirectional(viewModel.getValorMaximoEmprestimo());
+
+        TextFormatter<BigDecimal> tfRendaMin = FinanceiroUtils.criarFormatadorMoeda();
+        txtRendaMinima.setTextFormatter(tfRendaMin);
+        tfRendaMin.valueProperty().bindBidirectional(viewModel.getRendaMinima());
+
+        // 🚀 BINDINGS ROBUSTOS PARA INTEIROS (Para Idade/Prazos)
+        TextFormatter<Integer> tfPrazoMin = criarFormatadorInteiroPadrao();
+        txtPrazoMinimo.setTextFormatter(tfPrazoMin);
+        tfPrazoMin.valueProperty().bindBidirectional(viewModel.getPrazoMinimo());
+
+        TextFormatter<Integer> tfPrazoMax = criarFormatadorInteiroPadrao();
+        txtPrazoMaximo.setTextFormatter(tfPrazoMax);
+        tfPrazoMax.valueProperty().bindBidirectional(viewModel.getPrazoMaximo());
+
+        TextFormatter<Integer> tfIdadeMin = criarFormatadorInteiroPadrao();
+        txtIdadeMinima.setTextFormatter(tfIdadeMin);
+        tfIdadeMin.valueProperty().bindBidirectional(viewModel.getIdadeMinima());
+
+        TextFormatter<Integer> tfIdadeMax = criarFormatadorInteiroPadrao();
+        txtIdadeMaxima.setTextFormatter(tfIdadeMax);
+        tfIdadeMax.valueProperty().bindBidirectional(viewModel.getIdadeMaxima());
+    }
+
+    /**
+     * Motor nativo de Formatação de Inteiros para impedir travamentos e letras
+     */
+    private TextFormatter<Integer> criarFormatadorInteiroPadrao() {
+        return new TextFormatter<>(new StringConverter<Integer>() {
+            @Override
+            public String toString(Integer object) {
+                return object != null ? object.toString() : "";
+            }
+
+            @Override
+            public Integer fromString(String string) {
+                if (string == null || string.trim().isEmpty())
+                    return null;
+                try {
+                    return Integer.parseInt(string.replaceAll("[^0-9]", ""));
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+        }, null, change -> {
+            // Permite APENAS números no teclado
+            if (change.getControlNewText().matches("\\d*")) {
+                return change;
+            }
+            return null;
+        });
     }
 
     private void configurarColunasTabela() {
@@ -140,32 +201,51 @@ public class TabelaJurosController {
             String bancoNome = cell.getValue().getBanco() != null ? cell.getValue().getBanco().getNome() : "S/B";
             return new SimpleStringProperty("[" + bancoNome + "] " + cell.getValue().getNomeTabela());
         });
-        colTaxa.setCellValueFactory(
-                cell -> new SimpleStringProperty(formatarPorcentagem(cell.getValue().getTaxaMensal())));
-        colComissao.setCellValueFactory(
-                cell -> new SimpleStringProperty(formatarPorcentagem(cell.getValue().getComissaoPercentual())));
+
+        // Uso do FinanceiroUtils diretamente na tabela
+        colTaxa.setCellValueFactory(cell -> new SimpleStringProperty(
+                FinanceiroUtils.formatarParaExibicao(cell.getValue().getTaxaMensal()) + "%"));
+        colComissao.setCellValueFactory(cell -> new SimpleStringProperty(
+                FinanceiroUtils.formatarParaExibicao(cell.getValue().getComissaoPercentual()) + "%"));
 
         colLimites.setCellValueFactory(cell -> {
             String min = cell.getValue().getValorMinimoEmprestimo() != null
-                    ? "R$ " + cell.getValue().getValorMinimoEmprestimo()
+                    ? "R$ " + FinanceiroUtils.formatarParaExibicao(cell.getValue().getValorMinimoEmprestimo())
                     : "R$ 0,00";
             String max = cell.getValue().getValorMaximoEmprestimo() != null
                     && cell.getValue().getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) > 0
-                            ? "R$ " + cell.getValue().getValorMaximoEmprestimo()
+                            ? "R$ " + FinanceiroUtils.formatarParaExibicao(cell.getValue().getValorMaximoEmprestimo())
                             : "Sem teto";
             return new SimpleStringProperty(min + " - " + max);
         });
 
-        // Configuração dos Botões de Ação na Tabela (Bisturis de Operação)
+        colRenda.setCellValueFactory(cell -> {
+            BigDecimal min = cell.getValue().getRendaMinima();
+            String texto = (min != null && min.compareTo(BigDecimal.ZERO) > 0)
+                    ? "A partir de R$ " + FinanceiroUtils.formatarParaExibicao(min)
+                    : "Isento";
+            return new SimpleStringProperty(texto);
+        });
+
+        colIdade.setCellValueFactory(cell -> {
+            Integer min = cell.getValue().getIdadeMinima() != null ? cell.getValue().getIdadeMinima() : 18;
+            Integer max = cell.getValue().getIdadeMaxima() != null ? cell.getValue().getIdadeMaxima() : 100;
+            return new SimpleStringProperty(min + " a " + max + " anos");
+        });
+
+        colPrazo.setCellValueFactory(cell -> {
+            Integer min = cell.getValue().getPrazoMinimo() != null ? cell.getValue().getPrazoMinimo() : 1;
+            Integer max = cell.getValue().getPrazoMaximo() != null ? cell.getValue().getPrazoMaximo() : 96;
+            return new SimpleStringProperty(min + " a " + max + "x");
+        });
+
         colAcoes.setCellFactory(param -> new TableCell<>() {
             private final Button btnEditar = new Button("✏️");
             private final Button btnArquivar = new Button("📦");
             private final HBox pane = new HBox(5, btnEditar, btnArquivar);
-
             {
                 btnEditar.getStyleClass().add("flat");
                 btnEditar.setOnAction(event -> editarTabela(getTableView().getItems().get(getIndex())));
-
                 btnArquivar.getStyleClass().add("flat");
                 btnArquivar.setStyle("-fx-text-fill: #f57c00;");
                 btnArquivar
@@ -209,18 +289,12 @@ public class TabelaJurosController {
             mostrarMensagem("Nenhuma alteração detectada para salvar.", false);
             return;
         }
-
         try {
-            // Pega os dados do formulário e gera a entidade
             TabelaJurosModel tabelaAtualizada = viewModel.atualizarModel(new TabelaJurosModel());
-
-            // Salva usando a Regra de Ouro (Cria nova versão, inativa a velha)
             service.salvarComRegraDeOuro(tabelaAtualizada);
-
             mostrarMensagem("Tabela atualizada com sucesso! A vigência antiga foi arquivada.", true);
             limparFormulario();
-            carregarDados(); // Atualiza a tabela da tela
-
+            carregarDados();
         } catch (Exception e) {
             mostrarMensagem("Erro ao salvar: " + e.getMessage(), false);
             e.printStackTrace();
@@ -255,16 +329,9 @@ public class TabelaJurosController {
     @FXML
     private void prepararNovaVersao() {
         if (tabelaSelecionadaParaArquivar != null) {
-            // Reaproveita a lógica do botão Editar!
-            // Ele joga os dados pro ViewModel e abre o painel expansível.
-            // Quando ela clicar em "Salvar", a Regra de Ouro fará a mágica.
             editarTabela(tabelaSelecionadaParaArquivar);
         }
-        // Fecha o overlay escuro
         cancelarArquivamento();
-
-        // Dá um scroll para o topo ou foca no painel para ela ver que o formulário
-        // abriu
         paneFormulario.requestFocus();
     }
 
@@ -278,43 +345,11 @@ public class TabelaJurosController {
         cancelarArquivamento();
     }
 
-    // =========================================================
-    // UTILITÁRIOS INTERNOS
-    // =========================================================
-
     private void mostrarMensagem(String texto, boolean sucesso) {
         lblAviso.setText(texto);
         lblAviso.setStyle(sucesso ? "-fx-text-fill: green; -fx-font-weight: bold;"
                 : "-fx-text-fill: red; -fx-font-weight: bold;");
         lblAviso.setVisible(true);
         lblAviso.setManaged(true);
-    }
-
-    private String formatarPorcentagem(BigDecimal valor) {
-        return valor != null ? valor.setScale(2, RoundingMode.HALF_UP).toString() + "%" : "0.00%";
-    }
-
-    /**
-     * Conversor simples para transformar os textos digitados em BigDecimal para o
-     * ViewModel.
-     */
-    private static class BigDecimalConverter extends StringConverter<BigDecimal> {
-        @Override
-        public String toString(BigDecimal object) {
-            return object != null ? object.toString() : "";
-        }
-
-        @Override
-        public BigDecimal fromString(String string) {
-            if (string == null || string.trim().isEmpty()) {
-                return null;
-            }
-            try {
-                // Troca vírgula por ponto para evitar erro de parse no Java
-                return new BigDecimal(string.replace(",", "."));
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
     }
 }
