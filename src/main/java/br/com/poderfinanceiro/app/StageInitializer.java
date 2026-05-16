@@ -1,70 +1,83 @@
 package br.com.poderfinanceiro.app;
 
+import br.com.poderfinanceiro.app.controller.MainController;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
-import br.com.poderfinanceiro.app.controller.MainController;
+
 import java.io.IOException;
 
+/**
+ * Initializer refinado. Não escuta mais eventos automáticos do Spring.
+ * Agora é comandado ativamente pelo JavafxApplication após o carregamento
+ * assíncrono.
+ */
 @Component
-public class StageInitializer implements ApplicationListener<StageReadyEvent> {
+public class StageInitializer {
 
     private final ApplicationContext applicationContext;
-    private Stage stage;
+    private Stage primaryStage;
 
+    // Injetamos o ApplicationContext para garantir que o FXMLLoader
+    // consiga criar todos os Controllers como Beans do Spring
     public StageInitializer(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 
-    @Override
-    public void onApplicationEvent(StageReadyEvent event) {
-        this.stage = event.getStage();
+    public void setPrimaryStage(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+    }
 
+    /**
+     * Método público que realiza o carregamento final do FXML Wide
+     * após a Splash Screen finalizar.
+     */
+    public void loadMainView() {
         try {
+            // 1. Carrega o layout mestre usando o Spring para instanciar o MainController
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main.fxml"));
             loader.setControllerFactory(applicationContext::getBean);
             Parent root = loader.load();
 
-            // 🚀 A CURA: Captura os limites reais do monitor (descontando barras de
-            // tarefas/painéis)
+            // 2. 🚀 A CURA: Captura os limites reais do monitor (descontando barras de
+            // tarefas)
             javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
-
-            // Define o tamanho como 90% da tela ou um valor seguro para 768p
             double width = Math.min(1280, bounds.getWidth() * 0.9);
             double height = Math.min(720, bounds.getHeight() * 0.9);
 
             Scene scene = new Scene(root, width, height);
-            stage.setScene(scene);
+            primaryStage.setScene(scene);
 
-            // 🎨 CONFIGURAÇÃO DO ÍCONE
-            // O getIcons() aceita uma lista, então você pode adicionar várias resoluções se
-            // quiser
+            // 3. 🎨 CONFIGURAÇÃO DO ÍCONE
             try {
                 var iconStream = getClass().getResourceAsStream("/icons/app.png");
                 if (iconStream != null) {
-                    stage.getIcons().add(new javafx.scene.image.Image(iconStream));
+                    primaryStage.getIcons().add(new javafx.scene.image.Image(iconStream));
                 }
             } catch (Exception e) {
                 System.err.println("Não foi possível carregar o ícone: " + e.getMessage());
             }
 
-            // 🛡️ Blindagem de Geometria
-            stage.setMinWidth(1024);
-            stage.setMinHeight(700);
-            stage.setTitle("Poder Financeiro - Consultoria");
+            // 4. 🛡️ Blindagem de Geometria e Configuração Final
+            primaryStage.setMinWidth(1024);
+            primaryStage.setMinHeight(700);
+            primaryStage.setTitle("Poder Financeiro ERP");
 
-            stage.show();
-            stage.centerOnScreen();
+            // Força a janela a abrir maximizada, aproveitando o novo layout Wide
+            primaryStage.setMaximized(true);
 
+            primaryStage.show();
+            primaryStage.centerOnScreen();
+
+            // 5. O Fluxo Oficial: Direciona para o Login inicialmente
             MainController mainController = applicationContext.getBean(MainController.class);
             mainController.navegarPara("/fxml/login.fxml", false);
 
         } catch (IOException e) {
-            throw new RuntimeException("Falha ao inicializar o layout mestre.", e);
+            throw new RuntimeException("Falha ao inicializar o layout mestre após o boot.", e);
         }
     }
 
