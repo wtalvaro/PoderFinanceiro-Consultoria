@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.viewmodel;
 import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
 import br.com.poderfinanceiro.app.model.enums.TipoLogradouroModel;
 import br.com.poderfinanceiro.app.model.enums.UfModel;
+import br.com.poderfinanceiro.app.utils.EnderecoUtils;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
@@ -97,7 +98,7 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponenteModel> {
             model = new EnderecoProponenteModel();
 
         model.setId(this.id.get());
-        model.setCep(this.cep.get());
+        model.setCep(EnderecoUtils.limparCep(this.cep.get()));
         model.setTipoLogradouro(this.tipoLogradouro.get());
         model.setLogradouro(this.logradouro.get());
         model.setNumero(this.numero.get());
