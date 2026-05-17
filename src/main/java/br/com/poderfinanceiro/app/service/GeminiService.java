@@ -12,6 +12,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import java.util.Base64;
+import java.util.ArrayList;
+import java.io.File;
+
 @Service
 public class GeminiService {
 
@@ -27,53 +31,56 @@ public class GeminiService {
         this.restClient = RestClient.builder().build();
     }
 
-    // 🚀 NOVA ASSINATURA: Agora o método exige obrigatoriamente a chave do
-    // consultor logado
-    public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor) {
-
-        // 🛑 BARREIRA DE SEGURANÇA: Sabota a execução se o consultor não possuir a
-        // chave cadastrada
+    // 🚀 NOVA ASSINATURA: Recebe o ficheiro (File)
+    public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, File arquivoAnexo) {
         if (apiKeyDoConsultor == null || apiKeyDoConsultor.isBlank()) {
-            return "⚠️ Acesso Negado: Sua chave de API do Gemini não está cadastrada. Vá no menu do seu perfil para configurá-la.";
+            return "⚠️ Acesso Negado: A sua chave de API do Gemini não está configurada. Aceda às configurações no topo para configurá-la.";
         }
 
         try {
             String playbookJson = carregarPlaybookLocal();
 
-            // Configuração da Persona rica do Especialista
             String instrucaoSistema = """
-                    Você é um Analista Bancário Sênior e Especialista em Crédito Consignado, Pessoal e Financiamentos no Brasil.
+                    Você é um Analista Bancário Sênior e Especialista em Crédito.
                     Você atua como assistente interno (Copilot) do sistema 'Poder Financeiro'.
-                    Seu objetivo é ajudar os consultores a estruturar operações, calcular margens, entender normativas (INSS, SIAPE, FGTS) e fechar negócios.
 
-                    SUA PERSONA E CONHECIMENTO:
-                    - Você domina cálculo de Tabela Price, SAC, Custo Efetivo Total (CET), IOF, portabilidade, refinanciamento e troco.
-                    - Você conhece as regras gerais do Banco Central do Brasil e do INSS para consignados.
-                    - Seja direto, profissional, encorajador e use jargões do mercado financeiro quando apropriado.
-
-                    A REGRA DE OURO (HIERARQUIA DE INFORMAÇÃO):
-                    Abaixo está o 'Playbook Operacional' da empresa. As regras contidas nele TÊM PRIORIDADE MÁXIMA.
-                    Se o seu conhecimento geral de mercado entrar em conflito com o Playbook, o Playbook sempre vence.
-                    Se a pergunta for sobre processos internos da empresa, use exclusivamente o Playbook.
+                    Se o consultor enviar um documento (holerite, HISCON, extrato), faça a leitura OCR com extrema precisão, cruze com as regras do Playbook e forneça a análise solicitada.
 
                     --- INÍCIO DO PLAYBOOK INTERNO (JSON) ---
                     """
-                    + playbookJson
-                    + """
+                    + playbookJson + """
                             \n--- FIM DO PLAYBOOK INTERNO ---
 
-                            Responda em formato limpo, usando marcadores para facilitar a leitura rápida na tela do sistema.
+                            Responda em formato limpo e estruturado.
                             """;
 
-            // 🎯 Consolidação da injeção direto no corpo do texto principal
-            String promptFinal = instrucaoSistema + "\n\n[CONTEXTO OPERACIONAL PROCESSADO] Pergunta do Consultor: "
-                    + perguntaUsuario;
+            String promptFinal = instrucaoSistema + "\n\n[CONTEXTO] Pergunta do Consultor: " + perguntaUsuario;
+
+            // 🎯 CONSTRUÇÃO DINÂMICA DAS PARTS (Texto + Ficheiro)
+            List<GeminiRequest.Part> parts = new ArrayList<>();
+
+            // 1. Adiciona a pergunta em texto
+            parts.add(GeminiRequest.Part.ofText(promptFinal));
+
+            // 2. Se houver ficheiro, converte para Base64 e adiciona como InlineData
+            if (arquivoAnexo != null && arquivoAnexo.exists()) {
+                byte[] fileBytes = Files.readAllBytes(arquivoAnexo.toPath());
+                String base64Data = Base64.getEncoder().encodeToString(fileBytes);
+
+                // Determina o MimeType
+                String fileName = arquivoAnexo.getName().toLowerCase();
+                String mimeType = "application/pdf"; // Padrão
+                if (fileName.endsWith(".png"))
+                    mimeType = "image/png";
+                else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg"))
+                    mimeType = "image/jpeg";
+
+                parts.add(GeminiRequest.Part.ofFile(mimeType, base64Data));
+            }
 
             GeminiRequest payload = new GeminiRequest(
-                    List.of(new GeminiRequest.Content(List.of(new GeminiRequest.Part(promptFinal)))));
+                    List.of(new GeminiRequest.Content(parts)));
 
-            // 🎯 O AJUSTE: O RestClient consome dinamicamente os créditos da chave do
-            // usuário que fez a pergunta
             GeminiResponse response = restClient.post()
                     .uri(apiUrl + "?key=" + apiKeyDoConsultor)
                     .body(payload)
@@ -94,15 +101,46 @@ public class GeminiService {
 
     private String carregarPlaybookLocal() {
         try {
-            String homeUser = System.getProperty("user.home");
-            Path caminho = Paths.get(homeUser, ".local", "share", "PoderFinanceiro", "playbook_scripts.json");
+            Path caminho = obterCaminhoPlaybookCrossPlatform();
 
             if (Files.exists(caminho)) {
                 return Files.readString(caminho);
+            } else {
+                System.out.println("⚠️ Arquivo de Playbook não encontrado no caminho: " + caminho.toAbsolutePath());
             }
         } catch (IOException e) {
             return "{ 'aviso': 'Falha ao ler o arquivo local de playbook.' }";
         }
         return "{ 'aviso': 'Playbook interno vazio.' }";
     }
+
+    // 🚀 NOVO MÉTODO: Detecta o OS e devolve a rota exata da pasta oculta
+    private Path obterCaminhoPlaybookCrossPlatform() {
+        String os = System.getProperty("os.name").toLowerCase();
+        String homeUser = System.getProperty("user.home");
+        Path pastaBase;
+
+        if (os.contains("win")) {
+            // Padrão Windows: Tenta pegar o AppData/Local da variável de ambiente
+            String appData = System.getenv("LOCALAPPDATA");
+            if (appData == null) {
+                appData = System.getenv("APPDATA"); // Fallback para Roaming
+            }
+            if (appData != null) {
+                pastaBase = Paths.get(appData, "PoderFinanceiro");
+            } else {
+                // Hard-fallback caso variáveis de ambiente falhem
+                pastaBase = Paths.get(homeUser, "AppData", "Local", "PoderFinanceiro");
+            }
+        } else if (os.contains("mac")) {
+            // Padrão macOS
+            pastaBase = Paths.get(homeUser, "Library", "Application Support", "PoderFinanceiro");
+        } else {
+            // Padrão Linux/Fedora que você já usava
+            pastaBase = Paths.get(homeUser, ".local", "share", "PoderFinanceiro");
+        }
+
+        return pastaBase.resolve("playbook_scripts.json");
+    }
+    
 }

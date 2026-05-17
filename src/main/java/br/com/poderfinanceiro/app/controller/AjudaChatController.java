@@ -10,9 +10,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import java.io.File;
 
 @Component
 @Scope("prototype")
@@ -28,6 +31,12 @@ public class AjudaChatController {
     private VBox paneConfigChave;
     @FXML
     private PasswordField txtNovaApiKey;
+    @FXML
+    private HBox boxAnexo;
+    @FXML
+    private Label lblNomeFicheiro;
+
+    private File ficheiroAnexado = null; // Guarda o ficheiro em memória
 
     private final GeminiService geminiService;
     private final AuthService authService; // 🚀 Injeção adicionada
@@ -43,28 +52,62 @@ public class AjudaChatController {
         this.mainController = mainController;
     }
 
+    // 📎 NOVO: Método para escolher o ficheiro
+    @FXML
+    private void escolherFicheiro() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Anexar Documento ou Holerite");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Documentos e Imagens", "*.pdf", "*.png", "*.jpg", "*.jpeg"));
+
+        File file = fileChooser.showOpenDialog(txtMensagem.getScene().getWindow());
+        if (file != null) {
+            ficheiroAnexado = file;
+            lblNomeFicheiro.setText(file.getName());
+            boxAnexo.setVisible(true);
+            boxAnexo.setManaged(true);
+        }
+    }
+
+    // ✕ NOVO: Método para limpar o anexo
+    @FXML
+    private void removerAnexo() {
+        ficheiroAnexado = null;
+        boxAnexo.setVisible(false);
+        boxAnexo.setManaged(false);
+    }
+
+    // 🚀 ATUALIZADO: O método enviarMensagem agora passa o ficheiro
     @FXML
     private void enviarMensagem() {
         String texto = txtMensagem.getText();
-        if (texto == null || texto.trim().isEmpty())
+
+        // Se não houver texto E não houver ficheiro, aborta
+        if ((texto == null || texto.trim().isEmpty()) && ficheiroAnexado == null) {
             return;
+        }
+
+        // 🎯 A CORREÇÃO: Verificamos se o texto é null antes de verificar se está vazio
+        String mensagemExibida = (texto == null || texto.trim().isEmpty()) ? "📄 Analise este documento." : texto;
 
         txtMensagem.clear();
-        adicionarBalao(texto, true);
+        adicionarBalao(mensagemExibida, true);
+
+        // Guarda a referência do ficheiro para a Task e limpa a UI
+        File ficheiroParaEnvio = ficheiroAnexado;
+        removerAnexo();
 
         Label lblPensando = adicionarBalaoDeCarregamento();
 
-        // 3. Dispara a chamada para a IA em Background
         Task<String> taskIA = new Task<>() {
             @Override
             protected String call() throws Exception {
-                // 🚀 Captura dinamicamente o token do consultor logado na sessão do sistema
                 String tokenDoConsultor = (authService.getUsuarioLogado() != null)
                         ? authService.getUsuarioLogado().getGeminiApiKey()
                         : null;
 
-                // Passa os dois parâmetros exigidos pelo novo motor BYOK
-                return geminiService.perguntarAoAssistente(texto, tokenDoConsultor);
+                // Passa o texto, a chave e o ficheiro (se existir)
+                return geminiService.perguntarAoAssistente(mensagemExibida, tokenDoConsultor, ficheiroParaEnvio);
             }
         };
 

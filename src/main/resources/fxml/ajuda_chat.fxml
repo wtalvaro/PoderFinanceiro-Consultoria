@@ -65,12 +65,26 @@
         </VBox>
     </ScrollPane>
 
+    <HBox fx:id="boxAnexo" alignment="CENTER_LEFT" spacing="8" visible="false" managed="false"
+        style="-fx-background-color: #E3F2FD; -fx-padding: 6 16; -fx-border-color: #BBDEFB; -fx-border-width: 1 0 0 0;">
+        <Label text="📎" style="-fx-font-size: 14px; -fx-text-fill: #1565C0;" />
+        <Label fx:id="lblNomeFicheiro" text="ficheiro.pdf"
+            style="-fx-font-size: 12px; -fx-text-fill: #1565C0; -fx-font-weight: bold;"
+            HBox.hgrow="ALWAYS" />
+        <Button text="✕" onAction="#removerAnexo"
+            style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #D32F2F; -fx-padding: 0 4;" />
+    </HBox>
+
     <VBox
         style="-fx-background-color: #F0F2F5; -fx-padding: 14 16; -fx-border-color: #DDDDDD; -fx-border-width: 1 0 0 0;">
-        <HBox spacing="12" alignment="CENTER">
-            <TextField fx:id="txtMensagem" promptText="Digite sua dúvida operacional..."
+        <HBox spacing="10" alignment="CENTER">
+            <Button text="📎" onAction="#escolherFicheiro"
+                style="-fx-background-color: transparent; -fx-font-size: 20px; -fx-cursor: hand; -fx-text-fill: #616161; -fx-padding: 4;" />
+
+            <TextField fx:id="txtMensagem" promptText="Digite sua dúvida ou anexe um holerite..."
                 HBox.hgrow="ALWAYS" onAction="#enviarMensagem"
                 style="-fx-background-color: #FFFFFF; -fx-background-radius: 22; -fx-padding: 12 18; -fx-font-size: 15px; -fx-text-fill: #000000; -fx-font-family: 'Segoe UI', sans-serif;" />
+
             <Button text="➤" onAction="#enviarMensagem"
                 style="-fx-background-color: #00a884; -fx-text-fill: white; -fx-background-radius: 22; -fx-min-width: 44; -fx-min-height: 44; -fx-max-width: 44; -fx-max-height: 44; -fx-font-size: 16px; -fx-cursor: hand;" />
         </HBox>
