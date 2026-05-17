@@ -1,5 +1,7 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.service.ViaCepService;
+import br.com.poderfinanceiro.app.dto.ViaCepResponse;
 import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
 import br.com.poderfinanceiro.app.model.enums.TipoLogradouroModel;
 import br.com.poderfinanceiro.app.model.enums.UfModel;
@@ -9,14 +11,14 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
+import javafx.concurrent.Task;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Component
-@Scope("prototype") // Garante uma instância nova para cada aba aberta
+@Scope("prototype")
 public class EnderecoController {
 
-    // --- ELEMENTOS FXML ---
     @FXML
     private TextField txtCep;
     @FXML
@@ -35,35 +37,75 @@ public class EnderecoController {
     private ComboBox<UfModel> comboUf;
 
     private final EnderecoViewModel viewModel;
+    private final ViaCepService viaCepService;
 
-    /**
-     * O Spring injeta a ViewModel via construtor.
-     */
-    public EnderecoController(EnderecoViewModel viewModel) {
+    public EnderecoController(EnderecoViewModel viewModel, ViaCepService viaCepService) {
         this.viewModel = viewModel;
+        this.viaCepService = viaCepService;
     }
 
     @FXML
     public void initialize() {
         configurarInterface();
         estabelecerBindings();
+        // ❌ O ouvinte (Listener) automático foi removido daqui para evitar disparos
+        // acidentais
     }
 
-    /**
-     * Configurações iniciais de combos e máscaras.
-     */
+    // 🎯 O GATILHO REAPROVEITADO (Botão e ENTER)
+    @FXML
+    private void buscarCep() {
+        String cepDigitado = txtCep.getText();
+
+        if (cepDigitado != null && !cepDigitado.trim().isEmpty()) {
+            String apenasNumeros = cepDigitado.replaceAll("\\D", "");
+
+            if (apenasNumeros.length() == 8) {
+                System.out.println("Solicitando busca para o CEP: " + apenasNumeros);
+                buscarEPreencherCep(apenasNumeros);
+            } else {
+                System.out.println("⚠️ O CEP deve conter exatamente 8 números.");
+            }
+        }
+    }
+
+    private void buscarEPreencherCep(String cepDigitado) {
+        Task<ViaCepResponse> buscaTask = new Task<>() {
+            @Override
+            protected ViaCepResponse call() throws Exception {
+                return viaCepService.buscarEnderecoPorCep(cepDigitado);
+            }
+        };
+
+        buscaTask.setOnSucceeded(e -> {
+            ViaCepResponse enderecoEncontrado = buscaTask.getValue();
+
+            if (enderecoEncontrado != null) {
+                txtLogradouro.setText(enderecoEncontrado.logradouro());
+                txtBairro.setText(enderecoEncontrado.bairro());
+                txtCidade.setText(enderecoEncontrado.localidade());
+
+                try {
+                    comboUf.setValue(UfModel.valueOf(enderecoEncontrado.uf().toUpperCase()));
+                } catch (IllegalArgumentException ex) {
+                    System.out.println("UF não encontrada no Enum: " + enderecoEncontrado.uf());
+                }
+
+                // txtNumero.requestFocus();
+            } else {
+                System.out.println("CEP Inválido ou não encontrado no ViaCEP.");
+            }
+        });
+
+        new Thread(buscaTask).start();
+    }
+
     private void configurarInterface() {
-        // Preenche as ComboBoxes com os Enums que você já tem no Model
         comboTipoLogradouro.setItems(FXCollections.observableArrayList(TipoLogradouroModel.values()));
         comboUf.setItems(FXCollections.observableArrayList(UfModel.values()));
-
-        // Aplica a máscara de CEP do seu EnderecoUtils (00.000-000)
         txtCep.setTextFormatter(EnderecoUtils.criarFormatadorCep());
     }
 
-    /**
-     * Vincula as propriedades da ViewModel aos campos da tela.
-     */
     private void estabelecerBindings() {
         viewModel.cepProperty().bindBidirectional(txtCep.textProperty());
         viewModel.tipoLogradouroProperty().bindBidirectional(comboTipoLogradouro.valueProperty());
@@ -74,24 +116,6 @@ public class EnderecoController {
         viewModel.cidadeProperty().bindBidirectional(txtCidade.textProperty());
         viewModel.ufProperty().bindBidirectional(comboUf.valueProperty());
     }
-
-    /**
-     * Ação disparada pelo botão de busca na tela.
-     */
-    @FXML
-    private void buscarCep() {
-        String cepDigitado = viewModel.cepProperty().get().replaceAll("[^0-9]", "");
-
-        if (cepDigitado.length() == 8) {
-            // No futuro, aqui chamaremos o serviço do ViaCEP
-            System.out.println("Solicitando busca para o CEP: " + cepDigitado);
-        } else {
-            // Aqui você pode usar o método de exibir mensagem que já temos no projeto
-            System.out.println("CEP Inválido");
-        }
-    }
-
-    // --- MÉTODOS DE PONTE PARA O HUB ---
 
     public void carregarEndereco(EnderecoProponenteModel endereco) {
         viewModel.loadFromModel(endereco);

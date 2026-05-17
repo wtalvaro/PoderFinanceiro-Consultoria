@@ -23,7 +23,8 @@
                         <Label text="CEP:" GridPane.rowIndex="0" />
                         <HBox spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
                             <children>
-                                <TextField fx:id="txtCep" prefWidth="150.0" promptText="00.000-000" />
+                                <TextField fx:id="txtCep" onAction="#buscarCep" prefWidth="150.0"
+                                    promptText="00.000-000" />
                                 <Button onAction="#buscarCep" text="🔍 Buscar CEP" styleClass="flat" />
                             </children>
                         </HBox>
