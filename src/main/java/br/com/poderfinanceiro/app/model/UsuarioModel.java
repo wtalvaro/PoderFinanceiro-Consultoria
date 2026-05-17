@@ -31,6 +31,9 @@ public class UsuarioModel {
     @Column(name = "senha_hash", nullable = false, length = 255)
     private String senhaHash;
 
+    @Column(name = "gemini_api_key", length = 255)
+    private String geminiApiKey;
+    
     @Column(length = 50)
     private String papel = "CONSULTOR";
 

@@ -44,6 +44,36 @@
                             <Label text="Confirmar Senha" />
                             <PasswordField fx:id="txtConfirmarSenha" prefHeight="35.0" />
                         </VBox>
+                        <VBox spacing="6.0" style="-fx-margin-top: 10;">
+                            <children>
+                                <HBox alignment="CENTER_LEFT" spacing="5">
+                                    <Label text="Chave de API do Gemini"
+                                        style="-fx-font-weight: bold; -fx-font-size: 13px;" />
+                                    <Label text="(Obrigatório)"
+                                        style="-fx-font-size: 11px; -fx-text-fill: #999999; -fx-font-style: italic;" />
+                                </HBox>
+                                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                    <children>
+                                        <PasswordField fx:id="txtGeminiApiKey" prefHeight="40.0"
+                                            HBox.hgrow="ALWAYS"
+                                            promptText="Cole sua chave AIzaSy... aqui"
+                                            style="-fx-background-radius: 6; -fx-padding: 10;" />
+
+                                        <Button fx:id="btnGerarChave"
+                                            onAction="#abrirGoogleAIStudio" text="🌐 Obter Chave"
+                                            style="-fx-background-color: #0D47A1; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;"
+                                            prefHeight="40.0">
+                                            <tooltip>
+                                                <Tooltip
+                                                    text="Clique para abrir o Google AI Studio. Faça login com sua conta Google e clique em 'Create API Key' de forma 100% gratuita!"
+                                                    prefWidth="250" wrapText="true"
+                                                    style="-fx-font-size: 12px;" />
+                                            </tooltip>
+                                        </Button>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
                     </children>
                 </VBox>
 

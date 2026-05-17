@@ -46,7 +46,7 @@ public class AuthService {
      * sessão.
      */
     @Transactional
-    public UsuarioModel cadastrar(String nome, String username, String email, String senha) {
+    public UsuarioModel cadastrar(String nome, String username, String email, String senha, String geminiApiKey) {
         // 1. Verificação de unicidade de Username e E-mail
         if (usuarioRepository.findByUsernameAndAtivoTrue(username.toLowerCase()).isPresent()) {
             throw new RuntimeException("Este nome de usuário já está sendo usado.");
@@ -62,6 +62,7 @@ public class AuthService {
         novo.setUsername(username.toLowerCase().trim()); // Normalização para o login
         novo.setEmail(email.toLowerCase().trim());
         novo.setSenhaHash(passwordEncoder.encode(senha));
+        novo.setGeminiApiKey(geminiApiKey);
         novo.setPapel("CONSULTOR");
         novo.setAtivo(true);
 

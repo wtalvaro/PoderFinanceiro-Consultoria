@@ -1,5 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.service.AuthService; // 🚀 Importado
 import br.com.poderfinanceiro.app.service.GeminiService;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -24,10 +25,13 @@ public class AjudaChatController {
     private ScrollPane scrollChat;
 
     private final GeminiService geminiService;
-    private MainController mainController; // Para fechar o painel
+    private final AuthService authService; // 🚀 Injeção adicionada
+    private MainController mainController;
 
-    public AjudaChatController(GeminiService geminiService) {
+    // Construtor atualizado para o Spring injetar o AuthService automaticamente
+    public AjudaChatController(GeminiService geminiService, AuthService authService) {
         this.geminiService = geminiService;
+        this.authService = authService;
     }
 
     public void setMainController(MainController mainController) {
@@ -40,24 +44,28 @@ public class AjudaChatController {
         if (texto == null || texto.trim().isEmpty())
             return;
 
-        // 1. Limpa o campo e desenha a bolha do Consultor na tela (Lado Direito)
         txtMensagem.clear();
         adicionarBalao(texto, true);
 
-        // 2. Adiciona o indicador de carregamento
         Label lblPensando = adicionarBalaoDeCarregamento();
 
         // 3. Dispara a chamada para a IA em Background
         Task<String> taskIA = new Task<>() {
             @Override
             protected String call() throws Exception {
-                return geminiService.perguntarAoAssistente(texto);
+                // 🚀 Captura dinamicamente o token do consultor logado na sessão do sistema
+                String tokenDoConsultor = (authService.getUsuarioLogado() != null)
+                        ? authService.getUsuarioLogado().getGeminiApiKey()
+                        : null;
+
+                // Passa os dois parâmetros exigidos pelo novo motor BYOK
+                return geminiService.perguntarAoAssistente(texto, tokenDoConsultor);
             }
         };
 
         taskIA.setOnSucceeded(e -> {
-            containerMensagens.getChildren().remove(lblPensando); // Remove o "Pensando..."
-            adicionarBalao(taskIA.getValue(), false); // Adiciona a resposta (Lado Esquerdo)
+            containerMensagens.getChildren().remove(lblPensando);
+            adicionarBalao(taskIA.getValue(), false);
         });
 
         taskIA.setOnFailed(e -> {
@@ -71,12 +79,11 @@ public class AjudaChatController {
     private void adicionarBalao(String texto, boolean isUsuario) {
         Label balao = new Label(texto);
         balao.setWrapText(true);
-        balao.setMaxWidth(320); // Alinhado com a largura do layout
+        balao.setMaxWidth(320);
 
         VBox wrapper = new VBox(balao);
 
         if (isUsuario) {
-            // Estilo WhatsApp - Mensagem Enviada (Verde Claro, Texto Preto)
             balao.setStyle("-fx-font-size: 15px; "
                     + "-fx-padding: 10 14; "
                     + "-fx-font-family: 'Segoe UI', sans-serif; "
@@ -87,7 +94,6 @@ public class AjudaChatController {
                     + "-fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.06), 2, 0, 0, 1);");
             wrapper.setAlignment(Pos.CENTER_RIGHT);
         } else {
-            // Estilo WhatsApp - Mensagem Recebida (Branco Puro, Texto Preto)
             balao.setStyle("-fx-font-size: 15px; "
                     + "-fx-padding: 10 14; "
                     + "-fx-font-family: 'Segoe UI', sans-serif; "
@@ -101,7 +107,6 @@ public class AjudaChatController {
 
         Platform.runLater(() -> {
             containerMensagens.getChildren().add(wrapper);
-            // Garante que o scroll desça suavemente até o final da nova mensagem
             Platform.runLater(() -> scrollChat.setVvalue(1.0));
         });
     }

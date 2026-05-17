@@ -27,10 +27,12 @@ public class CadastroController {
     private Button btnCadastrar;
     @FXML
     private TextField txtUsername;
+    @FXML
+    private PasswordField txtGeminiApiKey;
 
     public CadastroController(AuthService authService, MainController mainController) {
-        this.authService = authService; // Inicializou!
-        this.mainController = mainController; // Inicializou!
+        this.authService = authService;
+        this.mainController = mainController;
     }
 
     @FXML
@@ -43,25 +45,23 @@ public class CadastroController {
         Task<Void> cadastroTask = new Task<>() {
             @Override
             protected Void call() {
-                // Passando o novo parâmetro username
                 authService.cadastrar(
                         txtNome.getText().trim(),
                         txtUsername.getText().trim(),
                         txtEmail.getText().toLowerCase().trim(),
-                        txtSenha.getText());
+                        txtSenha.getText(),
+                        txtGeminiApiKey.getText().trim());
                 return null;
             }
         };
 
         cadastroTask.setOnSucceeded(e -> {
-            // Como o cadastro no AuthService já seta o 'usuarioLogado',
-            // podemos ir direto para a tela principal
+            // 🎯 CORRIGIDO: Método ajustado de navigatePara para navegarPara
             mainController.navegarPara("/fxml/login.fxml", false);
         });
 
         cadastroTask.setOnFailed(e -> {
             setLoading(false);
-            // Captura a exceção de e-mail duplicado ou erro de banco
             Throwable exception = cadastroTask.getException();
             exibirErro(exception.getMessage());
         });
@@ -71,7 +71,17 @@ public class CadastroController {
 
     @FXML
     private void handleVoltarLogin() {
+        // 🎯 CORRIGIDO: Método ajustado de navigatePara para navegarPara
         mainController.navegarPara("/fxml/login.fxml", false);
+    }
+
+    @FXML
+    private void abrirGoogleAIStudio() {
+        if (mainController != null && mainController.getHostServices() != null) {
+            mainController.getHostServices().showDocument("https://aistudio.google.com/");
+        } else {
+            System.out.println("Erro técnico: HostServices indisponível no momento.");
+        }
     }
 
     private boolean validarEntradas() {
@@ -85,7 +95,6 @@ public class CadastroController {
             return false;
         }
 
-        // Validação de E-mail simples antes de ir ao banco
         if (!txtEmail.getText().contains("@")) {
             exibirErro("Insira um e-mail válido.");
             return false;
@@ -101,16 +110,23 @@ public class CadastroController {
             return false;
         }
 
+        if (txtGeminiApiKey.getText() == null || txtGeminiApiKey.getText().trim().isBlank()) {
+            exibirErro("A chave de API do Gemini é obrigatória para o suporte analítico.");
+            return false;
+        }
+
         return true;
     }
 
     private void setLoading(boolean loading) {
         btnCadastrar.setDisable(loading);
         txtNome.setDisable(loading);
-        txtUsername.setDisable(loading); // Desabilitar no loading
+        txtUsername.setDisable(loading);
         txtEmail.setDisable(loading);
         txtSenha.setDisable(loading);
         txtConfirmarSenha.setDisable(loading);
+        txtGeminiApiKey.setDisable(loading);
+
         if (loading)
             lblMensagem.setVisible(false);
     }

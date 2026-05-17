@@ -20,14 +20,23 @@ public class GeminiService {
     @Value("${gemini.api.url}")
     private String apiUrl;
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
+    // ❌ REMOVIDO COMPLETAMENTE: A chave master do application.properties foi
+    // eliminada.
 
     public GeminiService() {
         this.restClient = RestClient.builder().build();
     }
 
-    public String perguntarAoAssistente(String perguntaUsuario) {
+    // 🚀 NOVA ASSINATURA: Agora o método exige obrigatoriamente a chave do
+    // consultor logado
+    public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor) {
+
+        // 🛑 BARREIRA DE SEGURANÇA: Sabota a execução se o consultor não possuir a
+        // chave cadastrada
+        if (apiKeyDoConsultor == null || apiKeyDoConsultor.isBlank()) {
+            return "⚠️ Acesso Negado: Sua chave de API do Gemini não está cadastrada. Vá no menu do seu perfil para configurá-la.";
+        }
+
         try {
             String playbookJson = carregarPlaybookLocal();
 
@@ -63,8 +72,10 @@ public class GeminiService {
             GeminiRequest payload = new GeminiRequest(
                     List.of(new GeminiRequest.Content(List.of(new GeminiRequest.Part(promptFinal)))));
 
+            // 🎯 O AJUSTE: O RestClient consome dinamicamente os créditos da chave do
+            // usuário que fez a pergunta
             GeminiResponse response = restClient.post()
-                    .uri(apiUrl + "?key=" + apiKey)
+                    .uri(apiUrl + "?key=" + apiKeyDoConsultor)
                     .body(payload)
                     .retrieve()
                     .body(GeminiResponse.class);
