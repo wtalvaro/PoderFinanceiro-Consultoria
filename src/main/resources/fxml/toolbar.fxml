@@ -28,7 +28,7 @@
     <Button text="🔗 Links" onAction="#handleLinksUteis" styleClass="flat" />
 
     <Region HBox.hgrow="ALWAYS" />
-    <Separator orientation="VERTICAL" />
-    <Button text="🚪 Sair" onAction="#handleLogout" styleClass="flat, danger"
-        style="-fx-text-fill: -color-danger-emphasis; -fx-font-weight: bold;" />
+
+    <Button text="🤖 Gemini IA" onAction="#handleAbrirIA" styleClass="flat"
+        style="-fx-font-weight: bold; -fx-background-color: #E3F2FD; -fx-text-fill: #0D47A1; -fx-background-radius: 15; -fx-padding: 5 15;" />
 </ToolBar>

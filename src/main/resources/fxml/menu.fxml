@@ -32,4 +32,9 @@
         <SeparatorMenuItem />
         <MenuItem text="🔄 Limpar Cache de Telas" onAction="#handleLimparCache" />
     </Menu>
+
+    <Menu text="_Ajuda">
+        <MenuItem text="🤖 Assistente de IA (Copilot)" onAction="#handleAbrirIA"
+            accelerator="Shortcut+I" />
+    </Menu>
 </MenuBar>

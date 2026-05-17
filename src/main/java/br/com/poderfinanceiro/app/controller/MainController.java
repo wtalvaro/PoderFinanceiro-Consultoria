@@ -4,6 +4,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.springframework.context.ApplicationContext;
@@ -33,7 +34,9 @@ public class MainController {
     private VBox overlayLoading;
     @FXML
     private Label lblLoadingTexto;
-    
+    @FXML private HBox overlayChatIA;
+    @FXML private AjudaChatController painelChatController;
+
     private final HostServices hostServices;
     private final ApplicationContext context;
 
@@ -253,5 +256,16 @@ public class MainController {
             alerta.setContentText(mensagem);
             alerta.showAndWait();
         });
+    }
+
+    @FXML
+    public void alternarPainelIA() {
+        // Se estiver invisível, mostra. Se estiver visível, esconde.
+        boolean estaAberto = overlayChatIA.isVisible();
+        overlayChatIA.setVisible(!estaAberto);
+
+        if (!estaAberto && painelChatController != null) {
+            painelChatController.setMainController(this);
+        }
     }
 }

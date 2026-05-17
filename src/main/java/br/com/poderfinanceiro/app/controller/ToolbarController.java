@@ -77,6 +77,12 @@ public class ToolbarController {
         mainController.irParaLinksUteis();
     }
 
+    @FXML
+    public void handleAbrirIA() {
+        // "Chefe (MainController), o usuário clicou no botão! Abre o painel de IA aí!"
+        mainController.alternarPainelIA();
+    }
+
     // ==========================================
     // SISTEMA
     // ==========================================

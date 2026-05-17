@@ -82,4 +82,10 @@ public class MenuController {
     private void handleLimparCache() {
         mainController.limparCacheDeTelas();
     }
+
+    @FXML
+    public void handleAbrirIA() {
+        // "Chefe (MainController), o usuário clicou no botão! Abre o painel de IA aí!"
+        mainController.alternarPainelIA();
+    }
 }
