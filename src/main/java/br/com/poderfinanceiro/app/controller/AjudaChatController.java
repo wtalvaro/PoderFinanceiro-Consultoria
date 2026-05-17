@@ -7,6 +7,7 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -23,6 +24,10 @@ public class AjudaChatController {
     private TextField txtMensagem;
     @FXML
     private ScrollPane scrollChat;
+    @FXML
+    private VBox paneConfigChave;
+    @FXML
+    private PasswordField txtNovaApiKey;
 
     private final GeminiService geminiService;
     private final AuthService authService; // 🚀 Injeção adicionada
@@ -74,6 +79,52 @@ public class AjudaChatController {
         });
 
         new Thread(taskIA).start();
+    }
+
+    // ⚙️ NOVO: Método que expande ou recolhe a aba de configuração
+    @FXML
+    private void toggleConfigChave() {
+        boolean visivel = !paneConfigChave.isVisible();
+        paneConfigChave.setVisible(visivel);
+        paneConfigChave.setManaged(visivel); // Força o JavaFX a recalcular o espaço ocupado
+
+        // Já preenche o campo com a chave atual se o usuário estiver ativo na sessão
+        if (visivel && authService.getUsuarioLogado() != null) {
+            txtNovaApiKey.setText(authService.getUsuarioLogado().getGeminiApiKey());
+        }
+    }
+
+    // ⚙️ NOVO: Persiste a nova chave direto no banco e atualiza a sessão local
+    @FXML
+    private void salvarNovaChave() {
+        String chaveDigitada = txtNovaApiKey.getText();
+        if (chaveDigitada == null || chaveDigitada.trim().isBlank()) {
+            adicionarBalao("⚠️ A chave de API não pode estar em branco.", false);
+            return;
+        }
+
+        try {
+            // Dispara o update na camada de serviço
+            authService.atualizarGeminiApiKey(chaveDigitada.trim());
+
+            // Recolhe o painel de forma suave
+            paneConfigChave.setVisible(false);
+            paneConfigChave.setManaged(false);
+
+            adicionarBalao(
+                    "✅ Sua chave de API foi atualizada com sucesso no banco de dados! O Copilot já está operando com as novas credenciais.",
+                    false);
+        } catch (Exception e) {
+            adicionarBalao("⚠️ Erro ao persistir nova chave: " + e.getMessage(), false);
+        }
+    }
+
+    // ⚙️ NOVO: Atalho para o consultor gerar um novo token sem sair do chat
+    @FXML
+    private void abrirGoogleAIStudioChat() {
+        if (mainController != null && mainController.getHostServices() != null) {
+            mainController.getHostServices().showDocument("https://aistudio.google.com/");
+        }
     }
 
     private void adicionarBalao(String texto, boolean isUsuario) {

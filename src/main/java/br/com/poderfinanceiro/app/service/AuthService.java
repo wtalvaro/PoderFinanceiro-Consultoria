@@ -72,6 +72,19 @@ public class AuthService {
         return salvo;
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public void atualizarGeminiApiKey(String novaChave) {
+        if (usuarioLogado == null) {
+            throw new RuntimeException("Sessão inválida ou expirada. Efetue o login novamente.");
+        }
+
+        // Atualiza a entidade em memória da sessão ativa
+        usuarioLogado.setGeminiApiKey(novaChave);
+
+        // Força o merge/update na tabela de usuarios do banco
+        usuarioRepository.save(usuarioLogado);
+    }
+
     public void logout() {
         this.usuarioLogado = null;
     }
