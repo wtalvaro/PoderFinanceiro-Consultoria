@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #efeae2;
+            margin: 0;
+            padding: 16px;
+            overflow-x: hidden;
+        }
+
+        /* 🎯 CORREÇÃO 1: O container agora gerencia o ecossistema de espaçamento vertical */
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            /* Garante o respiro perfeito entre as mensagens sem sobreposição */
+            width: 100%;
+        }
+
+        /* A linha horizontal que serve de trilho para o balão */
+        .message-row {
+            display: flex;
+            width: 100%;
+        }
+
+        .message-row.user {
+            justify-content: flex-end;
+        }
+
+        .message-row.bot {
+            justify-content: flex-start;
+        }
+
+        /* 🎯 CORREÇÃO 2: Ajuste anatômico para moldar a bolha ao texto */
+        .bubble {
+            max-width: 75%;
+            /* Teto máximo saudável para não esticar na tela toda */
+            width: fit-content;
+            /* Aloca apenas o espaço exato ocupado pelas palavras */
+            display: block;
+            padding: 8px 14px;
+            font-size: 15px;
+            line-height: 1.45;
+            color: #000000;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            /* Preserva as quebras de parágrafo da IA */
+            user-select: text;
+            /* Cópia parcial livre e nativa pelo mouse */
+        }
+
+        /* Cores e cantos arredondados padrão do WhatsApp */
+        .bubble.user {
+            background-color: #D9FDD3;
+            border-radius: 12px 12px 0 12px;
+        }
+
+        .bubble.bot {
+            background-color: #FFFFFF;
+            border-radius: 12px 12px 12px 0;
+        }
+
+        /* 🎯 O ANTÍDOTO DO VS CODE: Força o navegador a colapsar 
+           qualquer quebra de linha ou tabulação que o editor injetar! */
+        .bubble.welcome {
+            white-space: normal !important;
+        }
+
+        /* Estilo sutil para a bolha de processamento */
+        .bubble.loading {
+            background-color: #f0f2f5;
+            color: #666666;
+            font-style: italic;
+            font-size: 14px;
+            border-radius: 12px 12px 12px 0;
+            box-shadow: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chat-container">
+        <div class="message-row bot">
+            <div class="bubble bot welcome">Olá! Sou o seu analista de crédito sênior. Como posso ajudar com margens,
+                regras
+                bancárias ou portabilidade hoje?</div>
+        </div>
+    </div>
+
+    <script>
+        function adicionarBalaoJS(textoBase64, isUsuario) {
+            const container = document.getElementById('chat-container');
+            const row = document.createElement('div');
+            row.className = 'message-row ' + (isUsuario ? 'user' : 'bot');
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble ' + (isUsuario ? 'user' : 'bot');
+
+            const textoReal = decodeURIComponent(escape(window.atob(textoBase64)));
+            bubble.innerText = textoReal;
+
+            row.appendChild(bubble);
+            container.appendChild(row);
+
+            // Rolagem suave focando no final do viewport
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function mostrarCarregamentoJS() {
+            // Evita duplicar o balão se o método for disparado em rajada
+            if (document.getElementById('loading-bubble')) return;
+
+            const container = document.getElementById('chat-container');
+            const row = document.createElement('div');
+            row.id = 'loading-bubble';
+            row.className = 'message-row bot';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble bot loading';
+            bubble.innerText = 'Analisando cenário...';
+
+            row.appendChild(bubble);
+            container.appendChild(row);
+
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function removerCarregamentoJS() {
+            const loading = document.getElementById('loading-bubble');
+            if (loading) {
+                loading.remove();
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -31,31 +31,45 @@ public class GeminiService {
         this.restClient = RestClient.builder().build();
     }
 
-    // 🚀 NOVA ASSINATURA: Recebe o ficheiro (File)
-    public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, File arquivoAnexo) {
+    // 🚀 ASSINATURA EXPANDIDA PARA RECEBER O ECOSSISTEMA COMPLETO
+    public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, File arquivoAnexo,
+            String jsonClienteAtivo, String jsonTabelasJuros, String jsonLinksUteis) {
         if (apiKeyDoConsultor == null || apiKeyDoConsultor.isBlank()) {
-            return "⚠️ Acesso Negado: A sua chave de API do Gemini não está configurada. Aceda às configurações no topo para configurá-la.";
+            return "⚠️ Acesso Negado: A sua chave de API do Gemini não está configurada.";
         }
 
         try {
             String playbookJson = carregarPlaybookLocal();
 
+            String clienteSeguro = (jsonClienteAtivo == null || jsonClienteAtivo.isBlank()) ? "{}" : jsonClienteAtivo;
+            String tabelasSeguro = (jsonTabelasJuros == null || jsonTabelasJuros.isBlank()) ? "[]" : jsonTabelasJuros;
+            String linksSeguro = (jsonLinksUteis == null || jsonLinksUteis.isBlank()) ? "[]" : jsonLinksUteis;
+
+            // 🎯 A ENGENHARIA DE PROMPT MODULAR
             String instrucaoSistema = """
-                    Você é um Analista Bancário Sênior e Especialista em Crédito.
-                    Você atua como assistente interno (Copilot) do sistema 'Poder Financeiro'.
+                    Você é um Analista Bancário Sênior e assistente (Copilot) do 'Poder Financeiro ERP'.
+                    Responda às dúvidas do consultor cruzando as informações dos módulos abaixo.
 
-                    Se o consultor enviar um documento (holerite, HISCON, extrato), faça a leitura OCR com extrema precisão, cruze com as regras do Playbook e forneça a análise solicitada.
+                    [MÓDULO 1 - REGRAS DE NEGÓCIO (PLAYBOOK)]
+                    %s
 
-                    --- INÍCIO DO PLAYBOOK INTERNO (JSON) ---
-                    """
-                    + playbookJson + """
-                            \n--- FIM DO PLAYBOOK INTERNO ---
+                    [MÓDULO 2 - DADOS DO CLIENTE EM ATENDIMENTO NA TELA]
+                    %s
 
-                            Responda em formato limpo e estruturado.
-                            """;
+                    [MÓDULO 3 - TABELAS DE JUROS E BANCOS DISPONÍVEIS (TEMPO REAL)]
+                    %s
 
-            String promptFinal = instrucaoSistema + "\n\n[CONTEXTO] Pergunta do Consultor: " + perguntaUsuario;
+                    [MÓDULO 4 - BASE DE CONHECIMENTO E LINKS ÚTEIS]
+                    %s
 
+                    Diretrizes:
+                    - Se perguntarem sobre margem ou cliente, use o Módulo 2.
+                    - Se perguntarem qual a taxa do banco X, busque no Módulo 3.
+                    - Se perguntarem onde achar um sistema ou manual, indique o título do link no Módulo 4.
+                    """.formatted(playbookJson, clienteSeguro, tabelasSeguro, linksSeguro);
+
+            String promptFinal = instrucaoSistema + "\n\n[PERGUNTA DO CONSULTOR]: " + perguntaUsuario;
+            
             // 🎯 CONSTRUÇÃO DINÂMICA DAS PARTS (Texto + Ficheiro)
             List<GeminiRequest.Part> parts = new ArrayList<>();
 

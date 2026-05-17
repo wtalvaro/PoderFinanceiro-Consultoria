@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
 import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.model.UsuarioModel;
+import br.com.poderfinanceiro.app.service.AtendimentoContextService; // 🚀 IMPORT ADICIONADO
 import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
@@ -52,6 +53,7 @@ public class AtendimentoHubController {
     private final ProponenteService atendimentoService;
     private final MainController mainController;
     private final PropostaService propostaService;
+    private final AtendimentoContextService contextoService; // 🚀 INJEÇÃO DE DEPENDÊNCIA
 
     private ProponenteModel proponenteAberto;
     private Runnable acaoNavegacaoPendente;
@@ -63,24 +65,22 @@ public class AtendimentoHubController {
     private boolean slaveJaCarregado = false;
     private final ApplicationContext context;
 
+    // 🚀 CONSTRUTOR ATUALIZADO
     public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController,
-            PropostaService propostaService, ApplicationContext context) {
+            PropostaService propostaService, ApplicationContext context, AtendimentoContextService contextoService) {
         this.atendimentoService = atendimentoService;
         this.mainController = mainController;
         this.propostaService = propostaService;
         this.context = context;
+        this.contextoService = contextoService;
     }
 
     @FXML
     public void initialize() {
-        // 1. O atendimento está "sujo" se a Lead, o Endereço OU a Proposta forem
-        // alterados!
         BooleanBinding atendimentoSujo = abaLeadController.getViewModel().dirtyProperty()
                 .or(abaEnderecoController.getViewModel().dirtyProperty())
                 .or(abaPropostaHubController.getViewModel().dirtyProperty());
 
-        // 2. Validação Centralizada no Hub: Nome é obrigatório e CPF (se preenchido)
-        // deve ter 11 dígitos
         BooleanBinding dadosValidos = Bindings.createBooleanBinding(() -> {
             String nome = abaLeadController.getViewModel().nomeProperty().get();
             String cpf = abaLeadController.getViewModel().cpfProperty().get();
@@ -92,56 +92,39 @@ public class AtendimentoHubController {
 
             return nomeValido && cpfValido;
         },
-                // Observadores: O JavaFX reavaliará a regra acima sempre que você digitar uma
-                // destas propriedades
                 abaLeadController.getViewModel().nomeProperty(),
                 abaLeadController.getViewModel().cpfProperty());
 
-        // 3. A Mágica: O botão fica bloqueado (disable = true) se NÃO estiver sujo OU
-        // se os dados NÃO forem válidos
         btnSalvar.disableProperty().bind(atendimentoSujo.not().or(dadosValidos.not()));
     }
 
     public void inicializarAtendimento(ProponenteModel proponente) {
-        // 1. Carregar Lead: Se o proponente for null, as abas devem resetar para estado
-        // "novo"
         this.proponenteAberto = proponente;
         abaLeadController.getViewModel().loadFromModel(proponente);
 
-        // 2. Carregar Endereço: Se o proponente tiver endereços, carrega o primeiro.
-        // Caso
+        // 🚀 A LINHA MÁGICA: Avisa a IA que o foco mudou!
+        contextoService.setLeadAtivo(abaLeadController.getViewModel());
+
         if (proponente != null && proponente.getEnderecos() != null && !proponente.getEnderecos().isEmpty()) {
             abaEnderecoController.getViewModel().loadFromModel(proponente.getEnderecos().get(0));
         } else {
             abaEnderecoController.getViewModel().reset();
         }
 
-        // 4. Carregar Links Úteis (se a aba estiver presente)
         if (abaLinksController != null) {
             abaLinksController.recarregarLinks();
         }
 
-        // 5. CARREGAR A PROPOSTA (Ligar o Monitor)
         abaPropostaHubController.inicializarPropostasDoCliente(proponente);
     }
 
-    /**
-     * 🚀 Inicialização Contextual: Carrega o cliente e força o foco na proposta
-     * selecionada
-     */
     public void inicializarAtendimento(ProponenteModel proponente, Long propostaIdAlvo) {
-        // 1. Roda toda a inicialização base (Lead, Endereço, etc.)
         inicializarAtendimento(proponente);
 
-        // 2. Se houver uma proposta vinda da esteira, substitui a seleção padrão
         if (propostaIdAlvo != null && abaPropostaHubController != null) {
-
-            // A. Seleciona a proposta correta na lista (Nos bastidores)
             abaPropostaHubController.selecionarPropostaEspecifica(propostaIdAlvo);
 
-            // B. Vira a página visualmente para a aba de Propostas!
             if (subTabPane != null) {
-                // A aba "Proposta / Simulação" é a terceira aba no seu FXML, logo, índice 2.
                 subTabPane.getSelectionModel().select(2);
             }
         }
@@ -150,14 +133,17 @@ public class AtendimentoHubController {
     public void prepararNovoAtendimento() {
         this.proponenteAberto = new ProponenteModel();
         abaLeadController.getViewModel().reset();
-        abaEnderecoController.getViewModel().reset(); // 🚀 CORREÇÃO: Faltava resetar o endereço!
+        abaEnderecoController.getViewModel().reset();
         abaPropostaHubController.getViewModel().reset();
+
+        // 🚀 AVISA A IA: Foco agora é um lead em branco
+        contextoService.setLeadAtivo(abaLeadController.getViewModel());
     }
 
     public boolean temAlteracoesNaoSalvas() {
         return abaLeadController.getViewModel().isDirty()
                 || abaEnderecoController.getViewModel().isDirty()
-                || abaPropostaHubController.getViewModel().isDirty(); // <- AQUI
+                || abaPropostaHubController.getViewModel().isDirty();
     }
 
     @FXML
@@ -177,7 +163,6 @@ public class AtendimentoHubController {
         Task<ProponenteModel> task = new Task<>() {
             @Override
             protected ProponenteModel call() throws Exception {
-                // 1. Salva o Lead e o Endereço (Gera o ID do Cliente limpo no banco)
                 ProponenteModel p = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
                 EnderecoProponenteModel e = abaEnderecoController.getViewModel().atualizarModel(
                         (p.getEnderecos() != null && !p.getEnderecos().isEmpty()) ? p.getEnderecos().get(0) : null);
@@ -187,13 +172,10 @@ public class AtendimentoHubController {
 
                 ProponenteModel proponenteSalvo = atendimentoService.salvarLead(p);
 
-                // 2. Independência Total: A Proposta se salva sozinha através do seu próprio
-                // Service
                 if (abaPropostaHubController.getViewModel().isDirty()) {
                     PropostaModel prop = abaPropostaHubController.getViewModel().atualizarModel(new PropostaModel());
                     prop.setProponente(proponenteSalvo);
 
-                    // Temporário: Define o usuário como ID 1 até ligarmos o Auth
                     UsuarioModel u = new UsuarioModel();
                     u.setId(1L);
                     prop.setUsuario(u);
@@ -209,7 +191,6 @@ public class AtendimentoHubController {
             ProponenteModel proponenteSalvo = task.getValue();
             inicializarAtendimento(proponenteSalvo);
 
-            // Se for salva como PAGA, já aplica a blindagem no frontend na mesma hora
             if (abaPropostaHubController != null) {
                 abaPropostaHubController.getAbaPropostaController().aplicarBloqueio();
             }
@@ -255,12 +236,10 @@ public class AtendimentoHubController {
             return;
         }
 
-        // Limpeza rigorosa: remove máscaras para enviar apenas os números
         String telLimpo = tel.replaceAll("[^0-9]", "");
         String linkFinal = telLimpo.startsWith("55") ? telLimpo : "55" + telLimpo;
 
         try {
-            // Chamada elegante usando o HostServices do seu MainController
             mainController.getHostServices().showDocument("https://wa.me/" + linkFinal);
         } catch (Exception e) {
             exibirMensagem("Erro ao tentar abrir o navegador para o WhatsApp.", false);
@@ -272,7 +251,6 @@ public class AtendimentoHubController {
         BigDecimal renda = abaLeadController.getViewModel().rendaProperty().get();
         String rendaStr = (renda != null) ? String.format("%,.2f", renda) : "0,00";
 
-        // Delegação limpa para a sua classe utilitária
         this.resumoGeradoParaCopia = SummaryGeneratorUtils.gerar(abaLeadController.getViewModel(), rendaStr);
 
         lblResumoPreview.setText(this.resumoGeradoParaCopia);
@@ -326,6 +304,9 @@ public class AtendimentoHubController {
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         proponenteAberto = null;
+
+        // 🚀 Opcional: Se o consultor fechar a aba do cliente, a IA "esquece" dele
+        contextoService.limparContexto();
     }
 
     // ==========================================================
@@ -334,7 +315,6 @@ public class AtendimentoHubController {
 
     @FXML
     private void alternarPainelLinks() {
-        // Inverte o status de visibilidade
         boolean isAberto = masterDetailPane.isShowDetailNode();
 
         if (!isAberto && !slaveJaCarregado) {

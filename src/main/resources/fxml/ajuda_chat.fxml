@@ -2,8 +2,9 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.web.WebView?>
 
-<VBox prefWidth="410"
+<VBox prefWidth="450"
     style="-fx-background-color: #efeae2; -fx-border-color: #E0E0E0; -fx-border-width: 0 0 0 1;"
     xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.AjudaChatController">
@@ -51,19 +52,7 @@
         </children>
     </VBox>
 
-    <ScrollPane fx:id="scrollChat" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
-        VBox.vgrow="ALWAYS"
-        style="-fx-background: #efeae2; -fx-background-color: #efeae2; -fx-border-color: transparent;">
-        <VBox fx:id="containerMensagens" spacing="14"
-            style="-fx-padding: 20 16; -fx-background-color: #efeae2;">
-            <VBox alignment="CENTER_LEFT">
-                <Label
-                    text="Olá! Sou o seu analista de crédito sênior. Como posso ajudar com margens, regras bancárias ou portabilidade hoje?"
-                    wrapText="true"
-                    style="-fx-background-color: #FFFFFF; -fx-text-fill: #000000; -fx-padding: 10 14; -fx-background-radius: 12 12 12 0; -fx-font-size: 15px; -fx-max-width: 320; -fx-font-family: 'Segoe UI', sans-serif; -fx-line-spacing: 2.5px; -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.06), 2, 0, 0, 1);" />
-            </VBox>
-        </VBox>
-    </ScrollPane>
+    <WebView fx:id="webViewChat" VBox.vgrow="ALWAYS" />
 
     <HBox fx:id="boxAnexo" alignment="CENTER_LEFT" spacing="8" visible="false" managed="false"
         style="-fx-background-color: #E3F2FD; -fx-padding: 6 16; -fx-border-color: #BBDEFB; -fx-border-width: 1 0 0 0;">
