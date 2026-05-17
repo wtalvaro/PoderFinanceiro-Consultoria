@@ -48,6 +48,15 @@ public class AjudaChatController {
         this.authService = authService;
     }
 
+    @FXML
+    public void initialize() {
+        // 🚀 O SEGREDO: Fica observando o VBox crescer. Se cresceu, empurra o scroll
+        // pro final!
+        containerMensagens.heightProperty().addListener((observable, oldValue, newValue) -> {
+            scrollChat.setVvalue(1.0);
+        });
+    }
+
     public void setMainController(MainController mainController) {
         this.mainController = mainController;
     }
@@ -201,7 +210,6 @@ public class AjudaChatController {
 
         Platform.runLater(() -> {
             containerMensagens.getChildren().add(wrapper);
-            Platform.runLater(() -> scrollChat.setVvalue(1.0));
         });
     }
 
