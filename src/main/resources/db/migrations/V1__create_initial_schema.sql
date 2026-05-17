@@ -96,6 +96,7 @@ CREATE TABLE public.usuarios (
     nome character varying(255) NOT NULL,
     email character varying(255) NOT NULL,
     senha_hash character varying(255) NOT NULL,
+    gemini_api_key character varying(255),
     papel character varying(50) DEFAULT 'CONSULTOR'::character varying,
     ativo boolean DEFAULT true,
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
