@@ -114,33 +114,32 @@ public class GeminiService {
         return "{ 'aviso': 'Playbook interno vazio.' }";
     }
 
-    // 🚀 NOVO MÉTODO: Detecta o OS e devolve a rota exata da pasta oculta
+    // 🚀 MÉTODO ATUALIZADO: Alinhado para buscar no AppData\Roaming do Windows
     private Path obterCaminhoPlaybookCrossPlatform() {
         String os = System.getProperty("os.name").toLowerCase();
         String homeUser = System.getProperty("user.home");
         Path pastaBase;
 
         if (os.contains("win")) {
-            // Padrão Windows: Tenta pegar o AppData/Local da variável de ambiente
-            String appData = System.getenv("LOCALAPPDATA");
-            if (appData == null) {
-                appData = System.getenv("APPDATA"); // Fallback para Roaming
-            }
-            if (appData != null) {
-                pastaBase = Paths.get(appData, "PoderFinanceiro");
+            // 🎯 A CURA: Captura a variável %APPDATA% que aponta direto para
+            // AppData\Roaming
+            String appDataRoaming = System.getenv("APPDATA");
+
+            if (appDataRoaming != null) {
+                pastaBase = Paths.get(appDataRoaming, "PoderFinanceiro");
             } else {
-                // Hard-fallback caso variáveis de ambiente falhem
-                pastaBase = Paths.get(homeUser, "AppData", "Local", "PoderFinanceiro");
+                // Fallback manual seguro para Roaming caso as variáveis globais sumam
+                pastaBase = Paths.get(homeUser, "AppData", "Roaming", "PoderFinanceiro");
             }
         } else if (os.contains("mac")) {
             // Padrão macOS
             pastaBase = Paths.get(homeUser, "Library", "Application Support", "PoderFinanceiro");
         } else {
-            // Padrão Linux/Fedora que você já usava
+            // Padrão Linux/Fedora do contêiner
             pastaBase = Paths.get(homeUser, ".local", "share", "PoderFinanceiro");
         }
 
         return pastaBase.resolve("playbook_scripts.json");
     }
-    
+
 }
