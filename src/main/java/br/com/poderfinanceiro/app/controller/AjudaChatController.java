@@ -112,7 +112,7 @@ public class AjudaChatController {
             paneConfigChave.setManaged(false);
 
             adicionarBalao(
-                    "✅ Sua chave de API foi atualizada com sucesso no banco de dados! O Copilot já está operando com as novas credenciais.",
+                    "✅ Sua chave de API foi atualizada com sucesso no banco de dados! O Gemini já está operando com as novas credenciais.",
                     false);
         } catch (Exception e) {
             adicionarBalao("⚠️ Erro ao persistir nova chave: " + e.getMessage(), false);

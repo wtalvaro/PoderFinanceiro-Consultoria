@@ -34,7 +34,7 @@
     </Menu>
 
     <Menu text="_Ajuda">
-        <MenuItem text="🤖 Assistente de IA (Copilot)" onAction="#handleAbrirIA"
+        <MenuItem text="🤖 Assistente de IA (Gemini)" onAction="#handleAbrirIA"
             accelerator="Shortcut+I" />
     </Menu>
 </MenuBar>
