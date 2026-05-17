@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -180,35 +181,64 @@ public class AjudaChatController {
     }
 
     private void adicionarBalao(String texto, boolean isUsuario) {
-        Label balao = new Label(texto);
-        balao.setWrapText(true);
-        balao.setMaxWidth(320);
 
-        VBox wrapper = new VBox(balao);
+        // 1. 🖥️ CAPTURA A FONTE NATIVA DO SISTEMA OPERACIONAL (Win11, Mac ou Linux)
+        String fonteSistema = javafx.scene.text.Font.getDefault().getFamily();
+
+        TextArea balao = new TextArea(texto);
+        balao.setWrapText(true);
+        balao.setEditable(false);
+        balao.setFocusTraversable(false);
+
+        // 2. APLICA A FONTE REAL DO SO
+        balao.setStyle("-fx-background-color: transparent; "
+                + "-fx-control-inner-background: transparent; "
+                + "-fx-background-insets: 0; "
+                + "-fx-padding: 0; "
+                + "-fx-border-color: transparent; "
+                + "-fx-font-size: 15px; "
+                + "-fx-font-family: '" + fonteSistema + "', sans-serif; "
+                + "-fx-text-fill: #000000;");
+
+        // 3. A FITA MÉTRICA (Agora usando a mesma fonte do SO para não errar o cálculo)
+        javafx.scene.text.Text medidor = new javafx.scene.text.Text(texto);
+        medidor.setFont(javafx.scene.text.Font.font(fonteSistema, 15));
+        medidor.setWrappingWidth(300);
+
+        // 4. O ANTÍDOTO DO SCROLL: +25px de margem de segurança!
+        // O TextArea precisa desse "respiro" para o cursor invisível não ativar a barra
+        // de rolagem.
+        double larguraReal = medidor.getLayoutBounds().getWidth() + 15;
+        double alturaReal = medidor.getLayoutBounds().getHeight() + 25;
+
+        balao.setPrefWidth(larguraReal);
+        balao.setMaxWidth(larguraReal);
+        balao.setPrefHeight(alturaReal);
+        balao.setMinHeight(alturaReal);
+        balao.setMaxHeight(alturaReal);
+
+        // VBox da Bolha Visual
+        VBox bolhaVisual = new VBox(balao);
+        // Reduzi ligeiramente o padding vertical do VBox para compensar os 25px extras
+        // do TextArea
+        bolhaVisual.setPadding(new javafx.geometry.Insets(6, 14, 6, 14));
+        bolhaVisual.setMaxWidth(340);
+
+        VBox wrapper = new VBox(bolhaVisual);
 
         if (isUsuario) {
-            balao.setStyle("-fx-font-size: 15px; "
-                    + "-fx-padding: 10 14; "
-                    + "-fx-font-family: 'Segoe UI', sans-serif; "
-                    + "-fx-line-spacing: 2.5px; "
-                    + "-fx-text-fill: #000000; "
-                    + "-fx-background-color: #D9FDD3; "
+            bolhaVisual.setStyle("-fx-background-color: #D9FDD3; "
                     + "-fx-background-radius: 12 12 0 12; "
                     + "-fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.06), 2, 0, 0, 1);");
-            wrapper.setAlignment(Pos.CENTER_RIGHT);
+            wrapper.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
         } else {
-            balao.setStyle("-fx-font-size: 15px; "
-                    + "-fx-padding: 10 14; "
-                    + "-fx-font-family: 'Segoe UI', sans-serif; "
-                    + "-fx-line-spacing: 2.5px; "
-                    + "-fx-text-fill: #000000; "
-                    + "-fx-background-color: #FFFFFF; "
+            bolhaVisual.setStyle("-fx-background-color: #FFFFFF; "
                     + "-fx-background-radius: 12 12 12 0; "
                     + "-fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.06), 2, 0, 0, 1);");
-            wrapper.setAlignment(Pos.CENTER_LEFT);
+            wrapper.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         }
 
-        Platform.runLater(() -> {
+        javafx.application.Platform.runLater(() -> {
             containerMensagens.getChildren().add(wrapper);
         });
     }
