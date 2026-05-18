@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.BancoModel;
 import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
+import br.com.poderfinanceiro.app.model.ProponenteModel;
 import br.com.poderfinanceiro.app.model.PropostaModel;
 import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
@@ -11,11 +12,17 @@ import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
@@ -24,29 +31,39 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Component
 @Scope("prototype")
 public class PropostaController {
 
+    // ==========================================================
+    // DEPENDÊNCIAS (INJEÇÃO)
+    // ==========================================================
     private final PropostaViewModel viewModel;
     private final PropostaService propostaService;
     private final TabelaJurosService tabelaJurosService;
     private final DocumentoService documentoService;
     private final MainController mainController;
 
-    // --- NOVOS ELEMENTOS DA TRIAGEM ---
+    // ==========================================================
+    // COMPONENTES DE UI (FXML)
+    // ==========================================================
     @FXML
     private ComboBox<TipoConvenioModel> cbConvenio;
-    @FXML
-    private TableView<DocumentoProponenteModel> tableDocumentos;
     @FXML
     private ComboBox<BancoModel> cbBanco;
     @FXML
     private ComboBox<TabelaJurosModel> cbTabela;
     @FXML
     private ComboBox<StatusPropostaModel> cbStatus;
+
     @FXML
     private TextField txtValorSolicitado;
     @FXML
@@ -56,37 +73,43 @@ public class PropostaController {
     @FXML
     private Spinner<Integer> spinPrazo;
     @FXML
+    private Spinner<Integer> spinPrazoDesejado;
+    @FXML
     private TextArea txtObservacoes;
+
     @FXML
     private Label lblComissaoEstimada;
     @FXML
     private Label lblTituloComissao;
     @FXML
     private Label lblTotalPago;
+
+    // Tabela e Documentos
     @FXML
-    private TableColumn<DocumentoProponenteModel, String> colTipoDocumento; // Nome deve ser igual ao fx:id no FXML
+    private TableView<DocumentoProponenteModel> tableDocumentos;
     @FXML
-    private TableColumn<DocumentoProponenteModel, String> colDataUpload; // Nome deve ser igual ao fx:id no FXML
+    private TableColumn<DocumentoProponenteModel, String> colTipoDocumento;
+    @FXML
+    private TableColumn<DocumentoProponenteModel, String> colDataUpload;
     @FXML
     private TableColumn<DocumentoProponenteModel, Void> colAcoes;
     @FXML
     private VBox overlayExclusao;
     @FXML
     private Label lblConfirmacaoExclusao;
-    @FXML
-    private Spinner<Integer> spinPrazoDesejado; // Ou TextField, dependendo do que você usar no FXML
 
-    // Caches da Memória
+    // ==========================================================
+    // ESTADO LOCAL (CACHE & CONTROLE)
+    // ==========================================================
     private List<TabelaJurosModel> todasTabelasAtivas;
     private List<TabelaJurosModel> tabelasElegiveisDaTriagem;
-
-    // 🛡️ ANESTESIA LOCAL: Evita que a triagem destrua os dados ao trocar de
-    // paciente
-    private boolean isUpdatingInterface = false;
     private DocumentoProponenteModel documentoParaExcluir;
-
     private final ObservableList<DocumentoProponenteModel> listaDocumentos = FXCollections.observableArrayList();
+    private boolean isUpdatingInterface = false;
 
+    // ==========================================================
+    // CONSTRUTOR & INITIALIZE
+    // ==========================================================
     public PropostaController(PropostaViewModel viewModel, DocumentoService documentoService,
             PropostaService propostaService, TabelaJurosService tabelaJurosService, MainController mainController) {
         this.viewModel = viewModel;
@@ -98,351 +121,220 @@ public class PropostaController {
 
     @FXML
     public void initialize() {
-        // Conecte a tabela à lista mestre
-        tableDocumentos.setItems(listaDocumentos);
-
-        configurarColunasDocumentos();
-        carregarListasBase(); // Chamada única
-        configurarFormatadoresEBindings();
-        configurarGatilhosDaTriagem();
-        configurarAutoSelecao();
+        carregarListasBase();
+        configurarConversoresVisuais();
+        configurarBindings();
+        configurarFiltrosInteligentes();
+        configurarTabelaDocumentos();
+        configurarAutoSelecaoTextos();
+        configurarIndicadoresDinamicos();
     }
 
+    // ==========================================================
+    // 1. CONFIGURAÇÕES INICIAIS DA UI E BINDINGS
+    // ==========================================================
     private void carregarListasBase() {
         todasTabelasAtivas = tabelaJurosService.listarAtivas();
         cbStatus.setItems(FXCollections.observableArrayList(StatusPropostaModel.values()));
-
-        // Inicializa o Combo de Convênio (Se você adicionou no FXML)
         if (cbConvenio != null) {
             cbConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
-
-            // 🩹 CURATIVO 1: Ensina o ComboBox a mostrar o nome bonito (Label)
-            cbConvenio.setConverter(new StringConverter<>() {
-                @Override
-                public String toString(TipoConvenioModel tipo) {
-                    return tipo != null ? tipo.getLabel() : "Selecione o Convênio...";
-                }
-
-                @Override
-                public TipoConvenioModel fromString(String s) {
-                    return null; // Apenas para exibição
-                }
-            });
         }
-
-        // Conversores Visuais
-        cbBanco.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(BancoModel b) {
-                return b != null ? b.getNome() : "Aguardando Triagem...";
-            }
-
-            @Override
-            public BancoModel fromString(String s) {
-                return null;
-            }
-        });
-
-        cbTabela.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(TabelaJurosModel t) {
-                return t != null ? t.getNomeTabela() + " (" + t.getComissaoPercentual() + "%)"
-                        : "Selecione a Tabela...";
-            }
-
-            @Override
-            public TabelaJurosModel fromString(String s) {
-                return null;
-            }
-        });
     }
 
-    private void configurarFormatadoresEBindings() {
+    private void configurarConversoresVisuais() {
+        if (cbConvenio != null) {
+            cbConvenio.setConverter(criarConversor(TipoConvenioModel::getLabel));
+        }
+        cbBanco.setConverter(criarConversor(b -> b != null ? b.getNome() : "Aguardando Triagem..."));
+        cbTabela.setConverter(
+                criarConversor(t -> t != null ? t.getNomeTabela() + " (" + t.getComissaoPercentual() + "%)"
+                        : "Selecione a Tabela..."));
+    }
+
+    private void configurarBindings() {
         cbStatus.valueProperty().bindBidirectional(viewModel.statusProperty());
         txtObservacoes.textProperty().bindBidirectional(viewModel.observacoesProperty());
-
-        // 🚀 O FIO QUE ESTAVA FALTANDO! Liga o combo da tela à variável do ViewModel
         cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
-
-        // --- CONFIGURAÇÃO DO PRAZO (SPINNER) ---
-        spinPrazo.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 1));
-        spinPrazo.setEditable(true); // Permite digitação livre
-
-        // "Hack" nativo de UX do JavaFX:
-        // Garante que se ela digitar "84" e clicar em outro campo, o valor é salvo sem
-        // precisar dar Enter.
-        spinPrazo.getEditor().focusedProperty().addListener((obs, estavaFocado, agoraFocado) -> {
-            if (!agoraFocado) {
-                spinPrazo.increment(0); // Força o JavaFX a fazer o "commit" do texto digitado para a ValueFactory
-            }
-        });
-
-        spinPrazo.getValueFactory().valueProperty().bindBidirectional(viewModel.quantidadeParcelasProperty());
-
-        // Binding do campo de pesquisa (Prazo Desejado)
-        if (spinPrazoDesejado != null) {
-            spinPrazoDesejado.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 1));
-            spinPrazoDesejado.setEditable(true);
-
-            spinPrazoDesejado.getEditor().focusedProperty().addListener((obs, old, novo) -> {
-                if (!novo)
-                    spinPrazoDesejado.increment(0);
-            });
-
-            spinPrazoDesejado.getValueFactory().valueProperty().bindBidirectional(viewModel.prazoDesejadoProperty());
-        }
-
-        // Máscaras Monetárias
-        TextFormatter<BigDecimal> fmtSolicitado = FinanceiroUtils.criarFormatadorMoeda();
-        txtValorSolicitado.setTextFormatter(fmtSolicitado);
-        fmtSolicitado.valueProperty().bindBidirectional(viewModel.valorSolicitadoProperty());
-
-        TextFormatter<BigDecimal> fmtAprovado = FinanceiroUtils.criarFormatadorMoeda();
-        txtValorAprovado.setTextFormatter(fmtAprovado);
-        fmtAprovado.valueProperty().bindBidirectional(viewModel.valorAprovadoProperty());
-
-        TextFormatter<BigDecimal> fmtParcela = FinanceiroUtils.criarFormatadorMoeda();
-        txtParcela.setTextFormatter(fmtParcela);
-        fmtParcela.valueProperty().bindBidirectional(viewModel.valorParcelaProperty());
-
-        // Quando carrega uma proposta do banco, ajusta a UI sob anestesia
-        viewModel.tabelaIdProperty().addListener((obs, old, idNovo) -> {
-            if (isUpdatingInterface)
-                return; // Se está dopado, não repete a dose
-
-            if (idNovo != null) {
-                TabelaJurosModel tab = todasTabelasAtivas.stream()
-                        .filter(t -> t.getId().equals(idNovo)).findFirst().orElse(null);
-
-                if (tab != null) {
-                    isUpdatingInterface = true; // 🛡️ LIGA ANESTESIA
-                    try {
-                        cbConvenio.setValue(tab.getTipoConvenio());
-                        realizarTriagem(); // Carrega os bancos do convênio, mas sem Piloto Automático
-                        cbBanco.setValue(tab.getBanco());
-                        atualizarTabelasDoBanco(tab.getBanco()); // Carrega as tabelas do banco
-                        cbTabela.setValue(tab);
-                        dispararCalculo(); // Atualiza os R$ na tela
-                        // 🩹 O GATILHO: Dispara o carregamento dos documentos desta proposta específica
-                        Long propostaId = viewModel.idProperty().get();
-                        if (propostaId != null) {
-                            carregarDocumentosDaProposta(propostaId); // Agora o método é utilizado!
-                        }
-                    } finally {
-                        isUpdatingInterface = false; // 🔊 DESLIGA ANESTESIA
-                    }
-                }
-            } else {
-                isUpdatingInterface = true; // 🛡️ LIGA ANESTESIA PARA LIMPAR A TELA ("Nova Simulação")
-                try {
-                    cbBanco.getItems().clear();
-                    cbTabela.getItems().clear();
-                    dispararCalculo();
-
-                    // 🩹 A CURA: Usamos o Platform.runLater para garantir que o
-                    // JavaFX já processou os valores antes de checar o bloqueio.
-                    javafx.application.Platform.runLater(() -> {
-                        aplicarBloqueio();
-                    });
-
-                } finally {
-                    isUpdatingInterface = false;
-                }
-            }
-        });
-
-        cbTabela.valueProperty().addListener((obs, old, novaTabela) -> {
-            if (isUpdatingInterface)
-                return; // Impede que a UI suje o ViewModel enquanto carrega
-            viewModel.tabelaIdProperty().set(novaTabela != null ? novaTabela.getId() : null);
-            dispararCalculo();
-        });
-
-        // Garante que o Banco selecionado no combo atualize o ViewModel (Para salvar no
-        // banco de dados)
         cbBanco.valueProperty().bindBidirectional(viewModel.bancoProperty());
 
-        // ==========================================================
-        // MONITORES DE SINAIS VITAIS (UX Dinâmica)
-        // ==========================================================
-
-        // 1. O Título Dinâmico da Comissão (Psicologia de Vendas)
-        lblTituloComissao.textProperty().bind(
-                javafx.beans.binding.Bindings.createStringBinding(() -> {
-                    BigDecimal aprovado = viewModel.valorAprovadoProperty().get();
-                    // Se o valor aprovado for maior que zero, é certeza. Senão, é estimativa.
-                    if (aprovado != null && aprovado.compareTo(BigDecimal.ZERO) > 0) {
-                        return "Valor da Comissão";
-                    }
-                    return "Comissão Estimada";
-                }, viewModel.valorAprovadoProperty()));
-
-        // 2. O Calculadora de Transparência (Total a Pagar)
-        lblTotalPago.textProperty().bind(
-                javafx.beans.binding.Bindings.createStringBinding(() -> {
-                    Integer prazo = viewModel.quantidadeParcelasProperty().get();
-                    BigDecimal parcela = viewModel.valorParcelaProperty().get();
-
-                    // Só calcula se os dois campos estiverem preenchidos e maiores que zero
-                    if (prazo != null && prazo > 0 && parcela != null && parcela.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal total = parcela.multiply(new BigDecimal(prazo));
-                        String formatado = FinanceiroUtils.formatarParaExibicao(total);
-                        return "Total a Pagar: " + formatado;
-                    }
-
-                    return "Total a Pagar: R$ 0,00";
-                }, viewModel.quantidadeParcelasProperty(), viewModel.valorParcelaProperty()));
-    }
-
-    // ========================================================================
-    // O CORAÇÃO DA TRIAGEM (A Mágica dos Filtros)
-    // ========================================================================
-
-    private void configurarGatilhosDaTriagem() {
-        // Só dispara triagem se o usuário mexeu. Se for o sistema carregando, ignora.
-        viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> {
-            if (!isUpdatingInterface)
-                realizarTriagem();
-        });
-
-        if (cbConvenio != null) {
-            cbConvenio.valueProperty().addListener((obs, old, val) -> {
-                if (!isUpdatingInterface)
-                    realizarTriagem();
-            });
+        configurarSpinner(spinPrazo, viewModel.quantidadeParcelasProperty());
+        if (spinPrazoDesejado != null) {
+            configurarSpinner(spinPrazoDesejado, viewModel.prazoDesejadoProperty());
         }
 
-        cbBanco.valueProperty().addListener((obs, old, bancoNovo) -> {
-            if (!isUpdatingInterface)
-                atualizarTabelasDoBanco(bancoNovo);
-        });
+        vincularMascaraMoeda(txtValorSolicitado, viewModel.valorSolicitadoProperty());
+        vincularMascaraMoeda(txtValorAprovado, viewModel.valorAprovadoProperty());
+        vincularMascaraMoeda(txtParcela, viewModel.valorParcelaProperty());
+    }
 
-        viewModel.valorAprovadoProperty().addListener((obs, old, val) -> {
-            if (!isUpdatingInterface)
-                dispararCalculo();
-        });
+    private void configurarFiltrosInteligentes() {
+        // Gatilhos de Triagem
+        viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> realizarTriagemSegura());
+        viewModel.prazoDesejadoProperty().addListener((obs, old, val) -> realizarTriagemSegura());
+        if (cbConvenio != null) {
+            cbConvenio.valueProperty().addListener((obs, old, val) -> realizarTriagemSegura());
+        }
 
-        // 🚀 GATILHO ATUALIZADO: Dispara triagem quando o Prazo DESEJADO muda, e não o
-        // prazo real
-        viewModel.prazoDesejadoProperty().addListener((obs, old, val) -> {
-            if (!isUpdatingInterface)
-                realizarTriagem();
-        });
+        // Gatilhos de Recálculo e Carregamento
+        cbBanco.valueProperty().addListener((obs, old, bancoNovo) -> atualizarTabelasDoBancoSegura(bancoNovo));
+        viewModel.valorAprovadoProperty().addListener((obs, old, val) -> dispararCalculoSeguro());
+        cbTabela.valueProperty().addListener((obs, old, novaTabela) -> atualizarTabelaNoViewModel(novaTabela));
+
+        // Gatilho Principal: Quando uma proposta existente é carregada
+        viewModel.tabelaIdProperty().addListener((obs, old, idNovo) -> carregarDadosDaPropostaExistente(idNovo));
+    }
+
+    private void configurarIndicadoresDinamicos() {
+        lblTituloComissao.textProperty().bind(Bindings.createStringBinding(() -> {
+            BigDecimal aprovado = viewModel.valorAprovadoProperty().get();
+            return (aprovado != null && aprovado.compareTo(BigDecimal.ZERO) > 0) ? "Valor da Comissão"
+                    : "Comissão Estimada";
+        }, viewModel.valorAprovadoProperty()));
+
+        lblTotalPago.textProperty().bind(Bindings.createStringBinding(() -> {
+            Integer prazo = viewModel.quantidadeParcelasProperty().get();
+            BigDecimal parcela = viewModel.valorParcelaProperty().get();
+
+            if (prazo != null && prazo > 0 && parcela != null && parcela.compareTo(BigDecimal.ZERO) > 0) {
+                return "Total a Pagar: "
+                        + FinanceiroUtils.formatarParaExibicao(parcela.multiply(new BigDecimal(prazo)));
+            }
+            return "Total a Pagar: R$ 0,00";
+        }, viewModel.quantidadeParcelasProperty(), viewModel.valorParcelaProperty()));
+    }
+
+    // ==========================================================
+    // 2. LÓGICA DE TRIAGEM E REGRAS DE NEGÓCIO (CLEAN CODE)
+    // ==========================================================
+    private void realizarTriagemSegura() {
+        if (!isUpdatingInterface)
+            realizarTriagem();
     }
 
     private void realizarTriagem() {
         TipoConvenioModel convenio = (cbConvenio != null) ? cbConvenio.getValue() : null;
-        BigDecimal valorSolicitado = viewModel.valorSolicitadoProperty().get();
+        BigDecimal valor = viewModel.valorSolicitadoProperty().get();
         Integer prazo = viewModel.prazoDesejadoProperty().get();
+        ProponenteModel proponente = viewModel.proponenteProperty().get();
 
-        // 🚀 Busca dados do paciente (Proponente) para cruzar com as regras de Renda e
-        // Idade
-        var proponente = viewModel.proponenteProperty().get();
-        BigDecimal rendaProponente = (proponente != null && proponente.getRendaMensal() != null) ? proponente.getRendaMensal()
-                : BigDecimal.ZERO;
-
-        // 🩹 CURATIVO: Declaração única (efetivamente final) para permitir o uso dentro
-        // do Lambda do Stream
-        final int idadeProponente = (proponente != null && proponente.getDataNascimento() != null)
-                ? java.time.Period.between(proponente.getDataNascimento(), java.time.LocalDate.now()).getYears()
-                : 0;
-
-        if (convenio == null || valorSolicitado == null || valorSolicitado.compareTo(BigDecimal.ZERO) <= 0) {
-            cbBanco.getItems().clear();
-            cbTabela.getItems().clear();
-            tabelasElegiveisDaTriagem = null;
+        if (!dadosMinimosParaTriagemPreenchidos(convenio, valor)) {
+            limparFiltrosDeTriagem();
             return;
         }
 
-        // 1. Filtra as Tabelas Elegíveis com regras robustas (Lidando com nulos e
-        // flexibilidades)
         tabelasElegiveisDaTriagem = todasTabelasAtivas.stream()
-                // Regra 1: Convênio exato
                 .filter(t -> t.getTipoConvenio() == convenio)
-
-                // Regra 2: Enquadramento de Valor Solicitado
-                .filter(t -> {
-                    BigDecimal min = t.getValorMinimoEmprestimo() != null ? t.getValorMinimoEmprestimo()
-                            : BigDecimal.ZERO;
-                    return valorSolicitado.compareTo(min) >= 0;
-                })
-                .filter(t -> t.getValorMaximoEmprestimo() == null
-                        || t.getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) <= 0
-                        || valorSolicitado.compareTo(t.getValorMaximoEmprestimo()) <= 0)
-
-                // 🚀 Regra 3: Enquadramento de Prazo (se o consultor já digitou um prazo na UI)
-                .filter(t -> {
-                    if (prazo == null || prazo <= 0)
-                        return true; // Passa direto se a UI estiver vazia
-                    int minPrazo = t.getPrazoMinimo() != null ? t.getPrazoMinimo() : 1;
-                    int maxPrazo = t.getPrazoMaximo() != null ? t.getPrazoMaximo() : 999;
-                    return prazo >= minPrazo && prazo <= maxPrazo;
-                })
-
-                // 🚀 Regra 4: Renda Mínima Exigida
-                .filter(t -> {
-                    BigDecimal minRenda = t.getRendaMinima() != null ? t.getRendaMinima() : BigDecimal.ZERO;
-                    if (minRenda.compareTo(BigDecimal.ZERO) <= 0)
-                        return true; // Passa direto se a tabela é isenta de regra de renda
-                    return rendaProponente.compareTo(minRenda) >= 0;
-                })
-
-                // 🚀 Regra 5: Idade Limite
-                .filter(t -> {
-                    if (idadeProponente <= 0)
-                        return true; // Passa se o cadastro do cliente estiver incompleto (sem data de nascimento)
-                    int minIdade = t.getIdadeMinima() != null ? t.getIdadeMinima() : 0;
-                    int maxIdade = t.getIdadeMaxima() != null ? t.getIdadeMaxima() : 999;
-                    return idadeProponente >= minIdade && idadeProponente <= maxIdade;
-                })
+                .filter(t -> atendeRegrasDeValor(t, valor))
+                .filter(t -> atendeRegrasDePrazo(t, prazo))
+                .filter(t -> atendeRegrasDeRenda(t, proponente))
+                .filter(t -> atendeRegrasDeIdade(t, proponente))
                 .toList();
 
-        // 2. Extrai os Bancos (Sem HashMap! Agora o Hibernate confia no distinct do
-        // Java)
         List<BancoModel> bancosElegiveis = tabelasElegiveisDaTriagem.stream()
                 .map(TabelaJurosModel::getBanco)
-                .filter(java.util.Objects::nonNull) // Evita nulos caso alguma tabela esteja sem banco
-                .distinct() // O Java usa o equals() nativo da entidade perfeitamente agora!
+                .filter(Objects::nonNull)
+                .distinct()
                 .toList();
 
-        // 3. Atualiza o ComboBox de Bancos mantendo a seleção se for válida
-        BancoModel bancoAtual = cbBanco.getValue();
-        cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
-
-        // 4. 🧠 Piloto Automático SOMENTE se não estiver carregando uma proposta salva
-        if (!isUpdatingInterface) {
-            if (bancosElegiveis.size() == 1) {
-                cbBanco.setValue(bancosElegiveis.get(0));
-            } else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual)) {
-                cbBanco.setValue(bancoAtual);
-            } else {
-                cbBanco.setValue(null);
-            }
-            dispararCalculo(); // Recalcula apenas se foi ação manual
-        }
+        atualizarComboBancos(bancosElegiveis);
     }
 
-    // 🩹 NOVO MÉTODO AUXILIAR: Isola o carregamento das tabelas
+    // --- PREDICADOS DE TRIAGEM EXTRAÍDOS (SRP) ---
+    private boolean dadosMinimosParaTriagemPreenchidos(TipoConvenioModel convenio, BigDecimal valor) {
+        return convenio != null && valor != null && valor.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    private boolean atendeRegrasDeValor(TabelaJurosModel t, BigDecimal valorSolicitado) {
+        BigDecimal min = t.getValorMinimoEmprestimo() != null ? t.getValorMinimoEmprestimo() : BigDecimal.ZERO;
+        if (valorSolicitado.compareTo(min) < 0)
+            return false;
+
+        return t.getValorMaximoEmprestimo() == null
+                || t.getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) <= 0
+                || valorSolicitado.compareTo(t.getValorMaximoEmprestimo()) <= 0;
+    }
+
+    private boolean atendeRegrasDePrazo(TabelaJurosModel t, Integer prazoDesejado) {
+        if (prazoDesejado == null || prazoDesejado <= 0)
+            return true;
+        int min = t.getPrazoMinimo() != null ? t.getPrazoMinimo() : 1;
+        int max = t.getPrazoMaximo() != null ? t.getPrazoMaximo() : 999;
+        return prazoDesejado >= min && prazoDesejado <= max;
+    }
+
+    private boolean atendeRegrasDeRenda(TabelaJurosModel t, ProponenteModel p) {
+        BigDecimal minRenda = t.getRendaMinima() != null ? t.getRendaMinima() : BigDecimal.ZERO;
+        if (minRenda.compareTo(BigDecimal.ZERO) <= 0)
+            return true;
+
+        BigDecimal rendaProponente = (p != null && p.getRendaMensal() != null) ? p.getRendaMensal() : BigDecimal.ZERO;
+        return rendaProponente.compareTo(minRenda) >= 0;
+    }
+
+    private boolean atendeRegrasDeIdade(TabelaJurosModel t, ProponenteModel p) {
+        int idade = calcularIdade(p);
+        if (idade <= 0)
+            return true;
+
+        int min = t.getIdadeMinima() != null ? t.getIdadeMinima() : 0;
+        int max = t.getIdadeMaxima() != null ? t.getIdadeMaxima() : 999;
+        return idade >= min && idade <= max;
+    }
+
+    // ==========================================================
+    // 3. ATUALIZAÇÕES DE INTERFACE SOB DEMANDA
+    // ==========================================================
+    private void carregarDadosDaPropostaExistente(Long idTabelaNovo) {
+        if (isUpdatingInterface)
+            return;
+
+        executarSemGatilhos(() -> {
+            if (idTabelaNovo != null) {
+                TabelaJurosModel tab = todasTabelasAtivas.stream()
+                        .filter(t -> t.getId().equals(idTabelaNovo)).findFirst().orElse(null);
+
+                if (tab != null) {
+                    cbConvenio.setValue(tab.getTipoConvenio());
+                    realizarTriagem();
+                    cbBanco.setValue(tab.getBanco());
+                    atualizarTabelasDoBanco(tab.getBanco());
+                    cbTabela.setValue(tab);
+                    dispararCalculo();
+
+                    Long propostaId = viewModel.idProperty().get();
+                    if (propostaId != null)
+                        carregarDocumentosDaProposta(propostaId);
+                }
+            } else {
+                limparFiltrosDeTriagem();
+                dispararCalculo();
+                Platform.runLater(this::aplicarBloqueio);
+            }
+        });
+    }
+
+    private void atualizarTabelasDoBancoSegura(BancoModel bancoNovo) {
+        if (!isUpdatingInterface)
+            atualizarTabelasDoBanco(bancoNovo);
+    }
+
     private void atualizarTabelasDoBanco(BancoModel bancoNovo) {
         if (bancoNovo != null && tabelasElegiveisDaTriagem != null) {
             List<TabelaJurosModel> tabelasDoBanco = tabelasElegiveisDaTriagem.stream()
                     .filter(t -> t.getBanco().getId().equals(bancoNovo.getId()))
-                    .sorted(java.util.Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed())
+                    .sorted(Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed())
                     .toList();
 
             TabelaJurosModel tabelaAtual = cbTabela.getValue();
             cbTabela.setItems(FXCollections.observableArrayList(tabelasDoBanco));
 
-            // Piloto Automático só funciona se o paciente estiver acordado (não
-            // anestesiado)
             if (!isUpdatingInterface) {
-                if (tabelasDoBanco.size() == 1) {
+                if (tabelasDoBanco.size() == 1)
                     cbTabela.setValue(tabelasDoBanco.get(0));
-                } else if (tabelaAtual != null && tabelasDoBanco.contains(tabelaAtual)) {
+                else if (tabelaAtual != null && tabelasDoBanco.contains(tabelaAtual))
                     cbTabela.setValue(tabelaAtual);
-                } else {
+                else
                     cbTabela.setValue(null);
-                }
             }
         } else {
             cbTabela.getItems().clear();
@@ -451,30 +343,33 @@ public class PropostaController {
         }
     }
 
-    /**
-     * Calcula a Comissão e mostra o R$ e a % na UI.
-     * Prioriza o Valor Liberado (Aprovado), mas usa o Solicitado se o Aprovado
-     * estiver vazio.
-     */
+    private void atualizarTabelaNoViewModel(TabelaJurosModel novaTabela) {
+        if (isUpdatingInterface)
+            return;
+        viewModel.tabelaIdProperty().set(novaTabela != null ? novaTabela.getId() : null);
+        dispararCalculo();
+    }
+
+    private void dispararCalculoSeguro() {
+        if (!isUpdatingInterface)
+            dispararCalculo();
+    }
+
     private void dispararCalculo() {
         BigDecimal vAprovado = viewModel.valorAprovadoProperty().get();
         BigDecimal vSolicitado = viewModel.valorSolicitadoProperty().get();
         TabelaJurosModel tabela = cbTabela.getValue();
 
-        // Qual valor usar para calcular? Se tem liberado, usa liberado. Senão, usa
-        // solicitado.
         BigDecimal valorBase = (vAprovado != null && vAprovado.compareTo(BigDecimal.ZERO) > 0) ? vAprovado
                 : vSolicitado;
 
         if (valorBase != null && valorBase.compareTo(BigDecimal.ZERO) > 0 && tabela != null) {
-            // Calcula no Backend/Service
             BigDecimal comissaoCalculada = propostaService.calcularComissaoEstimada(valorBase, tabela.getId());
             viewModel.comissaoEstimadaProperty().set(comissaoCalculada);
 
-            // Atualiza a UI (Valor + Porcentagem)
             String formatado = FinanceiroUtils.formatarParaExibicao(comissaoCalculada);
             lblComissaoEstimada.setText(String.format("%s (%s%%)", formatado, tabela.getComissaoPercentual()));
-            lblComissaoEstimada.setStyle("-fx-text-fill: green; -fx-font-weight: bold;"); // Dá um destaque clínico
+            lblComissaoEstimada.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
         } else {
             viewModel.comissaoEstimadaProperty().set(BigDecimal.ZERO);
             lblComissaoEstimada.setText("R$ 0,00 (0%)");
@@ -482,17 +377,9 @@ public class PropostaController {
         }
     }
 
-    private void configurarAutoSelecao() {
-        TextField[] camposFinanceiros = { txtValorSolicitado, txtValorAprovado, txtParcela };
-        for (TextField campo : camposFinanceiros) {
-            campo.focusedProperty().addListener((obs, estavaFocado, agoraFocado) -> {
-                if (agoraFocado) {
-                    javafx.application.Platform.runLater(campo::selectAll);
-                }
-            });
-        }
-    }
-
+    // ==========================================================
+    // 4. GESTÃO DE DOCUMENTOS E ARQUIVOS (FILECHOOSER NATIVO)
+    // ==========================================================
     private void carregarDocumentosDaProposta(Long propostaId) {
         if (propostaId == null) {
             listaDocumentos.clear();
@@ -501,154 +388,130 @@ public class PropostaController {
 
         Task<List<DocumentoProponenteModel>> task = new Task<>() {
             @Override
-            protected List<DocumentoProponenteModel> call() throws Exception {
+            protected List<DocumentoProponenteModel> call() {
                 return documentoService.buscarPorProposta(propostaId);
             }
         };
 
         task.setOnSucceeded(e -> {
-            // Atualiza a lista observada com os novos dados do banco
             listaDocumentos.setAll(task.getValue());
-            tableDocumentos.refresh(); // Garante que a UI redesenhe as linhas
+            tableDocumentos.refresh();
         });
 
-        new Thread(task).start();
-    }
+        task.setOnFailed(e -> {
+            mainController.notificarAviso("Erro ao carregar documentos da proposta.");
+        });
 
+        Thread t = new Thread(task);
+        t.setDaemon(true);
+        t.start();
+    }
     @FXML
     private void handleAnexarDocumento() {
-        // 1. Verificação de Pré-requisitos
-        if (viewModel.idProperty().get() == null) {
-            System.out.println("Erro: Salve a proposta antes de anexar documentos.");
-            // Opcional: Mostrar um alerta para a Solange aqui
+        if (!validarPropostaParaAnexo())
             return;
-        }
 
-        // 1. Lista de opções para a Solange
-        List<String> opcoes = List.of("RG", "CPF", "CNH", "Contracheque", "Comprovante de Residência",
-                "Extrato Bancário", "Outros");
+        Optional<String> tipoSelecionado = exibirDialogoTipoDocumento();
 
-        // 2. Abre o diálogo de escolha
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("RG", opcoes);
-        dialog.setTitle("Classificação de Documento");
-        dialog.setHeaderText("Qual documento você está anexando?");
-        dialog.setContentText("Tipo:");
-
-        dialog.showAndWait().ifPresent(tipoSelecionado -> {
-            // 3. Se ela escolheu, abrimos o seletor de arquivos
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Selecionar Arquivo: " + tipoSelecionado);
-            fileChooser.getExtensionFilters()
-                    .add(new FileChooser.ExtensionFilter("Arquivos", "*.pdf", "*.jpg", "*.png", "*.jpeg"));
-
-            File file = fileChooser.showOpenDialog(tableDocumentos.getScene().getWindow());
-
-            if (file != null) {
-                // 🚀 Passamos o tipo selecionado para o método de upload
-                realizarUploadAssincrono(file, tipoSelecionado);
+        tipoSelecionado.ifPresent(tipo -> {
+            File arquivo = selecionarArquivoLocal(tipo);
+            if (arquivo != null && arquivo.exists()) {
+                realizarUploadAssincrono(arquivo, tipo);
             }
         });
     }
 
-    // 🩹 Alterada a assinatura para receber o tipo
+    private boolean validarPropostaParaAnexo() {
+        if (viewModel.idProperty().get() == null) {
+            mainController.notificarAviso(
+                    "⚠️ Salve a proposta primeiro para gerar um número de identificação antes de anexar documentos.");
+            return false;
+        }
+        return true;
+    }
+
+    private Optional<String> exibirDialogoTipoDocumento() {
+        List<String> opcoes = List.of("RG", "CPF", "CNH", "Contracheque", "Comprovante de Residência",
+                "Extrato Bancário", "Outros");
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("RG", opcoes);
+        dialog.setTitle("Classificação de Documento");
+        dialog.setHeaderText("Qual documento deseja anexar à proposta?");
+        dialog.setContentText("Selecione o Tipo:");
+        return dialog.showAndWait();
+    }
+
+    private File selecionarArquivoLocal(String tipoSelecionado) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Selecionar Arquivo: " + tipoSelecionado);
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Documentos Permitidos", "*.pdf", "*.jpg", "*.png", "*.jpeg"));
+        return fileChooser.showOpenDialog(tableDocumentos.getScene().getWindow());
+    }
+
     private void realizarUploadAssincrono(File arquivo, String tipoDoc) {
         Task<DocumentoProponenteModel> uploadTask = new Task<>() {
             @Override
+            // 🚀 CORREÇÃO: Adicionado o "throws Exception" aqui
             protected DocumentoProponenteModel call() throws Exception {
                 PropostaModel propostaAtual = viewModel.atualizarModel(new PropostaModel());
-
-                // 💉 Agora usamos a variável 'tipoDoc' que veio do diálogo!
-                return documentoService.processarUpload(
-                        arquivo,
-                        tipoDoc,
-                        propostaAtual.getProponente(),
-                        propostaAtual);
+                return documentoService.processarUpload(arquivo, tipoDoc, propostaAtual.getProponente(), propostaAtual);
             }
         };
 
-        uploadTask.setOnSucceeded(e -> {
-            Long idAtual = viewModel.idProperty().get();
-            carregarDocumentosDaProposta(idAtual);
-        });
+        uploadTask.setOnSucceeded(e -> carregarDocumentosDaProposta(viewModel.idProperty().get()));
 
-        uploadTask.setOnFailed(e -> {
-            System.err.println("Falha no upload: " + uploadTask.getException().getMessage());
-        });
+        uploadTask.setOnFailed(e -> mainController
+                .notificarAviso("Falha ao anexar documento: " + uploadTask.getException().getMessage()));
 
         Thread t = new Thread(uploadTask);
         t.setDaemon(true);
         t.start();
     }
 
-    private void configurarColunasDocumentos() {
-        // 1. Resolve o "Nome Genérico": Mapeia a coluna para o tipo do documento
-        colTipoDocumento.setCellValueFactory(
-                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTipoDocumento()));
+    // ==========================================================
+    // 5. CONFIGURAÇÃO DE TABELAS (UI)
+    // ==========================================================
+    private void configurarTabelaDocumentos() {
+        tableDocumentos.setItems(listaDocumentos);
 
-        // 🩹 ADICIONE ISSO: Para a data não aparecer vazia
-        colDataUpload.setCellValueFactory(cellData -> {
-            var data = cellData.getValue().getDataUpload();
-            return new javafx.beans.property.SimpleStringProperty(
-                    data != null ? data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "-");
+        colTipoDocumento.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTipoDocumento()));
+
+        colDataUpload.setCellValueFactory(data -> {
+            var dataUpload = data.getValue().getDataUpload();
+            return new SimpleStringProperty(
+                    dataUpload != null ? dataUpload.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "-");
         });
 
-        // 2. Resolve a "Coluna Vazia": Cria os botões de ação (👁️ e 🗑️)
+        configurarColunaAcoes();
+        configurarDuploCliqueTabela();
+    }
+
+    private void configurarColunaAcoes() {
         colAcoes.setCellFactory(param -> new TableCell<>() {
             private final Button btnAbrir = new Button("👁️");
             private final Button btnExcluir = new Button("🗑️");
-            private final javafx.scene.layout.HBox container = new javafx.scene.layout.HBox(8, btnAbrir, btnExcluir);
+            private final HBox container = new HBox(8, btnAbrir, btnExcluir);
 
             {
                 btnAbrir.getStyleClass().add("flat");
                 btnExcluir.getStyleClass().addAll("flat", "danger");
-                container.setAlignment(javafx.geometry.Pos.CENTER);
+                container.setAlignment(Pos.CENTER);
+                btnAbrir.setMinWidth(Region.USE_PREF_SIZE);
+                btnExcluir.setMinWidth(Region.USE_PREF_SIZE);
 
-                // 🩹 A CURA PARA OS "...": Força o botão a não encolher
-                btnAbrir.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
-                btnExcluir.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
-
-                // Impede que o texto (emoji) sofra overrun
-                btnAbrir.setEllipsisString("");
-                btnExcluir.setEllipsisString("");
-
-                btnAbrir.setOnAction(event -> {
-                    DocumentoProponenteModel doc = getTableView().getItems().get(getIndex());
-                    if (doc != null && doc.getArquivoPath() != null) {
-                        File file = new File(doc.getArquivoPath());
-
-                        if (file.exists()) {
-                            // 🩹 A CURA: Chamada via HostServices do MainController
-                            // Convertemos o File para URI (file:/home/...) e depois para String
-                            String uri = file.toURI().toString();
-                            mainController.getHostServices().showDocument(uri);
-                        } else {
-                            System.err.println("Arquivo físico não encontrado: " + doc.getArquivoPath());
-                        }
-                    }
-                });
-
-                btnExcluir.setOnAction(event -> {
-                    // 🩹 Captura o item da linha e abre o overlay
-                    documentoParaExcluir = getTableView().getItems().get(getIndex());
-                    lblConfirmacaoExclusao.setText("Deseja remover '" + documentoParaExcluir.getTipoDocumento() + "'?");
-                    overlayExclusao.setVisible(true);
-                });
+                btnAbrir.setOnAction(e -> abrirDocumentoFisico(getTableView().getItems().get(getIndex())));
+                btnExcluir.setOnAction(e -> exibirOverlayExclusao(getTableView().getItems().get(getIndex())));
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    setGraphic(container);
-                    // Garante que a célula não tente mostrar texto, apenas o gráfico
-                    setText(null);
-                }
+                setGraphic(empty ? null : container);
             }
         });
+    }
 
-        // 3. Clique duplo na linha também abre o documento
+    private void configurarDuploCliqueTabela() {
         tableDocumentos.setRowFactory(tv -> {
             TableRow<DocumentoProponenteModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -660,6 +523,26 @@ public class PropostaController {
         });
     }
 
+    private void abrirDocumentoFisico(DocumentoProponenteModel doc) {
+        if (doc != null && doc.getArquivoPath() != null) {
+            File file = new File(doc.getArquivoPath());
+            if (file.exists()) {
+                mainController.getHostServices().showDocument(file.toURI().toString());
+            } else {
+                mainController.notificarAviso("Arquivo físico não encontrado no servidor.");
+            }
+        }
+    }
+
+    private void exibirOverlayExclusao(DocumentoProponenteModel doc) {
+        this.documentoParaExcluir = doc;
+        lblConfirmacaoExclusao.setText(String.format("Deseja remover '%s'?", doc.getTipoDocumento()));
+        overlayExclusao.setVisible(true);
+    }
+
+    // ==========================================================
+    // 6. OVERLAYS E AÇÕES DE EXCLUSÃO
+    // ==========================================================
     @FXML
     private void cancelarExclusao() {
         this.documentoParaExcluir = null;
@@ -668,62 +551,124 @@ public class PropostaController {
 
     @FXML
     private void confirmarExclusao() {
-        if (documentoParaExcluir != null) {
-            // Disparamos a exclusão em Background para não travar a tela
-            Task<Void> task = new Task<>() {
-                @Override
-                protected Void call() throws Exception {
-                    documentoService.excluirDocumento(documentoParaExcluir.getId());
-                    return null;
-                }
-            };
+        if (documentoParaExcluir == null)
+            return;
 
-            task.setOnSucceeded(e -> {
-                // Remove da lista observada (a tabela atualiza sozinha)
-                listaDocumentos.remove(documentoParaExcluir);
-                cancelarExclusao();
-                System.out.println("Documento removido com sucesso.");
-            });
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                documentoService.excluirDocumento(documentoParaExcluir.getId());
+                return null;
+            }
+        };
 
-            task.setOnFailed(e -> {
-                System.err.println("Erro ao excluir: " + task.getException().getMessage());
-                // Aqui você pode mudar a cor do lblConfirmacaoExclusao para vermelho indicando
-                // o erro
-            });
+        task.setOnSucceeded(e -> {
+            listaDocumentos.remove(documentoParaExcluir);
+            cancelarExclusao();
+        });
 
-            new Thread(task).start();
+        task.setOnFailed(e -> mainController.notificarAviso("Erro ao excluir documento."));
+        new Thread(task).start();
+    }
+
+    // ==========================================================
+    // 7. TRAVAS DE SEGURANÇA E PERSISTÊNCIA
+    // ==========================================================
+    public void aplicarBloqueio() {
+        StatusPropostaModel status = viewModel.statusProperty().get();
+        boolean isTerminal = viewModel.idProperty().get() != null &&
+                (status == StatusPropostaModel.PAGO || status == StatusPropostaModel.REPROVADA
+                        || status == StatusPropostaModel.CANCELADO);
+
+        cbStatus.setDisable(isTerminal);
+        cbTabela.setDisable(isTerminal);
+        cbBanco.setDisable(isTerminal);
+        cbConvenio.setDisable(isTerminal);
+        txtValorSolicitado.setDisable(isTerminal);
+        txtValorAprovado.setDisable(isTerminal);
+        txtParcela.setDisable(isTerminal);
+        spinPrazo.setDisable(isTerminal);
+
+        txtObservacoes.setPromptText(isTerminal ? "Proposta liquidada. Alterações não permitidas." : "");
+    }
+
+    // ==========================================================
+    // 8. MÉTODOS UTILITÁRIOS (DRY)
+    // ==========================================================
+    private void executarSemGatilhos(Runnable acao) {
+        isUpdatingInterface = true;
+        try {
+            acao.run();
+        } finally {
+            isUpdatingInterface = false;
         }
     }
 
-    /**
-     * 🔒 TRAVA DE PERSISTÊNCIA:
-     * Bloqueia a edição se a proposta já estiver liquidada no banco de dados.
-     */
-    public void aplicarBloqueio() {
-        StatusPropostaModel statusAtual = viewModel.statusProperty().get();
+    private void limparFiltrosDeTriagem() {
+        cbBanco.getItems().clear();
+        cbTabela.getItems().clear();
+        tabelasElegiveisDaTriagem = null;
+    }
 
-        // 🚀 Lógica de Estado Terminal: Verifica se o ID existe e se o status impede
-        // modificações
-        boolean isTerminalState = viewModel.idProperty().get() != null &&
-                (statusAtual == StatusPropostaModel.PAGO ||
-                        statusAtual == StatusPropostaModel.REPROVADA ||
-                        statusAtual == StatusPropostaModel.CANCELADO);
+    private void atualizarComboBancos(List<BancoModel> bancosElegiveis) {
+        BancoModel bancoAtual = cbBanco.getValue();
+        cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
 
-        cbStatus.setDisable(isTerminalState);
-        cbTabela.setDisable(isTerminalState);
-        cbBanco.setDisable(isTerminalState);
-        cbConvenio.setDisable(isTerminalState);
-        // 🚀 AQUI: Fechando a brecha do Valor Simulado/Solicitado
-        txtValorSolicitado.setDisable(isTerminalState);
-        txtValorAprovado.setDisable(isTerminalState);
-        txtParcela.setDisable(isTerminalState);
-        spinPrazo.setDisable(isTerminalState);
+        if (!isUpdatingInterface) {
+            if (bancosElegiveis.size() == 1)
+                cbBanco.setValue(bancosElegiveis.get(0));
+            else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual))
+                cbBanco.setValue(bancoAtual);
+            else
+                cbBanco.setValue(null);
 
-        if (isTerminalState) {
-            txtObservacoes.setPromptText("Proposta liquidada. Alterações financeiras não permitidas.");
-        } else {
-            txtObservacoes.setPromptText("");
+            dispararCalculo();
         }
+    }
+
+    private <T> StringConverter<T> criarConversor(java.util.function.Function<T, String> formatter) {
+        return new StringConverter<>() {
+            @Override
+            public String toString(T obj) {
+                return formatter.apply(obj);
+            }
+
+            @Override
+            public T fromString(String s) {
+                return null;
+            }
+        };
+    }
+
+    private void vincularMascaraMoeda(TextField campo, javafx.beans.property.Property<BigDecimal> prop) {
+        TextFormatter<BigDecimal> formatador = FinanceiroUtils.criarFormatadorMoeda();
+        campo.setTextFormatter(formatador);
+        formatador.valueProperty().bindBidirectional(prop);
+    }
+
+    private void configurarSpinner(Spinner<Integer> spinner, javafx.beans.property.Property<Integer> prop) {
+        spinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 1));
+        spinner.setEditable(true);
+        spinner.getEditor().focusedProperty().addListener((obs, old, isFocused) -> {
+            if (!isFocused)
+                spinner.increment(0);
+        });
+        spinner.getValueFactory().valueProperty().bindBidirectional(prop);
+    }
+
+    private void configurarAutoSelecaoTextos() {
+        for (TextField campo : new TextField[] { txtValorSolicitado, txtValorAprovado, txtParcela }) {
+            campo.focusedProperty().addListener((obs, old, isFocused) -> {
+                if (isFocused)
+                    Platform.runLater(campo::selectAll);
+            });
+        }
+    }
+
+    private int calcularIdade(ProponenteModel p) {
+        if (p == null || p.getDataNascimento() == null)
+            return 0;
+        return Period.between(p.getDataNascimento(), LocalDate.now()).getYears();
     }
 
     public PropostaViewModel getViewModel() {
