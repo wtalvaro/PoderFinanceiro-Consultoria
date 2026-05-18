@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.springframework.context.ApplicationContext;
@@ -34,11 +35,23 @@ public class MainController {
     private VBox overlayLoading;
     @FXML
     private Label lblLoadingTexto;
-    @FXML private HBox overlayChatIA;
-    @FXML private AjudaChatController painelChatController;
+    @FXML
+    private HBox overlayChatIA;
+
+    // 🎯 INJEÇÕES PARA REDIMENSIONAMENTO DINÂMICO
+    @FXML
+    private Region dragHandleChat; // Alça de arrasto mapeada no FXML
+    @FXML
+    private Region painelChat; // O nó raiz do ajuda_chat.fxml injetado pelo fx:id do include
+    @FXML
+    private AjudaChatController painelChatController;
 
     private final HostServices hostServices;
     private final ApplicationContext context;
+
+    // 🚀 VARIÁVEIS DE CONTROLE FISICO DO MOUSE
+    private double mouseStartX = 0;
+    private double chatStartWidth = 0;
 
     private static class ViewPair {
         Node view;
@@ -62,6 +75,51 @@ public class MainController {
 
     public HostServices getHostServices() {
         return hostServices;
+    }
+
+    // ========================================================================
+    // CICLO DE INICIALIZAÇÃO NATIVA (Controle das Alças do Mouse)
+    // ========================================================================
+    @FXML
+    public void initialize() {
+        // 🚀 CAPTURA DA FÍSICA DE ARRASTO DO OVERLAY FLUTUANTE
+        if (dragHandleChat != null) {
+            dragHandleChat.setOnMousePressed(event -> {
+                mouseStartX = event.getSceneX();
+                if (painelChat != null) {
+                    chatStartWidth = painelChat.getWidth();
+                }
+            });
+
+            dragHandleChat.setOnMouseDragged(event -> {
+                if (painelChat == null)
+                    return;
+
+                // Calcula o deslocamento horizontal do mouse
+                double deltaX = event.getSceneX() - mouseStartX;
+
+                // Engenharia Reversa: Como o painel está colado na DIREITA, arrastar o mouse
+                // para a ESQUERDA (deltaX negativo) aumenta o tamanho útil do chat.
+                double novaLargura = chatStartWidth - deltaX;
+
+                // Margens de segurança de UX para não quebrar as tabelas Bootstrap nem amassar
+                // a tela
+                double larguraMinima = 320.0;
+                double larguraMaxima = 750.0;
+
+                if (novaLargura >= larguraMinima && novaLargura <= larguraMaxima) {
+                    painelChat.setPrefWidth(novaLargura);
+                    painelChat.setMinWidth(novaLargura);
+                    painelChat.setMaxWidth(novaLargura);
+                }
+            });
+
+            // Feedback visual elegante ao passar o mouse sobre a alça de arrasto
+            dragHandleChat.setOnMouseEntered(e -> dragHandleChat
+                    .setStyle("-fx-cursor: h-resize; -fx-background-color: rgba(30, 64, 175, 0.15);"));
+            dragHandleChat.setOnMouseExited(
+                    e -> dragHandleChat.setStyle("-fx-cursor: default; -fx-background-color: rgba(0, 0, 0, 0.03);"));
+        }
     }
 
     /**
@@ -90,7 +148,7 @@ public class MainController {
 
             topBar.setVisible(mostrarEstrutura);
             topBar.setManaged(mostrarEstrutura);
-            
+
             bottomBar.setVisible(mostrarEstrutura);
             bottomBar.setManaged(mostrarEstrutura);
 
@@ -111,17 +169,13 @@ public class MainController {
     // ========================================================================
 
     public void irParaNovoContato() {
-        abrirClienteNoWorkspace(null); // Null indica "Novo Cadastro" para o Workspace
+        abrirClienteNoWorkspace(null);
     }
 
     // ========================================================================
     // MOTOR DE NAVEGAÇÃO INTERNA (O "Protocolo Padrão")
     // ========================================================================
 
-    /**
-     * Método funcional que centraliza a lógica de acesso ao Workspace.
-     * Encapsula a verificação de visibilidade, cache e tratamento de erros.
-     */
     private void executarNoWorkspace(java.util.function.Consumer<WorkspaceController> acao) {
         try {
             garantirWorkspaceVisivel();
@@ -131,7 +185,6 @@ public class MainController {
                 acao.accept((WorkspaceController) pair.controller);
             }
         } catch (Exception e) {
-            // Log enxuto para auditoria interna em caso de falha crítica
             e.printStackTrace();
         }
     }
@@ -157,10 +210,8 @@ public class MainController {
     }
 
     public void abrirPropostaNoWorkspace(PropostaModel proposta) {
-        if (proposta == null || proposta.getProponente() == null) return;
-        
-        // Delega a responsabilidade visual para o WorkspaceController,
-        // enviando tanto o cliente quanto a proposta alvo!
+        if (proposta == null || proposta.getProponente() == null)
+            return;
         executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
     }
 
@@ -180,20 +231,16 @@ public class MainController {
         executarNoWorkspace(ws -> ws.abrirAbaComissoes());
     }
 
-    // Abertura Normal (Sem Filtro)
     public void irParaPropostas() {
         executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
     }
 
-    // Abertura de Emergência (Com Filtro de Pendências)
     public void irParaPendencias() {
         executarNoWorkspace(ws -> ws.abrirAbaPropostas("PENDENTE"));
     }
 
     private void garantirWorkspaceVisivel() {
         if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
-            // Executa o carregamento real do FXML e Controller caso ainda não esteja na
-            // tela
             navegarPara("/fxml/workspace.fxml", true);
         }
     }
@@ -260,7 +307,6 @@ public class MainController {
 
     @FXML
     public void alternarPainelIA() {
-        // Se estiver invisível, mostra. Se estiver visível, esconde.
         boolean estaAberto = overlayChatIA.isVisible();
         overlayChatIA.setVisible(!estaAberto);
 

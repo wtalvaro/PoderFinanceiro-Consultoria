@@ -33,9 +33,13 @@
        </BorderPane>
 
        <HBox fx:id="overlayChatIA" visible="false" alignment="CENTER_RIGHT" pickOnBounds="false">
+              <Region fx:id="dragHandleChat"
+                     prefWidth="6.0" minWidth="6.0" maxWidth="6.0"
+                     style="-fx-cursor: h-resize; -fx-background-color: rgba(0,0,0,0.03);" />
+
               <fx:include fx:id="painelChat" source="ajuda_chat.fxml" />
        </HBox>
-       
+
        <!-- Camada de Overlay (Permanece igual) -->
        <VBox fx:id="overlaySair" alignment="CENTER" spacing="20" visible="false"
               style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
