@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import java.io.File;
 
-// 🚀 IMPORTS DO WEBVIEW ADICIONADOS AQUI
+// IMPORTS DO WEBVIEW NATIVO
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 
@@ -38,7 +38,6 @@ public class AjudaChatController {
     @FXML
     private Label lblNomeFicheiro;
 
-    // 🚀 DECLARAÇÃO CORRIGIDA
     @FXML
     private WebView webViewChat;
     private WebEngine webEngine;
@@ -52,6 +51,10 @@ public class AjudaChatController {
     private final LinkUtilRepository linkRepository;
 
     private MainController mainController;
+
+    // CONTROLE DE ESTADO ASSÍNCRONO DA UI
+    private boolean paginaCarregada = false;
+    private final java.util.List<Runnable> filaMensagensPendentes = new java.util.ArrayList<>();
 
     public AjudaChatController(GeminiService geminiService, AuthService authService,
             AtendimentoContextService contextoService,
@@ -73,6 +76,48 @@ public class AjudaChatController {
         } else {
             System.err.println("⚠️ Arquivo chat.html não encontrado!");
         }
+
+        // 🎯 2. ESCUDO DE CARREGAMENTO: Gerencia sua fila de mensagens síncronas do
+        // boot
+        webEngine.getLoadWorker().stateProperty().addListener((observable, oldState, newState) -> {
+            if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+                paginaCarregada = true;
+
+                // Descarrega as mensagens da fila
+                for (Runnable tarefaInjecao : filaMensagensPendentes) {
+                    Platform.runLater(tarefaInjecao);
+                }
+                filaMensagensPendentes.clear();
+            }
+        });
+
+        // 🎯 3. REDIRECIONADOR DE POPUPS: Força links com 'target="_blank"' a rodarem
+        // no mesmo frame
+        webEngine.setCreatePopupHandler(popupFeatures -> webEngine);
+
+        // 🎯 4. INTERCEPTADOR PURAMENTE JAVA: Captura cliques em links externos de
+        // forma nativa
+        webEngine.locationProperty().addListener((observable, oldLocation, newLocation) -> {
+            if (newLocation != null && !newLocation.isEmpty() && !newLocation.equals("about:blank")) {
+
+                // Se a URL para onde o WebView quer ir NÃO contém "chat.html", é um link
+                // externo!
+                if (!newLocation.contains("chat.html")) {
+
+                    // Aborta imediatamente a navegação dentro do WebView
+                    Platform.runLater(() -> webEngine.getLoadWorker().cancel());
+
+                    // Delega a abertura segura para o navegador padrão do Sistema Operacional
+                    Platform.runLater(() -> {
+                        if (mainController != null && mainController.getHostServices() != null) {
+                            mainController.getHostServices().showDocument(newLocation);
+                        } else {
+                            System.err.println("⚠️ MainController ou HostServices não configurados para o Chat!");
+                        }
+                    });
+                }
+            }
+        });
     }
 
     public void setMainController(MainController mainController) {
@@ -118,10 +163,12 @@ public class AjudaChatController {
         final File ficheiroParaEnvio = ficheiroAnexado;
         removerAnexo();
 
-        // 🚀 MOSTRA O CARREGAMENTO VIA JAVASCRIPT
+        // MOSTRA O CARREGAMENTO VIA JAVASCRIPT
         Platform.runLater(() -> {
             try {
-                webEngine.executeScript("mostrarCarregamentoJS();");
+                if (paginaCarregada) {
+                    webEngine.executeScript("mostrarCarregamentoJS();");
+                }
             } catch (Exception e) {
             }
         });
@@ -133,7 +180,11 @@ public class AjudaChatController {
                         ? authService.getUsuarioLogado().getGeminiApiKey()
                         : null;
 
-                String jsonCliente = SummaryGeneratorUtils.gerarJsonContextualParaIA(contextoService.getLeadAtivo());
+                String jsonCliente = SummaryGeneratorUtils.gerarJsonContextualParaIA(
+                        contextoService.getLeadAtivo(),
+                        contextoService.isAbaCadastroClienteAtiva() // 🚀 Passa true apenas se a aba correta estiver
+                                                                    // focada!
+                );
                 java.util.List<br.com.poderfinanceiro.app.model.TabelaJurosModel> listaTabelas = tabelaService
                         .listarAtivas();
                 String jsonTabelas = SummaryGeneratorUtils.gerarJsonTabelasJuros(listaTabelas);
@@ -146,10 +197,12 @@ public class AjudaChatController {
         };
 
         taskIA.setOnSucceeded(e -> {
-            // 🚀 REMOVE O CARREGAMENTO VIA JAVASCRIPT E ADICIONA A RESPOSTA
+            // REMOVE O CARREGAMENTO VIA JAVASCRIPT E ADICIONA A RESPOSTA
             Platform.runLater(() -> {
                 try {
-                    webEngine.executeScript("removerCarregamentoJS();");
+                    if (paginaCarregada) {
+                        webEngine.executeScript("removerCarregamentoJS();");
+                    }
                 } catch (Exception ex) {
                 }
                 adicionarBalao(taskIA.getValue(), false);
@@ -157,10 +210,12 @@ public class AjudaChatController {
         });
 
         taskIA.setOnFailed(e -> {
-            // 🚀 REMOVE O CARREGAMENTO E MOSTRA O ERRO
+            // REMOVE O CARREGAMENTO E MOSTRA O ERRO
             Platform.runLater(() -> {
                 try {
-                    webEngine.executeScript("removerCarregamentoJS();");
+                    if (paginaCarregada) {
+                        webEngine.executeScript("removerCarregamentoJS();");
+                    }
                 } catch (Exception ex) {
                 }
                 adicionarBalao("Desculpe, ocorreu uma falha técnica ao consultar o sistema.", false);
@@ -194,7 +249,7 @@ public class AjudaChatController {
             paneConfigChave.setVisible(false);
             paneConfigChave.setManaged(false);
             adicionarBalao(
-                    "✅ Sua chave de API foi atualizada com sucesso no banco de dados! O Gemini já está operando com as novas credenciais.",
+                    "✅ Sua chave de API foi updated com sucesso no banco de dados! O Gemini já está operando com as novas credenciais.",
                     false);
         } catch (Exception e) {
             adicionarBalao("⚠️ Erro ao persistir nova chave: " + e.getMessage(), false);
@@ -208,8 +263,12 @@ public class AjudaChatController {
         }
     }
 
+    // 🎯 ESCUDO CONTRA O REFERENCERROR (Can't find variable)
     private void adicionarBalao(String texto, boolean isUsuario) {
-        Platform.runLater(() -> {
+        if (texto == null)
+            return;
+
+        Runnable rotinaInjecao = () -> {
             try {
                 String textoB64 = java.util.Base64.getEncoder()
                         .encodeToString(texto.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -218,7 +277,15 @@ public class AjudaChatController {
             } catch (Exception e) {
                 System.err.println("Erro ao injetar script no WebView: " + e.getMessage());
             }
-        });
+        };
+
+        // Se o HTML do Bootstrap estiver carregado, executa na hora.
+        // Caso contrário, retém na lista até o sinal de SUCCEEDED.
+        if (paginaCarregada) {
+            Platform.runLater(rotinaInjecao);
+        } else {
+            filaMensagensPendentes.add(rotinaInjecao);
+        }
     }
 
     @FXML

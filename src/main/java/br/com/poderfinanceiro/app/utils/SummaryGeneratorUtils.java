@@ -64,11 +64,11 @@ public class SummaryGeneratorUtils {
     }
 
     // =========================================================================
-    // NOVO MOTOR: GERAÇÃO DE CONTEXTO JSON PARA A INTELIGÊNCIA ARTIFICIAL
+    // 🚀 NOVO MOTOR CORRIGIDO: OPERA DIRETAMENTE SOBRE O PROPONENTE_MODEL
     // =========================================================================
-
-    public static String gerarJsonContextualParaIA(LeadViewModel vm) {
-        if (vm == null)
+    public static String gerarJsonContextualParaIA(br.com.poderfinanceiro.app.model.ProponenteModel model,
+            boolean permitirEndereco) {
+        if (model == null)
             return "{}";
 
         try {
@@ -76,34 +76,82 @@ public class SummaryGeneratorUtils {
 
             // 1. Bloco de Dados Pessoais
             Map<String, Object> dadosPessoais = new LinkedHashMap<>();
-            dadosPessoais.put("nome", vm.nomeProperty().get());
-            dadosPessoais.put("cpf", vm.cpfProperty().get());
-            dadosPessoais.put("whatsapp", vm.telefoneProperty().get());
-
-            // Tratamos a data como String ISO ANTES de mandar pro Jackson (Solução para o
-            // erro)
-            if (vm.dataNascimentoProperty().get() != null) {
-                dadosPessoais.put("dataNascimento", vm.dataNascimentoProperty().get().toString());
+            dadosPessoais.put("nome", model.getNomeCompleto());
+            dadosPessoais.put("cpf", model.getCpf());
+            dadosPessoais.put("whatsapp", model.getTelefone());
+            if (model.getDataNascimento() != null) {
+                dadosPessoais.put("dataNascimento", model.getDataNascimento().toString());
             }
 
-            // 2. Bloco Financeiro
+            // 2. Bloco de Endereço Residencial
+            String enderecoFormatado = "Ocultado (Abra a aba de detalhes do cliente para liberar)";
+            if (permitirEndereco) {
+                enderecoFormatado = "Não cadastrado";
+                if (model.getEnderecos() != null && !model.getEnderecos().isEmpty()) {
+                    var end = model.getEnderecos().stream()
+                            .filter(e -> e.getPrincipal() != null && e.getPrincipal())
+                            .findFirst()
+                            .orElse(model.getEnderecos().get(0));
+
+                    String logradouro = end.getLogradouro() != null ? end.getLogradouro().trim() : "";
+                    String numero = end.getNumero() != null ? end.getNumero().trim() : "";
+                    String bairro = end.getBairro() != null ? end.getBairro().trim() : "";
+                    String cidade = end.getCidade() != null ? end.getCidade().trim() : "";
+                    String uf = end.getUf() != null ? end.getUf().name() : "";
+                    String cep = end.getCep() != null ? end.getCep().trim() : "";
+
+                    if (!logradouro.isEmpty() || !cidade.isEmpty()) {
+                        enderecoFormatado = String.format("%s, %s%s%s%s",
+                                logradouro.isEmpty() ? "Logradouro não informado" : logradouro,
+                                numero.isEmpty() ? "S/N" : "nº " + numero,
+                                bairro.isEmpty() ? "" : " - " + bairro,
+                                cidade.isEmpty() ? "" : " - " + cidade + (uf.isEmpty() ? "" : "/" + uf.toUpperCase()),
+                                cep.isEmpty() ? "" : " (CEP: " + cep + ")");
+                    }
+                }
+            }
+
+            // 3. Bloco Financeiro
             Map<String, Object> perfilFinanceiro = new LinkedHashMap<>();
             perfilFinanceiro.put("vinculo",
-                    vm.vinculoProperty().get() != null ? vm.vinculoProperty().get().name() : "NAO_INFORMADO");
-            perfilFinanceiro.put("matricula", vm.matriculaProperty().get());
-
+                    model.getTipoVinculo() != null ? model.getTipoVinculo().name() : "NAO_INFORMADO");
+            perfilFinanceiro.put("matricula", model.getMatricula());
             perfilFinanceiro.put("rendaMensalBruta",
-                    vm.rendaProperty().get() != null ? vm.rendaProperty().get().doubleValue() : 0.0);
+                    model.getRendaMensal() != null ? model.getRendaMensal().doubleValue() : 0.0);
 
-            // Monta a árvore
+            // 🎯 4. NOVO BLOCO: HISTÓRICO DE PROPOSTAS DO CLIENTE (Otimizado para Tokens)
+            java.util.List<Map<String, Object>> arrayPropostas = new java.util.ArrayList<>();
+            if (model.getPropostas() != null && !model.getPropostas().isEmpty()) {
+                for (br.com.poderfinanceiro.app.model.PropostaModel prop : model.getPropostas()) {
+                    Map<String, Object> pMap = new LinkedHashMap<>();
+                    pMap.put("id", prop.getId());
+                    pMap.put("banco", prop.getBanco() != null ? prop.getBanco().getNome() : "Não informado");
+                    pMap.put("convenio", prop.getConvenioOrgao() != null ? prop.getConvenioOrgao().getLabel() : "PADRAO");
+                    pMap.put("status", prop.getStatus() != null ? prop.getStatus().name() : "EM_ANALISE");
+                    pMap.put("valorSolicitado",
+                            prop.getValorSolicitado() != null ? prop.getValorSolicitado().doubleValue() : 0.0);
+                    pMap.put("valorAprovado",
+                            prop.getValorAprovado() != null ? prop.getValorAprovado().doubleValue() : 0.0);
+                    pMap.put("parcelas", prop.getQuantidadeParcelas());
+                    pMap.put("valorParcela",
+                            prop.getValorParcela() != null ? prop.getValorParcela().doubleValue() : 0.0);
+                    pMap.put("comissaoEstimada",
+                            prop.getComissaoEstimada() != null ? prop.getComissaoEstimada().doubleValue() : 0.0);
+
+                    arrayPropostas.add(pMap);
+                }
+            }
+
+            // Monta a árvore consolidada
             contextoGlobal.put("clienteEmAtendimento", dadosPessoais);
+            contextoGlobal.put("enderecoResidencial", enderecoFormatado);
             contextoGlobal.put("perfilFinanceiro", perfilFinanceiro);
+            contextoGlobal.put("propostasDesteCliente", arrayPropostas); // 🚀 Injetado!
 
-            // Retorna o JSON formatado
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(contextoGlobal);
 
         } catch (Exception e) {
-            System.err.println("⚠️ Erro ao serializar contexto do Lead para JSON: " + e.getMessage());
+            System.err.println("⚠️ Erro ao serializar contexto completo: " + e.getMessage());
             return "{}";
         }
     }

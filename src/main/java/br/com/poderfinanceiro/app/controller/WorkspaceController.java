@@ -1,6 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.service.AtendimentoContextService.TipoTelaFocada;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -20,28 +22,83 @@ public class WorkspaceController {
 
     @FXML
     private TabPane tabPanePrincipal;
-    private final ApplicationContext context;
 
-    public WorkspaceController(ApplicationContext context) {
+    private final ApplicationContext context;
+    // 🎯 INJEÇÃO DO DIRECIONADOR DE CONTEXTO DA IA
+    private final AtendimentoContextService contextoService;
+
+    public WorkspaceController(ApplicationContext context, AtendimentoContextService contextoService) {
         this.context = context;
+        this.contextoService = contextoService;
     }
 
     @FXML
     public void initialize() {
         configurarScrollHorizontal();
+
+        // 🚀 O RASTREADOR ATIVO DE ABAS (Multi-Tenant de Tela)
+        tabPanePrincipal.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            sincronizarContextoComIA(newTab);
+        });
+    }
+
+    /**
+     * 🧠 Analisa a aba focada pelo operador e atualiza os sinais vitais do chat em
+     * background.
+     */
+    private void sincronizarContextoComIA(Tab abaFocada) {
+        if (abaFocada == null) {
+            contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
+            return;
+        }
+
+        Object userData = abaFocada.getUserData();
+
+        // 1. Mapeamento de Abas Estáticas de Gestão
+        if (userData instanceof String idAba) {
+            switch (idAba) {
+                case "ABA_DASHBOARD":
+                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
+                    return;
+                case "ABA_CLIENTES":
+                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.LISTA_CLIENTES);
+                    return;
+                case "ABA_LINKS":
+                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.LINKS_UTEIS);
+                    return;
+                case "ABA_JUROS":
+                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.TABELAS_JUROS);
+                    return;
+                default:
+                    // Outras abas administrativas (Bancos, Comissões, Playbook ou Propostas)
+                    if (idAba.startsWith("ABA_")) {
+                        contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
+                        return;
+                    }
+                    break;
+            }
+        }
+
+        // Mapeamento de Aba de Atendimento Ativa (Hub de Cliente)
+        Object controller = abaFocada.getProperties().get("controller");
+        if (controller instanceof AtendimentoHubController hub) {
+            if (hub.getLeadController() != null && hub.getLeadController().getViewModel() != null) {
+                // 🎯 CONSERTADO: Agora coleta o modelo completo mantendo o relacionamento de
+                // endereços!
+                contextoService.atualizarFocoInterface(
+                        hub.getProponenteComCamposDaTela(),
+                        TipoTelaFocada.CADASTRO_CLIENTE);
+            } else {
+                contextoService.atualizarFocoInterface(null, TipoTelaFocada.CADASTRO_CLIENTE);
+            }
+        }
     }
 
     // ========================================================================
     // PROTOCOLO DE ADMISSÃO (Motor de Abas)
     // ========================================================================
 
-    /**
-     * Protocolo Padrão para abas de suporte/gestão (Links, Juros, Bancos,
-     * Comissões).
-     * Evita a duplicação de lógica de carregamento de FXML e criação de Tab.
-     */
     private void admitirAbaSimples(String id, String titulo, String fxmlPath) {
-        // 1. Verifica se a "ficha" já está aberta (aba existente)
         for (Tab tab : tabPanePrincipal.getTabs()) {
             if (id.equals(tab.getUserData())) {
                 tabPanePrincipal.getSelectionModel().select(tab);
@@ -49,7 +106,6 @@ public class WorkspaceController {
             }
         }
 
-        // 2. Se for uma nova admissão, carrega o equipamento (FXML)
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             loader.setControllerFactory(context::getBean);
@@ -80,7 +136,6 @@ public class WorkspaceController {
     }
 
     public void abrirAbaClientes() {
-        // Confirme se o caminho do seu FXML de clientes é este mesmo:
         admitirAbaSimples("ABA_CLIENTES", "👥 Clientes", "/fxml/clientes_list.fxml");
     }
 
@@ -100,30 +155,23 @@ public class WorkspaceController {
         admitirAbaSimples("ABA_COMISSOES", "💰 Gestão de Repasses (RV)", "/fxml/comissoes.fxml");
     }
 
-    /**
-     * Admissão Especial: Esteira de Propostas (Permite Múltiplas Instâncias)
-     */
     public void abrirAbaPropostas(String filtroInicial) {
-        // 1. Dinamiza o ID e o Título com base no "Sintoma" (Filtro)
         boolean isEmergencia = filtroInicial != null && !filtroInicial.trim().isEmpty();
         String idAba = isEmergencia ? "ABA_PENDENCIAS" : "ABA_PROPOSTAS";
         String tituloAba = isEmergencia ? "🚨 UTI: Pendências" : "📄 Esteira de Propostas";
 
-        // 2. Verifica se ESTA aba específica (Normal ou UTI) já está aberta
         for (Tab tab : tabPanePrincipal.getTabs()) {
             if (idAba.equals(tab.getUserData())) {
                 tabPanePrincipal.getSelectionModel().select(tab);
-                return; // Já está na tela, foca nela e preserva o trabalho!
+                return;
             }
         }
 
-        // 3. Nova Admissão
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/propostas_list.fxml"));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
 
-            // Injeta o "remédio" se for caso de emergência
             PropostasListController controller = loader.getController();
             if (isEmergencia) {
                 controller.aplicarFiltroExterno(filtroInicial);
@@ -134,8 +182,6 @@ public class WorkspaceController {
             novaAba.setUserData(idAba);
             novaAba.setClosable(true);
 
-            // BÔNUS UI: Deixa o texto da aba da UTI em negrito e vermelho para chamar
-            // atenção
             if (isEmergencia) {
                 novaAba.setStyle("-fx-text-base-color: #c62828; -fx-font-weight: bold;");
             }
@@ -147,54 +193,39 @@ public class WorkspaceController {
         }
     }
 
-    /**
-     * Admissão Especial Padrão: Hub de Atendimento (Redireciona para o método
-     * completo)
-     */
     public void abrirOuFocarAba(ProponenteModel proponente) {
         abrirOuFocarAbaComProposta(proponente, null);
     }
 
-    /**
-     * 🚀 Rota Direcionada: Abre a aba do cliente e, opcionalmente, já foca numa
-     * proposta específica.
-     */
     public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
         String idBuscado;
 
-        // 1. Triagem Direta: Verificamos se o paciente existe e tem registro (ID)
         if (proponente != null && proponente.getId() != null) {
             idBuscado = String.valueOf(proponente.getId());
 
-            // Busca se o leito (aba) já está ocupado por este paciente
             for (Tab tab : tabPanePrincipal.getTabs()) {
                 if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
                     tabPanePrincipal.getSelectionModel().select(tab);
 
-                    // 🚀 O pulo do gato: A aba já existe, mas o consultor clicou na esteira.
-                    // Precisamos avisar o Controller da aba aberta para mudar para a proposta alvo!
                     if (propostaIdAlvo != null
                             && tab.getProperties().get("controller") instanceof AtendimentoHubController) {
                         AtendimentoHubController hubExistente = (AtendimentoHubController) tab.getProperties()
                                 .get("controller");
                         hubExistente.inicializarAtendimento(proponente, propostaIdAlvo);
                     }
-                    return; // Sai do método pois a aba já foi focada e atualizada
+                    return;
                 }
             }
         } else {
-            // Se for um novo atendimento, geramos o código de entrada único
             idBuscado = "NOVO_" + UUID.randomUUID().toString();
         }
 
-        // 2. Se chegou aqui, a aba NÃO existe e precisa ser criada
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/atendimento_hub.fxml"));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
             AtendimentoHubController hub = loader.getController();
 
-            // 3. Inicialização Inteligente: Checa se tem cliente e se tem proposta alvo
             if (proponente != null && proponente.getId() != null) {
                 if (propostaIdAlvo != null) {
                     hub.inicializarAtendimento(proponente, propostaIdAlvo);
@@ -209,8 +240,7 @@ public class WorkspaceController {
             novaAba.setContent(root);
             novaAba.setUserData(idBuscado);
 
-            // 🚀 Salva o controller dentro da aba para podermos resgatá-lo depois se o
-            // usuário clicar na esteira de novo
+            // Armazena a referência para resgate em tempo de execução
             novaAba.getProperties().put("controller", hub);
 
             hub.setTabPertencente(novaAba);

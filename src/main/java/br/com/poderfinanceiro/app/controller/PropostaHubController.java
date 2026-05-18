@@ -336,4 +336,14 @@ public class PropostaHubController {
     public PropostaController getAbaPropostaController() {
         return abaPropostaController;
     }
+
+    // ==========================================================
+    // 🚀 EXPOSITOR DE HISTÓRICO PARA O CONTEXTO DA IA
+    // ==========================================================
+    /**
+     * Disponibiliza os itens carregados na ListView lateral para a IA.
+     */
+    public javafx.collections.ObservableList<PropostaModel> getListaPropostas() {
+        return listPropostas.getItems();
+    }
 }

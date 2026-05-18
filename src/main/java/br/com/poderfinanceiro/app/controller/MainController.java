@@ -120,6 +120,17 @@ public class MainController {
             dragHandleChat.setOnMouseExited(
                     e -> dragHandleChat.setStyle("-fx-cursor: default; -fx-background-color: rgba(0, 0, 0, 0.03);"));
         }
+
+        // 🚀 O BOTÃO FECHAR INVISÍVEL (Clique fora para fechar)
+        if (overlayChatIA != null) {
+            overlayChatIA.setOnMouseClicked(event -> {
+                // Se o alvo real do clique foi a área vazia do HBox, e não o chat ou a alça
+                if (event.getTarget() == overlayChatIA) {
+                    alternarPainelIA(); // Executa a sua lógica nativa de fechar/esconder
+                    event.consume(); // Consome o evento para não propagar para os componentes de baixo
+                }
+            });
+        }
     }
 
     /**

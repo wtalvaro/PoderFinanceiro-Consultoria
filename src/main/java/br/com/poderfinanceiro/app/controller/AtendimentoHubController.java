@@ -8,6 +8,7 @@ import br.com.poderfinanceiro.app.service.AtendimentoContextService; // 🚀 IMP
 import br.com.poderfinanceiro.app.service.ProponenteService;
 import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
+import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.concurrent.Task;
@@ -103,7 +104,7 @@ public class AtendimentoHubController {
         abaLeadController.getViewModel().loadFromModel(proponente);
 
         // 🚀 A LINHA MÁGICA: Avisa a IA que o foco mudou!
-        contextoService.setLeadAtivo(abaLeadController.getViewModel());
+        contextoService.setLeadAtivo(proponente);
 
         if (proponente != null && proponente.getEnderecos() != null && !proponente.getEnderecos().isEmpty()) {
             abaEnderecoController.getViewModel().loadFromModel(proponente.getEnderecos().get(0));
@@ -136,8 +137,8 @@ public class AtendimentoHubController {
         abaEnderecoController.getViewModel().reset();
         abaPropostaHubController.getViewModel().reset();
 
-        // 🚀 AVISA A IA: Foco agora é um lead em branco
-        contextoService.setLeadAtivo(abaLeadController.getViewModel());
+        // 🚀 Ajustado: Fornece a instância correta unificada
+        contextoService.setLeadAtivo(getProponenteComCamposDaTela());
     }
 
     public boolean temAlteracoesNaoSalvas() {
@@ -336,5 +337,60 @@ public class AtendimentoHubController {
             e.printStackTrace();
             System.err.println("Erro ao carregar a tela de Links no Slave: " + e.getMessage());
         }
+    }
+
+    // ========================================================================
+    // 🚀 CANAL DE CONTEXTO EM TEMPO REAL PARA A IA
+    // ========================================================================
+    /**
+     * Mescla os dados atuais das telas de cadastro com o modelo persistido,
+     * preservando os relacionamentos do Hibernate para consumo do Gemini.
+     */
+    public ProponenteModel getProponenteComCamposDaTela() {
+        ProponenteModel p = abaLeadController.getViewModel().atualizarModel(this.proponenteAberto);
+
+      // 🎯 CONSERTADO: Captura o histórico completo E injeta a proposta ativa/em aberto da tela em tempo real
+        if (abaPropostaHubController != null) {
+            java.util.List<PropostaModel> propostasFinais = new java.util.ArrayList<>();
+
+            // 1. Coleta o histórico que já está listado na barra lateral da UI
+            if (abaPropostaHubController.getListaPropostas() != null) {
+                propostasFinais.addAll(abaPropostaHubController.getListaPropostas());
+            }
+
+            // 2. Extrai a proposta que está aberta no formulário (Nova ou em Edição)
+            if (abaPropostaHubController.getAbaPropostaController() != null) {
+                PropostaViewModel propVm = abaPropostaHubController.getAbaPropostaController().getViewModel();
+                
+                // Extrai um modelo limpo da proposta com os dados atuais digitados na tela
+                PropostaModel propostaDaTela = propVm.atualizarModel(new PropostaModel());
+                
+                // Vincula o proponente contextualizado para o JSON do Gemini não perder a referência
+                propostaDaTela.setProponente(p);
+
+                if (propostaDaTela.getId() == null) {
+                    // Caso A: É uma NOVA SIMULAÇÃO rascunhada na tela (ainda sem ID no banco).
+                    // Filtramos para não injetar lixo/propostas totalmente em branco.
+                    if (propostaDaTela.getBanco() != null || 
+                       (propostaDaTela.getValorSolicitado() != null && propostaDaTela.getValorSolicitado().compareTo(java.math.BigDecimal.ZERO) > 0)) {
+                        propostasFinais.add(propostaDaTela);
+                    }
+                } else {
+                    // Caso B: É uma proposta que já existe no banco, mas está sendo EDITADA/Triada na tela.
+                    // Substitui a cópia antiga da lista pela versão fresquinha e modificada da tela!
+                    for (int i = 0; i < propostasFinais.size(); i++) {
+                        if (propostasFinais.get(i).getId().equals(propostaDaTela.getId())) {
+                            propostasFinais.set(i, propostaDaTela);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Injeta a lista consolidada de volta no Proponente que vai para a IA
+            p.setPropostas(propostasFinais);
+        }
+
+        return p;
     }
 }

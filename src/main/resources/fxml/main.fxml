@@ -32,7 +32,9 @@
               </bottom>
        </BorderPane>
 
-       <HBox fx:id="overlayChatIA" visible="false" alignment="CENTER_RIGHT" pickOnBounds="false">
+       <HBox fx:id="overlayChatIA" visible="false" alignment="CENTER_RIGHT"
+              style="-fx-background-color: transparent;">
+
               <Region fx:id="dragHandleChat"
                      prefWidth="6.0" minWidth="6.0" maxWidth="6.0"
                      style="-fx-cursor: h-resize; -fx-background-color: rgba(0,0,0,0.03);" />
