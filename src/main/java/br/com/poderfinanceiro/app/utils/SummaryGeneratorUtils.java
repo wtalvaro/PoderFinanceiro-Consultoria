@@ -203,4 +203,49 @@ public class SummaryGeneratorUtils {
             return "[]";
         }
     }
+
+    // =========================================================================
+    // 🚀 MOTOR DE CONCILIAÇÃO: SERIALIZADOR DE REPASSES FINANCEIROS PARA A IA
+    // =========================================================================
+    public static String gerarJsonComissoes(java.util.List<br.com.poderfinanceiro.app.model.ComissaoModel> comissoes) {
+        if (comissoes == null || comissoes.isEmpty())
+            return "[]";
+        try {
+            java.util.List<Map<String, Object>> listaComissoes = new java.util.ArrayList<>();
+
+            for (br.com.poderfinanceiro.app.model.ComissaoModel c : comissoes) {
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("comissaoId", c.getId());
+                map.put("cliente", c.getProposta().getProponente().getNomeCompleto());
+                map.put("banco", c.getProposta().getBanco().getNome());
+                map.put("valorBruto",
+                        c.getValorBrutoComissao() != null ? c.getValorBrutoComissao().doubleValue() : 0.0);
+                map.put("valorLiquidoConsultor",
+                        c.getValorLiquidoConsultor() != null ? c.getValorLiquidoConsultor().doubleValue() : 0.0);
+                map.put("valorPagoPelaPoder",
+                        c.getValorPagoPelaPoder() != null ? c.getValorPagoPelaPoder().doubleValue() : 0.0);
+                map.put("statusPagamento", c.getStatusPagamento() != null ? c.getStatusPagamento() : "Pendente");
+                map.put("cicloReferencia", c.getCicloReferencia() != null ? c.getCicloReferencia() : "Legado");
+                map.put("contestada", c.isContestada());
+                map.put("verificadoConsultor", c.isVerificadoConsultor());
+
+                // Prazos e Marcos Críticos do Motor Temporal (CicloFinanceiroUtils)
+                if (c.getDataRecebimentoBanco() != null)
+                    map.put("dataRecebimentoBanco", c.getDataRecebimentoBanco().toString());
+                if (c.getPrevisaoPagamento() != null)
+                    map.put("previsaoPagamento", c.getPrevisaoPagamento().toString());
+                if (c.getDataLimiteContestacao() != null)
+                    map.put("dataLimiteContestacao", c.getDataLimiteContestacao().toString());
+                if (c.getObservacaoAjuste() != null && !c.getObservacaoAjuste().isBlank()) {
+                    map.put("observacoesAuditoria", c.getObservacaoAjuste());
+                }
+
+                listaComissoes.add(map);
+            }
+            return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaComissoes);
+        } catch (Exception e) {
+            System.err.println("⚠️ Falha ao processar metadados de repasses para o Gemini: " + e.getMessage());
+            return "[]";
+        }
+    }
 }

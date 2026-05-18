@@ -69,6 +69,9 @@ public class WorkspaceController {
                 case "ABA_JUROS":
                     contextoService.atualizarFocoInterface(null, TipoTelaFocada.TABELAS_JUROS);
                     return;
+                case "ABA_COMISSOES": // 🎯 INTERCEPTADO: Captura o foco na tela de liquidação RV
+                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.GESTAO_COMISSOES);
+                    return;
                 default:
                     // Outras abas administrativas (Bancos, Comissões, Playbook ou Propostas)
                     if (idAba.startsWith("ABA_")) {

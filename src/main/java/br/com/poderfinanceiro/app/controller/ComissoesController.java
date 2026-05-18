@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.ComissaoModel;
 import br.com.poderfinanceiro.app.repository.ComissaoRepository;
+import br.com.poderfinanceiro.app.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.viewmodel.ComissaoViewModel;
 import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import javafx.beans.property.SimpleStringProperty;
@@ -29,6 +30,7 @@ public class ComissoesController {
     private final ComissaoRepository repository;
     private final ComissaoViewModel viewModel;
     private final MainController mainController;
+    private final AtendimentoContextService contextoService; // 🎯 INJETADO COM SUCESSO
 
     @FXML
     private TableView<ComissaoModel> tableComissoes;
@@ -89,10 +91,11 @@ public class ComissoesController {
     private PopOver popOverAjuste; // Nossa nova janela flutuante
 
     public ComissoesController(ComissaoRepository repository, ComissaoViewModel viewModel,
-            MainController mainController) {
+            MainController mainController, AtendimentoContextService contextoService) {
         this.repository = repository;
         this.viewModel = viewModel;
         this.mainController = mainController;
+        this.contextoService = contextoService; // 🚀 Acoplamento limpo do Contexto
     }
 
     @FXML
@@ -311,6 +314,10 @@ public class ComissoesController {
         List<ComissaoModel> dados = repository.findAllComDetalhes();
         masterData.setAll(dados);
         atualizarCardsResumo(dados);
+
+        // 🎯 ATUALIZAÇÃO SÍNCRONA DO RADAR DA IA:
+        contextoService.setComissoesAtivas(dados);
+        
         mainController.ocultarLoading();
     }
 

@@ -33,7 +33,7 @@ public class GeminiService {
 
     // 🚀 ASSINATURA EXPANDIDA PARA RECEBER O ECOSSISTEMA COMPLETO
     public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, File arquivoAnexo,
-            String jsonClienteAtivo, String jsonTabelasJuros, String jsonLinksUteis) {
+            String jsonClienteAtivo, String jsonTabelasJuros, String jsonLinksUteis, String jsonComissoes) {
         if (apiKeyDoConsultor == null || apiKeyDoConsultor.isBlank()) {
             return "⚠️ Acesso Negado: A sua chave de API do Gemini não está configurada.";
         }
@@ -44,6 +44,7 @@ public class GeminiService {
             String clienteSeguro = (jsonClienteAtivo == null || jsonClienteAtivo.isBlank()) ? "{}" : jsonClienteAtivo;
             String tabelasSeguro = (jsonTabelasJuros == null || jsonTabelasJuros.isBlank()) ? "[]" : jsonTabelasJuros;
             String linksSeguro = (jsonLinksUteis == null || jsonLinksUteis.isBlank()) ? "[]" : jsonLinksUteis;
+            String comissoesSeguro = (jsonComissoes == null || jsonComissoes.isBlank()) ? "[]" : jsonComissoes;
 
             // 🎯 ENGENHARIA DE PROMPT COGNITIVA E INTEGRADA COM BOOTSTRAP 5
             String instrucaoSistema = """
@@ -57,6 +58,7 @@ public class GeminiService {
                     - CLIENTE EM ATENDIMENTO NA TELA: %s
                     - TABELAS DE JUROS E BANCOS EM TEMPO REAL: %s
                     - BASE DE CONHECIMENTO (SISTEMAS E LINKS ÚTEIS): %s
+                    - REPASSES E FLUXO DE CAIXA (COMISSÕES): %s
 
                     [DIRETRIZES DE INTELIGÊNCIA E COMPORTAMENTO]
                     1. Raciocínio Holístico: Diante de qualquer dúvida, cruze os dados. Se o usuário perguntar sobre o cliente, não cuspa apenas os dados dele; analise quais bancos da tabela de juros se encaixam na idade, renda e regras do playbook para aquele perfil.
@@ -70,7 +72,7 @@ public class GeminiService {
                     - Utilize listas estruturadas (<ul class="list-unstyled"> ou <li>) com emojis para deixar a leitura rápida e scannável para o operador.
                     - Sempre que indicar uma URL do contexto, crie um link HTML real de forma sutil.
                     """
-                    .formatted(playbookJson, clienteSeguro, tabelasSeguro, linksSeguro);
+                    .formatted(playbookJson, clienteSeguro, tabelasSeguro, linksSeguro, comissoesSeguro);
 
             // Se a sua API/Serviço aceitar a System Instruction separada (como configuração
             // do modelo),

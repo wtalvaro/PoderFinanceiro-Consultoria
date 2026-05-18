@@ -180,19 +180,29 @@ public class AjudaChatController {
                         ? authService.getUsuarioLogado().getGeminiApiKey()
                         : null;
 
+                // 🧠 Ajuste do boolean para bater com a estrutura real do Enum
+                boolean isAbaCliente = contextoService
+                        .getTelaAtualFocada() == AtendimentoContextService.TipoTelaFocada.CADASTRO_CLIENTE;
+
                 String jsonCliente = SummaryGeneratorUtils.gerarJsonContextualParaIA(
-                        contextoService.getLeadAtivo(),
-                        contextoService.isAbaCadastroClienteAtiva() // 🚀 Passa true apenas se a aba correta estiver
-                                                                    // focada!
-                );
+                        contextoService.getLeadAtivo(), isAbaCliente);
+
+                // 🎯 CONSTRUÇÃO DA MESA DE COMISSÕES SE A TELA ESTIVER FOCADA
+                String jsonComissoes = "[]";
+                if (contextoService.getTelaAtualFocada() == AtendimentoContextService.TipoTelaFocada.GESTAO_COMISSOES) {
+                    jsonComissoes = SummaryGeneratorUtils.gerarJsonComissoes(contextoService.getComissoesAtivas());
+                }
+
                 java.util.List<br.com.poderfinanceiro.app.model.TabelaJurosModel> listaTabelas = tabelaService
                         .listarAtivas();
                 String jsonTabelas = SummaryGeneratorUtils.gerarJsonTabelasJuros(listaTabelas);
+
                 var listaLinks = linkRepository.findAll();
                 String jsonLinks = SummaryGeneratorUtils.gerarJsonLinksUteis(listaLinks);
 
+                // 🚀 ENVIO ADICIONANDO O PARÂMETRO NO FIM DA CHAMADA ATUAL
                 return geminiService.perguntarAoAssistente(mensagemExibida, token, ficheiroParaEnvio,
-                        jsonCliente, jsonTabelas, jsonLinks);
+                        jsonCliente, jsonTabelas, jsonLinks, jsonComissoes);
             }
         };
 
