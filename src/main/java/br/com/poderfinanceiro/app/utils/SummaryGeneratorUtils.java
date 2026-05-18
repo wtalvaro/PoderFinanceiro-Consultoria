@@ -173,6 +173,8 @@ public class SummaryGeneratorUtils {
                 map.put("banco", t.getBanco() != null ? t.getBanco().getNome() : "Desconhecido");
                 map.put("convenio", t.getTipoConvenio() != null ? t.getTipoConvenio().name() : "GERAL");
                 map.put("taxaMensalBase", t.getTaxaMensal());
+                // 🎯 INJETADO: Agora o Gemini sabe a regra de comissionamento de cada tabela!
+                map.put("comissaoPercentual", t.getComissaoPercentual());
                 listaTabelas.add(map);
             }
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaTabelas);
