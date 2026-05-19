@@ -17,8 +17,6 @@
     <Button text="📖 Playbook" onAction="#abrirPlaybook" styleClass="flat" />
     <Button text="👥 Clientes" onAction="#abrirTelaBaseClientes" styleClass="flat" />
     <Button text="📄 Propostas" onAction="#abrirPropostasList" styleClass="flat" />
-    <Button text="⏳ Pendências" onAction="#abrirPendenciasList" styleClass="flat"
-        style="-fx-text-fill: -color-danger-fg; -fx-font-weight: bold;" />
 
     <Separator />
 

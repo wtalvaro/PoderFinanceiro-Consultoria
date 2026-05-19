@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.EsteiraPropostasController">
+
+    <SplitPane dividerPositions="0.55" styleClass="edge-to-edge">
+
+        <VBox spacing="15" style="-fx-padding: 20; -fx-background-color: -color-bg-subtle;">
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <VBox spacing="5" HBox.hgrow="ALWAYS">
+                    <Label text="📄 Esteira de Crédito"
+                        style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                    <Label text="Monitoramento global e gestão isolada de propostas."
+                        style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;" />
+                </VBox>
+                <Button text="➕ Nova Proposta" onAction="#criarNovaProposta" styleClass="accent"
+                    style="-fx-font-weight: bold; -fx-padding: 8 15;" />
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <TextField fx:id="txtBusca"
+                    promptText="🔍 Pesquisar cliente, CPF, banco ou status..." HBox.hgrow="ALWAYS"
+                    style="-fx-background-radius: 20; -fx-padding: 8 15;" />
+                <Button text="🔄 Atualizar" onAction="#recarregarDados" styleClass="flat" />
+            </HBox>
+
+            <TableView fx:id="tablePropostas" VBox.vgrow="ALWAYS" styleClass="edge-to-edge">
+                <columns>
+                    <TableColumn fx:id="colData" text="Data" prefWidth="90" />
+                    <TableColumn fx:id="colCliente" text="Cliente" prefWidth="180" />
+                    <TableColumn fx:id="colBanco" text="Banco" prefWidth="110" />
+                    <TableColumn fx:id="colValorSol" text="Solicitado" prefWidth="100"
+                        style="-fx-alignment: CENTER-RIGHT;" />
+                    <TableColumn fx:id="colStatus" text="Status" prefWidth="130"
+                        style="-fx-alignment: CENTER;" />
+                </columns>
+                <placeholder>
+                    <Label text="Nenhuma proposta encontrada na esteira."
+                        style="-fx-text-fill: -color-fg-muted;" />
+                </placeholder>
+            </TableView>
+        </VBox>
+
+        <StackPane fx:id="containerFormulario" style="-fx-background-color: -color-bg-default;">
+            <VBox alignment="CENTER" spacing="15" fx:id="paneVazio">
+                <Label text="👈 Selecione uma proposta na tabela"
+                    style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                <Label text="Ou clique em 'Nova Proposta' para iniciar uma simulação."
+                    style="-fx-text-fill: -color-fg-muted;" />
+            </VBox>
+        </StackPane>
+
+    </SplitPane>
+
+    <VBox fx:id="overlayConfirmacao" visible="false" alignment="CENTER"
+        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
+        <VBox alignment="CENTER" spacing="20" maxWidth="400" styleClass="card"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+            <Label fx:id="lblConfirmacaoTitulo" text="⚠️ Confirmação"
+                style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #c62828;" />
+            <Label fx:id="lblConfirmacaoTexto" wrapText="true" textAlignment="CENTER"
+                style="-fx-font-size: 14px; -fx-text-fill: #333;" />
+            <HBox spacing="15" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
+                <Button text="Cancelar" onAction="#cancelarAcaoBase" styleClass="flat" />
+                <Button fx:id="btnConfirmarAcao" text="Confirmar" onAction="#confirmarAcao"
+                    style="-fx-background-color: #c62828; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4;" />
+            </HBox>
+        </VBox>
+    </VBox>
+
+    <VBox fx:id="overlayFeedback" visible="false" alignment="CENTER"
+        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 20;">
+        <VBox spacing="20" alignment="CENTER" maxWidth="450" maxHeight="300"
+            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, 0, 0);">
+            <Label fx:id="lblFeedbackIcon" style="-fx-font-size: 18px;" />
+            <Label fx:id="lblFeedbackTitle" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+            <Label fx:id="lblFeedbackMessage" wrapText="true" textAlignment="CENTER"
+                style="-fx-font-size: 14px; -fx-text-fill: #555555;" />
+            <Button fx:id="btnFeedbackAction" text="OK" onAction="#fecharFeedback"
+                defaultButton="true"
+                style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 30; -fx-background-radius: 6;" />
+        </VBox>
+    </VBox>
+
+</StackPane>

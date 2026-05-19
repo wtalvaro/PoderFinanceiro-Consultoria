@@ -159,41 +159,7 @@ public class WorkspaceController {
     }
 
     public void abrirAbaPropostas(String filtroInicial) {
-        boolean isEmergencia = filtroInicial != null && !filtroInicial.trim().isEmpty();
-        String idAba = isEmergencia ? "ABA_PENDENCIAS" : "ABA_PROPOSTAS";
-        String tituloAba = isEmergencia ? "🚨 UTI: Pendências" : "📄 Esteira de Propostas";
-
-        for (Tab tab : tabPanePrincipal.getTabs()) {
-            if (idAba.equals(tab.getUserData())) {
-                tabPanePrincipal.getSelectionModel().select(tab);
-                return;
-            }
-        }
-
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/propostas_list.fxml"));
-            loader.setControllerFactory(context::getBean);
-            Parent root = loader.load();
-
-            PropostasListController controller = loader.getController();
-            if (isEmergencia) {
-                controller.aplicarFiltroExterno(filtroInicial);
-            }
-
-            Tab novaAba = new Tab(tituloAba);
-            novaAba.setContent(root);
-            novaAba.setUserData(idAba);
-            novaAba.setClosable(true);
-
-            if (isEmergencia) {
-                novaAba.setStyle("-fx-text-base-color: #c62828; -fx-font-weight: bold;");
-            }
-
-            tabPanePrincipal.getTabs().add(novaAba);
-            tabPanePrincipal.getSelectionModel().select(novaAba);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
     }
 
     public void abrirOuFocarAba(ProponenteModel proponente) {

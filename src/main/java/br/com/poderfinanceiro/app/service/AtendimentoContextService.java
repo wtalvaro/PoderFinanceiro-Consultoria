@@ -1,9 +1,10 @@
 package br.com.poderfinanceiro.app.service;
 
 import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.model.ComissaoModel; // 🚀 Importado
+import br.com.poderfinanceiro.app.model.ComissaoModel;
+import br.com.poderfinanceiro.app.model.PropostaModel; // 🚀 Import necessário
 import org.springframework.stereotype.Service;
-import java.util.List; // 🚀 Importado
+import java.util.List;
 
 @Service
 public class AtendimentoContextService {
@@ -12,21 +13,34 @@ public class AtendimentoContextService {
         DASHBOARD,
         LISTA_CLIENTES,
         CADASTRO_CLIENTE,
+        ESTEIRA_PROPOSTAS, // 🚀 NOVO: Foco na esteira de crédito
         TABELAS_JUROS,
         LINKS_UTEIS,
-        GESTAO_COMISSOES // 🎯 NOVO MARCO: Mapeia o foco na tela de fluxo de caixa
+        GESTAO_COMISSOES
     }
 
     private ProponenteModel leadAtivo;
-    private List<ComissaoModel> comissoesAtivas; // 🎯 CACHE DE CONTEXTO: Guarda o que a tabela está exibindo
+    private PropostaModel propostaAtiva; // 🚀 NOVO: Contexto da proposta em edição
+    private List<ComissaoModel> comissoesAtivas;
     private TipoTelaFocada telaAtualFocada = TipoTelaFocada.DASHBOARD;
-   
+
+    // --- GETTERS E SETTERS ---
+
     public ProponenteModel getLeadAtivo() {
         return leadAtivo;
     }
 
     public void setLeadAtivo(ProponenteModel leadAtivo) {
         this.leadAtivo = leadAtivo;
+    }
+
+    // 🚀 Novos métodos para a proposta
+    public PropostaModel getPropostaAtiva() {
+        return propostaAtiva;
+    }
+
+    public void setPropostaAtiva(PropostaModel propostaAtiva) {
+        this.propostaAtiva = propostaAtiva;
     }
 
     public List<ComissaoModel> getComissoesAtivas() {
@@ -41,6 +55,12 @@ public class AtendimentoContextService {
         return telaAtualFocada;
     }
 
+    public void setTelaAtualFocada(TipoTelaFocada telaAtualFocada) {
+        this.telaAtualFocada = telaAtualFocada;
+    }
+
+    // --- MÉTODOS DE APOIO ---
+
     public void atualizarFocoInterface(ProponenteModel lead, TipoTelaFocada tela) {
         this.leadAtivo = lead;
         this.telaAtualFocada = tela;
@@ -50,9 +70,9 @@ public class AtendimentoContextService {
         return TipoTelaFocada.CADASTRO_CLIENTE.equals(this.telaAtualFocada);
     }
 
-    // 🚀 VALVULA DE ESCAPE: Corrige o erro da linha 309 do AtendimentoHubController
     public void limparContexto() {
         this.leadAtivo = null;
+        this.propostaAtiva = null; // 🚀 Limpeza também da proposta
         this.telaAtualFocada = TipoTelaFocada.DASHBOARD;
     }
 }

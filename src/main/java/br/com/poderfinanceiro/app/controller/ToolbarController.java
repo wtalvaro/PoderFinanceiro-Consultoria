@@ -48,11 +48,6 @@ public class ToolbarController {
         mainController.irParaPropostas();
     }
 
-    @FXML
-    private void abrirPendenciasList() {
-        mainController.irParaPendencias();
-    }
-
     // ==========================================
     // CONFIGURAÇÕES E AUXILIARES
     // ==========================================

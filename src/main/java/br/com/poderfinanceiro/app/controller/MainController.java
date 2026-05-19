@@ -246,10 +246,6 @@ public class MainController {
         executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
     }
 
-    public void irParaPendencias() {
-        executarNoWorkspace(ws -> ws.abrirAbaPropostas("PENDENTE"));
-    }
-
     private void garantirWorkspaceVisivel() {
         if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
             navegarPara("/fxml/workspace.fxml", true);

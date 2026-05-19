@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PropostaRepository extends JpaRepository<PropostaModel, Long> {
@@ -33,6 +34,21 @@ public interface PropostaRepository extends JpaRepository<PropostaModel, Long> {
             "ORDER BY p.id DESC")
     List<PropostaModel> buscarProdutividadeDoConsultor(@Param("usuarioId") Long usuarioId);
     
-    @Query("SELECT p FROM PropostaModel p JOIN FETCH p.proponente JOIN FETCH p.banco")
+    @Query("""
+                SELECT DISTINCT p FROM PropostaModel p
+                JOIN FETCH p.proponente
+                JOIN FETCH p.banco
+                LEFT JOIN FETCH p.tabela
+                ORDER BY p.dataSolicitacao DESC
+            """)
     List<PropostaModel> findAllComDetalhes();
+
+    @Query("""
+                SELECT p FROM PropostaModel p
+                JOIN FETCH p.proponente
+                JOIN FETCH p.banco
+                LEFT JOIN FETCH p.tabela
+                WHERE p.id = :id
+            """)
+    Optional<PropostaModel> findByIdWithDetails(@Param("id") Long id);
 }

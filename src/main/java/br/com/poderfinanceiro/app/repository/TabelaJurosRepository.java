@@ -3,9 +3,11 @@ package br.com.poderfinanceiro.app.repository;
 import br.com.poderfinanceiro.app.model.TabelaJurosModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TabelaJurosRepository extends JpaRepository<TabelaJurosModel, Long> {
@@ -31,9 +33,16 @@ public interface TabelaJurosRepository extends JpaRepository<TabelaJurosModel, L
      */
     List<TabelaJurosModel> findByAtivoTrueAndFimVigenciaIsNull();
 
-    // O "JOIN FETCH t.banco" é o bisturi mágico. Ele obriga o Hibernate a 
-    // trazer o objeto Banco real junto com a Tabela em uma única viagem!
-    @Query("SELECT t FROM TabelaJurosModel t JOIN FETCH t.banco WHERE t.ativo = true AND t.fimVigencia IS NULL")
+    // Listagem ativa com banco
+    @Query("""
+                SELECT t FROM TabelaJurosModel t
+                JOIN FETCH t.banco
+                WHERE t.ativo = true AND t.fimVigencia IS NULL
+            """)
     List<TabelaJurosModel> buscarTodasAtivasComBanco();
+
+    // Busca por ID com banco
+    @Query("SELECT t FROM TabelaJurosModel t JOIN FETCH t.banco WHERE t.id = :id")
+    Optional<TabelaJurosModel> findByIdWithBanco(@Param("id") Long id);
 
 }

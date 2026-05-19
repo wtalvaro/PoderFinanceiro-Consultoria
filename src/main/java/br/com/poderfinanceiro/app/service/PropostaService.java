@@ -26,15 +26,18 @@ public class PropostaService {
     private final TabelaJurosRepository tabelaJurosRepository;
     private final ComissaoRepository comissaoRepository;
     private final DocumentoProponenteRepository documentoRepository;
+    private final AuthService authService;
 
     public PropostaService(PropostaRepository propostaRepository,
             TabelaJurosRepository tabelaJurosRepository,
             ComissaoRepository comissaoRepository,
-            DocumentoProponenteRepository documentoRepository) {
+            DocumentoProponenteRepository documentoRepository,
+            AuthService authService) {
         this.propostaRepository = propostaRepository;
         this.tabelaJurosRepository = tabelaJurosRepository;
         this.comissaoRepository = comissaoRepository;
         this.documentoRepository = documentoRepository;
+        this.authService = authService;
     }
 
     /**
@@ -56,6 +59,11 @@ public class PropostaService {
 
     @Transactional
     public PropostaModel salvarProposta(PropostaModel proposta) {
+        // 🚀 Garantia de integridade: se não tem usuário, define o logado
+        if (proposta.getUsuario() == null) {
+            proposta.setUsuario(authService.getUsuarioLogado());
+        }
+        
         // 1. Sincronização de metadados da Tabela de Juros
         sincronizarDadosTabela(proposta);
 
@@ -137,5 +145,21 @@ public class PropostaService {
 
             comissaoRepository.save(comissao);
         }
+    }
+
+    // Adicione dentro de PropostaService.java
+    public PropostaModel buscarPorId(Long id) {
+        return propostaRepository.findById(id).orElse(null);
+    }
+
+    @Transactional
+    public void excluirProposta(Long id) {
+        propostaRepository.deleteById(id);
+    }
+
+    // PropostaService.java
+    @Transactional(readOnly = true)
+    public PropostaModel carregarPropostaDetalhada(Long id) {
+        return propostaRepository.findByIdWithDetails(id).orElse(null);
     }
 }

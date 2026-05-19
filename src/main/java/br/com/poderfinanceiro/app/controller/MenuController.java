@@ -46,11 +46,6 @@ public class MenuController {
         mainController.irParaPropostas();
     }
 
-    @FXML
-    private void handlePendencias() {
-        mainController.irParaPendencias();
-    }
-
     // --- GRUPO: FINANCEIRO ---
     @FXML
     private void handleComissoes() {

@@ -16,7 +16,6 @@
         <MenuItem text="👥 Gestão de Clientes" onAction="#handleClientes" accelerator="Shortcut+G" />
         <MenuItem text="📄 Esteira de Propostas" onAction="#handlePropostas"
             accelerator="Shortcut+P" />
-        <MenuItem text="🚨 Pendências Críticas" onAction="#handlePendencias" />
     </Menu>
 
     <Menu text="_Financeiro">

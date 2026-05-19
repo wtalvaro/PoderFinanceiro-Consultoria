@@ -81,4 +81,8 @@ public class TabelaJurosService {
             }
         }
     }
+
+    public TabelaJurosModel buscarPorId(Long id) {
+        return repository.findByIdWithBanco(id).orElse(null);
+    }
 }
