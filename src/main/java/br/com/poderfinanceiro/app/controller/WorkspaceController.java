@@ -200,6 +200,9 @@ public class WorkspaceController {
         abrirOuFocarAbaComProposta(proponente, null);
     }
 
+    // =====================================================================
+    // 🚀 PATCH: LIMPEZA DO REPASSE DE PROPOSTAS PARA O HUB DO CLIENTE
+    // =====================================================================
     public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
         String idBuscado;
 
@@ -210,11 +213,12 @@ public class WorkspaceController {
                 if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
                     tabPanePrincipal.getSelectionModel().select(tab);
 
-                    if (propostaIdAlvo != null
-                            && tab.getProperties().get("controller") instanceof AtendimentoHubController) {
+                    if (tab.getProperties().get("controller") instanceof AtendimentoHubController) {
                         AtendimentoHubController hubExistente = (AtendimentoHubController) tab.getProperties()
                                 .get("controller");
-                        hubExistente.inicializarAtendimento(proponente, propostaIdAlvo);
+                        // ❌ ANTES: hubExistente.inicializarAtendimento(proponente, propostaIdAlvo);
+                        // ✅ AGORA: O Hub só foca no Cliente.
+                        hubExistente.inicializarAtendimento(proponente);
                     }
                     return;
                 }
@@ -230,11 +234,9 @@ public class WorkspaceController {
             AtendimentoHubController hub = loader.getController();
 
             if (proponente != null && proponente.getId() != null) {
-                if (propostaIdAlvo != null) {
-                    hub.inicializarAtendimento(proponente, propostaIdAlvo);
-                } else {
-                    hub.inicializarAtendimento(proponente);
-                }
+                // ❌ ANTES: Tinha if/else verificando propostaIdAlvo
+                // ✅ AGORA: Apenas inicializa o proponente
+                hub.inicializarAtendimento(proponente);
             } else {
                 hub.prepararNovoAtendimento();
             }

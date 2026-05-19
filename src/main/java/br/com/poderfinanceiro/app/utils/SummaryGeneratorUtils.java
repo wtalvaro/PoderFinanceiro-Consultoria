@@ -64,7 +64,7 @@ public class SummaryGeneratorUtils {
     }
 
     // =========================================================================
-    // 🚀 NOVO MOTOR CORRIGIDO: OPERA DIRETAMENTE SOBRE O PROPONENTE_MODEL
+    // 🚀 MOTOR CORRIGIDO: OPERA DIRETAMENTE SOBRE O PROPONENTE_MODEL (SEM PROPOSTAS)
     // =========================================================================
     public static String gerarJsonContextualParaIA(br.com.poderfinanceiro.app.model.ProponenteModel model,
             boolean permitirEndereco) {
@@ -119,34 +119,12 @@ public class SummaryGeneratorUtils {
             perfilFinanceiro.put("rendaMensalBruta",
                     model.getRendaMensal() != null ? model.getRendaMensal().doubleValue() : 0.0);
 
-            // 🎯 4. NOVO BLOCO: HISTÓRICO DE PROPOSTAS DO CLIENTE (Otimizado para Tokens)
-            java.util.List<Map<String, Object>> arrayPropostas = new java.util.ArrayList<>();
-            if (model.getPropostas() != null && !model.getPropostas().isEmpty()) {
-                for (br.com.poderfinanceiro.app.model.PropostaModel prop : model.getPropostas()) {
-                    Map<String, Object> pMap = new LinkedHashMap<>();
-                    pMap.put("id", prop.getId());
-                    pMap.put("banco", prop.getBanco() != null ? prop.getBanco().getNome() : "Não informado");
-                    pMap.put("convenio", prop.getConvenioOrgao() != null ? prop.getConvenioOrgao().getLabel() : "PADRAO");
-                    pMap.put("status", prop.getStatus() != null ? prop.getStatus().name() : "EM_ANALISE");
-                    pMap.put("valorSolicitado",
-                            prop.getValorSolicitado() != null ? prop.getValorSolicitado().doubleValue() : 0.0);
-                    pMap.put("valorAprovado",
-                            prop.getValorAprovado() != null ? prop.getValorAprovado().doubleValue() : 0.0);
-                    pMap.put("parcelas", prop.getQuantidadeParcelas());
-                    pMap.put("valorParcela",
-                            prop.getValorParcela() != null ? prop.getValorParcela().doubleValue() : 0.0);
-                    pMap.put("comissaoEstimada",
-                            prop.getComissaoEstimada() != null ? prop.getComissaoEstimada().doubleValue() : 0.0);
+            // ❌ BLOCO 4 (HISTÓRICO DE PROPOSTAS) FOI TOTALMENTE ERRADICADO DAQUI
 
-                    arrayPropostas.add(pMap);
-                }
-            }
-
-            // Monta a árvore consolidada
+            // Monta a árvore consolidada focada APENAS no Lead
             contextoGlobal.put("clienteEmAtendimento", dadosPessoais);
             contextoGlobal.put("enderecoResidencial", enderecoFormatado);
             contextoGlobal.put("perfilFinanceiro", perfilFinanceiro);
-            contextoGlobal.put("propostasDesteCliente", arrayPropostas); // 🚀 Injetado!
 
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(contextoGlobal);
 

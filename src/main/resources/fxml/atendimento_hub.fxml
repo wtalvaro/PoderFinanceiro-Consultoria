@@ -68,10 +68,6 @@
                                 <fx:include fx:id="abaEndereco" source="endereco.fxml" />
                             </Tab>
 
-                            <Tab text="📄 Proposta / Simulação">
-                                <fx:include fx:id="abaPropostaHub" source="proposta_hub.fxml" />
-                            </Tab>
-
                         </tabs>
                     </TabPane>
                 </center>

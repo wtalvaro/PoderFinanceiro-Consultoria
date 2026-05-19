@@ -2,13 +2,9 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
 import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.model.PropostaModel;
-import br.com.poderfinanceiro.app.model.UsuarioModel;
-import br.com.poderfinanceiro.app.service.AtendimentoContextService; // 🚀 IMPORT ADICIONADO
+import br.com.poderfinanceiro.app.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.service.ProponenteService;
-import br.com.poderfinanceiro.app.service.PropostaService;
 import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
-import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.concurrent.Task;
@@ -39,8 +35,6 @@ public class AtendimentoHubController {
     @FXML
     private EnderecoController abaEnderecoController;
     @FXML
-    private PropostaHubController abaPropostaHubController;
-    @FXML
     private LinkUtilController abaLinksController;
     @FXML
     private VBox overlayConfirmacaoSaida, overlayMensagem, overlayResumo;
@@ -53,8 +47,7 @@ public class AtendimentoHubController {
 
     private final ProponenteService atendimentoService;
     private final MainController mainController;
-    private final PropostaService propostaService;
-    private final AtendimentoContextService contextoService; // 🚀 INJEÇÃO DE DEPENDÊNCIA
+    private final AtendimentoContextService contextoService;
 
     private ProponenteModel proponenteAberto;
     private Runnable acaoNavegacaoPendente;
@@ -66,21 +59,19 @@ public class AtendimentoHubController {
     private boolean slaveJaCarregado = false;
     private final ApplicationContext context;
 
-    // 🚀 CONSTRUTOR ATUALIZADO
     public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController,
-            PropostaService propostaService, ApplicationContext context, AtendimentoContextService contextoService) {
+            ApplicationContext context, AtendimentoContextService contextoService) {
         this.atendimentoService = atendimentoService;
         this.mainController = mainController;
-        this.propostaService = propostaService;
         this.context = context;
         this.contextoService = contextoService;
     }
 
     @FXML
     public void initialize() {
+        // Vincula apenas Lead e Endereço agora
         BooleanBinding atendimentoSujo = abaLeadController.getViewModel().dirtyProperty()
-                .or(abaEnderecoController.getViewModel().dirtyProperty())
-                .or(abaPropostaHubController.getViewModel().dirtyProperty());
+                .or(abaEnderecoController.getViewModel().dirtyProperty());
 
         BooleanBinding dadosValidos = Bindings.createBooleanBinding(() -> {
             String nome = abaLeadController.getViewModel().nomeProperty().get();
@@ -103,7 +94,7 @@ public class AtendimentoHubController {
         this.proponenteAberto = proponente;
         abaLeadController.getViewModel().loadFromModel(proponente);
 
-        // 🚀 A LINHA MÁGICA: Avisa a IA que o foco mudou!
+        // Avisa a IA que o foco mudou!
         contextoService.setLeadAtivo(proponente);
 
         if (proponente != null && proponente.getEnderecos() != null && !proponente.getEnderecos().isEmpty()) {
@@ -115,64 +106,31 @@ public class AtendimentoHubController {
         if (abaLinksController != null) {
             abaLinksController.recarregarLinks();
         }
-
-        abaPropostaHubController.inicializarPropostasDoCliente(proponente);
-    }
-
-    public void inicializarAtendimento(ProponenteModel proponente, Long propostaIdAlvo) {
-        inicializarAtendimento(proponente);
-
-        if (propostaIdAlvo != null && abaPropostaHubController != null) {
-            abaPropostaHubController.selecionarPropostaEspecifica(propostaIdAlvo);
-
-            if (subTabPane != null) {
-                subTabPane.getSelectionModel().select(2);
-            }
-        }
     }
 
     public void prepararNovoAtendimento() {
         this.proponenteAberto = new ProponenteModel();
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
-        abaPropostaHubController.getViewModel().reset();
 
-        // 🚀 Ajustado: Fornece a instância correta unificada
         contextoService.setLeadAtivo(getProponenteComCamposDaTela());
     }
 
     public boolean temAlteracoesNaoSalvas() {
         return abaLeadController.getViewModel().isDirty()
-                || abaEnderecoController.getViewModel().isDirty()
-                || abaPropostaHubController.getViewModel().isDirty();
+                || abaEnderecoController.getViewModel().isDirty();
     }
 
     @FXML
     public void handleSalvar() {
-        // ==========================================================
-        // 🚀 O GUARDA-COSTAS (Validação das ViewModels)
-        // ==========================================================
-
-        // 1. Valida a Aba do Cliente (Lead) - Caso no futuro você adicione regras lá
+        // 1. Valida a Aba do Cliente (Lead)
         if (abaLeadController.getViewModel().isDirty() && !abaLeadController.getViewModel().isValido()) {
-            subTabPane.getSelectionModel().select(0); // Muda para a aba "Cliente"
+            subTabPane.getSelectionModel().select(0);
             exibirMensagem("⚠️ Verifique os campos obrigatórios do cliente antes de salvar.", false);
-            return; // Bloqueia a execução
+            return;
         }
 
-        // 2. Valida a Aba de Proposta (Garante as Foreign Keys de Banco e Tabela)
-        // Só valida se a aba da proposta estiver "suja" (sendo criada ou editada)
-        if (abaPropostaHubController.getViewModel().isDirty() && !abaPropostaHubController.getViewModel().isValido()) {
-            subTabPane.getSelectionModel().select(2); // Muda automaticamente para a aba "Propostas"
-            exibirMensagem(
-                    "⚠️ Atenção: Preencha os campos obrigatórios da Proposta (Convênio, Banco e Tabela) antes de salvar.",
-                    false);
-            return; // Bloqueia a execução antes de chamar o Hibernate!
-        }
-
-        // ==========================================================
-        // Se passou por todas as barreiras, autoriza o salvamento
-        // ==========================================================
+        // Autoriza o salvamento
         executarSalvamento(null);
     }
 
@@ -195,30 +153,14 @@ public class AtendimentoHubController {
                 e.setProponente(p);
                 p.setEnderecos(new ArrayList<>(java.util.List.of(e)));
 
-                ProponenteModel proponenteSalvo = atendimentoService.salvarLead(p);
-
-                if (abaPropostaHubController.getViewModel().isDirty()) {
-                    PropostaModel prop = abaPropostaHubController.getViewModel().atualizarModel(new PropostaModel());
-                    prop.setProponente(proponenteSalvo);
-
-                    UsuarioModel u = new UsuarioModel();
-                    u.setId(1L);
-                    prop.setUsuario(u);
-
-                    propostaService.salvarProposta(prop);
-                }
-
-                return proponenteSalvo;
+                // Salva exclusivamente os dados do Lead
+                return atendimentoService.salvarLead(p);
             }
         };
 
         task.setOnSucceeded(ev -> {
             ProponenteModel proponenteSalvo = task.getValue();
             inicializarAtendimento(proponenteSalvo);
-
-            if (abaPropostaHubController != null) {
-                abaPropostaHubController.getAbaPropostaController().aplicarBloqueio();
-            }
 
             if (tabPertencente != null && proponenteSalvo.getId() != null) {
                 tabPertencente.setUserData(String.valueOf(proponenteSalvo.getId()));
@@ -329,8 +271,6 @@ public class AtendimentoHubController {
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         proponenteAberto = null;
-
-        // 🚀 Opcional: Se o consultor fechar a aba do cliente, a IA "esquece" dele
         contextoService.limparContexto();
     }
 
@@ -364,55 +304,14 @@ public class AtendimentoHubController {
     }
 
     // ========================================================================
-    // 🚀 CANAL DE CONTEXTO EM TEMPO REAL PARA A IA
+    // CANAL DE CONTEXTO EM TEMPO REAL PARA A IA
     // ========================================================================
-    /**
-     * Mescla os dados atuais das telas de cadastro com o modelo persistido,
-     * preservando os relacionamentos do Hibernate para consumo do Gemini.
-     */
     public ProponenteModel getProponenteComCamposDaTela() {
         ProponenteModel p = abaLeadController.getViewModel().atualizarModel(this.proponenteAberto);
 
-      // 🎯 CONSERTADO: Captura o histórico completo E injeta a proposta ativa/em aberto da tela em tempo real
-        if (abaPropostaHubController != null) {
-            java.util.List<PropostaModel> propostasFinais = new java.util.ArrayList<>();
-
-            // 1. Coleta o histórico que já está listado na barra lateral da UI
-            if (abaPropostaHubController.getListaPropostas() != null) {
-                propostasFinais.addAll(abaPropostaHubController.getListaPropostas());
-            }
-
-            // 2. Extrai a proposta que está aberta no formulário (Nova ou em Edição)
-            if (abaPropostaHubController.getAbaPropostaController() != null) {
-                PropostaViewModel propVm = abaPropostaHubController.getAbaPropostaController().getViewModel();
-                
-                // Extrai um modelo limpo da proposta com os dados atuais digitados na tela
-                PropostaModel propostaDaTela = propVm.atualizarModel(new PropostaModel());
-                
-                // Vincula o proponente contextualizado para o JSON do Gemini não perder a referência
-                propostaDaTela.setProponente(p);
-
-                if (propostaDaTela.getId() == null) {
-                    // Caso A: É uma NOVA SIMULAÇÃO rascunhada na tela (ainda sem ID no banco).
-                    // Filtramos para não injetar lixo/propostas totalmente em branco.
-                    if (propostaDaTela.getBanco() != null || 
-                       (propostaDaTela.getValorSolicitado() != null && propostaDaTela.getValorSolicitado().compareTo(java.math.BigDecimal.ZERO) > 0)) {
-                        propostasFinais.add(propostaDaTela);
-                    }
-                } else {
-                    // Caso B: É uma proposta que já existe no banco, mas está sendo EDITADA/Triada na tela.
-                    // Substitui a cópia antiga da lista pela versão fresquinha e modificada da tela!
-                    for (int i = 0; i < propostasFinais.size(); i++) {
-                        if (propostasFinais.get(i).getId().equals(propostaDaTela.getId())) {
-                            propostasFinais.set(i, propostaDaTela);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Injeta a lista consolidada de volta no Proponente que vai para a IA
-            p.setPropostas(propostasFinais);
+        // Mantemos a lista vazia para evitar NullPointerException na IA
+        if (p.getPropostas() == null) {
+            p.setPropostas(new java.util.ArrayList<>());
         }
 
         return p;
