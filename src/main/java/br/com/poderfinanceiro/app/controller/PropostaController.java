@@ -43,18 +43,12 @@ import java.util.Optional;
 @Scope("prototype")
 public class PropostaController {
 
-    // ==========================================================
-    // DEPENDÊNCIAS (INJEÇÃO)
-    // ==========================================================
     private final PropostaViewModel viewModel;
     private final PropostaService propostaService;
     private final TabelaJurosService tabelaJurosService;
     private final DocumentoService documentoService;
     private final MainController mainController;
 
-    // ==========================================================
-    // COMPONENTES DE UI (FXML)
-    // ==========================================================
     @FXML
     private ComboBox<TipoConvenioModel> cbConvenio;
     @FXML
@@ -84,7 +78,8 @@ public class PropostaController {
     @FXML
     private Label lblTotalPago;
 
-    // Tabela e Documentos
+    @FXML
+    private Button btnAnexarDocumento;
     @FXML
     private TableView<DocumentoProponenteModel> tableDocumentos;
     @FXML
@@ -93,23 +88,18 @@ public class PropostaController {
     private TableColumn<DocumentoProponenteModel, String> colDataUpload;
     @FXML
     private TableColumn<DocumentoProponenteModel, Void> colAcoes;
+
     @FXML
     private VBox overlayExclusao;
     @FXML
     private Label lblConfirmacaoExclusao;
 
-    // ==========================================================
-    // ESTADO LOCAL (CACHE & CONTROLE)
-    // ==========================================================
     private List<TabelaJurosModel> todasTabelasAtivas;
     private List<TabelaJurosModel> tabelasElegiveisDaTriagem;
     private DocumentoProponenteModel documentoParaExcluir;
     private final ObservableList<DocumentoProponenteModel> listaDocumentos = FXCollections.observableArrayList();
     private boolean isUpdatingInterface = false;
 
-    // ==========================================================
-    // CONSTRUTOR & INITIALIZE
-    // ==========================================================
     public PropostaController(PropostaViewModel viewModel, DocumentoService documentoService,
             PropostaService propostaService, TabelaJurosService tabelaJurosService, MainController mainController) {
         this.viewModel = viewModel;
@@ -128,23 +118,42 @@ public class PropostaController {
         configurarTabelaDocumentos();
         configurarAutoSelecaoTextos();
         configurarIndicadoresDinamicos();
+        configurarTravasEAlertas();
     }
 
-    // ==========================================================
-    // 1. CONFIGURAÇÕES INICIAIS DA UI E BINDINGS
-    // ==========================================================
+    private void configurarTravasEAlertas() {
+        if (btnAnexarDocumento != null) {
+            btnAnexarDocumento.disableProperty().bind(viewModel.idProperty().isNull());
+            Tooltip tooltipAnexar = new Tooltip();
+            tooltipAnexar.textProperty().bind(
+                    Bindings.when(viewModel.idProperty().isNull())
+                            .then("⚠️ Salve a proposta primeiro para gerar um código e habilitar o envio de anexos.")
+                            .otherwise("Clique para anexar um novo documento a esta proposta."));
+            tooltipAnexar.setShowDelay(javafx.util.Duration.millis(300));
+            btnAnexarDocumento.setTooltip(tooltipAnexar);
+        }
+
+        cbBanco.valueProperty().addListener((obs, old, banco) -> {
+            cbBanco.setStyle(
+                    banco == null ? "-fx-border-color: #ffb74d; -fx-border-width: 1px; -fx-border-radius: 4px;" : "");
+        });
+
+        cbTabela.valueProperty().addListener((obs, old, tabela) -> {
+            cbTabela.setStyle(
+                    tabela == null ? "-fx-border-color: #ffb74d; -fx-border-width: 1px; -fx-border-radius: 4px;" : "");
+        });
+    }
+
     private void carregarListasBase() {
         todasTabelasAtivas = tabelaJurosService.listarAtivas();
         cbStatus.setItems(FXCollections.observableArrayList(StatusPropostaModel.values()));
-        if (cbConvenio != null) {
+        if (cbConvenio != null)
             cbConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
-        }
     }
 
     private void configurarConversoresVisuais() {
-        if (cbConvenio != null) {
+        if (cbConvenio != null)
             cbConvenio.setConverter(criarConversor(TipoConvenioModel::getLabel));
-        }
         cbBanco.setConverter(criarConversor(b -> b != null ? b.getNome() : "Aguardando Triagem..."));
         cbTabela.setConverter(
                 criarConversor(t -> t != null ? t.getNomeTabela() + " (" + t.getComissaoPercentual() + "%)"
@@ -154,13 +163,35 @@ public class PropostaController {
     private void configurarBindings() {
         cbStatus.valueProperty().bindBidirectional(viewModel.statusProperty());
         txtObservacoes.textProperty().bindBidirectional(viewModel.observacoesProperty());
-        cbConvenio.valueProperty().bindBidirectional(viewModel.convenioProperty());
-        cbBanco.valueProperty().bindBidirectional(viewModel.bancoProperty());
+
+        // 🚀 SUBSTITUIÇÃO DO BIND BIDIRECIONAL NATIVO (O Fim dos "Falsos Nulos")
+        // Como o JavaFX esvazia a UI ao refazer a lista, garantimos que o ViewModel NÃO
+        // seja infectado
+        // por NULLs fantasmas através do respeito à variável `isUpdatingInterface`.
+
+        // Fluxo: UI avisa o ViewModel
+        cbConvenio.valueProperty().addListener((obs, old, val) -> {
+            if (!isUpdatingInterface)
+                viewModel.convenioProperty().set(val);
+        });
+        cbBanco.valueProperty().addListener((obs, old, val) -> {
+            if (!isUpdatingInterface)
+                viewModel.bancoProperty().set(val);
+        });
+
+        // Fluxo: ViewModel atualiza a UI
+        viewModel.convenioProperty().addListener((obs, old, val) -> {
+            if (!isUpdatingInterface)
+                cbConvenio.setValue(val);
+        });
+        viewModel.bancoProperty().addListener((obs, old, val) -> {
+            if (!isUpdatingInterface)
+                cbBanco.setValue(val);
+        });
 
         configurarSpinner(spinPrazo, viewModel.quantidadeParcelasProperty());
-        if (spinPrazoDesejado != null) {
+        if (spinPrazoDesejado != null)
             configurarSpinner(spinPrazoDesejado, viewModel.prazoDesejadoProperty());
-        }
 
         vincularMascaraMoeda(txtValorSolicitado, viewModel.valorSolicitadoProperty());
         vincularMascaraMoeda(txtValorAprovado, viewModel.valorAprovadoProperty());
@@ -168,19 +199,15 @@ public class PropostaController {
     }
 
     private void configurarFiltrosInteligentes() {
-        // Gatilhos de Triagem
+        // Agora ouvimos diretamente as propriedades blindadas do ViewModel!
         viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> realizarTriagemSegura());
         viewModel.prazoDesejadoProperty().addListener((obs, old, val) -> realizarTriagemSegura());
-        if (cbConvenio != null) {
-            cbConvenio.valueProperty().addListener((obs, old, val) -> realizarTriagemSegura());
-        }
+        viewModel.convenioProperty().addListener((obs, old, val) -> realizarTriagemSegura());
 
-        // Gatilhos de Recálculo e Carregamento
-        cbBanco.valueProperty().addListener((obs, old, bancoNovo) -> atualizarTabelasDoBancoSegura(bancoNovo));
+        viewModel.bancoProperty().addListener((obs, old, bancoNovo) -> atualizarTabelasDoBancoSegura(bancoNovo));
         viewModel.valorAprovadoProperty().addListener((obs, old, val) -> dispararCalculoSeguro());
-        cbTabela.valueProperty().addListener((obs, old, novaTabela) -> atualizarTabelaNoViewModel(novaTabela));
 
-        // Gatilho Principal: Quando uma proposta existente é carregada
+        cbTabela.valueProperty().addListener((obs, old, novaTabela) -> atualizarTabelaNoViewModel(novaTabela));
         viewModel.tabelaIdProperty().addListener((obs, old, idNovo) -> carregarDadosDaPropostaExistente(idNovo));
     }
 
@@ -204,7 +231,7 @@ public class PropostaController {
     }
 
     // ==========================================================
-    // 2. LÓGICA DE TRIAGEM E REGRAS DE NEGÓCIO (CLEAN CODE)
+    // 2. LÓGICA DE TRIAGEM
     // ==========================================================
     private void realizarTriagemSegura() {
         if (!isUpdatingInterface)
@@ -212,15 +239,19 @@ public class PropostaController {
     }
 
     private void realizarTriagem() {
+        // 🛡️ Defesa: Só tria se o básico estiver preenchido
         TipoConvenioModel convenio = (cbConvenio != null) ? cbConvenio.getValue() : null;
         BigDecimal valor = viewModel.valorSolicitadoProperty().get();
-        Integer prazo = viewModel.prazoDesejadoProperty().get();
-        ProponenteModel proponente = viewModel.proponenteProperty().get();
 
-        if (!dadosMinimosParaTriagemPreenchidos(convenio, valor)) {
+        // Se não tem valor ou convênio, não tente adivinhar banco/tabela
+        if (convenio == null || valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
             limparFiltrosDeTriagem();
             return;
         }
+
+        // Agora sim, procede com a triagem
+        Integer prazo = viewModel.prazoDesejadoProperty().get();
+        ProponenteModel proponente = viewModel.proponenteProperty().get();
 
         tabelasElegiveisDaTriagem = todasTabelasAtivas.stream()
                 .filter(t -> t.getTipoConvenio() == convenio)
@@ -239,26 +270,30 @@ public class PropostaController {
         atualizarComboBancos(bancosElegiveis);
     }
 
-    // --- PREDICADOS DE TRIAGEM EXTRAÍDOS (SRP) ---
-    private boolean dadosMinimosParaTriagemPreenchidos(TipoConvenioModel convenio, BigDecimal valor) {
-        return convenio != null && valor != null && valor.compareTo(BigDecimal.ZERO) > 0;
-    }
-
     private boolean atendeRegrasDeValor(TabelaJurosModel t, BigDecimal valorSolicitado) {
-        BigDecimal min = t.getValorMinimoEmprestimo() != null ? t.getValorMinimoEmprestimo() : BigDecimal.ZERO;
+        BigDecimal min = (t.getValorMinimoEmprestimo() != null
+                && t.getValorMinimoEmprestimo().compareTo(BigDecimal.ZERO) > 0) ? t.getValorMinimoEmprestimo()
+                        : BigDecimal.ZERO;
         if (valorSolicitado.compareTo(min) < 0)
             return false;
 
-        return t.getValorMaximoEmprestimo() == null
-                || t.getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) <= 0
-                || valorSolicitado.compareTo(t.getValorMaximoEmprestimo()) <= 0;
+        // Se o máximo for nulo ou ZERO, trata como sem limite de valor
+        boolean hasMax = t.getValorMaximoEmprestimo() != null
+                && t.getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) > 0;
+        if (!hasMax)
+            return true;
+
+        return valorSolicitado.compareTo(t.getValorMaximoEmprestimo()) <= 0;
     }
 
     private boolean atendeRegrasDePrazo(TabelaJurosModel t, Integer prazoDesejado) {
         if (prazoDesejado == null || prazoDesejado <= 0)
             return true;
-        int min = t.getPrazoMinimo() != null ? t.getPrazoMinimo() : 1;
-        int max = t.getPrazoMaximo() != null ? t.getPrazoMaximo() : 999;
+
+        // 🚀 O SEGREDO: Se no DB estiver 0, trata como se fosse sem limite (1 e 999)
+        int min = (t.getPrazoMinimo() != null && t.getPrazoMinimo() > 0) ? t.getPrazoMinimo() : 1;
+        int max = (t.getPrazoMaximo() != null && t.getPrazoMaximo() > 0) ? t.getPrazoMaximo() : 999;
+
         return prazoDesejado >= min && prazoDesejado <= max;
     }
 
@@ -276,41 +311,34 @@ public class PropostaController {
         if (idade <= 0)
             return true;
 
-        int min = t.getIdadeMinima() != null ? t.getIdadeMinima() : 0;
-        int max = t.getIdadeMaxima() != null ? t.getIdadeMaxima() : 999;
+        int min = (t.getIdadeMinima() != null && t.getIdadeMinima() > 0) ? t.getIdadeMinima() : 0;
+        int max = (t.getIdadeMaxima() != null && t.getIdadeMaxima() > 0) ? t.getIdadeMaxima() : 999;
         return idade >= min && idade <= max;
     }
 
     // ==========================================================
-    // 3. ATUALIZAÇÕES DE INTERFACE SOB DEMANDA
+    // 3. ATUALIZAÇÕES DE INTERFACE (A CURA DO EFEITO SANFONA)
     // ==========================================================
-    private void carregarDadosDaPropostaExistente(Long idTabelaNovo) {
-        if (isUpdatingInterface)
-            return;
+
+    private void atualizarComboBancos(List<BancoModel> bancosElegiveis) {
+        BancoModel bancoAtual = cbBanco.getValue();
 
         executarSemGatilhos(() -> {
-            if (idTabelaNovo != null) {
-                TabelaJurosModel tab = todasTabelasAtivas.stream()
-                        .filter(t -> t.getId().equals(idTabelaNovo)).findFirst().orElse(null);
-
-                if (tab != null) {
-                    cbConvenio.setValue(tab.getTipoConvenio());
-                    realizarTriagem();
-                    cbBanco.setValue(tab.getBanco());
-                    atualizarTabelasDoBanco(tab.getBanco());
-                    cbTabela.setValue(tab);
-                    dispararCalculo();
-
-                    Long propostaId = viewModel.idProperty().get();
-                    if (propostaId != null)
-                        carregarDocumentosDaProposta(propostaId);
-                }
-            } else {
-                limparFiltrosDeTriagem();
-                dispararCalculo();
-                Platform.runLater(this::aplicarBloqueio);
-            }
+            cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
+            // REMOVIDO: A auto-seleção automática
+            // (cbBanco.setValue(bancosElegiveis.get(0)))
+            // Agora o banco SÓ é selecionado se o usuário clicar ou se já houver um valor
+            // definido.
+            cbBanco.setValue(bancoAtual);
         });
+
+        // 🚀 A CURA: Garante que o ViewModel saiba qual Banco a UI escolheu no final
+        // das contas
+        viewModel.bancoProperty().set(cbBanco.getValue());
+
+        if (!isUpdatingInterface) {
+            atualizarTabelasDoBanco(cbBanco.getValue());
+        }
     }
 
     private void atualizarTabelasDoBancoSegura(BancoModel bancoNovo) {
@@ -326,21 +354,68 @@ public class PropostaController {
                     .toList();
 
             TabelaJurosModel tabelaAtual = cbTabela.getValue();
-            cbTabela.setItems(FXCollections.observableArrayList(tabelasDoBanco));
 
-            if (!isUpdatingInterface) {
-                if (tabelasDoBanco.size() == 1)
-                    cbTabela.setValue(tabelasDoBanco.get(0));
-                else if (tabelaAtual != null && tabelasDoBanco.contains(tabelaAtual))
+            executarSemGatilhos(() -> {
+                cbTabela.setItems(FXCollections.observableArrayList(tabelasDoBanco));
+                // REMOVIDO: A auto-seleção automática.
+                // Só mantém o que já estava lá, senão, deixa o usuário escolher.
+                if (tabelaAtual != null && tabelasDoBanco.contains(tabelaAtual)) {
                     cbTabela.setValue(tabelaAtual);
-                else
+                } else {
                     cbTabela.setValue(null);
-            }
+                }
+            });
         } else {
-            cbTabela.getItems().clear();
-            if (!isUpdatingInterface)
+            executarSemGatilhos(() -> {
+                cbTabela.getItems().clear();
                 cbTabela.setValue(null);
+            });
         }
+
+        // 🚀 A CURA: Garante que o ViewModel saiba qual Tabela ficou na tela
+        viewModel.tabelaIdProperty().set(cbTabela.getValue() != null ? cbTabela.getValue().getId() : null);
+
+        if (!isUpdatingInterface) {
+            dispararCalculo();
+        }
+    }
+
+    private void carregarDadosDaPropostaExistente(Long idTabelaNovo) {
+        if (isUpdatingInterface)
+            return;
+
+        executarSemGatilhos(() -> {
+            if (idTabelaNovo != null) {
+                TabelaJurosModel tab = todasTabelasAtivas.stream()
+                        .filter(t -> t.getId().equals(idTabelaNovo)).findFirst().orElse(null);
+
+                if (tab != null) {
+                    // Força a atualização simultânea da Tela e do ViewModel (Cérebro)
+                    cbConvenio.setValue(tab.getTipoConvenio());
+                    viewModel.convenioProperty().set(tab.getTipoConvenio());
+
+                    realizarTriagem();
+
+                    cbBanco.setValue(tab.getBanco());
+                    viewModel.bancoProperty().set(tab.getBanco());
+
+                    atualizarTabelasDoBanco(tab.getBanco());
+
+                    cbTabela.setValue(tab);
+                    viewModel.tabelaIdProperty().set(tab.getId());
+
+                    dispararCalculo();
+
+                    Long propostaId = viewModel.idProperty().get();
+                    if (propostaId != null)
+                        carregarDocumentosDaProposta(propostaId);
+                }
+            } else {
+                limparFiltrosDeTriagem();
+                dispararCalculo();
+                Platform.runLater(this::aplicarBloqueio);
+            }
+        });
     }
 
     private void atualizarTabelaNoViewModel(TabelaJurosModel novaTabela) {
@@ -378,46 +453,38 @@ public class PropostaController {
     }
 
     // ==========================================================
-    // 4. GESTÃO DE DOCUMENTOS E ARQUIVOS (FILECHOOSER NATIVO)
+    // 4. GESTÃO DE DOCUMENTOS E ARQUIVOS
     // ==========================================================
     private void carregarDocumentosDaProposta(Long propostaId) {
         if (propostaId == null) {
             listaDocumentos.clear();
             return;
         }
-
         Task<List<DocumentoProponenteModel>> task = new Task<>() {
             @Override
             protected List<DocumentoProponenteModel> call() {
                 return documentoService.buscarPorProposta(propostaId);
             }
         };
-
         task.setOnSucceeded(e -> {
             listaDocumentos.setAll(task.getValue());
             tableDocumentos.refresh();
         });
-
-        task.setOnFailed(e -> {
-            mainController.notificarAviso("Erro ao carregar documentos da proposta.");
-        });
-
+        task.setOnFailed(e -> mainController.notificarAviso("Erro ao carregar documentos da proposta."));
         Thread t = new Thread(task);
         t.setDaemon(true);
         t.start();
     }
+
     @FXML
     private void handleAnexarDocumento() {
         if (!validarPropostaParaAnexo())
             return;
-
         Optional<String> tipoSelecionado = exibirDialogoTipoDocumento();
-
         tipoSelecionado.ifPresent(tipo -> {
             File arquivo = selecionarArquivoLocal(tipo);
-            if (arquivo != null && arquivo.exists()) {
+            if (arquivo != null && arquivo.exists())
                 realizarUploadAssincrono(arquivo, tipo);
-            }
         });
     }
 
@@ -451,37 +518,30 @@ public class PropostaController {
     private void realizarUploadAssincrono(File arquivo, String tipoDoc) {
         Task<DocumentoProponenteModel> uploadTask = new Task<>() {
             @Override
-            // 🚀 CORREÇÃO: Adicionado o "throws Exception" aqui
             protected DocumentoProponenteModel call() throws Exception {
                 PropostaModel propostaAtual = viewModel.atualizarModel(new PropostaModel());
                 return documentoService.processarUpload(arquivo, tipoDoc, propostaAtual.getProponente(), propostaAtual);
             }
         };
-
         uploadTask.setOnSucceeded(e -> carregarDocumentosDaProposta(viewModel.idProperty().get()));
-
         uploadTask.setOnFailed(e -> mainController
                 .notificarAviso("Falha ao anexar documento: " + uploadTask.getException().getMessage()));
-
         Thread t = new Thread(uploadTask);
         t.setDaemon(true);
         t.start();
     }
 
     // ==========================================================
-    // 5. CONFIGURAÇÃO DE TABELAS (UI)
+    // 5. CONFIGURAÇÃO DE TABELAS (UI) E OVERLAYS
     // ==========================================================
     private void configurarTabelaDocumentos() {
         tableDocumentos.setItems(listaDocumentos);
-
         colTipoDocumento.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTipoDocumento()));
-
         colDataUpload.setCellValueFactory(data -> {
             var dataUpload = data.getValue().getDataUpload();
             return new SimpleStringProperty(
                     dataUpload != null ? dataUpload.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "-");
         });
-
         configurarColunaAcoes();
         configurarDuploCliqueTabela();
     }
@@ -491,14 +551,12 @@ public class PropostaController {
             private final Button btnAbrir = new Button("👁️");
             private final Button btnExcluir = new Button("🗑️");
             private final HBox container = new HBox(8, btnAbrir, btnExcluir);
-
             {
                 btnAbrir.getStyleClass().add("flat");
                 btnExcluir.getStyleClass().addAll("flat", "danger");
                 container.setAlignment(Pos.CENTER);
                 btnAbrir.setMinWidth(Region.USE_PREF_SIZE);
                 btnExcluir.setMinWidth(Region.USE_PREF_SIZE);
-
                 btnAbrir.setOnAction(e -> abrirDocumentoFisico(getTableView().getItems().get(getIndex())));
                 btnExcluir.setOnAction(e -> exibirOverlayExclusao(getTableView().getItems().get(getIndex())));
             }
@@ -526,11 +584,10 @@ public class PropostaController {
     private void abrirDocumentoFisico(DocumentoProponenteModel doc) {
         if (doc != null && doc.getArquivoPath() != null) {
             File file = new File(doc.getArquivoPath());
-            if (file.exists()) {
+            if (file.exists())
                 mainController.getHostServices().showDocument(file.toURI().toString());
-            } else {
+            else
                 mainController.notificarAviso("Arquivo físico não encontrado no servidor.");
-            }
         }
     }
 
@@ -540,9 +597,6 @@ public class PropostaController {
         overlayExclusao.setVisible(true);
     }
 
-    // ==========================================================
-    // 6. OVERLAYS E AÇÕES DE EXCLUSÃO
-    // ==========================================================
     @FXML
     private void cancelarExclusao() {
         this.documentoParaExcluir = null;
@@ -553,7 +607,6 @@ public class PropostaController {
     private void confirmarExclusao() {
         if (documentoParaExcluir == null)
             return;
-
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() {
@@ -561,12 +614,10 @@ public class PropostaController {
                 return null;
             }
         };
-
         task.setOnSucceeded(e -> {
             listaDocumentos.remove(documentoParaExcluir);
             cancelarExclusao();
         });
-
         task.setOnFailed(e -> mainController.notificarAviso("Erro ao excluir documento."));
         new Thread(task).start();
     }
@@ -610,22 +661,6 @@ public class PropostaController {
         tabelasElegiveisDaTriagem = null;
     }
 
-    private void atualizarComboBancos(List<BancoModel> bancosElegiveis) {
-        BancoModel bancoAtual = cbBanco.getValue();
-        cbBanco.setItems(FXCollections.observableArrayList(bancosElegiveis));
-
-        if (!isUpdatingInterface) {
-            if (bancosElegiveis.size() == 1)
-                cbBanco.setValue(bancosElegiveis.get(0));
-            else if (bancoAtual != null && bancosElegiveis.contains(bancoAtual))
-                cbBanco.setValue(bancoAtual);
-            else
-                cbBanco.setValue(null);
-
-            dispararCalculo();
-        }
-    }
-
     private <T> StringConverter<T> criarConversor(java.util.function.Function<T, String> formatter) {
         return new StringConverter<>() {
             @Override
@@ -649,9 +684,20 @@ public class PropostaController {
     private void configurarSpinner(Spinner<Integer> spinner, javafx.beans.property.Property<Integer> prop) {
         spinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 120, 1));
         spinner.setEditable(true);
+
         spinner.getEditor().focusedProperty().addListener((obs, old, isFocused) -> {
-            if (!isFocused)
-                spinner.increment(0);
+            if (!isFocused) {
+                String text = spinner.getEditor().getText();
+                SpinnerValueFactory<Integer> factory = spinner.getValueFactory();
+                if (factory != null && factory.getConverter() != null) {
+                    try {
+                        Integer value = factory.getConverter().fromString(text);
+                        factory.setValue(value);
+                    } catch (Exception e) {
+                        spinner.getEditor().setText(factory.getConverter().toString(factory.getValue()));
+                    }
+                }
+            }
         });
         spinner.getValueFactory().valueProperty().bindBidirectional(prop);
     }

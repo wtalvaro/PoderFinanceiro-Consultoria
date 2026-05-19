@@ -91,6 +91,12 @@ public class BancoViewModel extends BaseViewModel<BancoModel> {
         };
     }
 
+    @Override
+    public boolean isValido() {
+        // Por padrão, se não tiver regras específicas, retorna verdadeiro
+        return true;
+    }
+
     // ==========================================================
     // GETTERS DAS PROPERTIES EXCLUSIVAS
     // ==========================================================

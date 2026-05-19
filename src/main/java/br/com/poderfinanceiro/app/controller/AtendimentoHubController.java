@@ -149,6 +149,30 @@ public class AtendimentoHubController {
 
     @FXML
     public void handleSalvar() {
+        // ==========================================================
+        // 🚀 O GUARDA-COSTAS (Validação das ViewModels)
+        // ==========================================================
+
+        // 1. Valida a Aba do Cliente (Lead) - Caso no futuro você adicione regras lá
+        if (abaLeadController.getViewModel().isDirty() && !abaLeadController.getViewModel().isValido()) {
+            subTabPane.getSelectionModel().select(0); // Muda para a aba "Cliente"
+            exibirMensagem("⚠️ Verifique os campos obrigatórios do cliente antes de salvar.", false);
+            return; // Bloqueia a execução
+        }
+
+        // 2. Valida a Aba de Proposta (Garante as Foreign Keys de Banco e Tabela)
+        // Só valida se a aba da proposta estiver "suja" (sendo criada ou editada)
+        if (abaPropostaHubController.getViewModel().isDirty() && !abaPropostaHubController.getViewModel().isValido()) {
+            subTabPane.getSelectionModel().select(2); // Muda automaticamente para a aba "Propostas"
+            exibirMensagem(
+                    "⚠️ Atenção: Preencha os campos obrigatórios da Proposta (Convênio, Banco e Tabela) antes de salvar.",
+                    false);
+            return; // Bloqueia a execução antes de chamar o Hibernate!
+        }
+
+        // ==========================================================
+        // Se passou por todas as barreiras, autoriza o salvamento
+        // ==========================================================
         executarSalvamento(null);
     }
 

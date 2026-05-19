@@ -194,6 +194,23 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         };
     }
 
+    // ==========================================================
+    // REGRAS DE VALIDAÇÃO (O GATEKEEPER DE INTEGRIDADE)
+    // ==========================================================
+
+    @Override
+    public boolean isValido() {
+        // Validação estrita: Se qualquer um destes for nulo, o botão deve ficar
+        // desabilitado.
+        return this.banco.get() != null
+                && this.tabelaId.get() != null
+                && this.convenio.get() != null;
+    }
+
+    // ==========================================================
+    // MÉTODOS DE COMPARAÇÃO INTERNA
+    // ==========================================================
+
     private boolean isBancoIgual(BancoModel b1, BancoModel b2) {
         if (b1 == b2)
             return true;
@@ -250,7 +267,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
 
     public ObjectProperty<BigDecimal> taxaAplicadaProperty() {
         return taxaAplicada;
-    } // Adicionado
+    }
 
     public ObjectProperty<Integer> quantidadeParcelasProperty() {
         return quantidadeParcelas;
@@ -262,7 +279,7 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
 
     public ObjectProperty<BigDecimal> valorParcelaProperty() {
         return valorParcela;
-    } // O que estava faltando!
+    }
 
     public ObjectProperty<Long> tabelaIdProperty() {
         return tabelaId;

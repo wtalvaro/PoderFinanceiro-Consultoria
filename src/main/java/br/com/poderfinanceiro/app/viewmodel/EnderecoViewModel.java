@@ -120,6 +120,12 @@ public class EnderecoViewModel extends BaseViewModel<EnderecoProponenteModel> {
         };
     }
 
+    @Override
+    public boolean isValido() {
+        // Por padrão, se não tiver regras específicas, retorna verdadeiro
+        return true;
+    }
+
     // --- GETTERS DAS PROPERTIES (Somente das específicas desta classe agora) ---
     public StringProperty cepProperty() {
         return cep;

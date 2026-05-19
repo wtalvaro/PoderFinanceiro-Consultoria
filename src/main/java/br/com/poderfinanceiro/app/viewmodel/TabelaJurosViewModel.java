@@ -174,6 +174,12 @@ public class TabelaJurosViewModel extends BaseViewModel<TabelaJurosModel> {
         };
     }
 
+    @Override
+    public boolean isValido() {
+        // Por padrão, se não tiver regras específicas, retorna verdadeiro
+        return true;
+    }
+
     // --- MÉTODOS AUXILIARES (Bisturis) ---
 
     /**

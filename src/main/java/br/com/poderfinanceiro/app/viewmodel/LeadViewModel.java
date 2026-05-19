@@ -157,6 +157,12 @@ public class LeadViewModel extends BaseViewModel<ProponenteModel> {
                 classificacaoOriginal.getReadOnlyProperty()
         };
     }
+    
+    @Override
+    public boolean isValido() {
+        // Por padrão, se não tiver regras específicas, retorna verdadeiro
+        return true;
+    }
 
     // ==========================================================
     // GETTERS DAS PROPERTIES EXCLUSIVAS

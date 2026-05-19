@@ -198,6 +198,12 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         };
     }
 
+    @Override
+    public boolean isValido() {
+        // Por padrão, se não tiver regras específicas, retorna verdadeiro
+        return true;
+    }
+
     // --- Getters das Properties (Binding) ---
     public ObjectProperty<PropostaModel> propostaProperty() {
         return proposta;

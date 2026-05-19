@@ -9,7 +9,6 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -49,7 +48,7 @@ public class TabelaJurosModel {
 
     @Column(name = "prazo_minimo")
     private Integer prazoMinimo = 1;
-    
+
     @Column(name = "prazo_maximo")
     private Integer prazoMaximo = 96;
 
@@ -83,4 +82,5 @@ public class TabelaJurosModel {
     protected void onCreate() {
         this.criadoEm = LocalDateTime.now();
     }
+
 }

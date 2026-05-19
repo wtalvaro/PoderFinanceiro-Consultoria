@@ -66,6 +66,12 @@ public class DocumentoViewModel extends BaseViewModel<DocumentoProponenteModel> 
         return new Observable[] { tipoDocumento, verificado, tipoOriginal, verificadoOriginal };
     }
 
+    @Override
+    public boolean isValido() {
+        // Por padrão, se não tiver regras específicas, retorna verdadeiro
+        return true;
+    }
+
     // Getters
     public StringProperty tipoDocumentoProperty() {
         return tipoDocumento;

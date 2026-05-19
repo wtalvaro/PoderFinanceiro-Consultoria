@@ -8,7 +8,8 @@ import javafx.beans.property.*;
 /**
  * Classe base genérica para todas as ViewModels de Entidades.
  * Implementa o padrão Template Method para gerenciar o ciclo de vida do JavaFX.
- * * @param <T> A Entidade de Domínio (ex: Proponente, EnderecoProponente)
+ * 
+ * @param <T> A Entidade de Domínio (ex: Proponente, EnderecoProponente)
  */
 public abstract class BaseViewModel<T> {
 
@@ -88,4 +89,13 @@ public abstract class BaseViewModel<T> {
      *         deve observar.
      */
     protected abstract Observable[] getObservaveisParaDirty();
+
+    /**
+     * 🚀 NOVO CONTRATO: Validação de Regras de Negócio (Gatekeeper)
+     * Informa se a classe atual possui todos os dados mínimos obrigatórios
+     * para permitir que o botão "Salvar" ou outras ações sejam executadas.
+     * 
+     * @return true se o formulário for considerado válido
+     */
+    public abstract boolean isValido();
 }
