@@ -71,6 +71,11 @@ public class GeminiService {
                     - Quando listar opções de bancos, simulações ou propostas, organize os dados in tabelas do Bootstrap usando a classe: <table class="table table-sm table-striped table-hover bg-white my-2">.
                     - Utilize listas estruturadas (<ul class="list-unstyled"> ou <li>) com emojis para deixar a leitura rápida e scannável para o operador.
                     - Sempre que indicar uma URL do contexto, crie um link HTML real de forma sutil.
+                    
+                    [REGRAS DE FORMATAÇÃO E NAVEGAÇÃO]
+                    - Proibido enviar qualquer tipo de link interno, protocolo de navegação (como 'app://') ou referência a telas específicas.
+                    - Se precisar indicar um caminho ou funcionalidade, descreva-o apenas com texto.
+                    - Continue usando HTML/Bootstrap para formatar tabelas e texto, mas não crie links clicáveis que apontem para dentro do sistema.
                     """
                     .formatted(playbookJson, clienteSeguro, tabelasSeguro, linksSeguro, comissoesSeguro);
 
