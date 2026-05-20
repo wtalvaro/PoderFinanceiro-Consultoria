@@ -21,6 +21,7 @@
     <Menu text="_Financeiro">
         <MenuItem text="💰 Comissões (RV)" onAction="#handleComissoes" accelerator="Shortcut+F" />
         <MenuItem text="📈 Tabelas de Juros" onAction="#handleJuros" accelerator="Shortcut+J" />
+        <MenuItem text="🤖 Importar Tabelas (IA)" onAction="#handleImportarTabelas" />
     </Menu>
 
     <Menu text="_Ferramentas">

@@ -29,4 +29,9 @@ public interface BancoRepository extends JpaRepository<BancoModel, Long> {
      * Busca um banco pelo código (Ex: "623", "341"). Útil para integrações futuras.
      */
     Optional<BancoModel> findByCodigo(String codigo);
+
+    /**
+     * Busca o primeiro banco que contenha parte do nome (Match Aproximado da IA).
+     */
+    Optional<BancoModel> findFirstByNomeContainingIgnoreCase(String nomeAproximado);
 }

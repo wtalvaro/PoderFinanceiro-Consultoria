@@ -68,6 +68,12 @@ public class MenuController {
         mainController.irParaBancosConvenios();
     }
 
+    // Adicione no GRUPO: FINANCEIRO (ou FERRAMENTAS)
+    @FXML
+    private void handleImportarTabelas() {
+        mainController.irParaImportadorTabelas();
+    }
+    
     @FXML
     private void handleLinks() {
         mainController.irParaLinksUteis();

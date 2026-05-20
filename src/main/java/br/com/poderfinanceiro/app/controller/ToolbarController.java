@@ -48,6 +48,12 @@ public class ToolbarController {
         mainController.irParaPropostas();
     }
 
+    // Adicione no grupo CONFIGURAÇÕES E AUXILIARES
+    @FXML
+    private void abrirImportadorTabelas() {
+        mainController.irParaImportadorTabelas();
+    }
+    
     // ==========================================
     // CONFIGURAÇÕES E AUXILIARES
     // ==========================================

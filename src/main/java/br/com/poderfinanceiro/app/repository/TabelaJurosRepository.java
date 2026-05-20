@@ -45,4 +45,8 @@ public interface TabelaJurosRepository extends JpaRepository<TabelaJurosModel, L
     @Query("SELECT t FROM TabelaJurosModel t JOIN FETCH t.banco WHERE t.id = :id")
     Optional<TabelaJurosModel> findByIdWithBanco(@Param("id") Long id);
 
+    // 🚀 NOVO MÉTODO: Busca uma tabela específica de um banco que esteja ativa
+    // (Usado para o Soft Delete de atualização)
+    Optional<TabelaJurosModel> findByBancoIdAndNomeTabelaAndAtivoTrue(Long bancoId, String nomeTabela);
+
 }

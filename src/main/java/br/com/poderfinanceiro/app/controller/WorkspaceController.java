@@ -156,6 +156,11 @@ public class WorkspaceController {
         admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
     }
 
+    // Adicione junto aos outros métodos "abrirAba..."
+    public void abrirAbaImportadorTabelas() {
+        admitirAbaSimples("ABA_IMPORTADOR_TABELAS", "🤖 Importador IA", "/fxml/importador_tabelas.fxml");
+    }
+
     // =====================================================================
     // ROTEAMENTO: HUB DE CLIENTE
     // =====================================================================

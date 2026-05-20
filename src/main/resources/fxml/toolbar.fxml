@@ -22,6 +22,8 @@
 
     <Button text="🏦 Bancos" onAction="#abrirBancosConvenios" styleClass="flat" />
     <Button text="📈 Tabelas" onAction="#abrirTabelasJuros" styleClass="flat" />
+    <Button text="📥 Importar IA" onAction="#abrirImportadorTabelas" styleClass="flat"
+        style="-fx-text-fill: #0D47A1; -fx-font-weight: bold;" />
     <Button text="💰 Comissões" onAction="#abrirTabelaComissoes" styleClass="flat" />
     <Button text="🔗 Links" onAction="#handleLinksUteis" styleClass="flat" />
 

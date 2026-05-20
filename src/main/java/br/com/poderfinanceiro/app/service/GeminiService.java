@@ -200,6 +200,103 @@ public class GeminiService {
         return "🤖 Falha de comunicação.";
     }
 
+    // 🚀 NOVO MÉTODO: Extração em Lote de Tabelas com Resiliência (Exponential
+    // Backoff)
+    public String extrairTabelasEmLote(java.io.File arquivoAnexo, String apiKey, String modeloEscolhido) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalArgumentException("API Key não configurada. Verifique seu login.");
+        }
+
+        String promptRigido = """
+                Você é um Sistema de OCR Financeiro Especializado.
+                Analise a imagem em anexo. Ela contém uma ou mais tabelas de juros de correspondentes bancários.
+                Identifique TODAS as tabelas comerciais distintas presentes na imagem.
+
+                REGRAS INQUEBRÁVEIS:
+                1. Retorne ESTRITAMENTE um ARRAY JSON VÁLIDO.
+                2. Não inclua blocos de código com crases (```json). Apenas o array começando com [ e terminando com ].
+                3. Para cada tabela encontrada, gere um objeto com EXATAMENTE esta estrutura:
+                {
+                  "banco": "Nome do Banco (ex: PAN, ITAU)",
+                  "nomeTabela": "Nome completo da tabela",
+                  "tipoConvenio": "INSS_CONSIGNADO, CLT_CONSIGNADO, BOLSA_FAMILIA, SIAPE, EXERCITO, AERONAUTICA, MARINHA",
+                  "valorMinimo": 0.0, "valorMaximo": 0.0,
+                  "prazoMinimo": 0, "prazoMaximo": 0,
+                  "idadeMinima": 0, "idadeMaxima": 0,
+                  "taxaMensal": 0.0, "comissaoPercentual": 0.0,
+                  "fimVigenciaCalculado": "ISO_DATE_TIME (ex: 2026-12-31T23:59:00) ou nulo se não houver na imagem"
+                }
+                Se um dado numérico não existir na imagem, preencha com 0 ou 0.0.
+                """;
+
+        try {
+            byte[] fileBytes = java.nio.file.Files.readAllBytes(arquivoAnexo.toPath());
+            String base64Data = java.util.Base64.getEncoder().encodeToString(fileBytes);
+
+            String fileName = arquivoAnexo.getName().toLowerCase();
+            String mimeType = fileName.endsWith(".pdf") ? "application/pdf"
+                    : fileName.endsWith(".png") ? "image/png"
+                            : (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) ? "image/jpeg"
+                                    : "application/octet-stream";
+
+            java.util.List<br.com.poderfinanceiro.app.dto.GeminiRequest.Part> parts = java.util.List.of(
+                    br.com.poderfinanceiro.app.dto.GeminiRequest.Part.ofText(promptRigido),
+                    br.com.poderfinanceiro.app.dto.GeminiRequest.Part.ofFile(mimeType, base64Data));
+
+            br.com.poderfinanceiro.app.dto.GeminiRequest payload = new br.com.poderfinanceiro.app.dto.GeminiRequest(
+                    java.util.List.of(new br.com.poderfinanceiro.app.dto.GeminiRequest.Content(parts)));
+
+            String urlCompleta = baseUrl + "/" + modeloEscolhido + ":generateContent?key=" + apiKey;
+
+            // 🛡️ MOTOR DE RESILIÊNCIA (EXPONENTIAL BACKOFF)
+            int maxTentativas = 6;
+            int tempoEspera = 2000;
+
+            for (int tentativaAtual = 1; tentativaAtual <= maxTentativas; tentativaAtual++) {
+                try {
+                    String respostaJson = restClient.post()
+                            .uri(urlCompleta)
+                            .body(payload)
+                            .retrieve()
+                            .body(String.class);
+
+                    if (respostaJson != null && !respostaJson.isBlank()) {
+                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(respostaJson);
+
+                        if (rootNode.has("candidates") && !rootNode.get("candidates").isEmpty()) {
+                            String conteudoExtraido = rootNode.get("candidates").get(0).get("content").get("parts")
+                                    .get(0).get("text").asText();
+                            // Blindagem extra contra marcação Markdown do Gemini
+                            return conteudoExtraido.replaceAll("```json", "").replaceAll("```", "").trim();
+                        }
+                    }
+                    throw new RuntimeException("Resposta da IA vazia ou estruturalmente inválida.");
+
+                } catch (org.springframework.web.client.RestClientResponseException e) {
+                    int status = e.getStatusCode().value();
+                    if (status == 429 || status >= 500) {
+                        if (tentativaAtual == maxTentativas) {
+                            throw new RuntimeException("Servidores do Google sobrecarregados (Erro " + status + ").");
+                        }
+                        System.out.println("⚠️ API IA Ocupada (Erro " + status + "). Tentativa " + tentativaAtual
+                                + ". Aguardando...");
+                        Thread.sleep(tempoEspera);
+                        tempoEspera *= 2;
+                    } else {
+                        throw new RuntimeException("Erro HTTP na comunicação com IA: " + status);
+                    }
+                }
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Thread interrompida durante análise.");
+        } catch (Exception e) {
+            throw new RuntimeException("Erro fatal ao analisar imagem: " + e.getMessage(), e);
+        }
+        return "[]";
+    }
+
     // 🚀 MÉTODO ATUALIZADO: Listar apenas modelos estáveis da geração 2.5 ou
     // superior
     public List<String> listarModelosMultimodais(String apiKey) {

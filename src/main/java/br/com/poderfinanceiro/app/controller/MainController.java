@@ -246,6 +246,11 @@ public class MainController {
         executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
     }
 
+    // Adicione junto aos outros métodos "irPara..."
+    public void irParaImportadorTabelas() {
+        executarNoWorkspace(ws -> ws.abrirAbaImportadorTabelas());
+    }
+
     private void garantirWorkspaceVisivel() {
         if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
             navegarPara("/fxml/workspace.fxml", true);

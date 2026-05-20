@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<SplitPane dividerPositions="0.35" style="-fx-padding: 0;"
+    xmlns="[http://javafx.com/javafx/21](http://javafx.com/javafx/21)"
+    xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
+    fx:controller="br.com.poderfinanceiro.app.controller.ImportadorTabelasController">
+
+    <VBox spacing="15" style="-fx-padding: 15; -fx-background-color: #ffffff;">
+        <Label text="Lote de Inteligência Artificial"
+            style="-fx-font-weight: bold; -fx-font-size: 16px;" />
+
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Button fx:id="btnProcessarImagem" text="📸 Extrair Imagem"
+                onAction="#processarImagemIA" styleClass="accent" />
+            <ComboBox fx:id="cmbModeloIA" prefWidth="200" />
+        </HBox>
+
+        <TableView fx:id="tableMaster" VBox.vgrow="ALWAYS" style="-fx-border-color: #e0e0e0;">
+            <columns>
+                <TableColumn fx:id="colStatus" text="St" prefWidth="35" />
+                <TableColumn fx:id="colBanco" text="Banco" prefWidth="80" />
+                <TableColumn fx:id="colNome" text="Tabela Extraída" prefWidth="150" />
+            </columns>
+        </TableView>
+
+        <Button fx:id="btnGravarLote" text="💾 Gravar Lote Completo" onAction="#gravarLoteNoBanco"
+            maxWidth="Infinity"
+            style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;" />
+    </VBox>
+
+    <ScrollPane fitToWidth="true" style="-fx-background-color: #f4f6f8;">
+        <VBox spacing="20" style="-fx-padding: 25;">
+
+            <Label text="Auditoria e Correção (OCR)"
+                style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e293b;" />
+
+            <VBox spacing="12" styleClass="card"
+                style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 0);">
+                <Label text="1. Parâmetros Comerciais"
+                    style="-fx-font-weight: bold; -fx-text-fill: #475569;" />
+                <HBox spacing="15">
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Banco" />
+                        <ComboBox fx:id="cmbBanco" editable="true" maxWidth="Infinity" />
+                    </VBox>
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Nome da Tabela" />
+                        <TextField fx:id="txtNomeTabela" />
+                    </VBox>
+                    <VBox>
+                        <Label text="Tipo Convênio" />
+                        <ComboBox fx:id="cmbConvenio" editable="true" maxWidth="Infinity" />
+                    </VBox>
+                </HBox>
+            </VBox>
+
+            <VBox spacing="12" styleClass="card"
+                style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 0);">
+                <Label text="2. Engenharia de Regras (Triagem)"
+                    style="-fx-font-weight: bold; -fx-text-fill: #475569;" />
+                <HBox spacing="15">
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Valor Mínimo (R$)" />
+                        <TextField fx:id="txtValorMin" />
+                    </VBox>
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Valor Máximo (R$)" />
+                        <TextField fx:id="txtValorMax" />
+                    </VBox>
+                </HBox>
+                <HBox spacing="15">
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Prazo Mínimo" />
+                        <TextField fx:id="txtPrazoMin" />
+                    </VBox>
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Prazo Máximo" />
+                        <TextField fx:id="txtPrazoMax" />
+                    </VBox>
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Idade Mínima" />
+                        <TextField fx:id="txtIdadeMin" />
+                    </VBox>
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Idade Máxima" />
+                        <TextField fx:id="txtIdadeMax" />
+                    </VBox>
+                </HBox>
+            </VBox>
+
+            <VBox spacing="12" styleClass="card"
+                style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 0);">
+                <Label text="3. Rentabilidade e Juros"
+                    style="-fx-font-weight: bold; -fx-text-fill: #475569;" />
+                <HBox spacing="15">
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Taxa Mensal (%)" />
+                        <TextField fx:id="txtTaxa" />
+                    </VBox>
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label text="Comissão Repasse (%)" />
+                        <TextField fx:id="txtComissao" />
+                    </VBox>
+                </HBox>
+            </VBox>
+
+            <Button fx:id="btnConfirmarTabela" text="✓ Revisado: Confirmar e ir para o Próximo"
+                onAction="#confirmarTabelaAtual"
+                maxWidth="Infinity"
+                style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12;" />
+
+        </VBox>
+    </ScrollPane>
+
+</SplitPane>
