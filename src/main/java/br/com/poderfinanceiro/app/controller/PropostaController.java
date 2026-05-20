@@ -650,7 +650,7 @@ public class PropostaController {
 
                     Retorne um relatório scannável em Bootstrap 5/HTML (envie direto as tags HTML como <p>, <br>, <strong> e tabelas, sem envolver o bloco em blocos de código com crases). Comece com uma badge elegante de status: <span class='badge bg-success'>RECOMENDADO</span> ou <span class='badge bg-warning'>RASCUNHO COM RESTRIÇÕES</span> ou <span class='badge bg-danger'>REPROVADO NA CONFERÊNCIA</span>. Seja direto, prático e profissional.
                     """;
-        } else if (tipoDoc.contains("CONTRACHEQUE") || tipoDoc.contains("CONTRACQUE") || tipoDoc.contains("HOLERITE")
+        } else if (tipoDoc.contains("CONTRACHEQUE") || tipoDoc.contains("EXTRATO BANCARIO") || tipoDoc.contains("HOLERITE")
                 || tipoDoc.contains("HISCON")) {
             iconeAnalise = "📊";
             tituloAnalise = "Auditoria de Margem Consignável";
