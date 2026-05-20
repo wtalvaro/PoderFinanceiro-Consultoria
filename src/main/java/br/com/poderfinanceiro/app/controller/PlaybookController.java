@@ -327,11 +327,10 @@ public class PlaybookController implements Initializable {
         // inventada.
         String prompt = """
                 Você é um Diretor Comercial e Estrategista de Vendas especializado em correspondentes bancários.
-                Sua única missão é separar a MENSAGEM PARA O CLIENTE (Copy) da ESTRATÉGIA DE VENDAS.
-
+                
                 REGRAS ABSOLUTAS E INQUEBRÁVEIS (PUNIÇÃO SE DESCUMPRIR):
                 1. "conteudo": ESTE É O CAMPO PRINCIPAL. Aqui vai 100% do texto que o cliente vai ler no WhatsApp. Extraia a mensagem de vendas na íntegra, com todos os textos, links, gatilhos, emojis e formatações originais (use \\n para quebras de linha). É PROIBIDO colocar a copy de vendas em qualquer outro lugar.
-                2. "dica": INVENTE UMA DICA CURTA. É ESTRITAMENTE PROIBIDO colocar o texto da mensagem de vendas aqui. Apenas leia a copy e invente você mesmo UMA ÚNICA FRASE estratégica para o vendedor (ex: melhor horário para envio ou qual gatilho mental foi usado).
+                2. "dica": INVENTE UMA DICA CURTA. É ESTRITAMENTE PROIBIDO colocar o texto da mensagem de vendas aqui.
 
                 --- EXEMPLO PRÁTICO (SIGA EXATAMENTE ESTA PROPORÇÃO) ---
                 TEXTO BRUTO DE ENTRADA:
@@ -349,9 +348,12 @@ public class PlaybookController implements Initializable {
                 Retorne APENAS o objeto JSON puro e válido. Não adicione crases de markdown (```json).
 
                 Texto bruto real recebido do grupo para processar agora:
-                \"\"\"
+                --- inicio do conteudo ---
                 """
-                + textoBruto + "\n\"\"\"";
+                + "\n\"\"\"\n"
+                + textoBruto
+                + "\n\"\"\"\n"
+                + "--- final do conteudo ---";
 
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
 

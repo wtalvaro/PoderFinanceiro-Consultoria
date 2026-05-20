@@ -723,10 +723,15 @@ public class PropostaController {
     private void abrirDocumentoFisico(DocumentoProponenteModel doc) {
         if (doc != null && doc.getArquivoPath() != null) {
             File f = new File(doc.getArquivoPath());
-            if (f.exists())
-                mainController.getHostServices().showDocument(f.toURI().toString());
-            else
+            if (f.exists()) {
+                // 🚀 Usa o Platform.runLater para não travar a UI e getAbsoluteFile para evitar
+                // bugs de path no Windows/Linux
+                Platform.runLater(() -> {
+                    mainController.getHostServices().showDocument(f.getAbsoluteFile().toURI().toString());
+                });
+            } else {
                 mostrarFeedback("⚠️", "Aviso", "Arquivo físico não encontrado no servidor.", null);
+            }
         }
     }
 
