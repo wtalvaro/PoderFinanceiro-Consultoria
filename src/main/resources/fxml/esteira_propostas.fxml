@@ -71,6 +71,7 @@
         </VBox>
     </VBox>
 
+    <!-- Overlay Antigo (Agora exclusivo para IA/WebView) -->
     <VBox fx:id="overlayFeedback" visible="false" alignment="CENTER"
         style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 20;">
         <VBox spacing="10" alignment="CENTER" maxWidth="600" maxHeight="500"
@@ -80,12 +81,27 @@
                 <Label fx:id="lblFeedbackTitle" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
             </HBox>
 
-            <!-- WebView substituindo a Label de mensagem -->
             <WebView fx:id="webFeedback" prefHeight="350" prefWidth="550" />
 
             <Button fx:id="btnFeedbackAction" text="Entendido" onAction="#fecharFeedback"
                 defaultButton="true"
                 style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 25; -fx-background-radius: 6;" />
+        </VBox>
+    </VBox>
+
+    <!-- 🌟 NOVO: Overlay Compacto para Alertas do Sistema -->
+    <VBox fx:id="overlayAlertaSimples" visible="false" alignment="CENTER"
+        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 20;">
+        <VBox spacing="15" alignment="CENTER" maxWidth="400"
+            style="-fx-background-color: white; -fx-padding: 30 40; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, 0, 0);">
+            <Label fx:id="lblAlertaIcone" style="-fx-font-size: 40px;" />
+            <Label fx:id="lblAlertaTitulo"
+                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #212529;" />
+            <Label fx:id="lblAlertaMensagem" wrapText="true" textAlignment="CENTER"
+                style="-fx-font-size: 14px; -fx-text-fill: #495057; -fx-padding: 10 0 15 0;" />
+            <Button fx:id="btnAlertaAcao" text="OK" onAction="#fecharAlertaSimples"
+                defaultButton="true"
+                style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 35; -fx-background-radius: 6;" />
         </VBox>
     </VBox>
 

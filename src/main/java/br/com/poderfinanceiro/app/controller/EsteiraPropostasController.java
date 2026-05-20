@@ -51,17 +51,27 @@ public class EsteiraPropostasController {
 
     // Overlays Universais
     @FXML
-    private VBox overlayConfirmacao, overlayFeedback;
+    private VBox overlayConfirmacao, overlayFeedback, overlayAlertaSimples;
+
+    // Componentes Overlay Confirmação
     @FXML
     private Label lblConfirmacaoTitulo, lblConfirmacaoTexto;
     @FXML
     private Button btnConfirmarAcao;
+
+    // Componentes Overlay Feedback IA (WebView)
     @FXML
     private Label lblFeedbackIcon, lblFeedbackTitle;
     @FXML
     private Button btnFeedbackAction;
     @FXML
     private WebView webFeedback;
+
+    // Componentes Overlay Alerta Simples (Novo)
+    @FXML
+    private Label lblAlertaIcone, lblAlertaTitulo, lblAlertaMensagem;
+    @FXML
+    private Button btnAlertaAcao;
 
     private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -207,8 +217,6 @@ public class EsteiraPropostasController {
         Node view = loader.load();
 
         formController = loader.getController();
-        // 🚀 O SEGREDO: Injeta a Esteira no Proposta para ele poder acessar os
-        // overlays!
         formController.setEsteiraController(this);
 
         formController.setOnPropostaSalva(this::recarregarDados);
@@ -279,49 +287,87 @@ public class EsteiraPropostasController {
         acaoPendente = null;
     }
 
-    public void mostrarFeedback(String icone, String titulo, String htmlConteudo, Runnable callback) {
+    // 🚀 MÁGICA: O mesmo método agora roteia para o layout adequado dependendo do
+    // conteúdo
+    public void mostrarFeedback(String icone, String titulo, String conteudo, Runnable callback) {
         Platform.runLater(() -> {
-            lblFeedbackIcon.setText(icone);
-            lblFeedbackTitle.setText(titulo);
-
-            // Template HTML com o padding ajustado para o respiro nas laterais
-            String htmlTemplate = """
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-                        <style>
-                            body {
-                                font-family: sans-serif;
-                                padding: 25px;
-                                box-sizing: border-box;
-                                color: #333;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        %s
-                    </body>
-                    </html>
-                    """
-                    .formatted(htmlConteudo);
-
-            // Carrega o conteúdo encapsulado no WebView
-            WebEngine engine = webFeedback.getEngine();
-            engine.loadContent(htmlTemplate);
-
-            String style = "-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 30; -fx-background-radius: 6;";
-            if (icone.contains("✅"))
-                btnFeedbackAction.setStyle("-fx-background-color: #2e7d32; " + style);
-            else if (icone.contains("❌") || icone.contains("🗑️"))
-                btnFeedbackAction.setStyle("-fx-background-color: #c62828; " + style);
-            else
-                btnFeedbackAction.setStyle("-fx-background-color: #f57c00; " + style);
+            // Verifica de forma segura se o conteúdo tem marcadores HTML usados pela IA
+            boolean isHtml = conteudo != null && (conteudo.contains("<strong") || conteudo.contains("<span")
+                    || conteudo.contains("<p>") || conteudo.contains("<br>") || conteudo.contains("<table")
+                    || conteudo.contains("<ul"));
 
             this.onFeedbackClose = callback;
-            overlayFeedback.setVisible(true);
+
+            if (isHtml) {
+                // EXIBIÇÃO RICA (Gemini IA em WebView)
+                lblFeedbackIcon.setText(icone);
+                lblFeedbackTitle.setText(titulo);
+
+                String htmlTemplate = """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                            <style>
+                                body {
+                                    font-family: sans-serif;
+                                    padding: 25px;
+                                    box-sizing: border-box;
+                                    color: #333;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            %s
+                        </body>
+                        </html>
+                        """
+                        .formatted(conteudo);
+
+                WebEngine engine = webFeedback.getEngine();
+                engine.loadContent(htmlTemplate);
+                estilizarBotaoBaseadoNoIcone(btnFeedbackAction, icone);
+                overlayFeedback.setVisible(true);
+
+            } else {
+                // EXIBIÇÃO COMPACTA (Notificações do Sistema: Salvar, Excluir, etc)
+                lblAlertaIcone.setText(icone);
+                lblAlertaTitulo.setText(titulo);
+                lblAlertaMensagem.setText(conteudo);
+                estilizarBotaoBaseadoNoIcone(btnAlertaAcao, icone);
+                overlayAlertaSimples.setVisible(true);
+            }
         });
+    }
+
+    private void estilizarBotaoBaseadoNoIcone(Button botao, String icone) {
+        String baseStyle = "-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 30; -fx-background-radius: 6;";
+        if (icone.contains("✅"))
+            botao.setStyle("-fx-background-color: #2e7d32; " + baseStyle);
+        else if (icone.contains("❌") || icone.contains("🗑️"))
+            botao.setStyle("-fx-background-color: #c62828; " + baseStyle);
+        else
+            botao.setStyle("-fx-background-color: #f57c00; " + baseStyle);
+    }
+
+    @FXML
+    public void fecharFeedback() {
+        overlayFeedback.setVisible(false);
+        dispararCallbackFechamento();
+    }
+
+    @FXML
+    public void fecharAlertaSimples() {
+        overlayAlertaSimples.setVisible(false);
+        dispararCallbackFechamento();
+    }
+
+    private void dispararCallbackFechamento() {
+        if (onFeedbackClose != null) {
+            onFeedbackClose.run();
+            onFeedbackClose = null;
+        }
     }
 
     // 🚀 Método invocado pelo WorkspaceController para selecionar uma proposta
@@ -330,29 +376,16 @@ public class EsteiraPropostasController {
         if (idTarget == null || tablePropostas == null)
             return;
 
-        // Limpa filtros de pesquisa ativos para garantir que a proposta procurada
-        // esteja visível
         if (txtBusca != null) {
             txtBusca.clear();
         }
 
-        // Varre os dados mapeados na tabela para encontrar a proposta e forçar a
-        // seleção
         for (PropostaModel proposta : masterData) {
             if (idTarget.equals(proposta.getId())) {
                 tablePropostas.getSelectionModel().select(proposta);
-                tablePropostas.scrollTo(proposta); // Rola a tabela até o item selecionado
+                tablePropostas.scrollTo(proposta);
                 break;
             }
-        }
-    }
-
-    @FXML
-    public void fecharFeedback() {
-        overlayFeedback.setVisible(false);
-        if (onFeedbackClose != null) {
-            onFeedbackClose.run();
-            onFeedbackClose = null;
         }
     }
 
