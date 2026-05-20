@@ -7,33 +7,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Especializada em transformar o estado da ViewModel em texto formatado ou JSON
- * contextual para a IA.
- */
 public class SummaryGeneratorUtils {
 
     private static final String SEPARADOR = "————————————————————————————\n";
-
-    // 1. Instância única e limpa do Jackson (Sem dependências extras de Data)
     private static final ObjectMapper jsonMapper = new ObjectMapper();
-
-    // =========================================================================
-    // MÉTODOS DE RELATÓRIO EM TEXTO (ANTIGOS MANTIDOS INTACTOS)
-    // =========================================================================
 
     public static String gerar(LeadViewModel viewModel, String rendaFormatada) {
         StringBuilder sb = new StringBuilder();
-
         sb.append("📑 *RELATÓRIO DE QUALIFICAÇÃO - PODER FINANCEIRO*\n");
         sb.append(SEPARADOR);
-
         appendDadosPessoais(sb, viewModel);
         appendPerfilFinanceiro(sb, viewModel, rendaFormatada);
-
         sb.append("\n").append(SEPARADOR);
         sb.append("*Poder Financeiro - Consultoria e Soluções de Crédito*");
-
         return sb.toString();
     }
 
@@ -63,36 +49,25 @@ public class SummaryGeneratorUtils {
         sb.append("• *Renda Mensal:* R$ ").append(renda == null || renda.isEmpty() ? "0,00" : renda).append("\n");
     }
 
-    // =========================================================================
-    // 🚀 MOTOR CORRIGIDO: OPERA DIRETAMENTE SOBRE O PROPONENTE_MODEL (SEM PROPOSTAS)
-    // =========================================================================
     public static String gerarJsonContextualParaIA(br.com.poderfinanceiro.app.model.ProponenteModel model,
             boolean permitirEndereco) {
         if (model == null)
             return "{}";
-
         try {
             Map<String, Object> contextoGlobal = new LinkedHashMap<>();
-
-            // 1. Bloco de Dados Pessoais
             Map<String, Object> dadosPessoais = new LinkedHashMap<>();
             dadosPessoais.put("nome", model.getNomeCompleto());
             dadosPessoais.put("cpf", model.getCpf());
             dadosPessoais.put("whatsapp", model.getTelefone());
-            if (model.getDataNascimento() != null) {
+            if (model.getDataNascimento() != null)
                 dadosPessoais.put("dataNascimento", model.getDataNascimento().toString());
-            }
 
-            // 2. Bloco de Endereço Residencial
             String enderecoFormatado = "Ocultado (Abra a aba de detalhes do cliente para liberar)";
             if (permitirEndereco) {
                 enderecoFormatado = "Não cadastrado";
                 if (model.getEnderecos() != null && !model.getEnderecos().isEmpty()) {
-                    var end = model.getEnderecos().stream()
-                            .filter(e -> e.getPrincipal() != null && e.getPrincipal())
-                            .findFirst()
-                            .orElse(model.getEnderecos().get(0));
-
+                    var end = model.getEnderecos().stream().filter(e -> e.getPrincipal() != null && e.getPrincipal())
+                            .findFirst().orElse(model.getEnderecos().get(0));
                     String logradouro = end.getLogradouro() != null ? end.getLogradouro().trim() : "";
                     String numero = end.getNumero() != null ? end.getNumero().trim() : "";
                     String bairro = end.getBairro() != null ? end.getBairro().trim() : "";
@@ -111,7 +86,6 @@ public class SummaryGeneratorUtils {
                 }
             }
 
-            // 3. Bloco Financeiro
             Map<String, Object> perfilFinanceiro = new LinkedHashMap<>();
             perfilFinanceiro.put("vinculo",
                     model.getTipoVinculo() != null ? model.getTipoVinculo().name() : "NAO_INFORMADO");
@@ -119,24 +93,58 @@ public class SummaryGeneratorUtils {
             perfilFinanceiro.put("rendaMensalBruta",
                     model.getRendaMensal() != null ? model.getRendaMensal().doubleValue() : 0.0);
 
-            // ❌ BLOCO 4 (HISTÓRICO DE PROPOSTAS) FOI TOTALMENTE ERRADICADO DAQUI
-
-            // Monta a árvore consolidada focada APENAS no Lead
             contextoGlobal.put("clienteEmAtendimento", dadosPessoais);
             contextoGlobal.put("enderecoResidencial", enderecoFormatado);
             contextoGlobal.put("perfilFinanceiro", perfilFinanceiro);
 
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(contextoGlobal);
-
         } catch (Exception e) {
             System.err.println("⚠️ Erro ao serializar contexto completo: " + e.getMessage());
             return "{}";
         }
     }
 
-    // =========================================================================
-    // MÓDULOS DE CONHECIMENTO GLOBAL (Bancos, Taxas e Links)
-    // =========================================================================
+    // 🚀 NOVO GERADOR: Exclusivo para as propostas na Esteira
+    public static String gerarJsonPropostaParaIA(br.com.poderfinanceiro.app.model.PropostaModel proposta) {
+        if (proposta == null)
+            return "{}";
+        try {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("contexto", "O operador está na Esteira de Crédito avaliando esta Proposta específica:");
+
+            // Dados do Cliente associado à proposta
+            if (proposta.getProponente() != null) {
+                Map<String, Object> dadosPessoais = new LinkedHashMap<>();
+                dadosPessoais.put("nome", proposta.getProponente().getNomeCompleto());
+                dadosPessoais.put("cpf", proposta.getProponente().getCpf());
+                dadosPessoais.put("rendaMensal", proposta.getProponente().getRendaMensal());
+                map.put("cliente_associado", dadosPessoais);
+            }
+
+            // Dados profundos da Proposta
+            Map<String, Object> detalhesProposta = new LinkedHashMap<>();
+            detalhesProposta.put("id_proposta", proposta.getId() != null ? proposta.getId() : "Nova (Não salva)");
+            detalhesProposta.put("status_atual",
+                    proposta.getStatus() != null ? proposta.getStatus().name() : "Desconhecido");
+            detalhesProposta.put("convenio",
+                    proposta.getConvenioOrgao() != null ? proposta.getConvenioOrgao().name() : "N/A");
+            detalhesProposta.put("banco_parceiro",
+                    proposta.getBanco() != null ? proposta.getBanco().getNome() : "Não definido");
+            detalhesProposta.put("valor_solicitado", proposta.getValorSolicitado());
+            detalhesProposta.put("valor_aprovado", proposta.getValorAprovado());
+            detalhesProposta.put("quantidade_parcelas", proposta.getQuantidadeParcelas());
+            detalhesProposta.put("valor_parcela", proposta.getValorParcela());
+            detalhesProposta.put("comissao_estimada", proposta.getComissaoEstimada());
+            detalhesProposta.put("observacoes_operador", proposta.getObservacoes());
+
+            map.put("detalhes_da_proposta", detalhesProposta);
+
+            return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+        } catch (Exception e) {
+            System.err.println("⚠️ Falha ao processar proposta para o Gemini: " + e.getMessage());
+            return "{}";
+        }
+    }
 
     public static String gerarJsonTabelasJuros(
             java.util.List<br.com.poderfinanceiro.app.model.TabelaJurosModel> tabelas) {
@@ -144,14 +152,11 @@ public class SummaryGeneratorUtils {
             return "[]";
         try {
             java.util.List<Map<String, Object>> listaTabelas = new java.util.ArrayList<>();
-
             for (br.com.poderfinanceiro.app.model.TabelaJurosModel t : tabelas) {
                 Map<String, Object> map = new LinkedHashMap<>();
-                // Adapte os 'getters' abaixo caso o nome exato na sua classe seja diferente
                 map.put("banco", t.getBanco() != null ? t.getBanco().getNome() : "Desconhecido");
                 map.put("convenio", t.getTipoConvenio() != null ? t.getTipoConvenio().name() : "GERAL");
                 map.put("taxaMensalBase", t.getTaxaMensal());
-                // 🎯 INJETADO: Agora o Gemini sabe a regra de comissionamento de cada tabela!
                 map.put("comissaoPercentual", t.getComissaoPercentual());
                 listaTabelas.add(map);
             }
@@ -166,14 +171,11 @@ public class SummaryGeneratorUtils {
             return "[]";
         try {
             java.util.List<Map<String, Object>> listaLinks = new java.util.ArrayList<>();
-
             for (br.com.poderfinanceiro.app.model.LinkUtilModel l : links) {
                 Map<String, Object> map = new LinkedHashMap<>();
                 map.put("categoria", l.getCategoria() != null ? l.getCategoria().getLabel() : "OUTROS");
                 map.put("titulo", l.getTitulo());
                 map.put("tags", l.getTags());
-                // Não enviamos a URL completa para poupar tokens, a IA só precisa saber que o
-                // link existe e onde está
                 listaLinks.add(map);
             }
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaLinks);
@@ -182,15 +184,11 @@ public class SummaryGeneratorUtils {
         }
     }
 
-    // =========================================================================
-    // 🚀 MOTOR DE CONCILIAÇÃO: SERIALIZADOR DE REPASSES FINANCEIROS PARA A IA
-    // =========================================================================
     public static String gerarJsonComissoes(java.util.List<br.com.poderfinanceiro.app.model.ComissaoModel> comissoes) {
         if (comissoes == null || comissoes.isEmpty())
             return "[]";
         try {
             java.util.List<Map<String, Object>> listaComissoes = new java.util.ArrayList<>();
-
             for (br.com.poderfinanceiro.app.model.ComissaoModel c : comissoes) {
                 Map<String, Object> map = new LinkedHashMap<>();
                 map.put("comissaoId", c.getId());
@@ -207,7 +205,6 @@ public class SummaryGeneratorUtils {
                 map.put("contestada", c.isContestada());
                 map.put("verificadoConsultor", c.isVerificadoConsultor());
 
-                // Prazos e Marcos Críticos do Motor Temporal (CicloFinanceiroUtils)
                 if (c.getDataRecebimentoBanco() != null)
                     map.put("dataRecebimentoBanco", c.getDataRecebimentoBanco().toString());
                 if (c.getPrevisaoPagamento() != null)
@@ -217,7 +214,6 @@ public class SummaryGeneratorUtils {
                 if (c.getObservacaoAjuste() != null && !c.getObservacaoAjuste().isBlank()) {
                     map.put("observacoesAuditoria", c.getObservacaoAjuste());
                 }
-
                 listaComissoes.add(map);
             }
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaComissoes);

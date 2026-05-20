@@ -9,10 +9,10 @@
     <BorderPane>
         <top>
             <ToolBar
-                style="-fx-padding: 10; -fx-background-color: -color-bg-default; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
+                style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
                 <items>
                     <Button text="💾 Salvar Proposta" onAction="#handleSalvar"
-                        style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 4; -fx-border-color: #ffffff; -fx-border-radius: 4;">
+                        styleClass="flat, accent" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Salvar alterações da proposta" />
                         </tooltip>
@@ -25,13 +25,13 @@
 
                     <Region HBox.hgrow="ALWAYS" />
                     <Button text="🗑️ Remover" onAction="#handleRemover"
-                        style="-fx-background-color: #c62828; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-border-color: #b71c1c; -fx-border-radius: 6; -fx-cursor: hand;">
+                        styleClass="flat, danger" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Excluir permanentemente esta proposta" />
                         </tooltip>
                     </Button>
                     <Button text="✖ Fechar" onAction="#handleFechar"
-                        style="-fx-background-color: #f0ad4e; -fx-text-fill: #212529; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-border-color: #ec971f; -fx-border-radius: 6; -fx-cursor: hand;">
+                        styleClass="flat, warning" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Fechar proposta e retornar à lista" />
                         </tooltip>

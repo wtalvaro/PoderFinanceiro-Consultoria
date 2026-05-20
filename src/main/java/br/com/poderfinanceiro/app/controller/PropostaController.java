@@ -42,6 +42,7 @@ public class PropostaController {
     private final DocumentoService documentoService;
     private final MainController mainController;
     private final ProponenteService proponenteService;
+    private final AtendimentoContextService contextoService;
 
     // 🚀 A Referência Injetada do Pai
     private EsteiraPropostasController esteiraController;
@@ -87,13 +88,15 @@ public class PropostaController {
 
     public PropostaController(PropostaViewModel viewModel, DocumentoService documentoService,
             PropostaService propostaService, TabelaJurosService tabelaJurosService,
-            MainController mainController, ProponenteService proponenteService) {
+            MainController mainController, ProponenteService proponenteService,
+            AtendimentoContextService contextoService) {
         this.viewModel = viewModel;
         this.documentoService = documentoService;
         this.propostaService = propostaService;
         this.tabelaJurosService = tabelaJurosService;
         this.mainController = mainController;
         this.proponenteService = proponenteService;
+        this.contextoService = contextoService;
     }
 
     // Método exposto para receber a referência do Pai
@@ -187,6 +190,12 @@ public class PropostaController {
             }
         } finally {
             isUpdatingInterface = false;
+        }
+
+        // 🚀 INFORMA AO CHAT QUAL PROPOSTA ESTAMOS VENDO
+        if (contextoService != null) {
+            contextoService.setPropostaAtiva(completa);
+            contextoService.setTelaAtualFocada(AtendimentoContextService.TipoTelaFocada.ESTEIRA_PROPOSTAS);
         }
     }
 
