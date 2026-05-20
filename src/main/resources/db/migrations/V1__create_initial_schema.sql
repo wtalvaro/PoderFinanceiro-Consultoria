@@ -37,7 +37,8 @@ CREATE TYPE public.tipo_vinculo_enum AS ENUM (
     'PENSIONISTA', 
     'SERVIDOR_ATIVO', 
     'MILITAR', 
-    'CLT'
+    'CLT',
+    'OUTROS'
 );
 
 CREATE TYPE public.tipo_convenio_enum AS ENUM (

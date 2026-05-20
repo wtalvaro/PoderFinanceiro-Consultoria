@@ -5,7 +5,8 @@ public enum TipoVinculoModel implements LabeledModel {
     PENSIONISTA("Pensionista"),
     SERVIDOR_ATIVO("Servidor Ativo"),
     MILITAR("Militar"),
-    CLT("CLT");
+    CLT("CLT"),
+    OUTROS("Outros");
 
     private final String label;
 
