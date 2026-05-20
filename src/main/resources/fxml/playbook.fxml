@@ -95,32 +95,62 @@
     </VBox>
 
     <VBox fx:id="overlayIA" visible="false" alignment="CENTER"
-        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 30;">
-        <VBox spacing="15" alignment="CENTER_LEFT" maxWidth="550" maxHeight="450" styleClass="card"
-            style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, 0, 0);">
+        style="-fx-background-color: rgba(15, 23, 42, 0.65); -fx-padding: 30;">
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="🤖" style="-fx-font-size: 24px;" />
-                <VBox>
-                    <Label text="Engenharia Cognitiva de Scripts"
-                        style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #212529;" />
-                    <Label
-                        text="Cole o texto bruto do grupo do WhatsApp para estruturação automática."
-                        style="-fx-font-size: 12px; -fx-text-fill: #6c757d;" />
-                </VBox>
-            </HBox>
+        <VBox spacing="18" alignment="CENTER_LEFT" maxWidth="580" maxHeight="480" styleClass="card"
+            style="-fx-background-color: #ffffff; -fx-padding: 28; -fx-background-radius: 16; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 25, 0, 0, 8);">
+            <children>
 
-            <TextArea fx:id="txtInputIA" promptText="Cole a mensagem aqui de forma bruta..."
-                wrapText="true" VBox.vgrow="ALWAYS"
-                style="-fx-font-family: 'Segoe UI'; -fx-font-size: 14px; -fx-border-color: #ced4da; -fx-border-radius: 5;" />
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <children>
+                        <StackPane
+                            style="-fx-background-color: #eef2ff; -fx-background-radius: 10; -fx-padding: 10;">
+                            <children>
+                                <Label text="✨" style="-fx-font-size: 20px;" />
+                            </children>
+                        </StackPane>
+                        <VBox spacing="2">
+                            <children>
+                                <Label text="Engenharia Cognitiva de Scripts"
+                                    style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0f172a; -fx-font-family: 'Segoe UI', system-ui;" />
+                                <Label
+                                    text="Cole o texto bruto recebido no grupo para estruturação automática."
+                                    style="-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-family: 'Segoe UI';" />
+                            </children>
+                        </VBox>
+                    </children>
+                </HBox>
 
-            <HBox spacing="12" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
-                <Button text="Cancelar" onAction="#fecharOverlayIA" styleClass="flat"
-                    style="-fx-padding: 8 20;" />
-                <Button fx:id="btnProcessarIA" text="✨ Estruturar com Gemini"
-                    onAction="#processarTextoComIA"
-                    style="-fx-background-color: #6c5ce7; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 8 20;" />
-            </HBox>
+                <TextArea fx:id="txtInputIA"
+                    promptText="Cole aqui a mensagem do grupo (copies, links e manuais misturados)..."
+                    wrapText="true" VBox.vgrow="ALWAYS"
+                    style="-fx-font-family: 'Segoe UI'; -fx-font-size: 14px; -fx-text-fill: #334155; -fx-background-color: #ffffff; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 6;" />
+
+                <HBox spacing="12" alignment="BOTTOM_LEFT" style="-fx-padding: 4 0 0 0;">
+                    <children>
+
+                        <VBox spacing="4">
+                            <children>
+                                <Label text="Modelo de Inteligência"
+                                    style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold; -fx-font-family: 'Segoe UI';" />
+                                <ComboBox fx:id="cmbModeloIA" prefWidth="180"
+                                    style="-fx-background-color: #f1f5f9; -fx-background-radius: 6; -fx-border-color: #e2e8f0; -fx-border-radius: 6; -fx-font-size: 13px; -fx-cursor: hand;" />
+                            </children>
+                        </VBox>
+
+                        <Region HBox.hgrow="ALWAYS" />
+
+                        <Button text="Cancelar" onAction="#fecharOverlayIA" styleClass="flat"
+                            style="-fx-padding: 10 22; -fx-font-weight: bold; -fx-text-fill: #64748b; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-size: 13px;" />
+
+                        <Button fx:id="btnProcessarIA" text="✨ Estruturar com Gemini"
+                            onAction="#processarTextoComIA"
+                            style="-fx-background-color: #4f46e5; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 10 22; -fx-cursor: hand; -fx-font-size: 13px; -fx-effect: dropshadow(three-pass-box, rgba(79, 70, 229, 0.25), 10, 0, 0, 4);" />
+
+                    </children>
+                </HBox>
+
+            </children>
         </VBox>
     </VBox>
 

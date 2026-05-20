@@ -174,12 +174,31 @@
                     </VBox>
 
                     <VBox spacing="10" styleClass="card">
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <Label text="📂 Documentação da Proposta" style="-fx-font-weight: bold;" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Button fx:id="btnAnexarDocumento" text="➕ Anexar Documento"
-                                onAction="#handleAnexarDocumento" styleClass="flat, accent" />
-                        </HBox>
+                        <VBox spacing="14" alignment="CENTER_LEFT" style="-fx-max-width: Infinity;">
+
+                            <HBox spacing="12" alignment="CENTER_LEFT"
+                                style="-fx-background-color: #f8f9fa; -fx-background-radius: 8; -fx-padding: 10 16; -fx-border-color: #e9ecef; -fx-border-width: 1; -fx-border-radius: 8;">
+                                <children>
+                                    <Label text="🤖 Motor de Análise Cognitiva:"
+                                        style="-fx-font-weight: bold; -fx-text-fill: #495057; -fx-font-size: 13px;" />
+                                    <ComboBox fx:id="cmbModeloIA" prefWidth="220"
+                                        style="-fx-background-radius: 6; -fx-background-color: #ffffff; -fx-border-color: #ced4da; -fx-border-radius: 6; -fx-font-size: 13px; -fx-cursor: hand;" />
+                                </children>
+                            </HBox>
+
+                            <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 6 0 2 0;">
+                                <children>
+                                    <Label text="📂 Documentação da Proposta"
+                                        style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #212529;" />
+                                    <Region HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="btnAnexarDocumento" text="➕ Anexar Documento"
+                                        onAction="#handleAnexarDocumento"
+                                        styleClass="flat accent"
+                                        style="-fx-font-weight: bold; -fx-padding: 8 16; -fx-background-radius: 6; -fx-cursor: hand;" />
+                                </children>
+                            </HBox>
+
+                        </VBox>
 
                         <TableView fx:id="tableDocumentos" prefHeight="150">
                             <columns>

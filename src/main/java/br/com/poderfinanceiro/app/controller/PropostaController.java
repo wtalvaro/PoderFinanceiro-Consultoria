@@ -75,6 +75,8 @@ public class PropostaController {
     private Button btnSalvar;
     @FXML
     private Button btnRemover;
+    @FXML
+    private ComboBox<String> cmbModeloIA;
 
     @FXML
     private TableView<DocumentoProponenteModel> tableDocumentos;
@@ -91,6 +93,7 @@ public class PropostaController {
     private List<TabelaJurosModel> tabelasElegiveisDaTriagem;
     private final ObservableList<DocumentoProponenteModel> listaDocumentos = FXCollections.observableArrayList();
     private boolean isUpdatingInterface = false;
+    private boolean modelosCarregados = false;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -123,6 +126,44 @@ public class PropostaController {
         configurarAutoSelecaoTextos();
         configurarIndicadoresDinamicos();
         configurarTravasEAlertas();
+        inicializarComboBoxIA();
+    }
+
+    // =========================================================================
+    // 🧠 INICIALIZAÇÃO DA COMBOBOX DE IA
+    // =========================================================================
+    private void inicializarComboBoxIA() {
+        if (cmbModeloIA != null) {
+            // Fallback imediato para UI não ficar vazia
+            cmbModeloIA.getItems().add("gemini-3.5-flash");
+            cmbModeloIA.getSelectionModel().selectFirst();
+
+            // Busca os modelos reais em background se o usuário estiver logado e tiver
+            // chave
+            String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
+            if (!modelosCarregados && token != null && !token.isBlank()) {
+                Task<List<String>> taskModelos = new Task<>() {
+                    @Override
+                    protected List<String> call() {
+                        return geminiService.listarModelosMultimodais(token);
+                    }
+                };
+                taskModelos.setOnSucceeded(e -> {
+                    String selecionadoAtual = cmbModeloIA.getValue();
+                    cmbModeloIA.getItems().setAll(taskModelos.getValue());
+
+                    if (taskModelos.getValue().contains(selecionadoAtual)) {
+                        cmbModeloIA.getSelectionModel().select(selecionadoAtual);
+                    } else if (taskModelos.getValue().contains("gemini-3.5-flash")) {
+                        cmbModeloIA.getSelectionModel().select("gemini-3.5-flash");
+                    } else {
+                        cmbModeloIA.getSelectionModel().selectFirst();
+                    }
+                    modelosCarregados = true;
+                });
+                new Thread(taskModelos).start();
+            }
+        }
     }
 
     private void carregarListasBase() {
@@ -536,7 +577,8 @@ public class PropostaController {
             return;
         }
         Optional<String> tipo = new ChoiceDialog<>("RG Frente",
-                List.of("RG Frente", "RG Verso", "CPF", "CNH Frente", "CNH Verso", "Contracheque", "Comprovante de Residência", "Extrato Bancário", "Holerite", "Hiscon", "Outros"))
+                List.of("RG Frente", "RG Verso", "CPF", "CNH Frente", "CNH Verso", "Contracheque",
+                        "Comprovante de Residência", "Extrato Bancário", "Holerite", "Hiscon", "Outros"))
                 .showAndWait();
         tipo.ifPresent(t -> {
             FileChooser fc = new FileChooser();
@@ -650,7 +692,8 @@ public class PropostaController {
 
                     Retorne um relatório scannável em Bootstrap 5/HTML (envie direto as tags HTML como <p>, <br>, <strong> e tabelas, sem envolver o bloco em blocos de código com crases). Comece com uma badge elegante de status: <span class='badge bg-success'>RECOMENDADO</span> ou <span class='badge bg-warning'>RASCUNHO COM RESTRIÇÕES</span> ou <span class='badge bg-danger'>REPROVADO NA CONFERÊNCIA</span>. Seja direto, prático e profissional.
                     """;
-        } else if (tipoDoc.contains("CONTRACHEQUE") || tipoDoc.contains("EXTRATO BANCARIO") || tipoDoc.contains("HOLERITE")
+        } else if (tipoDoc.contains("CONTRACHEQUE") || tipoDoc.contains("EXTRATO BANCARIO")
+                || tipoDoc.contains("HOLERITE")
                 || tipoDoc.contains("HISCON")) {
             iconeAnalise = "📊";
             tituloAnalise = "Auditoria de Margem Consignável";
@@ -680,6 +723,11 @@ public class PropostaController {
             mainController.mostrarLoading("O Gemini está atuando como especialista em " + tituloAnalise + "...");
         }
 
+        // 🚀 NOVO: Captura o modelo selecionado (com fallback de segurança)
+        String modeloSelecionado = (cmbModeloIA != null && cmbModeloIA.getValue() != null)
+                ? cmbModeloIA.getValue()
+                : "gemini-3.5-flash";
+
         // Executa a requisição assíncrona para não congelar a interface (UI Thread) do
         // JavaFX
         Task<String> taskAnaliseDoc = new Task<>() {
@@ -695,8 +743,10 @@ public class PropostaController {
                 String jsonCliente = br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils
                         .gerarJsonContextualParaIA(proponente, true);
 
-                return geminiService.perguntarAoAssistente(promptEspecialista, token, arquivoFisico, jsonCliente, "[]",
-                        "[]", "[]");
+                // 🚀 ATUALIZADO: Passa o modeloSelecionado para o método resiliente do
+                // GeminiService
+                return geminiService.perguntarAoAssistente(promptEspecialista, token, modeloSelecionado,
+                        arquivoFisico, jsonCliente, "[]", "[]", "[]");
             }
         };
 

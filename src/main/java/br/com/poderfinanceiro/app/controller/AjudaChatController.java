@@ -12,6 +12,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ComboBox;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -38,7 +39,10 @@ public class AjudaChatController {
     private Label lblNomeFicheiro;
     @FXML
     private WebView webViewChat;
+    @FXML
+    private ComboBox<String> cmbModelo;
 
+    private boolean modelosCarregados = false; // Flag para carregar a combo só uma vez
     private WebEngine webEngine;
     private File ficheiroAnexado = null;
 
@@ -65,6 +69,8 @@ public class AjudaChatController {
 
     @FXML
     public void initialize() {
+        cmbModelo.getItems().add("gemini-3.5-flash");
+        cmbModelo.getSelectionModel().selectFirst();
         webEngine = webViewChat.getEngine();
         java.net.URL url = getClass().getResource("/html/chat.html");
         if (url != null) {
@@ -176,8 +182,9 @@ public class AjudaChatController {
                 String jsonTabelas = SummaryGeneratorUtils.gerarJsonTabelasJuros(listaTabelas);
                 var listaLinks = linkRepository.findAll();
                 String jsonLinks = SummaryGeneratorUtils.gerarJsonLinksUteis(listaLinks);
+                String modeloSelecionado = (cmbModelo.getValue() != null) ? cmbModelo.getValue() : "gemini-3.5-flash";
 
-                return geminiService.perguntarAoAssistente(mensagemExibida, token, ficheiroParaEnvio,
+                return geminiService.perguntarAoAssistente(mensagemExibida, token, modeloSelecionado, ficheiroParaEnvio,
                         jsonFocoPrincipal, jsonTabelas, jsonLinks, jsonComissoes);
             }
         };
@@ -212,8 +219,33 @@ public class AjudaChatController {
         boolean visivel = !paneConfigChave.isVisible();
         paneConfigChave.setVisible(visivel);
         paneConfigChave.setManaged(visivel);
+
         if (visivel && authService.getUsuarioLogado() != null) {
-            txtNovaApiKey.setText(authService.getUsuarioLogado().getGeminiApiKey());
+            String token = authService.getUsuarioLogado().getGeminiApiKey();
+            txtNovaApiKey.setText(token);
+
+            // 🚀 Busca modelos em background ao abrir a engrenagem pela primeira vez
+            if (!modelosCarregados && token != null && !token.isBlank()) {
+                Task<java.util.List<String>> taskModelos = new Task<>() {
+                    @Override
+                    protected java.util.List<String> call() {
+                        return geminiService.listarModelosMultimodais(token);
+                    }
+                };
+                taskModelos.setOnSucceeded(e -> {
+                    String atual = cmbModelo.getValue();
+                    cmbModelo.getItems().setAll(taskModelos.getValue());
+                    if (taskModelos.getValue().contains(atual)) {
+                        cmbModelo.getSelectionModel().select(atual);
+                    } else if (taskModelos.getValue().contains("gemini-3.5-flash")) {
+                        cmbModelo.getSelectionModel().select("gemini-3.5-flash");
+                    } else {
+                        cmbModelo.getSelectionModel().selectFirst();
+                    }
+                    modelosCarregados = true;
+                });
+                new Thread(taskModelos).start();
+            }
         }
     }
 

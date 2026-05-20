@@ -14,6 +14,7 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.concurrent.Task;
 import org.springframework.stereotype.Controller;
 
 import java.net.URL;
@@ -58,6 +59,10 @@ public class PlaybookController implements Initializable {
     @FXML
     private Button btnProcessarIA;
 
+    // 🌟 NOVO: ComboBox para seleção do modelo
+    @FXML
+    private ComboBox<String> cmbModeloIA;
+
     private final PlaybookService playbookService;
     private final AuthService authService;
     private final GeminiService geminiService;
@@ -68,6 +73,7 @@ public class PlaybookController implements Initializable {
     private boolean modoEdicao = false;
     private PlaybookItemModel itemSelecionadoAtual;
     private boolean criandoNovo = false;
+    private boolean modelosCarregados = false; // Controle para carregar os modelos apenas uma vez
 
     public PlaybookController(PlaybookService playbookService, AuthService authService, GeminiService geminiService) {
         this.playbookService = playbookService;
@@ -82,6 +88,12 @@ public class PlaybookController implements Initializable {
         configurarSelecaoNaArvore();
         configurarFiltroDeBusca();
         alternarModoVisualizacao(false);
+
+        // Se a combo existir no FXML, já deixa um valor de segurança (fallback)
+        if (cmbModeloIA != null) {
+            cmbModeloIA.getItems().add("gemini-3.5-flash");
+            cmbModeloIA.getSelectionModel().selectFirst();
+        }
     }
 
     private void configurarFiltroDeBusca() {
@@ -155,11 +167,8 @@ public class PlaybookController implements Initializable {
                     this.itemSelecionadoAtual = item;
                     txtTitulo.setText(item.getTitulo());
                     txtCategoria.setText(item.getCategoria());
-
-                    // Exibe com o nome substituído no modo leitura
                     txtConteudo.setText(item.getConteudo().replace("%CONSULTOR%", nomeDoConsultor));
                     txtDica.setText(item.getDica() != null ? item.getDica() : "");
-
                     btnCopiar.setDisable(false);
                     btnEditar.setDisable(false);
                     btnExcluir.setDisable(false);
@@ -170,12 +179,10 @@ public class PlaybookController implements Initializable {
     private void handleNovo() {
         this.itemSelecionadoAtual = new PlaybookItemModel();
         this.criandoNovo = true;
-
         txtTitulo.setText("");
         txtCategoria.setText("Nova Categoria / Subcategoria");
         txtConteudo.setText("Olá, me chamo %CONSULTOR%...");
         txtDica.setText("");
-
         alternarModoVisualizacao(true);
         txtTitulo.requestFocus();
     }
@@ -185,7 +192,6 @@ public class PlaybookController implements Initializable {
         if (itemSelecionadoAtual == null)
             return;
         this.criandoNovo = false;
-
         txtConteudo.setText(itemSelecionadoAtual.getConteudo());
         alternarModoVisualizacao(true);
     }
@@ -202,9 +208,8 @@ public class PlaybookController implements Initializable {
 
     @FXML
     private void handleSalvar() {
-        if (txtTitulo.getText().trim().isEmpty() || txtCategoria.getText().trim().isEmpty()) {
+        if (txtTitulo.getText().trim().isEmpty() || txtCategoria.getText().trim().isEmpty())
             return;
-        }
 
         itemSelecionadoAtual.setTitulo(txtTitulo.getText().trim());
         itemSelecionadoAtual.setCategoria(txtCategoria.getText().trim());
@@ -217,7 +222,6 @@ public class PlaybookController implements Initializable {
 
         salvarAlteracoesNoService();
         construirArvore(todosOsItens, true);
-
         alternarModoVisualizacao(false);
         exibirDetalhesDoScript(itemSelecionadoAtual.getTitulo(), itemSelecionadoAtual.getCategoria());
     }
@@ -238,7 +242,6 @@ public class PlaybookController implements Initializable {
 
     private void alternarModoVisualizacao(boolean editando) {
         this.modoEdicao = editando;
-
         txtTitulo.setEditable(editando);
         txtCategoria.setEditable(editando);
         txtConteudo.setEditable(editando);
@@ -287,7 +290,7 @@ public class PlaybookController implements Initializable {
             new java.util.Timer().schedule(new java.util.TimerTask() {
                 @Override
                 public void run() {
-                    javafx.application.Platform.runLater(() -> {
+                    Platform.runLater(() -> {
                         btnCopiar.setText(textoOriginal);
                         btnCopiar.setStyle(
                                 "-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
@@ -306,6 +309,29 @@ public class PlaybookController implements Initializable {
         txtInputIA.clear();
         overlayIA.setVisible(true);
         txtInputIA.requestFocus();
+
+        // 🚀 NOVO: Busca e popula os modelos na ComboBox quando o usuário abre o painel
+        if (!modelosCarregados && cmbModeloIA != null) {
+            String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
+            if (token != null && !token.isBlank()) {
+                Task<List<String>> taskModelos = new Task<>() {
+                    @Override
+                    protected List<String> call() {
+                        return geminiService.listarModelosMultimodais(token);
+                    }
+                };
+                taskModelos.setOnSucceeded(e -> {
+                    cmbModeloIA.getItems().setAll(taskModelos.getValue());
+                    if (taskModelos.getValue().contains("gemini-3.5-flash")) {
+                        cmbModeloIA.getSelectionModel().select("gemini-3.5-flash");
+                    } else {
+                        cmbModeloIA.getSelectionModel().selectFirst();
+                    }
+                    modelosCarregados = true;
+                });
+                new Thread(taskModelos).start();
+            }
+        }
     }
 
     @FXML
@@ -322,12 +348,9 @@ public class PlaybookController implements Initializable {
         btnProcessarIA.setDisable(true);
         btnProcessarIA.setText("Processando...");
 
-        // 🚀 PROMPT DITATORIAL E INQUEBRÁVEL
-        // Regras extremamente rígidas e um exemplo com Conteúdo longo e Dica curta
-        // inventada.
         String prompt = """
                 Você é um Diretor Comercial e Estrategista de Vendas especializado em correspondentes bancários.
-                
+
                 REGRAS ABSOLUTAS E INQUEBRÁVEIS (PUNIÇÃO SE DESCUMPRIR):
                 1. "conteudo": ESTE É O CAMPO PRINCIPAL. Aqui vai 100% do texto que o cliente vai ler no WhatsApp. Extraia a mensagem de vendas na íntegra, com todos os textos, links, gatilhos, emojis e formatações originais (use \\n para quebras de linha). É PROIBIDO colocar a copy de vendas em qualquer outro lugar.
                 2. "dica": INVENTE UMA DICA CURTA. É ESTRITAMENTE PROIBIDO colocar o texto da mensagem de vendas aqui.
@@ -350,24 +373,26 @@ public class PlaybookController implements Initializable {
                 Texto bruto real recebido do grupo para processar agora:
                 --- inicio do conteudo ---
                 """
-                + "\n\"\"\"\n"
-                + textoBruto
-                + "\n\"\"\"\n"
+                + "\n\"\"\"\n" + textoBruto + "\n\"\"\"\n"
                 + "--- final do conteudo ---";
 
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
 
+        // 🚀 NOVO: Captura o modelo selecionado na ComboBox, com fallback seguro
+        String modeloSelecionado = (cmbModeloIA != null && cmbModeloIA.getValue() != null)
+                ? cmbModeloIA.getValue()
+                : "gemini-3.5-flash";
+
         new Thread(() -> {
             try {
-                String respostaJson = geminiService.perguntarTexto(prompt, token);
+                // 🚀 NOVO: Passando o modeloSelecionado para o motor que tem Exponential
+                // Backoff
+                String respostaJson = geminiService.perguntarTexto(prompt, token, modeloSelecionado);
 
-                // Validação contra NullPointerException (Aviso do Linter)
                 if (respostaJson == null || respostaJson.isBlank()) {
                     throw new Exception("A resposta da inteligência artificial retornou vazia ou nula.");
                 }
 
-                // Limpeza robusta para garantir que apenas o JSON seja parseado,
-                // ignorando crases de markdown (```json) ou textos extras da IA.
                 int startIndex = respostaJson.indexOf('{');
                 int endIndex = respostaJson.lastIndexOf('}');
 
@@ -377,7 +402,6 @@ public class PlaybookController implements Initializable {
                     throw new Exception("Não foi possível localizar o padrão JSON estruturado na resposta.");
                 }
 
-                // Parsing seguro via Jackson do Spring
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode node = mapper.readTree(respostaJson.trim());
 
@@ -398,7 +422,8 @@ public class PlaybookController implements Initializable {
                 e.printStackTrace();
                 Platform.runLater(() -> {
                     txtInputIA.setText(
-                            "⚠️ Falha ao estruturar dados. Verifique o formato ou tente novamente.\n\n" + textoBruto);
+                            "⚠️ Falha ao estruturar dados ou servidores ocupados. Tente outro modelo.\n\n"
+                                    + textoBruto);
                 });
             } finally {
                 Platform.runLater(() -> {

@@ -30,25 +30,36 @@
             style="-fx-background-color: transparent; -fx-font-size: 22px; -fx-cursor: hand; -fx-text-fill: #9E9E9E; -fx-font-weight: bold; -fx-padding: 2 8; -fx-background-radius: 50%;" />
     </HBox>
 
-    <VBox fx:id="paneConfigChave" visible="false" managed="false" spacing="8"
+    <VBox fx:id="paneConfigChave" visible="false" managed="false" spacing="12"
         style="-fx-background-color: #FFFFFF; -fx-padding: 14 16; -fx-border-color: #EEEEEE; -fx-border-width: 0 0 1 0;">
         <children>
-            <Label text="Atualizar Chave de API do Gemini"
-                style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #616161;" />
-            <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <children>
-                    <PasswordField fx:id="txtNovaApiKey"
-                        promptText="Cole a nova chave AIzaSy... aqui" HBox.hgrow="ALWAYS"
-                        style="-fx-background-radius: 6; -fx-background-color: #F1F3F4; -fx-padding: 8 12; -fx-font-size: 13px;" />
-                    <Button text="Salvar" onAction="#salvarNovaChave"
-                        style="-fx-background-color: #00a884; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 14; -fx-font-size: 13px;" />
-                </children>
-            </HBox>
-            <HBox alignment="CENTER_RIGHT">
-                <Hyperlink text="🌐 Gerar nova chave no Google AI Studio"
-                    onAction="#abrirGoogleAIStudioChat"
-                    style="-fx-font-size: 11px; -fx-text-fill: #0D47A1; -fx-underline: true; -fx-padding: 2 0 0 0;" />
-            </HBox>
+            <VBox spacing="4">
+                <Label text="Selecionar Modelo de Inteligência Artificial"
+                    style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #616161;" />
+                <ComboBox fx:id="cmbModelo" maxWidth="Infinity"
+                    style="-fx-background-color: #F1F3F4; -fx-background-radius: 6; -fx-padding: 2; -fx-font-size: 13px;" />
+            </VBox>
+
+            <Separator style="-fx-opacity: 0.5;" />
+
+            <VBox spacing="4">
+                <Label text="Atualizar Chave de API do Gemini"
+                    style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #616161;" />
+                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                    <children>
+                        <PasswordField fx:id="txtNovaApiKey"
+                            promptText="Cole a nova chave AIzaSy... aqui" HBox.hgrow="ALWAYS"
+                            style="-fx-background-radius: 6; -fx-background-color: #F1F3F4; -fx-padding: 8 12; -fx-font-size: 13px;" />
+                        <Button text="Salvar" onAction="#salvarNovaChave"
+                            style="-fx-background-color: #00a884; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 14; -fx-font-size: 13px;" />
+                    </children>
+                </HBox>
+                <HBox alignment="CENTER_RIGHT">
+                    <Hyperlink text="🌐 Gerar nova chave no Google AI Studio"
+                        onAction="#abrirGoogleAIStudioChat"
+                        style="-fx-font-size: 11px; -fx-text-fill: #0D47A1; -fx-underline: true; -fx-padding: 2 0 0 0;" />
+                </HBox>
+            </VBox>
         </children>
     </VBox>
 
