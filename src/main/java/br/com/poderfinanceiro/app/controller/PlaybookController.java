@@ -3,12 +3,17 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.model.PlaybookItemModel;
 import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.service.PlaybookService;
+import br.com.poderfinanceiro.app.service.GeminiService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import org.springframework.stereotype.Controller;
 
 import java.net.URL;
@@ -25,15 +30,13 @@ public class PlaybookController implements Initializable {
     @FXML
     private TreeView<String> treeViewScripts;
 
-    // Novos campos editáveis
+    // Campos editáveis
     @FXML
     private TextField txtTitulo;
     @FXML
     private TextField txtCategoria;
     @FXML
-    private TextArea txtConteudo;
-    @FXML
-    private TextField txtDica;
+    private TextArea txtConteudo, txtDica;
 
     // Controles de visibilidade/ação
     @FXML
@@ -47,8 +50,18 @@ public class PlaybookController implements Initializable {
     @FXML
     private HBox boxAcoesEdicao;
 
+    // Elementos FXML do Overlay de Inteligência Artificial
+    @FXML
+    private VBox overlayIA;
+    @FXML
+    private TextArea txtInputIA;
+    @FXML
+    private Button btnProcessarIA;
+
     private final PlaybookService playbookService;
     private final AuthService authService;
+    private final GeminiService geminiService;
+
     private List<PlaybookItemModel> todosOsItens;
 
     // Estado da tela
@@ -56,9 +69,10 @@ public class PlaybookController implements Initializable {
     private PlaybookItemModel itemSelecionadoAtual;
     private boolean criandoNovo = false;
 
-    public PlaybookController(PlaybookService playbookService, AuthService authService) {
+    public PlaybookController(PlaybookService playbookService, AuthService authService, GeminiService geminiService) {
         this.playbookService = playbookService;
         this.authService = authService;
+        this.geminiService = geminiService;
     }
 
     @Override
@@ -67,7 +81,7 @@ public class PlaybookController implements Initializable {
         construirArvore(this.todosOsItens, false);
         configurarSelecaoNaArvore();
         configurarFiltroDeBusca();
-        alternarModoVisualizacao(false); // Inicia bloqueado
+        alternarModoVisualizacao(false);
     }
 
     private void configurarFiltroDeBusca() {
@@ -93,8 +107,8 @@ public class PlaybookController implements Initializable {
         }
 
         Map<String, List<PlaybookItemModel>> itensPorCategoria = itensParaExibir.stream()
-                .collect(
-                        Collectors.groupingBy(PlaybookItemModel::getCategoria, java.util.TreeMap::new, Collectors.toList()));
+                .collect(Collectors.groupingBy(PlaybookItemModel::getCategoria, java.util.TreeMap::new,
+                        Collectors.toList()));
 
         TreeItem<String> rootItem = new TreeItem<>("Playbook");
         rootItem.setExpanded(true);
@@ -119,7 +133,7 @@ public class PlaybookController implements Initializable {
     private void configurarSelecaoNaArvore() {
         treeViewScripts.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (modoEdicao)
-                return; // Não muda seleção se estiver editando
+                return;
 
             if (newValue != null && newValue.isLeaf() && newValue.getParent() != null
                     && newValue.getParent().getValue() != null) {
@@ -152,10 +166,6 @@ public class PlaybookController implements Initializable {
                 });
     }
 
-    // ==========================================
-    // LÓGICA DE CRUD E EDIÇÃO
-    // ==========================================
-
     @FXML
     private void handleNovo() {
         this.itemSelecionadoAtual = new PlaybookItemModel();
@@ -176,8 +186,6 @@ public class PlaybookController implements Initializable {
             return;
         this.criandoNovo = false;
 
-        // Retorna a tag crua para o TextArea para o usuário não salvar o próprio nome
-        // fixo no JSON
         txtConteudo.setText(itemSelecionadoAtual.getConteudo());
         alternarModoVisualizacao(true);
     }
@@ -195,7 +203,7 @@ public class PlaybookController implements Initializable {
     @FXML
     private void handleSalvar() {
         if (txtTitulo.getText().trim().isEmpty() || txtCategoria.getText().trim().isEmpty()) {
-            return; // Ideal adicionar um Alerta aqui
+            return;
         }
 
         itemSelecionadoAtual.setTitulo(txtTitulo.getText().trim());
@@ -208,7 +216,7 @@ public class PlaybookController implements Initializable {
         }
 
         salvarAlteracoesNoService();
-        construirArvore(todosOsItens, true); // Reconstrói com pastas abertas
+        construirArvore(todosOsItens, true);
 
         alternarModoVisualizacao(false);
         exibirDetalhesDoScript(itemSelecionadoAtual.getTitulo(), itemSelecionadoAtual.getCategoria());
@@ -231,14 +239,12 @@ public class PlaybookController implements Initializable {
     private void alternarModoVisualizacao(boolean editando) {
         this.modoEdicao = editando;
 
-        // Habilita/Desabilita os campos
         txtTitulo.setEditable(editando);
         txtCategoria.setEditable(editando);
         txtConteudo.setEditable(editando);
         txtDica.setEditable(editando);
-        treeViewScripts.setDisable(editando); // Trava a navegação
+        treeViewScripts.setDisable(editando);
 
-        // Estilos para mostrar que é editável
         String bordaAtiva = "-fx-border-color: #ced4da; -fx-background-color: white;";
         String bordaInativa = "-fx-border-color: transparent; -fx-background-color: transparent;";
 
@@ -246,7 +252,6 @@ public class PlaybookController implements Initializable {
         txtCategoria.setStyle(txtCategoria.getStyle() + (editando ? bordaAtiva : bordaInativa));
         txtDica.setStyle(txtDica.getStyle() + (editando ? bordaAtiva : bordaInativa));
 
-        // Alterna os botões visíveis
         btnCopiar.setVisible(!editando);
         btnCopiar.setManaged(!editando);
         boxAcoesEdicao.setVisible(editando);
@@ -267,7 +272,6 @@ public class PlaybookController implements Initializable {
 
     @FXML
     private void handleCopiar() {
-        // Lógica original de copiar (mantida igual)
         String textoParaCopiar = txtConteudo.getText();
         if (textoParaCopiar != null && !textoParaCopiar.isEmpty()) {
             final Clipboard clipboard = Clipboard.getSystemClipboard();
@@ -291,5 +295,115 @@ public class PlaybookController implements Initializable {
                 }
             }, 2000);
         }
+    }
+
+    // =========================================================================
+    // 🧠 ENGENHARIA COGNITIVA: GERADOR DE SCRIPT INTELIGENTE VIA GEMINI
+    // =========================================================================
+
+    @FXML
+    private void handleGerarComIA() {
+        txtInputIA.clear();
+        overlayIA.setVisible(true);
+        txtInputIA.requestFocus();
+    }
+
+    @FXML
+    private void fecharOverlayIA() {
+        overlayIA.setVisible(false);
+    }
+
+    @FXML
+    private void processarTextoComIA() {
+        String textoBruto = txtInputIA.getText();
+        if (textoBruto == null || textoBruto.trim().isEmpty())
+            return;
+
+        btnProcessarIA.setDisable(true);
+        btnProcessarIA.setText("Processando...");
+
+        // 🚀 PROMPT DITATORIAL E INQUEBRÁVEL
+        // Regras extremamente rígidas e um exemplo com Conteúdo longo e Dica curta
+        // inventada.
+        String prompt = """
+                Você é um Diretor Comercial e Estrategista de Vendas especializado em correspondentes bancários.
+                Sua única missão é separar a MENSAGEM PARA O CLIENTE (Copy) da ESTRATÉGIA DE VENDAS.
+
+                REGRAS ABSOLUTAS E INQUEBRÁVEIS (PUNIÇÃO SE DESCUMPRIR):
+                1. "conteudo": ESTE É O CAMPO PRINCIPAL. Aqui vai 100% do texto que o cliente vai ler no WhatsApp. Extraia a mensagem de vendas na íntegra, com todos os textos, links, gatilhos, emojis e formatações originais (use \\n para quebras de linha). É PROIBIDO colocar a copy de vendas em qualquer outro lugar.
+                2. "dica": INVENTE UMA DICA CURTA. É ESTRITAMENTE PROIBIDO colocar o texto da mensagem de vendas aqui. Apenas leia a copy e invente você mesmo UMA ÚNICA FRASE estratégica para o vendedor (ex: melhor horário para envio ou qual gatilho mental foi usado).
+
+                --- EXEMPLO PRÁTICO (SIGA EXATAMENTE ESTA PROPORÇÃO) ---
+                TEXTO BRUTO DE ENTRADA:
+                "Estratégia para hoje: Mandar pra quem sumiu. Texto para enviar: Olá! Tudo bem? Vi que conversamos sobre o empréstimo, mas não finalizamos. Muitos clientes na sua situação já liberaram os valores hoje! Posso dar continuidade ao seu processo para garantir seu dinheiro ainda hoje? Lembre-se: Sem consultas ao SPC/Serasa e cai em 10 minutos via PIX. Me responde com um SIM."
+
+                JSON DE SAÍDA ESPERADO:
+                {
+                  "categoria": "Geral / Remarketing",
+                  "titulo": "Resgate de Indecisos",
+                  "conteudo": "Olá! Tudo bem? Vi que conversamos sobre o empréstimo, mas não finalizamos.\\n\\nMuitos clientes na sua situação já liberaram os valores hoje! Posso dar continuidade ao seu processo para garantir seu dinheiro ainda hoje?\\n\\nLembre-se: Sem consultas ao SPC/Serasa e cai em 10 minutos via PIX.\\n\\nMe responde com um SIM.",
+                  "dica": "Dispare esta mensagem no final da tarde criando senso de escassez e foque na palavra 'PIX' para reativar o cliente."
+                }
+                --------------------------------------------------------
+
+                Retorne APENAS o objeto JSON puro e válido. Não adicione crases de markdown (```json).
+
+                Texto bruto real recebido do grupo para processar agora:
+                \"\"\"
+                """
+                + textoBruto + "\n\"\"\"";
+
+        String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
+
+        new Thread(() -> {
+            try {
+                String respostaJson = geminiService.perguntarTexto(prompt, token);
+
+                // Validação contra NullPointerException (Aviso do Linter)
+                if (respostaJson == null || respostaJson.isBlank()) {
+                    throw new Exception("A resposta da inteligência artificial retornou vazia ou nula.");
+                }
+
+                // Limpeza robusta para garantir que apenas o JSON seja parseado,
+                // ignorando crases de markdown (```json) ou textos extras da IA.
+                int startIndex = respostaJson.indexOf('{');
+                int endIndex = respostaJson.lastIndexOf('}');
+
+                if (startIndex >= 0 && endIndex >= startIndex) {
+                    respostaJson = respostaJson.substring(startIndex, endIndex + 1);
+                } else {
+                    throw new Exception("Não foi possível localizar o padrão JSON estruturado na resposta.");
+                }
+
+                // Parsing seguro via Jackson do Spring
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode node = mapper.readTree(respostaJson.trim());
+
+                Platform.runLater(() -> {
+                    this.itemSelecionadoAtual = new PlaybookItemModel();
+                    this.criandoNovo = true;
+
+                    txtCategoria.setText(node.has("categoria") ? node.get("categoria").asText() : "Geral");
+                    txtTitulo.setText(node.has("titulo") ? node.get("titulo").asText() : "Script via IA");
+                    txtConteudo.setText(node.has("conteudo") ? node.get("conteudo").asText() : "");
+                    txtDica.setText(node.has("dica") ? node.get("dica").asText() : "");
+
+                    fecharOverlayIA();
+                    alternarModoVisualizacao(true);
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    txtInputIA.setText(
+                            "⚠️ Falha ao estruturar dados. Verifique o formato ou tente novamente.\n\n" + textoBruto);
+                });
+            } finally {
+                Platform.runLater(() -> {
+                    btnProcessarIA.setDisable(false);
+                    btnProcessarIA.setText("✨ Estruturar com Gemini");
+                });
+            }
+        }).start();
     }
 }

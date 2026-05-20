@@ -128,6 +128,29 @@ public class GeminiService {
         }
     }
 
+    // NOVO MÉTODO: Focado apenas em texto
+    public String perguntarTexto(String prompt, String apiKey) {
+        if (apiKey == null || apiKey.isBlank())
+            return "⚠️ API Key não configurada.";
+
+        try {
+            List<GeminiRequest.Part> parts = List.of(GeminiRequest.Part.ofText(prompt));
+            GeminiRequest payload = new GeminiRequest(List.of(new GeminiRequest.Content(parts)));
+
+            GeminiResponse response = restClient.post()
+                    .uri(apiUrl + "?key=" + apiKey)
+                    .body(payload)
+                    .retrieve()
+                    .body(GeminiResponse.class);
+
+            return (response != null && !response.candidates().isEmpty())
+                    ? response.candidates().get(0).content().parts().get(0).text()
+                    : "🤖 Sem resposta da IA.";
+        } catch (Exception e) {
+            return "⚠️ Erro: " + e.getMessage();
+        }
+    }
+
     private String carregarPlaybookLocal() {
         try {
             Path caminho = obterCaminhoPlaybookCrossPlatform();

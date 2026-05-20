@@ -3,91 +3,125 @@
 <?import javafx.scene.layout.*?>
 <?import java.lang.String?>
 
-<VBox fx:controller="br.com.poderfinanceiro.app.controller.PlaybookController"
-    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.PlaybookController"
     style="-fx-background-color: white;">
 
-    <HBox spacing="10"
-        style="-fx-padding: 10 15 10 15; -fx-background-color: #f1f3f5; -fx-border-color: #dee2e6; -fx-border-width: 0 0 1 0;"
-        alignment="CENTER_LEFT">
-        <Label text="🔍 Buscar Script:" style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
-        <TextField fx:id="txtBusca"
-            promptText="Digite para filtrar por título, categoria ou conteúdo..."
-            HBox.hgrow="ALWAYS" style="-fx-font-size: 14px;" />
-    </HBox>
+    <VBox>
+        <HBox spacing="10"
+            style="-fx-padding: 10 15 10 15; -fx-background-color: #f1f3f5; -fx-border-color: #dee2e6; -fx-border-width: 0 0 1 0;"
+            alignment="CENTER_LEFT">
+            <Label text="🔍 Buscar Script:" style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
+            <TextField fx:id="txtBusca"
+                promptText="Digite para filtrar por título, categoria ou conteúdo..."
+                HBox.hgrow="ALWAYS" style="-fx-font-size: 14px;" />
+        </HBox>
 
-    <SplitPane dividerPositions="0.25" styleClass="classic" VBox.vgrow="ALWAYS">
-        <items>
-            <VBox>
-                <TreeView fx:id="treeViewScripts" showRoot="false" VBox.vgrow="ALWAYS" />
-                <Button text="➕ Novo Script" onAction="#handleNovo" maxWidth="Infinity"
-                    style="-fx-padding: 12; -fx-background-color: #e9ecef; -fx-font-weight: bold; -fx-font-size: 14px;" />
-            </VBox>
-
-            <BorderPane style="-fx-background-color: #fafbfc; -fx-padding: 15;">
-
-                <top>
-                    <HBox alignment="CENTER_LEFT" spacing="10"
-                        style="-fx-padding: 0 0 15 0; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0; -fx-margin-bottom: 15;">
-                        <VBox HBox.hgrow="ALWAYS" spacing="2">
-                            <TextField fx:id="txtCategoria" editable="false"
-                                promptText="Categoria..."
-                                style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #6c757d; -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0;" />
-                            <TextField fx:id="txtTitulo" editable="false"
-                                promptText="Título do Script..."
-                                style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #212529; -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0;" />
-                        </VBox>
-
-                        <HBox fx:id="boxAcoesTopo" spacing="5" alignment="CENTER">
-                            <Button fx:id="btnEditar" text="✏️ Editar" onAction="#handleEditar"
-                                styleClass="flat" disable="true" />
-                            <Button fx:id="btnExcluir" text="🗑️ Excluir" onAction="#handleExcluir"
-                                style="-fx-text-fill: #dc3545;" styleClass="flat" disable="true" />
-                        </HBox>
+        <SplitPane dividerPositions="0.25" styleClass="classic" VBox.vgrow="ALWAYS">
+            <items>
+                <VBox>
+                    <TreeView fx:id="treeViewScripts" showRoot="false" VBox.vgrow="ALWAYS" />
+                    <HBox spacing="5" style="-fx-padding: 5;">
+                        <Button text="➕ Novo Script" onAction="#handleNovo" HBox.hgrow="ALWAYS"
+                            maxWidth="Infinity"
+                            style="-fx-padding: 12; -fx-background-color: #e9ecef; -fx-font-weight: bold; -fx-font-size: 14px;" />
+                        <Button text="🤖 Criar via IA" onAction="#handleGerarComIA"
+                            style="-fx-padding: 12; -fx-background-color: #6c5ce7; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" />
                     </HBox>
-                </top>
+                </VBox>
 
-                <center>
-                    <VBox style="-fx-padding: 15 0 15 0;">
-                        <TextArea fx:id="txtConteudo" editable="false" wrapText="true"
-                            VBox.vgrow="ALWAYS"
-                            style="-fx-font-family: 'Segoe UI'; -fx-font-size: 16px; -fx-line-spacing: 6px; -fx-background-color: white; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2); -fx-background-radius: 5; -fx-border-color: #ced4da; -fx-border-radius: 5;" />
-                    </VBox>
-                </center>
-
-                <bottom>
-                    <VBox spacing="15">
-
+                <BorderPane style="-fx-background-color: #fafbfc; -fx-padding: 15;">
+                    <top>
                         <HBox alignment="CENTER_LEFT" spacing="10"
-                            style="-fx-background-color: #fff3cd; -fx-border-color: #ffe69c; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10;">
-                            <Label text="💡 Dica de Ouro:"
-                                style="-fx-font-weight: bold; -fx-text-fill: #856404;"
-                                minWidth="-Infinity" />
-                            <TextField fx:id="txtDica" editable="false"
-                                promptText="Orientação técnica para este script..."
-                                HBox.hgrow="ALWAYS"
-                                style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: #856404; -fx-font-size: 14px; -fx-font-style: italic; -fx-padding: 0;" />
-                        </HBox>
-
-                        <StackPane>
-                            <Button fx:id="btnCopiar" maxWidth="Infinity" onAction="#handleCopiar"
-                                disable="true"
-                                style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12; -fx-font-size: 15px; -fx-background-radius: 5;"
-                                text="📋 Copiar Script para o Clipboard" />
-
-                            <HBox fx:id="boxAcoesEdicao" spacing="10" visible="false">
-                                <Button text="❌ Cancelar" onAction="#handleCancelar"
-                                    maxWidth="Infinity" HBox.hgrow="ALWAYS"
-                                    style="-fx-padding: 12; -fx-background-color: #e9ecef; -fx-font-weight: bold; -fx-font-size: 15px; -fx-background-radius: 5;" />
-                                <Button text="💾 Salvar Modificações" onAction="#handleSalvar"
-                                    maxWidth="Infinity" HBox.hgrow="ALWAYS"
-                                    style="-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12; -fx-font-size: 15px; -fx-background-radius: 5;" />
+                            style="-fx-padding: 0 0 15 0; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0; -fx-margin-bottom: 15;">
+                            <VBox HBox.hgrow="ALWAYS" spacing="2">
+                                <TextField fx:id="txtCategoria" editable="false"
+                                    promptText="Categoria..."
+                                    style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #6c757d; -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0;" />
+                                <TextField fx:id="txtTitulo" editable="false"
+                                    promptText="Título do Script..."
+                                    style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #212529; -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0;" />
+                            </VBox>
+                            <HBox fx:id="boxAcoesTopo" spacing="5" alignment="CENTER">
+                                <Button fx:id="btnEditar" text="✏️ Editar" onAction="#handleEditar"
+                                    styleClass="flat" disable="true" />
+                                <Button fx:id="btnExcluir" text="🗑️ Excluir"
+                                    onAction="#handleExcluir" style="-fx-text-fill: #dc3545;"
+                                    styleClass="flat" disable="true" />
                             </HBox>
-                        </StackPane>
-                    </VBox>
-                </bottom>
+                        </HBox>
+                    </top>
 
-            </BorderPane>
-        </items>
-    </SplitPane>
-</VBox>
+                    <center>
+                        <VBox style="-fx-padding: 15 0 15 0;">
+                            <TextArea fx:id="txtConteudo" editable="false" wrapText="true"
+                                VBox.vgrow="ALWAYS"
+                                style="-fx-font-family: 'Segoe UI'; -fx-font-size: 16px; -fx-line-spacing: 6px; -fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;" />
+                        </VBox>
+                    </center>
+
+                    <bottom>
+                        <VBox spacing="15">
+                            <HBox alignment="CENTER_LEFT" spacing="10"
+                                style="-fx-background-color: #fff3cd; -fx-border-color: #ffe69c; -fx-border-radius: 5; -fx-padding: 10;">
+                                <Label text="💡 Dica de Ouro:"
+                                    style="-fx-font-weight: bold; -fx-text-fill: #856404;"
+                                    minWidth="-Infinity" />
+                                <TextArea fx:id="txtDica" editable="false" wrapText="true"
+                                    prefRowCount="1"
+                                    promptText="Orientação técnica para este script..."
+                                    HBox.hgrow="ALWAYS"
+                                    style="-fx-background-color: transparent; -fx-control-inner-background: transparent; -fx-border-color: transparent; -fx-text-fill: #856404; -fx-font-size: 14px; -fx-font-style: italic; -fx-padding: 10 0 0 0;" />
+                            </HBox>
+                            <StackPane>
+                                <Button fx:id="btnCopiar" maxWidth="Infinity"
+                                    onAction="#handleCopiar" disable="true"
+                                    style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12; -fx-font-size: 15px; -fx-background-radius: 5;"
+                                    text="📋 Copiar Script para o Clipboard" />
+                                <HBox fx:id="boxAcoesEdicao" spacing="10" visible="false">
+                                    <Button text="❌ Cancelar" onAction="#handleCancelar"
+                                        maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                        style="-fx-padding: 12; -fx-background-color: #e9ecef; -fx-font-weight: bold; -fx-background-radius: 5;" />
+                                    <Button text="💾 Salvar Modificações" onAction="#handleSalvar"
+                                        maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                        style="-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12; -fx-background-radius: 5;" />
+                                </HBox>
+                            </StackPane>
+                        </VBox>
+                    </bottom>
+                </BorderPane>
+            </items>
+        </SplitPane>
+    </VBox>
+
+    <VBox fx:id="overlayIA" visible="false" alignment="CENTER"
+        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 30;">
+        <VBox spacing="15" alignment="CENTER_LEFT" maxWidth="550" maxHeight="450" styleClass="card"
+            style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, 0, 0);">
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="🤖" style="-fx-font-size: 24px;" />
+                <VBox>
+                    <Label text="Engenharia Cognitiva de Scripts"
+                        style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #212529;" />
+                    <Label
+                        text="Cole o texto bruto do grupo do WhatsApp para estruturação automática."
+                        style="-fx-font-size: 12px; -fx-text-fill: #6c757d;" />
+                </VBox>
+            </HBox>
+
+            <TextArea fx:id="txtInputIA" promptText="Cole a mensagem aqui de forma bruta..."
+                wrapText="true" VBox.vgrow="ALWAYS"
+                style="-fx-font-family: 'Segoe UI'; -fx-font-size: 14px; -fx-border-color: #ced4da; -fx-border-radius: 5;" />
+
+            <HBox spacing="12" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+                <Button text="Cancelar" onAction="#fecharOverlayIA" styleClass="flat"
+                    style="-fx-padding: 8 20;" />
+                <Button fx:id="btnProcessarIA" text="✨ Estruturar com Gemini"
+                    onAction="#processarTextoComIA"
+                    style="-fx-background-color: #6c5ce7; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 8 20;" />
+            </HBox>
+        </VBox>
+    </VBox>
+
+</StackPane>
