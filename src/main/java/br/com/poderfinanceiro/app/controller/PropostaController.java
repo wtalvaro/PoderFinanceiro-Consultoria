@@ -535,8 +535,8 @@ public class PropostaController {
                     "Salve a proposta primeiro para gerar um código antes de anexar documentos.", null);
             return;
         }
-        Optional<String> tipo = new ChoiceDialog<>("RG",
-                List.of("RG", "CPF", "CNH", "Contracheque", "Comprovante de Residência", "Extrato Bancário", "Holerite", "Hiscon", "Outros"))
+        Optional<String> tipo = new ChoiceDialog<>("RG Frente",
+                List.of("RG Frente", "RG Verso", "CPF", "CNH Frente", "CNH Verso", "Contracheque", "Comprovante de Residência", "Extrato Bancário", "Holerite", "Hiscon", "Outros"))
                 .showAndWait();
         tipo.ifPresent(t -> {
             FileChooser fc = new FileChooser();
