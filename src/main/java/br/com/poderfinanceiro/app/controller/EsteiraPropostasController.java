@@ -19,6 +19,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.web.WebView;
+import javafx.scene.web.WebEngine;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -55,9 +57,11 @@ public class EsteiraPropostasController {
     @FXML
     private Button btnConfirmarAcao;
     @FXML
-    private Label lblFeedbackIcon, lblFeedbackTitle, lblFeedbackMessage;
+    private Label lblFeedbackIcon, lblFeedbackTitle;
     @FXML
     private Button btnFeedbackAction;
+    @FXML
+    private WebView webFeedback;
 
     private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -275,11 +279,37 @@ public class EsteiraPropostasController {
         acaoPendente = null;
     }
 
-    public void mostrarFeedback(String icone, String titulo, String mensagem, Runnable callback) {
+    public void mostrarFeedback(String icone, String titulo, String htmlConteudo, Runnable callback) {
         Platform.runLater(() -> {
             lblFeedbackIcon.setText(icone);
             lblFeedbackTitle.setText(titulo);
-            lblFeedbackMessage.setText(mensagem);
+
+            // Template HTML com o padding ajustado para o respiro nas laterais
+            String htmlTemplate = """
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <style>
+                            body {
+                                font-family: sans-serif;
+                                padding: 25px;
+                                box-sizing: border-box;
+                                color: #333;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        %s
+                    </body>
+                    </html>
+                    """
+                    .formatted(htmlConteudo);
+
+            // Carrega o conteúdo encapsulado no WebView
+            WebEngine engine = webFeedback.getEngine();
+            engine.loadContent(htmlTemplate);
 
             String style = "-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 30; -fx-background-radius: 6;";
             if (icone.contains("✅"))
@@ -292,6 +322,29 @@ public class EsteiraPropostasController {
             this.onFeedbackClose = callback;
             overlayFeedback.setVisible(true);
         });
+    }
+
+    // 🚀 Método invocado pelo WorkspaceController para selecionar uma proposta
+    // vinda do Dashboard
+    public void selecionarPropostaPorId(Long idTarget) {
+        if (idTarget == null || tablePropostas == null)
+            return;
+
+        // Limpa filtros de pesquisa ativos para garantir que a proposta procurada
+        // esteja visível
+        if (txtBusca != null) {
+            txtBusca.clear();
+        }
+
+        // Varre os dados mapeados na tabela para encontrar a proposta e forçar a
+        // seleção
+        for (PropostaModel proposta : masterData) {
+            if (idTarget.equals(proposta.getId())) {
+                tablePropostas.getSelectionModel().select(proposta);
+                tablePropostas.scrollTo(proposta); // Rola a tabela até o item selecionado
+                break;
+            }
+        }
     }
 
     @FXML

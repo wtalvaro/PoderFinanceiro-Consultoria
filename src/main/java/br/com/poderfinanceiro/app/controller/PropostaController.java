@@ -8,6 +8,7 @@ import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -43,8 +44,9 @@ public class PropostaController {
     private final MainController mainController;
     private final ProponenteService proponenteService;
     private final AtendimentoContextService contextoService;
+    private final AuthService authService; // 🚀 NOVO: Necessário para resgatar credenciais da IA
+    private final GeminiService geminiService; // 🚀 NOVO: Motor de inteligência artificial multimodal
 
-    // 🚀 A Referência Injetada do Pai
     private EsteiraPropostasController esteiraController;
 
     @FXML
@@ -65,8 +67,14 @@ public class PropostaController {
     private TextArea txtObservacoes;
     @FXML
     private Label lblComissaoEstimada, lblTituloComissao, lblTotalPago;
+
+    // Botões de Ação
     @FXML
     private Button btnAnexarDocumento;
+    @FXML
+    private Button btnSalvar;
+    @FXML
+    private Button btnRemover;
 
     @FXML
     private TableView<DocumentoProponenteModel> tableDocumentos;
@@ -89,7 +97,7 @@ public class PropostaController {
     public PropostaController(PropostaViewModel viewModel, DocumentoService documentoService,
             PropostaService propostaService, TabelaJurosService tabelaJurosService,
             MainController mainController, ProponenteService proponenteService,
-            AtendimentoContextService contextoService) {
+            AtendimentoContextService contextoService, AuthService authService, GeminiService geminiService) {
         this.viewModel = viewModel;
         this.documentoService = documentoService;
         this.propostaService = propostaService;
@@ -97,9 +105,10 @@ public class PropostaController {
         this.mainController = mainController;
         this.proponenteService = proponenteService;
         this.contextoService = contextoService;
+        this.authService = authService;
+        this.geminiService = geminiService;
     }
 
-    // Método exposto para receber a referência do Pai
     public void setEsteiraController(EsteiraPropostasController esteiraController) {
         this.esteiraController = esteiraController;
     }
@@ -192,7 +201,6 @@ public class PropostaController {
             isUpdatingInterface = false;
         }
 
-        // 🚀 INFORMA AO CHAT QUAL PROPOSTA ESTAMOS VENDO
         if (contextoService != null) {
             contextoService.setPropostaAtiva(completa);
             contextoService.setTelaAtualFocada(AtendimentoContextService.TipoTelaFocada.ESTEIRA_PROPOSTAS);
@@ -406,10 +414,6 @@ public class PropostaController {
         }
     }
 
-    // =========================================================================
-    // COMUNICAÇÃO DE AÇÕES (DELEGANDO PRO PAI)
-    // =========================================================================
-
     public void setOnPropostaSalva(Runnable callback) {
         this.onPropostaSalva = callback;
     }
@@ -505,10 +509,6 @@ public class PropostaController {
         new Thread(task).start();
     }
 
-    // =========================================================================
-    // DOCUMENTOS (TAMBÉM DELEGA EXCLUSÃO PRO PAI)
-    // =========================================================================
-
     private void carregarDocumentosDaProposta(Long propostaId) {
         if (propostaId == null) {
             listaDocumentos.clear();
@@ -536,7 +536,7 @@ public class PropostaController {
             return;
         }
         Optional<String> tipo = new ChoiceDialog<>("RG",
-                List.of("RG", "CPF", "CNH", "Contracheque", "Comprovante de Residência", "Extrato Bancário", "Outros"))
+                List.of("RG", "CPF", "CNH", "Contracheque", "Comprovante de Residência", "Extrato Bancário", "Holerite", "Hiscon", "Outros"))
                 .showAndWait();
         tipo.ifPresent(t -> {
             FileChooser fc = new FileChooser();
@@ -562,26 +562,162 @@ public class PropostaController {
 
     private void configurarTabelaDocumentos() {
         tableDocumentos.setItems(listaDocumentos);
+
+        // 📐 Largura ideal para acomodar confortavelmente os 3 botões agora
+        colAcoes.setPrefWidth(200);
+
         colTipoDocumento.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoDocumento()));
         colDataUpload.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getDataUpload() != null ? d.getValue().getDataUpload().format(DATE_FORMATTER) : "-"));
+
         colAcoes.setCellFactory(param -> new TableCell<>() {
             private final Button btnAbrir = new Button("👁️");
+            private final Button btnAnalisarIA = new Button("🤖"); // 🚀 O NOVO PROTAGONISTA
             private final Button btnExcluir = new Button("🗑️");
-            private final HBox container = new HBox(8, btnAbrir, btnExcluir);
+            private final HBox container = new HBox(6, btnAbrir, btnAnalisarIA, btnExcluir);
             {
                 btnAbrir.getStyleClass().add("flat");
+                btnAnalisarIA.getStyleClass().addAll("flat", "accent"); // Destaca com a cor de sotaque
                 btnExcluir.getStyleClass().addAll("flat", "danger");
                 container.setAlignment(Pos.CENTER);
+
+                // Tooltips para dar um toque profissional ao passar o mouse
+                btnAbrir.setTooltip(new Tooltip("Visualizar Documento"));
+                btnAnalisarIA.setTooltip(new Tooltip("Análise Cognitiva com Gemini IA"));
+                btnExcluir.setTooltip(new Tooltip("Excluir Documento"));
+
                 btnAbrir.setOnAction(e -> abrirDocumentoFisico(getTableView().getItems().get(getIndex())));
+                btnAnalisarIA.setOnAction(e -> analisarDocumentoComIA(getTableView().getItems().get(getIndex())));
                 btnExcluir.setOnAction(e -> exibirOverlayExclusao(getTableView().getItems().get(getIndex())));
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 setGraphic(empty ? null : container);
+
+                // 🔒 Trava de segurança: oculta botões de mutação se a proposta estiver
+                // finalizada
+                if (!empty) {
+                    boolean terminal = viewModel.idProperty().get() != null &&
+                            (viewModel.statusProperty().get() == StatusPropostaModel.PAGO ||
+                                    viewModel.statusProperty().get() == StatusPropostaModel.REPROVADA ||
+                                    viewModel.statusProperty().get() == StatusPropostaModel.CANCELADO);
+                    btnExcluir.setVisible(!terminal);
+                    btnExcluir.setManaged(!terminal);
+                    // Mantemos o btnAnalisarIA visível mesmo se terminal, pois ler dados antigos é
+                    // útil!
+                }
             }
         });
+    }
+
+    // =========================================================================
+    // 🧠 MOTOR DE INTELIGÊNCIA COGNITIVA: TRIAGEM E AUDITORIA VIA GEMINI
+    // =========================================================================
+    private void analisarDocumentoComIA(DocumentoProponenteModel doc) {
+        if (doc == null || doc.getArquivoPath() == null) {
+            mostrarFeedback("⚠️", "Erro", "Dados do documento inválidos.", null);
+            return;
+        }
+
+        File arquivoFisico = new File(doc.getArquivoPath());
+        if (!arquivoFisico.exists()) {
+            mostrarFeedback("❌", "Arquivo Físico Ausente", "O arquivo físico não foi encontrado no servidor local.",
+                    null);
+            return;
+        }
+
+        String tipoDoc = doc.getTipoDocumento() != null ? doc.getTipoDocumento().toUpperCase() : "OUTROS";
+
+        // Context-Aware Prompting: Engenharia de prompt dinâmica conforme o tipo do
+        // documento
+        String promptEspecialista;
+        String tituloAnalise;
+        String iconeAnalise;
+
+        if (tipoDoc.contains("RG") || tipoDoc.contains("CPF") || tipoDoc.contains("CNH")) {
+            iconeAnalise = "🔍";
+            tituloAnalise = "Triagem Visual de Identificação";
+            promptEspecialista = """
+                    Você é um Inspetor de Compliance e Segurança Documental Bancária do Poder Financeiro.
+                    Analise estritamente os aspectos visuais, de nitidez e enquadramento deste documento de identificação em anexo.
+
+                    Critérios obrigatórios para aceitação na esteira de crédito do banco:
+                    1. Enquadramento e Corte: O documento está inteiro na foto ou faltam bordas, textos ou assinaturas?
+                    2. Nitidez e Legibilidade: Há algum desfoque, trepidação ou pixelização que impeça ler os dados?
+                    3. Reflexos: Há clarões de flash ou luz artificial em cima de dados críticos (CPF, nome, foto ou data de emissão)?
+                    4. Tempo de Emissão: Se for RG, avalie visualmente se aparenta ter mais de 10 anos de emissão, alertando sobre risco de recusa.
+
+                    Retorne um relatório scannável em Bootstrap 5/HTML (envie direto as tags HTML como <p>, <br>, <strong> e tabelas, sem envolver o bloco em blocos de código com crases). Comece com uma badge elegante de status: <span class='badge bg-success'>RECOMENDADO</span> ou <span class='badge bg-warning'>RASCUNHO COM RESTRIÇÕES</span> ou <span class='badge bg-danger'>REPROVADO NA CONFERÊNCIA</span>. Seja direto, prático e profissional.
+                    """;
+        } else if (tipoDoc.contains("CONTRACHEQUE") || tipoDoc.contains("CONTRACQUE") || tipoDoc.contains("HOLERITE")
+                || tipoDoc.contains("HISCON")) {
+            iconeAnalise = "📊";
+            tituloAnalise = "Auditoria de Margem Consignável";
+            promptEspecialista = """
+                    Você é um Analista de Crédito Consignado Sênior do Poder Financeiro.
+                    Sua missão é extrair a verdade financeira deste holerite / contracheque em anexo.
+
+                    Execute os seguintes passos e monte o relatório matemático:
+                    1. Identifique a Renda Bruta e os Descontos Obrigatórios (Previdência, Imposto de Renda).
+                    2. Localize empréstimos ativos já descontados diretamente em folha de pagamento.
+                    3. Calcule ou localize a MARGEM CONSIGNÁVEL disponível para novos empréstimos (normalmente 30% a 35% da base regulamentar líquida).
+                    4. Alerte sobre rasuras, competência antiga (meses atrás) ou anotações suspeitas.
+
+                    Retorne um resumo executivo formatado com tabelas do Bootstrap 5 (sem incluir blocos de código com crases) detalhando: Renda Bruta, Descontos, Margem Utilizada e Margem Livre Estimada para novos contratos. Use <strong> para destacar todos os valores monetários.
+                    """;
+        } else {
+            iconeAnalise = "🤖";
+            tituloAnalise = "Análise Documental Geral";
+            promptEspecialista = """
+                    Você é um Assistente Analítico do Poder Financeiro.
+                    Analise o documento em anexo, identifique o seu propósito principal (ex: se for comprovante de residência, verifique a data de emissão recente e se está no nome do cliente ativo) e valide se a foto está nítida e elegível para ser submetida a uma esteira de crédito bancário tradicional.
+                    """;
+        }
+
+        // Exibe o carregamento global animado na tela do operador
+        if (mainController != null) {
+            mainController.mostrarLoading("O Gemini está atuando como especialista em " + tituloAnalise + "...");
+        }
+
+        // Executa a requisição assíncrona para não congelar a interface (UI Thread) do
+        // JavaFX
+        Task<String> taskAnaliseDoc = new Task<>() {
+            @Override
+            protected String call() throws Exception {
+                String token = (authService.getUsuarioLogado() != null)
+                        ? authService.getUsuarioLogado().getGeminiApiKey()
+                        : null;
+
+                // Fornece dados adicionais do proponente para o Gemini validar se a foto é
+                // mesmo deste cliente
+                var proponente = viewModel.proponenteProperty().get();
+                String jsonCliente = br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils
+                        .gerarJsonContextualParaIA(proponente, true);
+
+                return geminiService.perguntarAoAssistente(promptEspecialista, token, arquivoFisico, jsonCliente, "[]",
+                        "[]", "[]");
+            }
+        };
+
+        taskAnaliseDoc.setOnSucceeded(e -> {
+            if (mainController != null)
+                mainController.ocultarLoading();
+            // Entrega o diagnóstico polido com Bootstrap 5 diretamente no overlay universal
+            // do pai!
+            mostrarFeedback(iconeAnalise, tituloAnalise, taskAnaliseDoc.getValue(), null);
+        });
+
+        taskAnaliseDoc.setOnFailed(e -> {
+            if (mainController != null)
+                mainController.ocultarLoading();
+            taskAnaliseDoc.getException().printStackTrace();
+            mostrarFeedback("❌", "Falha na Análise",
+                    "O motor de IA falhou ao analisar este arquivo: " + taskAnaliseDoc.getException().getMessage(),
+                    null);
+        });
+
+        new Thread(taskAnaliseDoc).start();
     }
 
     private void abrirDocumentoFisico(DocumentoProponenteModel doc) {
@@ -616,11 +752,13 @@ public class PropostaController {
     // =========================================================================
     // 8. UTILITÁRIOS E UI TRAVAS
     // =========================================================================
+
     public void aplicarBloqueio() {
         boolean terminal = viewModel.idProperty().get() != null &&
                 (viewModel.statusProperty().get() == StatusPropostaModel.PAGO ||
                         viewModel.statusProperty().get() == StatusPropostaModel.REPROVADA ||
                         viewModel.statusProperty().get() == StatusPropostaModel.CANCELADO);
+
         cbStatus.setDisable(terminal);
         cbTabela.setDisable(terminal);
         cbBanco.setDisable(terminal);
@@ -628,8 +766,15 @@ public class PropostaController {
         txtValorSolicitado.setDisable(terminal);
         txtValorAprovado.setDisable(terminal);
         txtParcela.setDisable(terminal);
+        spinPrazoDesejado.setDisable(terminal);
         spinPrazo.setDisable(terminal);
         txtObservacoes.setPromptText(terminal ? "Proposta liquidada. Alterações não permitidas." : "");
+
+        // 🚀 Bloqueio dos botões principais
+        if (btnSalvar != null)
+            btnSalvar.setDisable(terminal);
+        if (btnRemover != null)
+            btnRemover.setDisable(terminal);
     }
 
     private void configurarIndicadoresDinamicos() {
@@ -652,13 +797,29 @@ public class PropostaController {
 
     private void configurarTravasEAlertas() {
         if (btnAnexarDocumento != null) {
-            btnAnexarDocumento.disableProperty().bind(viewModel.idProperty().isNull());
+
+            // 🚀 Criação de uma inteligência reativa para verificar se o status é terminal
+            BooleanBinding isTerminal = Bindings.createBooleanBinding(() -> {
+                StatusPropostaModel status = viewModel.statusProperty().get();
+                return status == StatusPropostaModel.PAGO ||
+                        status == StatusPropostaModel.REPROVADA ||
+                        status == StatusPropostaModel.CANCELADO;
+            }, viewModel.statusProperty());
+
+            // O botão de anexar só ficará desativado se não tiver ID gerado OU se o status
+            // for terminal
+            btnAnexarDocumento.disableProperty().bind(viewModel.idProperty().isNull().or(isTerminal));
+
             Tooltip tooltip = new Tooltip();
             tooltip.textProperty().bind(Bindings.when(viewModel.idProperty().isNull())
                     .then("⚠️ Salve a proposta primeiro para gerar um código e habilitar o envio de anexos.")
-                    .otherwise("Clique para anexar um novo documento a esta proposta."));
+                    .otherwise(Bindings.when(isTerminal)
+                            .then("🔒 Proposta liquidada. Não é possível adicionar novos documentos.")
+                            .otherwise("Clique para anexar um novo documento a esta proposta.")));
+
             btnAnexarDocumento.setTooltip(tooltip);
         }
+
         addBorderStyleListener(cbBanco);
         addBorderStyleListener(cbTabela);
     }

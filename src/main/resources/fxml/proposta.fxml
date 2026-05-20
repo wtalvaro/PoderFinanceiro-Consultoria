@@ -11,7 +11,7 @@
             <ToolBar
                 style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
                 <items>
-                    <Button text="💾 Salvar Proposta" onAction="#handleSalvar"
+                    <Button fx:id="btnSalvar" text="💾 Salvar Proposta" onAction="#handleSalvar"
                         styleClass="flat, accent" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Salvar alterações da proposta" />
@@ -24,13 +24,13 @@
                         style="-fx-text-fill: -color-fg-muted; -fx-font-size: 13px;" />
 
                     <Region HBox.hgrow="ALWAYS" />
-                    <Button text="🗑️ Remover" onAction="#handleRemover"
+                    <Button fx:id="btnRemover" text="🗑️ Remover" onAction="#handleRemover"
                         styleClass="flat, danger" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Excluir permanentemente esta proposta" />
                         </tooltip>
                     </Button>
-                    <Button text="✖ Fechar" onAction="#handleFechar"
+                    <Button fx:id="btnFechar" text="✖ Fechar" onAction="#handleFechar"
                         styleClass="flat, warning" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Fechar proposta e retornar à lista" />

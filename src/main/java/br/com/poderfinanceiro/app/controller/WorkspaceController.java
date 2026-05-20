@@ -24,7 +24,6 @@ public class WorkspaceController {
     private TabPane tabPanePrincipal;
 
     private final ApplicationContext context;
-    // 🎯 INJEÇÃO DO DIRECIONADOR DE CONTEXTO DA IA
     private final AtendimentoContextService contextoService;
 
     public WorkspaceController(ApplicationContext context, AtendimentoContextService contextoService) {
@@ -36,16 +35,11 @@ public class WorkspaceController {
     public void initialize() {
         configurarScrollHorizontal();
 
-        // 🚀 O RASTREADOR ATIVO DE ABAS (Multi-Tenant de Tela)
         tabPanePrincipal.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             sincronizarContextoComIA(newTab);
         });
     }
 
-    /**
-     * 🧠 Analisa a aba focada pelo operador e atualiza os sinais vitais do chat em
-     * background.
-     */
     private void sincronizarContextoComIA(Tab abaFocada) {
         if (abaFocada == null) {
             contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
@@ -54,7 +48,6 @@ public class WorkspaceController {
 
         Object userData = abaFocada.getUserData();
 
-        // 1. Mapeamento de Abas Estáticas de Gestão
         if (userData instanceof String idAba) {
             switch (idAba) {
                 case "ABA_DASHBOARD":
@@ -69,11 +62,13 @@ public class WorkspaceController {
                 case "ABA_JUROS":
                     contextoService.atualizarFocoInterface(null, TipoTelaFocada.TABELAS_JUROS);
                     return;
-                case "ABA_COMISSOES": // 🎯 INTERCEPTADO: Captura o foco na tela de liquidação RV
+                case "ABA_COMISSOES":
                     contextoService.atualizarFocoInterface(null, TipoTelaFocada.GESTAO_COMISSOES);
                     return;
+                case "ABA_PROPOSTAS": // 🚀 NOVO: Mantém o contexto do Chat ciente da Esteira
+                    contextoService.setTelaAtualFocada(TipoTelaFocada.ESTEIRA_PROPOSTAS);
+                    return;
                 default:
-                    // Outras abas administrativas (Bancos, Comissões, Playbook ou Propostas)
                     if (idAba.startsWith("ABA_")) {
                         contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
                         return;
@@ -82,14 +77,10 @@ public class WorkspaceController {
             }
         }
 
-        // Mapeamento de Aba de Atendimento Ativa (Hub de Cliente)
         Object controller = abaFocada.getProperties().get("controller");
         if (controller instanceof AtendimentoHubController hub) {
             if (hub.getLeadController() != null && hub.getLeadController().getViewModel() != null) {
-                // 🎯 CONSERTADO: Agora coleta o modelo completo mantendo o relacionamento de
-                // endereços!
-                contextoService.atualizarFocoInterface(
-                        hub.getProponenteComCamposDaTela(),
+                contextoService.atualizarFocoInterface(hub.getProponenteComCamposDaTela(),
                         TipoTelaFocada.CADASTRO_CLIENTE);
             } else {
                 contextoService.atualizarFocoInterface(null, TipoTelaFocada.CADASTRO_CLIENTE);
@@ -118,6 +109,9 @@ public class WorkspaceController {
             novaAba.setContent(root);
             novaAba.setUserData(id);
             novaAba.setClosable(true);
+
+            // 🚀 A CURA: Salva a referência do Controller na aba para uso futuro
+            novaAba.getProperties().put("controller", loader.getController());
 
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
@@ -162,35 +156,21 @@ public class WorkspaceController {
         admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
     }
 
+    // =====================================================================
+    // ROTEAMENTO: HUB DE CLIENTE
+    // =====================================================================
     public void abrirOuFocarAba(ProponenteModel proponente) {
-        abrirOuFocarAbaComProposta(proponente, null);
-    }
+        String idBuscado = (proponente != null && proponente.getId() != null) ? String.valueOf(proponente.getId())
+                : "NOVO_" + UUID.randomUUID().toString();
 
-    // =====================================================================
-    // 🚀 PATCH: LIMPEZA DO REPASSE DE PROPOSTAS PARA O HUB DO CLIENTE
-    // =====================================================================
-    public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
-        String idBuscado;
-
-        if (proponente != null && proponente.getId() != null) {
-            idBuscado = String.valueOf(proponente.getId());
-
-            for (Tab tab : tabPanePrincipal.getTabs()) {
-                if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
-                    tabPanePrincipal.getSelectionModel().select(tab);
-
-                    if (tab.getProperties().get("controller") instanceof AtendimentoHubController) {
-                        AtendimentoHubController hubExistente = (AtendimentoHubController) tab.getProperties()
-                                .get("controller");
-                        // ❌ ANTES: hubExistente.inicializarAtendimento(proponente, propostaIdAlvo);
-                        // ✅ AGORA: O Hub só foca no Cliente.
-                        hubExistente.inicializarAtendimento(proponente);
-                    }
-                    return;
+        for (Tab tab : tabPanePrincipal.getTabs()) {
+            if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
+                tabPanePrincipal.getSelectionModel().select(tab);
+                if (tab.getProperties().get("controller") instanceof AtendimentoHubController hubExistente) {
+                    hubExistente.inicializarAtendimento(proponente);
                 }
+                return;
             }
-        } else {
-            idBuscado = "NOVO_" + UUID.randomUUID().toString();
         }
 
         try {
@@ -200,8 +180,6 @@ public class WorkspaceController {
             AtendimentoHubController hub = loader.getController();
 
             if (proponente != null && proponente.getId() != null) {
-                // ❌ ANTES: Tinha if/else verificando propostaIdAlvo
-                // ✅ AGORA: Apenas inicializa o proponente
                 hub.inicializarAtendimento(proponente);
             } else {
                 hub.prepararNovoAtendimento();
@@ -210,12 +188,8 @@ public class WorkspaceController {
             Tab novaAba = new Tab();
             novaAba.setContent(root);
             novaAba.setUserData(idBuscado);
-
-            // Armazena a referência para resgate em tempo de execução
             novaAba.getProperties().put("controller", hub);
-
             hub.setTabPertencente(novaAba);
-
             configurarTituloReativoLead(novaAba, hub);
 
             novaAba.setOnCloseRequest(event -> {
@@ -229,14 +203,37 @@ public class WorkspaceController {
 
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    // =====================================================================
+    // 🚀 NOVO COMPORTAMENTO: ROTEAMENTO DIRETO PARA A ESTEIRA DE PROPOSTAS
+    // =====================================================================
+    public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
+        if (propostaIdAlvo != null) {
+            // 1. Garante que a aba da esteira está aberta e focada
+            admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
+
+            // 2. Busca o controlador e manda ele selecionar a proposta
+            for (Tab tab : tabPanePrincipal.getTabs()) {
+                if ("ABA_PROPOSTAS".equals(tab.getUserData())) {
+                    Object controller = tab.getProperties().get("controller");
+                    if (controller instanceof EsteiraPropostasController esteira) {
+                        Platform.runLater(() -> esteira.selecionarPropostaPorId(propostaIdAlvo));
+                    }
+                    break;
+                }
+            }
+        } else {
+            // Fallback de segurança: Se não tiver ID de proposta, abre o Hub do Cliente
+            abrirOuFocarAba(proponente);
+        }
+    }
+
     // ========================================================================
-    // UTILITÁRIOS INTERNOS (Suporte Vital)
+    // UTILITÁRIOS INTERNOS
     // ========================================================================
 
     private void configurarTituloReativoLead(Tab aba, AtendimentoHubController hub) {
