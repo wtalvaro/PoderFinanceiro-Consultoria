@@ -39,7 +39,7 @@ public interface TabelaJurosRepository extends JpaRepository<TabelaJurosModel, L
                 JOIN FETCH t.banco
                 WHERE t.ativo = true AND t.fimVigencia IS NULL
             """)
-    List<TabelaJurosModel> buscarTodasAtivasComBanco();
+    List<TabelaJurosModel> findAllAtivasWithBanco();
 
     // Busca por ID com banco
     @Query("SELECT t FROM TabelaJurosModel t JOIN FETCH t.banco WHERE t.id = :id")

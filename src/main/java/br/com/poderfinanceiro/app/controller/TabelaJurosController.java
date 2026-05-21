@@ -18,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import org.springframework.stereotype.Component;
+import org.controlsfx.control.MasterDetailPane;
 
 import java.math.BigDecimal;
 
@@ -29,7 +30,11 @@ public class TabelaJurosController {
     private final BancoRepository bancoRepository;
 
     @FXML
-    private TitledPane paneFormulario;
+    private MasterDetailPane paneFormulario; // Trocado de TitledPane para MasterDetailPane
+    @FXML
+    private Label lblFormTitulo; // Novo label interno do formulário
+    @FXML
+    private Button btnToggleForm; // Novo botão mestre do cabeçalho
     @FXML
     private Label lblAviso;
 
@@ -302,16 +307,25 @@ public class TabelaJurosController {
     }
 
     @FXML
+    private void handleToggleForm() {
+        boolean mostrandoForm = paneFormulario.isShowDetailNode();
+        paneFormulario.setShowDetailNode(!mostrandoForm);
+        btnToggleForm.setText(!mostrandoForm ? "➖ Fechar Formulário" : "➕ Prescrever Nova Tabela");
+    }
+
+    @FXML
     private void limparFormulario() {
         viewModel.reset();
-        paneFormulario.setExpanded(false);
-        paneFormulario.setText("💊 Prescrever Nova Tabela (Cadastrar / Atualizar)");
+        paneFormulario.setShowDetailNode(false); // Oculta o formulário deslizando suavemente
+        lblFormTitulo.setText("💊 Prescrever Nova Tabela (Cadastrar / Atualizar)");
+        btnToggleForm.setText("➕ Prescrever Nova Tabela");
     }
 
     private void editarTabela(TabelaJurosModel tabela) {
         viewModel.loadFromModel(tabela);
-        paneFormulario.setExpanded(true);
-        paneFormulario.setText("🔄 Editando Tabela: " + tabela.getNomeTabela() + " (Isso gerará uma nova versão)");
+        paneFormulario.setShowDetailNode(true); // Exibe o formulário com animação
+        lblFormTitulo.setText("🔄 Editando Tabela: " + tabela.getNomeTabela() + " (Isso gerará uma nova versão)");
+        btnToggleForm.setText("➖ Fechar Formulário");
         txtNomeTabela.requestFocus();
     }
 
@@ -332,7 +346,7 @@ public class TabelaJurosController {
             editarTabela(tabelaSelecionadaParaArquivar);
         }
         cancelarArquivamento();
-        paneFormulario.requestFocus();
+        txtNomeTabela.requestFocus(); // Foco direto no primeiro input field do formulário
     }
 
     @FXML

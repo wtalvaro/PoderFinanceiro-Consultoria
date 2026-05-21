@@ -23,7 +23,7 @@ public class TabelaJurosService {
      * Busca apenas as taxas ativas (que não foram arquivadas).
      */
     public List<TabelaJurosModel> listarAtivas() {
-        return tabelaJurosRepository.buscarTodasAtivasComBanco();
+        return tabelaJurosRepository.findAllAtivasWithBanco();
     }
 
     /**

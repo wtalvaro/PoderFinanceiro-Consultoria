@@ -2,195 +2,272 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
+<?import org.controlsfx.control.MasterDetailPane?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.TabelaJurosController">
 
-    <ScrollPane fx:id="scrollPrincipal" fitToWidth="true" fitToHeight="true"
-        style="-fx-background-color: transparent;" styleClass="edge-to-edge">
-        <content>
-            <VBox spacing="20" style="-fx-padding: 30; -fx-background-color: #ffffff;">
+    <VBox spacing="20" style="-fx-padding: 30; -fx-background-color: #ffffff;">
+        <children>
 
-                <VBox spacing="5">
-                    <Label text="📈 Matriz de Taxas e Comissões"
-                        style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
-                    <Label
-                        text="Regra de Ouro: Atualizar uma tabela arquiva a versão antiga e cria uma nova. Suas propostas e comissões anteriores não são afetadas."
-                        style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;" wrapText="true" />
-                </VBox>
+            <HBox alignment="CENTER_LEFT" spacing="20">
+                <children>
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <children>
+                            <Label text="📈 Matriz de Taxas e Comissões"
+                                style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+                            <Label
+                                text="Regra de Ouro: Atualizar uma tabela arquiva a versão antiga e cria uma nova. Suas propostas e comissões anteriores não são afetadas."
+                                style="-fx-font-size: 13px; -fx-text-fill: -color-fg-muted;"
+                                wrapText="true" />
+                        </children>
+                    </VBox>
+                    <Button fx:id="btnToggleForm" text="➕ Prescrever Nova Tabela"
+                        onAction="#handleToggleForm"
+                        styleClass="accent" style="-fx-font-weight: bold; -fx-padding: 10 15;" />
+                </children>
+            </HBox>
 
-                <Label fx:id="lblAviso" visible="false" managed="false" wrapText="true" />
+            <Label fx:id="lblAviso" visible="false" managed="false" wrapText="true" />
 
-                <TitledPane fx:id="paneFormulario"
-                    text="💊 Prescrever Nova Tabela (Cadastrar / Atualizar)"
-                    expanded="false" animated="true" style="-fx-font-size: 14px;">
-                    <content>
-                        <GridPane hgap="15" vgap="15"
-                            style="-fx-padding: 20; -fx-background-color: -color-bg-subtle;">
-                            <columnConstraints>
-                                <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
-                                <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
-                                <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
-                                <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
-                            </columnConstraints>
+            <MasterDetailPane fx:id="paneFormulario" detailSide="TOP" showDetailNode="false"
+                animated="true" dividerPosition="1.0" VBox.vgrow="ALWAYS">
+                <detailNode>
+                    <VBox spacing="12" style="-fx-padding: 0 0 20 0; -fx-background-color: #ffffff;">
+                        <children>
+                            <Label fx:id="lblFormTitulo"
+                                text="💊 Prescrever Nova Tabela (Cadastrar / Atualizar)"
+                                style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: -color-fg-default;" />
 
-                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                                <Label text="Banco Parceiro:"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <ComboBox fx:id="comboBanco" promptText="Selecione o Banco..."
-                                    maxWidth="Infinity" />
-                            </VBox>
+                            <ScrollPane fitToWidth="true" fitToHeight="true"
+                                style="-fx-background-color: transparent;" styleClass="edge-to-edge"
+                                VBox.vgrow="ALWAYS">
+                                <content>
+                                    <GridPane hgap="15" vgap="15"
+                                        style="-fx-padding: 20; -fx-background-color: -color-bg-subtle; -fx-background-radius: 8; -fx-border-color: -color-border-muted; -fx-border-radius: 8;">
+                                        <columnConstraints>
+                                            <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
+                                            <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
+                                            <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
+                                            <ColumnConstraints hgrow="ALWAYS" minWidth="150" />
+                                        </columnConstraints>
+                                        <children>
 
-                            <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0"
-                                GridPane.columnSpan="3">
-                                <Label text="Nome da Tabela:"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <TextField fx:id="txtNomeTabela"
-                                    promptText="Ex: INSS Normal - Banco PAN" />
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="0"
+                                                GridPane.rowIndex="0">
+                                                <children>
+                                                    <Label text="Banco Parceiro:"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <ComboBox fx:id="comboBanco"
+                                                        promptText="Selecione o Banco..."
+                                                        maxWidth="Infinity" />
+                                                </children>
+                                            </VBox>
 
-                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                                <Label text="Convênio:"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <ComboBox fx:id="comboConvenio" promptText="Selecione..."
-                                    maxWidth="Infinity" />
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="1"
+                                                GridPane.rowIndex="0"
+                                                GridPane.columnSpan="3">
+                                                <children>
+                                                    <Label text="Nome da Tabela:"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <TextField fx:id="txtNomeTabela"
+                                                        promptText="Ex: INSS Normal - Banco PAN" />
+                                                </children>
+                                            </VBox>
 
-                            <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                                <Label text="Taxa Mensal (%):"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <TextField fx:id="txtTaxaMensal" promptText="0,00" />
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="0"
+                                                GridPane.rowIndex="1">
+                                                <children>
+                                                    <Label text="Convênio:"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <ComboBox fx:id="comboConvenio"
+                                                        promptText="Selecione..."
+                                                        maxWidth="Infinity" />
+                                                </children>
+                                            </VBox>
 
-                            <VBox spacing="5" GridPane.columnIndex="2" GridPane.rowIndex="1">
-                                <Label text="Comissão (%):"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <TextField fx:id="txtComissao" promptText="0,00" />
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="1"
+                                                GridPane.rowIndex="1">
+                                                <children>
+                                                    <Label text="Taxa Mensal (%):"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <TextField fx:id="txtTaxaMensal"
+                                                        promptText="0,00" />
+                                                </children>
+                                            </VBox>
 
-                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="2">
-                                <Label text="Valor Empréstimo (R$):"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <HBox spacing="5">
-                                    <TextField fx:id="txtValorMinimo" promptText="Mín"
-                                        HBox.hgrow="ALWAYS" />
-                                    <TextField fx:id="txtValorMaximo" promptText="Máx"
-                                        HBox.hgrow="ALWAYS" />
-                                </HBox>
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="2"
+                                                GridPane.rowIndex="1">
+                                                <children>
+                                                    <Label text="Comissão (%):"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <TextField fx:id="txtComissao" promptText="0,00" />
+                                                </children>
+                                            </VBox>
 
-                            <VBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="2">
-                                <Label text="Prazo Operação (Meses):"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <HBox spacing="5">
-                                    <TextField fx:id="txtPrazoMinimo" promptText="Mín"
-                                        HBox.hgrow="ALWAYS" />
-                                    <TextField fx:id="txtPrazoMaximo" promptText="Máx"
-                                        HBox.hgrow="ALWAYS" />
-                                </HBox>
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="0"
+                                                GridPane.rowIndex="2">
+                                                <children>
+                                                    <Label text="Valor Empréstimo (R$):"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <HBox spacing="5">
+                                                        <children>
+                                                            <TextField fx:id="txtValorMinimo"
+                                                                promptText="Mín" HBox.hgrow="ALWAYS" />
+                                                            <TextField fx:id="txtValorMaximo"
+                                                                promptText="Máx" HBox.hgrow="ALWAYS" />
+                                                        </children>
+                                                    </HBox>
+                                                </children>
+                                            </VBox>
 
-                            <VBox spacing="5" GridPane.columnIndex="2" GridPane.rowIndex="2">
-                                <Label text="Renda Mínima (R$):"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <TextField fx:id="txtRendaMinima" promptText="Ex: 1.412,00"
-                                    maxWidth="Infinity" />
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="1"
+                                                GridPane.rowIndex="2">
+                                                <children>
+                                                    <Label text="Prazo Operação (Meses):"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <HBox spacing="5">
+                                                        <children>
+                                                            <TextField fx:id="txtPrazoMinimo"
+                                                                promptText="Mín" HBox.hgrow="ALWAYS" />
+                                                            <TextField fx:id="txtPrazoMaximo"
+                                                                promptText="Máx" HBox.hgrow="ALWAYS" />
+                                                        </children>
+                                                    </HBox>
+                                                </children>
+                                            </VBox>
 
-                            <VBox spacing="5" GridPane.columnIndex="0" GridPane.rowIndex="3">
-                                <Label text="Idade Limite (Anos):"
-                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
-                                <HBox spacing="5">
-                                    <TextField fx:id="txtIdadeMinima" promptText="Mín"
-                                        HBox.hgrow="ALWAYS" />
-                                    <TextField fx:id="txtIdadeMaxima" promptText="Máx"
-                                        HBox.hgrow="ALWAYS" />
-                                </HBox>
-                            </VBox>
+                                            <VBox spacing="5" GridPane.columnIndex="2"
+                                                GridPane.rowIndex="2">
+                                                <children>
+                                                    <Label text="Renda Mínima (R$):"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <TextField fx:id="txtRendaMinima"
+                                                        promptText="Ex: 1.412,00"
+                                                        maxWidth="Infinity" />
+                                                </children>
+                                            </VBox>
 
-                            <HBox alignment="BOTTOM_RIGHT" spacing="10" GridPane.columnIndex="2"
-                                GridPane.rowIndex="3" GridPane.columnSpan="2">
-                                <Button text="Limpar" onAction="#limparFormulario" styleClass="flat" />
-                                <Button text="💾 Salvar Tabela" onAction="#handleSalvar"
-                                    styleClass="accent" style="-fx-font-weight: bold;" />
+                                            <VBox spacing="5" GridPane.columnIndex="0"
+                                                GridPane.rowIndex="3">
+                                                <children>
+                                                    <Label text="Idade Limite (Anos):"
+                                                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                                                    <HBox spacing="5">
+                                                        <children>
+                                                            <TextField fx:id="txtIdadeMinima"
+                                                                promptText="Mín" HBox.hgrow="ALWAYS" />
+                                                            <TextField fx:id="txtIdadeMaxima"
+                                                                promptText="Máx" HBox.hgrow="ALWAYS" />
+                                                        </children>
+                                                    </HBox>
+                                                </children>
+                                            </VBox>
+
+                                            <HBox alignment="BOTTOM_RIGHT" spacing="10"
+                                                GridPane.columnIndex="2" GridPane.rowIndex="3"
+                                                GridPane.columnSpan="2">
+                                                <children>
+                                                    <Button text="Limpar"
+                                                        onAction="#limparFormulario"
+                                                        styleClass="flat" />
+                                                    <Button text="💾 Salvar Tabela"
+                                                        onAction="#handleSalvar"
+                                                        styleClass="accent"
+                                                        style="-fx-font-weight: bold;" />
+                                                </children>
+                                            </HBox>
+                                        </children>
+                                    </GridPane>
+                                </content>
+                            </ScrollPane>
+                        </children>
+                    </VBox>
+                </detailNode>
+
+                <masterNode>
+                    <VBox spacing="15" style="-fx-padding: 10 0 0 0;">
+                        <children>
+                            <HBox alignment="CENTER_LEFT" spacing="10"
+                                style="-fx-padding: 10 15 10 15; -fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1; -fx-border-radius: 5;">
+                                <children>
+                                    <Label text="🔍 Buscar Tabela Ativa:"
+                                        style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
+                                    <TextField fx:id="txtBusca"
+                                        promptText="Filtre por nome, convênio ou taxa..."
+                                        HBox.hgrow="ALWAYS"
+                                        style="-fx-font-size: 14px; -fx-background-color: transparent;" />
+                                </children>
                             </HBox>
-                        </GridPane>
-                    </content>
-                </TitledPane>
 
-                <HBox alignment="CENTER_LEFT" spacing="10"
-                    style="-fx-padding: 10 15 10 15; -fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1; -fx-border-radius: 5;">
-                    <Label text="🔍 Buscar Tabela Ativa:"
-                        style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
-                    <TextField fx:id="txtBusca" promptText="Filtre por nome, convênio ou taxa..."
-                        HBox.hgrow="ALWAYS"
-                        style="-fx-font-size: 14px; -fx-background-color: transparent;" />
-                </HBox>
+                            <TableView fx:id="tableTabelas" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="110" />
+                                    <TableColumn fx:id="colNome" text="Nome da Tabela"
+                                        prefWidth="210" />
+                                    <TableColumn fx:id="colTaxa" text="Taxa Mês" prefWidth="80"
+                                        style="-fx-alignment: CENTER;" />
+                                    <TableColumn fx:id="colComissao" text="Comissão" prefWidth="80"
+                                        style="-fx-alignment: CENTER;" />
+                                    <TableColumn fx:id="colLimites" text="Valor Permitido"
+                                        prefWidth="140" style="-fx-alignment: CENTER;" />
+                                    <TableColumn fx:id="colRenda" text="Renda Mínima"
+                                        prefWidth="120" style="-fx-alignment: CENTER;" />
+                                    <TableColumn fx:id="colIdade" text="Idade Limite"
+                                        prefWidth="110" style="-fx-alignment: CENTER;" />
+                                    <TableColumn fx:id="colPrazo" text="Prazo" prefWidth="90"
+                                        style="-fx-alignment: CENTER;" />
+                                    <TableColumn fx:id="colAcoes" text="Ações" prefWidth="120"
+                                        style="-fx-alignment: CENTER;" />
+                                </columns>
+                                <placeholder>
+                                    <Label
+                                        text="Nenhuma tabela de juros ativa encontrada no sistema." />
+                                </placeholder>
+                            </TableView>
+                        </children>
+                    </VBox>
+                </masterNode>
 
-                <TableView fx:id="tableTabelas" minHeight="350" VBox.vgrow="ALWAYS">
-                    <columns>
-                        <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="110" />
-                        <TableColumn fx:id="colNome" text="Nome da Tabela" prefWidth="210" />
-                        <TableColumn fx:id="colTaxa" text="Taxa Mês" prefWidth="80"
-                            style="-fx-alignment: CENTER;" />
-                        <TableColumn fx:id="colComissao" text="Comissão" prefWidth="80"
-                            style="-fx-alignment: CENTER;" />
-                        <TableColumn fx:id="colLimites" text="Valor Permitido"
-                            prefWidth="140" style="-fx-alignment: CENTER;" />
-
-                        <TableColumn fx:id="colRenda" text="Renda Mínima"
-                            prefWidth="120" style="-fx-alignment: CENTER;" />
-                        <TableColumn fx:id="colIdade" text="Idade Limite"
-                            prefWidth="110" style="-fx-alignment: CENTER;" />
-                        <TableColumn fx:id="colPrazo" text="Prazo"
-                            prefWidth="90" style="-fx-alignment: CENTER;" />
-                        <TableColumn fx:id="colAcoes" text="Ações" prefWidth="120"
-                            style="-fx-alignment: CENTER;" />
-                    </columns>
-                    <placeholder>
-                        <Label text="Nenhuma tabela de juros ativa encontrada no sistema." />
-                    </placeholder>
-                </TableView>
-
-            </VBox>
-        </content>
-    </ScrollPane>
+            </MasterDetailPane>
+        </children>
+    </VBox>
 
     <VBox fx:id="overlayArquivar" alignment="CENTER" spacing="20" visible="false"
         style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
-        <VBox alignment="CENTER" spacing="20" maxWidth="550"
-            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
-
-            <Label text="⚠️ Opções de Arquivamento"
-                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f57c00;" />
-
-            <Label text="Como você deseja proceder com esta tabela?"
-                wrapText="true" textAlignment="CENTER"
-                style="-fx-font-size: 15px; -fx-text-fill: #333;" />
-
-            <VBox spacing="10" alignment="CENTER" style="-fx-padding: 10 0;">
-                <Button text="🔄 Arquivar e Criar Nova Versão (Renovar)"
-                    onAction="#prepararNovaVersao"
-                    maxWidth="Infinity" styleClass="accent"
-                    style="-fx-font-weight: bold; -fx-padding: 10;" />
-                <Label
-                    text="Os dados irão para o formulário. Ao salvar, a antiga será arquivada e uma nova será criada."
-                    style="-fx-font-size: 11px; -fx-text-fill: #666;" />
-
-                <Separator style="-fx-padding: 5 0;" />
-
-                <Button text="📦 Apenas Arquivar (Inativar Definitivamente)"
-                    onAction="#confirmarArquivamento"
-                    maxWidth="Infinity"
-                    style="-fx-background-color: #ffe0b2; -fx-text-fill: #e65100; -fx-font-weight: bold; -fx-padding: 10;" />
-                <Label text="A tabela sairá de uso e não criará uma substituta."
-                    style="-fx-font-size: 11px; -fx-text-fill: #666;" />
+        <children>
+            <VBox alignment="CENTER" spacing="20" maxWidth="550"
+                style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+                <children>
+                    <Label text="⚠️ Opções de Arquivamento"
+                        style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f57c00;" />
+                    <Label text="Como você deseja proceder com esta tabela?" wrapText="true"
+                        textAlignment="CENTER" style="-fx-font-size: 15px; -fx-text-fill: #333;" />
+                    <VBox spacing="10" alignment="CENTER" style="-fx-padding: 10 0;">
+                        <children>
+                            <Button text="🔄 Arquivar e Criar Nova Versão (Renovar)"
+                                onAction="#prepararNovaVersao" maxWidth="Infinity"
+                                styleClass="accent" style="-fx-font-weight: bold; -fx-padding: 10;" />
+                            <Label
+                                text="Os dados irão para o formulário. Ao salvar, a antiga será arquivada e uma nova será criada."
+                                style="-fx-font-size: 11px; -fx-text-fill: #666;" />
+                            <Separator style="-fx-padding: 5 0;" />
+                            <Button text="📦 Apenas Arquivar (Inativar Definitivamente)"
+                                onAction="#confirmarArquivamento" maxWidth="Infinity"
+                                style="-fx-background-color: #ffe0b2; -fx-text-fill: #e65100; -fx-font-weight: bold; -fx-padding: 10;" />
+                            <Label text="A tabela sairá de uso e não criará uma substituta."
+                                style="-fx-font-size: 11px; -fx-text-fill: #666;" />
+                        </children>
+                    </VBox>
+                    <HBox spacing="15" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
+                        <children>
+                            <Button text="Cancelar" onAction="#cancelarArquivamento"
+                                styleClass="flat" />
+                        </children>
+                    </HBox>
+                </children>
             </VBox>
-
-            <HBox spacing="15" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
-                <Button text="Cancelar" onAction="#cancelarArquivamento" styleClass="flat" />
-            </HBox>
-        </VBox>
+        </children>
     </VBox>
 
 </StackPane>
