@@ -7,6 +7,7 @@ public enum TipoConvenioModel implements LabeledModel {
     CREDITO_PESSOAL("Crédito Pessoal"),
     CONTA_LUZ("Conta de Luz"),
     SIAPE("SIAPE"),
+    FGTS("FGTS"),
     PADRAO("Padrão");
 
     private final String label;

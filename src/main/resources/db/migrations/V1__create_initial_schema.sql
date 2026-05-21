@@ -48,6 +48,7 @@ CREATE TYPE public.tipo_convenio_enum AS ENUM (
     'CREDITO_PESSOAL',
     'CONTA_LUZ',
     'SIAPE',
+    'FGTS',
     'PADRAO'
 );
 
