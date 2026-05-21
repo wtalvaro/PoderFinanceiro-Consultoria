@@ -89,56 +89,10 @@
                     </GridPane>
                 </VBox>
 
-                <VBox spacing="10" style="-fx-padding: 20 0 0 0;">
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Label text="3. Documentos Pessoais"
-                            style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: -color-accent-fg;" />
-                        <Region HBox.hgrow="ALWAYS" />
-                        <Button text="➕ Anexar Documento" onAction="#handleAnexarDocumento"
-                            styleClass="flat, accent" />
-                    </HBox>
-                    <Separator />
-
-                    <TableView fx:id="tableDocumentos" prefHeight="250" minHeight="200"
-                        VBox.vgrow="ALWAYS">
-                        <columns>
-                            <TableColumn fx:id="colTipoDocumento" text="Tipo de Documento"
-                                prefWidth="180" />
-                            <TableColumn fx:id="colDataUpload" text="Data de Upload" prefWidth="150" />
-                            <TableColumn fx:id="colAcoes" text="Ações" prefWidth="100" />
-                        </columns>
-                        <placeholder>
-                            <Label
-                                text="Nenhum documento anexado a este cliente ainda. Salve o cadastro para habilitar." />
-                        </placeholder>
-                    </TableView>
-                </VBox>
-
                 <ProgressIndicator fx:id="progress" visible="false" managed="false" prefHeight="30"
                     prefWidth="30" />
             </VBox>
         </content>
     </ScrollPane>
-
-    <VBox fx:id="overlayExclusao" visible="false" alignment="CENTER"
-        style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 20;">
-
-        <VBox spacing="20" alignment="CENTER" maxWidth="400" maxHeight="200"
-            styleClass="card"
-            style="-fx-background-color: -color-bg-default; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);">
-
-            <Label text="🗑️ Excluir Documento"
-                style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -color-danger-fg;" />
-
-            <Label fx:id="lblConfirmacaoExclusao"
-                text="Tem certeza que deseja remover este documento do cliente?"
-                wrapText="true" textAlignment="CENTER" style="-fx-font-size: 14px;" />
-
-            <HBox spacing="15" alignment="CENTER">
-                <Button text="Cancelar" onAction="#cancelarExclusao" styleClass="flat" />
-                <Button text="Sim, Excluir" onAction="#confirmarExclusao" styleClass="danger" />
-            </HBox>
-        </VBox>
-    </VBox>
 
 </StackPane>

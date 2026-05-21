@@ -20,10 +20,16 @@
 
                     <Separator orientation="VERTICAL" />
 
-                    <Label text="Gestão de Simulação"
-                        style="-fx-text-fill: -color-fg-muted; -fx-font-size: 13px;" />
+                    <HBox alignment="CENTER" spacing="8"
+                        style="-fx-background-color: #e8f5e9; -fx-padding: 4 12; -fx-background-radius: 6; -fx-border-color: #c8e6c9; -fx-border-radius: 6;">
+                        <Label fx:id="lblTituloComissao" text="Comissão Estimada:"
+                            style="-fx-font-weight: bold; -fx-text-fill: #2e7d32; -fx-font-size: 12px;" />
+                        <Label fx:id="lblComissaoEstimada" text="R$ 0,00"
+                            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1b5e20;" />
+                    </HBox>
 
                     <Region HBox.hgrow="ALWAYS" />
+
                     <Button fx:id="btnRemover" text="🗑️ Remover" onAction="#handleRemover"
                         styleClass="flat, danger" style="-fx-font-weight: bold;">
                         <tooltip>
@@ -47,15 +53,6 @@
                     <HBox alignment="CENTER_LEFT" spacing="15">
                         <Label text="📄 Nova Simulação / Proposta"
                             style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
-                        <Region HBox.hgrow="ALWAYS" />
-
-                        <VBox alignment="CENTER"
-                            style="-fx-background-color: #e8f5e9; -fx-padding: 10 20; -fx-border-radius: 8; -fx-border-color: #c8e6c9;">
-                            <Label fx:id="lblTituloComissao" text="Comissão Estimada"
-                                style="-fx-font-weight: bold;" />
-                            <Label fx:id="lblComissaoEstimada" text="R$ 0,00"
-                                style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1b5e20;" />
-                        </VBox>
                     </HBox>
 
                     <Separator />
@@ -215,5 +212,39 @@
             </ScrollPane>
         </center>
     </BorderPane>
+
+    <VBox fx:id="overlayDocumento" visible="false" alignment="CENTER"
+        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
+
+        <VBox spacing="20" alignment="CENTER" maxWidth="450" styleClass="card"
+            style="-fx-background-color: -color-bg-default; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
+
+            <Label fx:id="lblOverlayDocTitulo" text="Anexar Novo Documento"
+                style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
+
+            <VBox spacing="5" style="-fx-alignment: CENTER_LEFT; -fx-pref-width: 100%;">
+                <Label text="Tipo / Nome do Documento:"
+                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                <ComboBox fx:id="cbTipoDocumentoOverlay" editable="true" maxWidth="Infinity"
+                    promptText="Ex: RG Frente, Comprovante de Residência..." />
+            </VBox>
+
+            <VBox fx:id="boxSelecaoArquivo" spacing="10" alignment="CENTER"
+                style="-fx-pref-width: 100%; -fx-padding: 15; -fx-border-color: #ced4da; -fx-border-radius: 8; -fx-border-style: dashed;">
+                <Button text="📂 Procurar Arquivo no Computador..."
+                    onAction="#handleProcurarArquivo" styleClass="flat" />
+                <Label fx:id="lblArquivoSelecionado" text="Nenhum arquivo selecionado"
+                    style="-fx-text-fill: -color-fg-muted; -fx-font-size: 12px;" wrapText="true"
+                    textAlignment="CENTER" />
+            </VBox>
+
+            <HBox spacing="15" alignment="CENTER" style="-fx-padding: 15 0 0 0;">
+                <Button text="Cancelar" onAction="#fecharOverlayDocumento" styleClass="flat" />
+                <Button fx:id="btnSalvarDocumento" text="💾 Salvar Documento"
+                    onAction="#confirmarSalvarDocumento"
+                    styleClass="accent" style="-fx-font-weight: bold;" disable="true" />
+            </HBox>
+        </VBox>
+    </VBox>
 
 </StackPane>
