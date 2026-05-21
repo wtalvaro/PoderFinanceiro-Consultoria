@@ -220,13 +220,21 @@ public class GeminiService {
                   "banco": "Nome do Banco (ex: PAN, ITAU)",
                   "nomeTabela": "Nome completo da tabela",
                   "tipoConvenio": "INSS_CONSIGNADO, CLT_CONSIGNADO, BOLSA_FAMILIA, SIAPE, EXERCITO, AERONAUTICA, MARINHA",
-                  "valorMinimo": 0.0, "valorMaximo": 0.0,
-                  "prazoMinimo": 0, "prazoMaximo": 0,
-                  "idadeMinima": 0, "idadeMaxima": 0,
-                  "taxaMensal": 0.0, "comissaoPercentual": 0.0,
-                  "fimVigenciaCalculado": "ISO_DATE_TIME (ex: 2026-12-31T23:59:00) ou nulo se não houver na imagem"
+                  "valorMinimo": 0.0,
+                  "valorMaximo": 0.0,
+                  "prazoMinimo": 0,
+                  "prazoMaximo": 0,
+                  "idadeMinima": 0,
+                  "idadeMaxima": 0,
+                  "taxaMensal": 0.0,
+                  "comissaoPercentual": 0.0,
+                  "fimVigenciaCalculado": "ISO_DATE (ex: 2026-12-31) ou null"
                 }
-                Se um dado numérico não existir na imagem, preencha com 0 ou 0.0.
+
+                ATENÇÃO MERCADOLÓGICA CRÍTICA:
+                1. Se na imagem estiver escrito apenas 'Vigência: DD/MM/AAAA' ou 'Vigente a partir de', isto representa o INÍCIO da tabela. Portanto, retorne "fimVigenciaCalculado": null.
+                2. Só preencha o 'fimVigenciaCalculado' se houver termos explícitos de expiração ou prazo final, tais como: 'Válido até', 'Campanha válida apenas até o dia', 'Vigência encerra em'. Caso contrário, retorne null.
+                3. Se um dado numérico não existir na imagem, preencha com 0 ou 0.0.
                 """;
 
         try {

@@ -33,11 +33,12 @@ public interface TabelaJurosRepository extends JpaRepository<TabelaJurosModel, L
      */
     List<TabelaJurosModel> findByAtivoTrueAndFimVigenciaIsNull();
 
-    // Listagem ativa com banco
+    // Listagem ativa com banco (Suporta tabelas sem fim e campanhas válidas)
     @Query("""
                 SELECT t FROM TabelaJurosModel t
                 JOIN FETCH t.banco
-                WHERE t.ativo = true AND t.fimVigencia IS NULL
+                WHERE t.ativo = true
+                AND (t.fimVigencia IS NULL OR t.fimVigencia >= CURRENT_DATE)
             """)
     List<TabelaJurosModel> findAllAtivasWithBanco();
 

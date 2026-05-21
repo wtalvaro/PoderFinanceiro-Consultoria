@@ -1,6 +1,9 @@
 package br.com.poderfinanceiro.app.service;
 
+import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
+import br.com.poderfinanceiro.app.model.BancoModel;
 import br.com.poderfinanceiro.app.model.TabelaJurosModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.repository.BancoRepository;
 import br.com.poderfinanceiro.app.repository.TabelaJurosRepository;
 import org.springframework.stereotype.Service;
@@ -58,7 +61,7 @@ public class TabelaJurosService {
         novaVersao.setValorMinimoEmprestimo(model.getValorMinimoEmprestimo());
         novaVersao.setValorMaximoEmprestimo(model.getValorMaximoEmprestimo());
 
-        // 🚀 AQUI ESTÁ A SUTURA! TRANSFERINDO OS NOVOS LIMITES PARA A NOVA VERSÃO
+        // 🚀 TRANSFERINDO OS NOVOS LIMITES PARA A NOVA VERSÃO
         novaVersao.setRendaMinima(model.getRendaMinima());
         novaVersao.setPrazoMinimo(model.getPrazoMinimo());
         novaVersao.setPrazoMaximo(model.getPrazoMaximo());
@@ -84,14 +87,14 @@ public class TabelaJurosService {
         }
     }
 
-    // 🚀 NOVO MÉTODO: Processamento Transacional de Tabelas em Lote
-    @org.springframework.transaction.annotation.Transactional
-    public void salvarLoteTabelasImportadas(java.util.List<br.com.poderfinanceiro.app.dto.TabelaImportadaDTO> lote) {
-        for (br.com.poderfinanceiro.app.dto.TabelaImportadaDTO dto : lote) {
+    // 🚀 MÉTODO ATUALIZADO: Processamento Transacional de Tabelas em Lote com
+    // Ativação Dinâmica
+    @Transactional
+    public void salvarLoteTabelasImportadas(List<TabelaImportadaDTO> lote) {
+        for (TabelaImportadaDTO dto : lote) {
 
-            // 1. Resolve o Banco via pesquisa elástica (Note o uso de 'Nome' em vez de
-            // 'NomeBanco')
-            br.com.poderfinanceiro.app.model.BancoModel bancoModel = bancoRepository
+            // 1. Resolve o Banco via pesquisa elástica (Ignorando Case)
+            BancoModel bancoModel = bancoRepository
                     .findFirstByNomeContainingIgnoreCase(dto.getBanco())
                     .orElseThrow(() -> new RuntimeException("Banco não cadastrado no ERP: " + dto.getBanco()));
 
@@ -100,20 +103,20 @@ public class TabelaJurosService {
             tabelaJurosRepository.findByBancoIdAndNomeTabelaAndAtivoTrue(bancoModel.getId(), dto.getNomeTabela())
                     .ifPresent(tabelaAntiga -> {
                         tabelaAntiga.setAtivo(false);
-                        tabelaAntiga.setFimVigencia(java.time.LocalDate.now()); // Correção para LocalDate
+                        tabelaAntiga.setFimVigencia(LocalDate.now());
                         tabelaJurosRepository.save(tabelaAntiga);
                     });
 
-            // 3. Cria e salva a nova tabela
-            br.com.poderfinanceiro.app.model.TabelaJurosModel novaTabela = new br.com.poderfinanceiro.app.model.TabelaJurosModel();
+            // 3. Cria a nova estrutura de dados mapeada pelo Gemini
+            TabelaJurosModel novaTabela = new TabelaJurosModel();
             novaTabela.setBanco(bancoModel);
             novaTabela.setNomeTabela(dto.getNomeTabela());
 
             try {
                 novaTabela.setTipoConvenio(
-                        br.com.poderfinanceiro.app.model.enums.TipoConvenioModel.valueOf(dto.getTipoConvenio()));
+                        TipoConvenioModel.valueOf(dto.getTipoConvenio()));
             } catch (Exception e) {
-                novaTabela.setTipoConvenio(br.com.poderfinanceiro.app.model.enums.TipoConvenioModel.INSS_CONSIGNADO);
+                novaTabela.setTipoConvenio(TipoConvenioModel.INSS_CONSIGNADO);
             }
 
             novaTabela.setValorMinimoEmprestimo(dto.getValorMinimo());
@@ -124,21 +127,29 @@ public class TabelaJurosService {
             novaTabela.setIdadeMaxima(dto.getIdadeMaxima());
             novaTabela.setTaxaMensal(dto.getTaxaMensal());
             novaTabela.setComissaoPercentual(dto.getComissaoPercentual());
-            novaTabela.setAtivo(true);
-            novaTabela.setInicioVigencia(java.time.LocalDate.now()); // Correção para LocalDate
+            novaTabela.setInicioVigencia(LocalDate.now());
 
-            // Gerencia a Vigência Programada: A IA devolve DateTime, extraímos só a Data.
+            // 🛡️ SUTURA DA LÓGICA DINÂMICA DE ATIVAÇÃO POR VIGÊNCIA
+            boolean tabelaAtiva = true;
+
             if (dto.getFimVigenciaCalculado() != null && !dto.getFimVigenciaCalculado().isBlank()
                     && !dto.getFimVigenciaCalculado().equals("null")) {
                 try {
-                    java.time.LocalDate dataVigencia = java.time.LocalDateTime.parse(dto.getFimVigenciaCalculado())
-                            .toLocalDate();
-                    novaTabela.setFimVigencia(dataVigencia);
+                    // O Gemini agora devolve apenas a data em ISO_DATE (LocalDate) conforme o
+                    // prompt ajustado
+                    LocalDate dataFim = LocalDate.parse(dto.getFimVigenciaCalculado());
+                    novaTabela.setFimVigencia(dataFim);
+
+                    // Se a IA capturou uma tabela antiga/expirada em lote, ela já entra arquivada
+                    if (dataFim.isBefore(LocalDate.now())) {
+                        tabelaAtiva = false;
+                    }
                 } catch (Exception e) {
                     novaTabela.setFimVigencia(null);
                 }
             }
 
+            novaTabela.setAtivo(tabelaAtiva);
             tabelaJurosRepository.save(novaTabela);
         }
     }
