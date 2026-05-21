@@ -219,7 +219,7 @@ public class GeminiService {
                 {
                   "banco": "Nome do Banco (ex: PAN, ITAU)",
                   "nomeTabela": "Nome completo da tabela",
-                  "tipoConvenio": "INSS_CONSIGNADO, CLT_CONSIGNADO, BOLSA_FAMILIA, SIAPE, EXERCITO, AERONAUTICA, MARINHA",
+                  "tipoConvenio": "INSS_CONSIGNADO, CLT_CONSIGNADO, BOLSA_FAMILIA, SIAPE, FGTS, CREDITO_PESSOAL",
                   "valorMinimo": 0.0,
                   "valorMaximo": 0.0,
                   "prazoMinimo": 0,
@@ -228,13 +228,16 @@ public class GeminiService {
                   "idadeMaxima": 0,
                   "taxaMensal": 0.0,
                   "comissaoPercentual": 0.0,
+                  "inicioVigenciaCalculado": "ISO_DATE (ex: 2026-05-21) ou null se não houver data de início explícita",
                   "fimVigenciaCalculado": "ISO_DATE (ex: 2026-12-31) ou null"
                 }
 
-                ATENÇÃO MERCADOLÓGICA CRÍTICA:
-                1. Se na imagem estiver escrito apenas 'Vigência: DD/MM/AAAA' ou 'Vigente a partir de', isto representa o INÍCIO da tabela. Portanto, retorne "fimVigenciaCalculado": null.
-                2. Só preencha o 'fimVigenciaCalculado' se houver termos explícitos de expiração ou prazo final, tais como: 'Válido até', 'Campanha válida apenas até o dia', 'Vigência encerra em'. Caso contrário, retorne null.
-                3. Se um dado numérico não existir na imagem, preencha com 0 ou 0.0.
+                REGRA DE OURO DE DATAS (PROIBIDO ALUCINAR):
+                1. Se houver apenas UMA data genérica na imagem (ex: 'Vigência: 20/05/2026', 'Tabela de 20/05' ou 'Vigente em 20/05'), esta data representa OBRIGATORIAMENTE o INÍCIO da tabela. Você deve preencher o campo 'inicioVigenciaCalculado' e deixar o campo 'fimVigenciaCalculado' ESTRITAMENTE como null.
+                2. NUNCA repita a mesma data nos dois campos.
+                3. O campo 'fimVigenciaCalculado' SÓ PODE ser preenchido se houver um termo claro e inequívoco de expiração ou encerramento (ex: 'Válido até', 'Campanha exclusiva para o dia', 'Vigência encerra em'). Caso contrário, retorne null.
+                4. Se não houver menção a nenhuma data na imagem, retorne ambos os campos de vigência como null.
+                5. Se um dado numérico não existir na imagem, preencha com 0 ou 0.0.
                 """;
 
         try {

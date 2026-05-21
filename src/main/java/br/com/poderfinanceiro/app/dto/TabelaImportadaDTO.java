@@ -18,6 +18,7 @@ public class TabelaImportadaDTO {
     private Integer idadeMaxima;
     private BigDecimal taxaMensal;
     private BigDecimal comissaoPercentual;
+    private String inicioVigenciaCalculado;
     private String fimVigenciaCalculado;
 
     // Estado da Interface (UI)
@@ -110,6 +111,14 @@ public class TabelaImportadaDTO {
 
     public void setComissaoPercentual(BigDecimal comissaoPercentual) {
         this.comissaoPercentual = comissaoPercentual;
+    }
+
+    public String getInicioVigenciaCalculado() {
+        return inicioVigenciaCalculado;
+    }
+
+    public void setInicioVigenciaCalculado(String inicioVigenciaCalculado) {
+        this.inicioVigenciaCalculado = inicioVigenciaCalculado;
     }
 
     public String getFimVigenciaCalculado() {

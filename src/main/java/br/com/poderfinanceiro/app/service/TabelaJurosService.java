@@ -88,7 +88,7 @@ public class TabelaJurosService {
     }
 
     // 🚀 MÉTODO ATUALIZADO: Processamento Transacional de Tabelas em Lote com
-    // Ativação Dinâmica
+    // Ativação Dinâmica e Início de Vigência da IA
     @Transactional
     public void salvarLoteTabelasImportadas(List<TabelaImportadaDTO> lote) {
         for (TabelaImportadaDTO dto : lote) {
@@ -127,22 +127,40 @@ public class TabelaJurosService {
             novaTabela.setIdadeMaxima(dto.getIdadeMaxima());
             novaTabela.setTaxaMensal(dto.getTaxaMensal());
             novaTabela.setComissaoPercentual(dto.getComissaoPercentual());
-            novaTabela.setInicioVigencia(LocalDate.now());
 
-            // 🛡️ SUTURA DA LÓGICA DINÂMICA DE ATIVAÇÃO POR VIGÊNCIA
+            // 4. Define a data de início (Usa a da IA ou assume o dia de hoje como
+            // fallback)
+            LocalDate dataInicioTabela = LocalDate.now();
+            if (dto.getInicioVigenciaCalculado() != null && !dto.getInicioVigenciaCalculado().isBlank()
+                    && !dto.getInicioVigenciaCalculado().equals("null")) {
+                try {
+                    dataInicioTabela = LocalDate.parse(dto.getInicioVigenciaCalculado());
+                } catch (Exception e) {
+                    // Mantém o LocalDate.now() em caso de falha de conversão
+                }
+            }
+            novaTabela.setInicioVigencia(dataInicioTabela);
+
+            // 5. 🛡️ LÓGICA DINÂMICA E BLINDAGEM CONTRA ALUCINAÇÃO DE DUPLICAÇÃO
             boolean tabelaAtiva = true;
 
             if (dto.getFimVigenciaCalculado() != null && !dto.getFimVigenciaCalculado().isBlank()
                     && !dto.getFimVigenciaCalculado().equals("null")) {
                 try {
-                    // O Gemini agora devolve apenas a data em ISO_DATE (LocalDate) conforme o
-                    // prompt ajustado
                     LocalDate dataFim = LocalDate.parse(dto.getFimVigenciaCalculado());
-                    novaTabela.setFimVigencia(dataFim);
 
-                    // Se a IA capturou uma tabela antiga/expirada em lote, ela já entra arquivada
-                    if (dataFim.isBefore(LocalDate.now())) {
-                        tabelaAtiva = false;
+                    // 🛡️ TRAVA DE SEGURANÇA: Se a data de fim for igual à data de início, a IA
+                    // cometeu um falso positivo de leitura.
+                    if (dataFim.equals(dataInicioTabela)) {
+                        novaTabela.setFimVigencia(null); // Ignora o fim de vigência incorreto
+                    } else {
+                        novaTabela.setFimVigencia(dataFim);
+
+                        // Se a IA capturar uma tabela cuja data de fim real já passou, ela entra
+                        // desativada
+                        if (dataFim.isBefore(LocalDate.now())) {
+                            tabelaAtiva = false;
+                        }
                     }
                 } catch (Exception e) {
                     novaTabela.setFimVigencia(null);
