@@ -30,7 +30,7 @@
         <MenuItem text="🏦 Bancos &amp; Convênios" onAction="#handleBancos" />
         <MenuItem text="🔗 Links Úteis" onAction="#handleLinks" accelerator="Shortcut+L" />
         <SeparatorMenuItem />
-        <MenuItem text="🔄 Limpar Cache de Telas" onAction="#handleLimparCache" />
+        <MenuItem text="🔄 Limpar Cache de Telas" onAction="#handleLimparCache" disable="true" />
     </Menu>
 
     <Menu text="_Ajuda">
