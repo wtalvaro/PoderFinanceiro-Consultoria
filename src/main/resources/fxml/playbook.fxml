@@ -62,17 +62,28 @@
 
                     <bottom>
                         <VBox spacing="15">
-                            <HBox alignment="CENTER_LEFT" spacing="10"
+                            <HBox alignment="TOP_LEFT" spacing="10"
                                 style="-fx-background-color: #fff3cd; -fx-border-color: #ffe69c; -fx-border-radius: 5; -fx-padding: 10;">
                                 <Label text="💡 Dica de Ouro:"
-                                    style="-fx-font-weight: bold; -fx-text-fill: #856404;"
+                                    style="-fx-font-weight: bold; -fx-text-fill: #856404; -fx-padding: 2 0 0 0;"
                                     minWidth="-Infinity" />
-                                <TextArea fx:id="txtDica" editable="false" wrapText="true"
-                                    prefRowCount="1"
-                                    promptText="Orientação técnica para este script..."
-                                    HBox.hgrow="ALWAYS"
-                                    style="-fx-background-color: transparent; -fx-control-inner-background: transparent; -fx-border-color: transparent; -fx-text-fill: #856404; -fx-font-size: 14px; -fx-font-style: italic; -fx-padding: 3 0 0 0;" />
+
+                                <StackPane fx:id="stackDica" alignment="TOP_LEFT"
+                                    HBox.hgrow="ALWAYS">
+                                    <Label fx:id="lblDica" wrapText="true" maxWidth="Infinity"
+                                        style="-fx-text-fill: #856404; -fx-font-size: 14px; -fx-font-style: italic; -fx-padding: 2 0 0 0;" />
+                                    <TextArea fx:id="txtDica"
+                                        visible="false"
+                                        managed="false"
+                                        wrapText="true"
+                                        prefRowCount="2"
+                                        prefHeight="65"
+                                        maxHeight="80"
+                                        promptText="Orientação técnica para este script..."
+                                        style="-fx-background-color: transparent; -fx-control-inner-background: transparent; -fx-border-color: #ffe69c; -fx-border-radius: 4; -fx-text-fill: #856404; -fx-font-size: 14px; -fx-font-style: italic; -fx-padding: 5;" />
+                                </StackPane>
                             </HBox>
+
                             <StackPane>
                                 <Button fx:id="btnCopiar" maxWidth="Infinity"
                                     onAction="#handleCopiar" disable="true"
@@ -100,7 +111,6 @@
         <VBox spacing="18" alignment="CENTER_LEFT" maxWidth="580" maxHeight="480" styleClass="card"
             style="-fx-background-color: #ffffff; -fx-padding: 28; -fx-background-radius: 16; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 25, 0, 0, 8);">
             <children>
-
                 <HBox spacing="14" alignment="CENTER_LEFT">
                     <children>
                         <StackPane
@@ -128,7 +138,6 @@
 
                 <HBox spacing="12" alignment="BOTTOM_LEFT" style="-fx-padding: 4 0 0 0;">
                     <children>
-
                         <VBox spacing="4">
                             <children>
                                 <Label text="Modelo de Inteligência"
@@ -141,15 +150,14 @@
                         <Region HBox.hgrow="ALWAYS" />
 
                         <Button text="Cancelar" onAction="#fecharOverlayIA" styleClass="flat"
+                            minWidth="-Infinity"
                             style="-fx-padding: 10 22; -fx-font-weight: bold; -fx-text-fill: #64748b; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-size: 13px;" />
 
                         <Button fx:id="btnProcessarIA" text="✨ Estruturar com Gemini"
-                            onAction="#processarTextoComIA"
+                            onAction="#processarTextoComIA" minWidth="-Infinity"
                             style="-fx-background-color: #4f46e5; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 10 22; -fx-cursor: hand; -fx-font-size: 13px; -fx-effect: dropshadow(three-pass-box, rgba(79, 70, 229, 0.25), 10, 0, 0, 4);" />
-
                     </children>
                 </HBox>
-
             </children>
         </VBox>
     </VBox>
