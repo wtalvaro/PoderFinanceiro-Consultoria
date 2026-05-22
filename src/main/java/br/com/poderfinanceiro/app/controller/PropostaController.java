@@ -272,6 +272,9 @@ public class PropostaController {
             }
         });
 
+        // 🚀 CORREÇÃO: Executa no próximo pulso de eventos da UI do JavaFX
+        Platform.runLater(this::executarTriagem);
+
         if (contextoService != null) {
             contextoService.setPropostaAtiva(completa);
             contextoService.setTelaAtualFocada(AtendimentoContextService.TipoTelaFocada.ESTEIRA_PROPOSTAS);
@@ -777,8 +780,13 @@ public class PropostaController {
         BancoModel atual = cbBanco.getValue();
         executarSemGatilhos(() -> {
             cbBanco.setItems(FXCollections.observableArrayList(bancos));
-            if (atual != null && bancos.stream().anyMatch(b -> b.getId().equals(atual.getId())))
-                cbBanco.setValue(atual);
+            if (atual != null) {
+                // 🚀 CORREÇÃO: Localiza e seleciona a instância viva correspondente da lista
+                bancos.stream()
+                        .filter(b -> b.getId().equals(atual.getId()))
+                        .findFirst()
+                        .ifPresentOrElse(cbBanco::setValue, () -> cbBanco.setValue(atual));
+            }
         });
         viewModel.bancoProperty().set(cbBanco.getValue());
         atualizarTabelasDoBanco(cbBanco.getValue());
@@ -794,10 +802,15 @@ public class PropostaController {
             TabelaJurosModel atual = cbTabela.getValue();
             executarSemGatilhos(() -> {
                 cbTabela.setItems(FXCollections.observableArrayList(tabelas));
-                if (atual != null && tabelas.stream().anyMatch(t -> t.getId().equals(atual.getId())))
-                    cbTabela.setValue(atual);
-                else
+                if (atual != null) {
+                    // 🚀 CORREÇÃO: Localiza e seleciona a instância de tabela correspondente por ID
+                    tabelas.stream()
+                            .filter(t -> t.getId().equals(atual.getId()))
+                            .findFirst()
+                            .ifPresentOrElse(cbTabela::setValue, () -> cbTabela.setValue(atual));
+                } else {
                     cbTabela.setValue(null);
+                }
             });
         } else {
             executarSemGatilhos(() -> {
