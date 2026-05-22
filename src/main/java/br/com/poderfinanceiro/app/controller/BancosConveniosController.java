@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.repository.BancoRepository;
 import br.com.poderfinanceiro.app.utils.ContatoUtils;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.springframework.stereotype.Component;
@@ -14,15 +15,35 @@ import java.util.List;
 @Component
 public class BancosConveniosController {
 
+    // =========================================================================
+    // CONSTANTES DE ESTILIZAÇÃO E MENSAGENS (Clean Code & DRY)
+    // =========================================================================
+    private static final String STYLE_CARD = "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);";
+    private static final String STYLE_LBL_NOME = "-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;";
+    private static final String STYLE_LBL_CODIGO = "-fx-font-size: 12px; -fx-background-color: #ecf0f1; -fx-padding: 3 8; -fx-background-radius: 5; -fx-text-fill: #7f8c8d;";
+    private static final String STYLE_LBL_TEL = "-fx-text-fill: #34495e; -fx-font-weight: bold;";
+    private static final String STYLE_BTN_ZAP = "-fx-background-color: #e8f8f5; -fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;";
+    private static final String STYLE_BTN_PORTAL = "-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;";
+    private static final String STYLE_BTN_EDITAR = "-fx-background-color: transparent; -fx-text-fill: #7f8c8d; -fx-cursor: hand;";
+    private static final String STYLE_BTN_REMOVER = "-fx-background-color: transparent; -fx-text-fill: #e74c3c; -fx-cursor: hand;";
+
+    private static final String MSG_NOME_OBRIGATORIO = "O Nome do banco é obrigatório!";
+    private static final String URL_WHATSAPP_BASE = "https://wa.me/";
+
+    // =========================================================================
+    // DEPENDÊNCIAS
+    // =========================================================================
     private final BancoRepository bancoRepository;
     private final MainController mainController;
 
+    // =========================================================================
+    // COMPONENTES DE UI (FXML)
+    // =========================================================================
     @FXML
     private FlowPane muralBancos;
     @FXML
     private TextField txtBusca;
 
-    // Elementos do Modal
     @FXML
     private VBox overlayFormulario;
     @FXML
@@ -37,11 +58,15 @@ public class BancosConveniosController {
     private TextField txtLink;
     @FXML
     private TextField txtTelefone;
+
     @FXML
     private VBox overlayConfirmacaoExclusao;
     @FXML
     private Label lblConfirmacaoBanco;
 
+    // =========================================================================
+    // ESTADO DA CLASSE
+    // =========================================================================
     private BancoModel bancoParaExcluir = null;
     private BancoModel bancoEmEdicao = null;
     private List<BancoModel> todosBancos;
@@ -54,93 +79,112 @@ public class BancosConveniosController {
     @FXML
     public void initialize() {
         carregarBancos();
-
-        // Filtro em tempo real
-        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> filtrarMural(newVal));
-
-        // 🚀 A SUTURA: Injetando a máscara no campo de texto do modal!
+        configurarFiltroReativo();
         txtTelefone.setTextFormatter(ContatoUtils.criarFormatadorTelefone());
-
-        System.out.println("BancosConveniosController: Mural operante!");
     }
 
+    // =========================================================================
+    // LÓGICA DE LISTAGEM E FILTRO
+    // =========================================================================
     private void carregarBancos() {
         todosBancos = bancoRepository.findAll();
         filtrarMural(txtBusca.getText());
     }
 
+    private void configurarFiltroReativo() {
+        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> filtrarMural(newVal));
+    }
+
     private void filtrarMural(String termo) {
         muralBancos.getChildren().clear();
 
-        for (BancoModel banco : todosBancos) {
-            if (termo == null || termo.isEmpty() ||
-                    banco.getNome().toLowerCase().contains(termo.toLowerCase()) ||
-                    (banco.getCodigo() != null && banco.getCodigo().contains(termo))) {
-
-                muralBancos.getChildren().add(criarCardBanco(banco));
-            }
-        }
+        todosBancos.stream()
+                .filter(banco -> atendeCriterioDeBusca(banco, termo))
+                .map(this::criarCardBanco)
+                .forEach(muralBancos.getChildren()::add);
     }
 
-    /**
-     * O SEGREDO DO DASHBOARD: Desenha um cartão bonito para cada banco direto no
-     * código.
-     */
+    private boolean atendeCriterioDeBusca(BancoModel banco, String termo) {
+        if (termo == null || termo.isBlank())
+            return true;
+
+        String termoLower = termo.toLowerCase();
+        boolean matchNome = banco.getNome().toLowerCase().contains(termoLower);
+        boolean matchCodigo = banco.getCodigo() != null && banco.getCodigo().contains(termo);
+
+        return matchNome || matchCodigo;
+    }
+
+    // =========================================================================
+    // RENDERIZAÇÃO DO CARD (SRP Aplicado)
+    // =========================================================================
     private VBox criarCardBanco(BancoModel banco) {
         VBox card = new VBox(10);
         card.setPrefWidth(280);
         card.setPadding(new Insets(20));
-        card.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+        card.setStyle(STYLE_CARD);
 
-        // Header: Nome e Código
+        card.getChildren().addAll(
+                criarHeaderCard(banco),
+                criarContatoCard(banco),
+                new Region(), // Espaçador dinâmico
+                criarBotaoPortal(banco),
+                criarRodapeCard(banco));
+
+        return card;
+    }
+
+    private HBox criarHeaderCard(BancoModel banco) {
         Label lblNome = new Label(banco.getNome());
-        lblNome.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+        lblNome.setStyle(STYLE_LBL_NOME);
 
-        Label lblCodigo = new Label(banco.getCodigo() != null ? "Cód: " + banco.getCodigo() : "Sem Código");
-        lblCodigo.setStyle(
-                "-fx-font-size: 12px; -fx-background-color: #ecf0f1; -fx-padding: 3 8; -fx-background-radius: 5; -fx-text-fill: #7f8c8d;");
+        String textoCodigo = banco.getCodigo() != null && !banco.getCodigo().isBlank() ? "Cód: " + banco.getCodigo()
+                : "Sem Código";
+        Label lblCodigo = new Label(textoCodigo);
+        lblCodigo.setStyle(STYLE_LBL_CODIGO);
 
         HBox header = new HBox(10, lblNome, lblCodigo);
-        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        header.setAlignment(Pos.CENTER_LEFT);
+        return header;
+    }
 
-        // Contato Formatado com WhatsApp
+    private HBox criarContatoCard(BancoModel banco) {
         String telOriginal = banco.getTelefoneSuporte();
         boolean temTelefone = telOriginal != null && !telOriginal.trim().isEmpty();
 
         String telExibicao = temTelefone ? ContatoUtils.formatarTelefone(telOriginal) : "Sem telefone";
         Label lblTel = new Label("📞 " + telExibicao);
-        lblTel.setStyle("-fx-text-fill: #34495e; -fx-font-weight: bold;");
+        lblTel.setStyle(STYLE_LBL_TEL);
 
-        // Botão do WhatsApp (Só aparece se tiver telefone)
         Button btnZap = new Button("💬 WhatsApp");
-        btnZap.setStyle(
-                "-fx-background-color: #e8f8f5; -fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        btnZap.setStyle(STYLE_BTN_ZAP);
         btnZap.setVisible(temTelefone);
         btnZap.setManaged(temTelefone);
         btnZap.setOnAction(e -> abrirWhatsApp(telOriginal));
 
         HBox boxContato = new HBox(15, lblTel, btnZap);
-        boxContato.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        boxContato.setAlignment(Pos.CENTER_LEFT);
+        return boxContato;
+    }
 
-        // Botões de Ação Principais
+    private Button criarBotaoPortal(BancoModel banco) {
         Button btnPortal = new Button("🌐 Acessar Portal");
         btnPortal.setMaxWidth(Double.MAX_VALUE);
-        btnPortal.setStyle(
-                "-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+        btnPortal.setStyle(STYLE_BTN_PORTAL);
         btnPortal.setOnAction(e -> abrirLinkNoNavegador(banco.getSitePortal()));
+        return btnPortal;
+    }
 
+    private HBox criarRodapeCard(BancoModel banco) {
         Button btnEditar = new Button("✏️ Editar");
-        btnEditar.setStyle("-fx-background-color: transparent; -fx-text-fill: #7f8c8d; -fx-cursor: hand;");
+        btnEditar.setStyle(STYLE_BTN_EDITAR);
         btnEditar.setOnAction(e -> abrirModalEdicao(banco));
 
-        // 🚀 NOVO: O BOTÃO DE REMOVER COM INTELIGÊNCIA ARTIFICIAL
         Button btnRemover = new Button("🗑️ Remover");
-        btnRemover.setStyle("-fx-background-color: transparent; -fx-text-fill: #e74c3c; -fx-cursor: hand;");
+        btnRemover.setStyle(STYLE_BTN_REMOVER);
 
-        // A Mágica de UX: Verifica se tem tabelas atreladas
         boolean temTabelas = banco.getTabelas() != null && !banco.getTabelas().isEmpty();
-        btnRemover.setDisable(temTabelas); // Fica cinza se tiver tabela
+        btnRemover.setDisable(temTabelas);
 
         if (temTabelas) {
             Tooltip.install(btnRemover, new Tooltip("Exclusão bloqueada: Este banco possui tabelas ativas."));
@@ -148,26 +192,17 @@ public class BancosConveniosController {
             btnRemover.setOnAction(e -> solicitarExclusaoBanco(banco));
         }
 
-        // Adicionando ambos os botões ao rodapé
         HBox rodape = new HBox(15, btnRemover, btnEditar);
-        rodape.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-
-        // Montando o Card
-        card.getChildren().addAll(header, boxContato, new Region(), btnPortal, rodape);
-        return card;
+        rodape.setAlignment(Pos.CENTER_RIGHT);
+        return rodape;
     }
 
-    // ==========================================
-    // PROCEDIMENTO DE EXCLUSÃO (UX COM OVERLAY)
-    // ==========================================
+    // =========================================================================
+    // EXCLUSÃO DE BANCO
+    // =========================================================================
     private void solicitarExclusaoBanco(BancoModel banco) {
-        // 1. Armazena o alvo na variável global da tela
         this.bancoParaExcluir = banco;
-
-        // 2. Personaliza a mensagem
         lblConfirmacaoBanco.setText("Você está prestes a excluir o banco:\n\n👉 " + banco.getNome());
-
-        // 3. Exibe o painel de confirmação
         overlayConfirmacaoExclusao.setVisible(true);
     }
 
@@ -175,18 +210,11 @@ public class BancosConveniosController {
     private void confirmarExclusaoBanco() {
         if (this.bancoParaExcluir != null) {
             try {
-                // Deleta fisicamente
                 bancoRepository.delete(this.bancoParaExcluir);
-                System.out.println("Banco excluído com sucesso.");
-
-                // Atualiza a tela para o card sumir
                 carregarBancos();
             } catch (Exception ex) {
                 ex.printStackTrace();
-                // Opcional: mainController.notificarAviso("Erro ao excluir: " +
-                // ex.getMessage());
             } finally {
-                // Esconde a tela e zera o alvo independente de dar erro ou sucesso
                 cancelarExclusaoBanco();
             }
         }
@@ -194,34 +222,31 @@ public class BancosConveniosController {
 
     @FXML
     private void cancelarExclusaoBanco() {
-        // Limpa o alvo e esconde o painel
         this.bancoParaExcluir = null;
         overlayConfirmacaoExclusao.setVisible(false);
     }
 
-    // ==========================================
-    // AÇÕES DO MODAL (SALVAR/EDITAR)
-    // ==========================================
-
+    // =========================================================================
+    // GESTÃO DO MODAL (FORMULÁRIO)
+    // =========================================================================
     @FXML
     private void abrirModalNovo() {
-        bancoEmEdicao = new BancoModel();
-        lblTituloModal.setText("➕ Novo Parceiro");
-        txtCodigo.clear();
-        txtNome.clear();
-        txtLink.clear();
-        txtTelefone.clear();
-        lblAviso.setVisible(false);
-        overlayFormulario.setVisible(true);
+        prepararModal(new BancoModel(), "➕ Novo Parceiro");
     }
 
     private void abrirModalEdicao(BancoModel banco) {
-        bancoEmEdicao = banco;
-        lblTituloModal.setText("✏️ Editando: " + banco.getNome());
-        txtCodigo.setText(banco.getCodigo());
-        txtNome.setText(banco.getNome());
-        txtLink.setText(banco.getSitePortal());
-        txtTelefone.setText(banco.getTelefoneSuporte());
+        prepararModal(banco, "✏️ Editando: " + banco.getNome());
+    }
+
+    private void prepararModal(BancoModel banco, String titulo) {
+        this.bancoEmEdicao = banco;
+        lblTituloModal.setText(titulo);
+
+        txtCodigo.setText(banco.getCodigo() != null ? banco.getCodigo() : "");
+        txtNome.setText(banco.getNome() != null ? banco.getNome() : "");
+        txtLink.setText(banco.getSitePortal() != null ? banco.getSitePortal() : "");
+        txtTelefone.setText(banco.getTelefoneSuporte() != null ? banco.getTelefoneSuporte() : "");
+
         lblAviso.setVisible(false);
         overlayFormulario.setVisible(true);
     }
@@ -234,9 +259,7 @@ public class BancosConveniosController {
     @FXML
     private void salvarBanco() {
         if (txtNome.getText() == null || txtNome.getText().trim().isEmpty()) {
-            lblAviso.setText("O Nome do banco é obrigatório!");
-            lblAviso.setVisible(true);
-            lblAviso.setManaged(true);
+            exibirAviso(MSG_NOME_OBRIGATORIO);
             return;
         }
 
@@ -247,26 +270,25 @@ public class BancosConveniosController {
 
         bancoRepository.save(bancoEmEdicao);
         fecharModal();
-        carregarBancos(); // Atualiza o mural
+        carregarBancos();
     }
 
-    // ==========================================
-    // UTILITÁRIO: NAVEGADOR E WHATSAPP
-    // ==========================================
+    private void exibirAviso(String mensagem) {
+        lblAviso.setText(mensagem);
+        lblAviso.setVisible(true);
+        lblAviso.setManaged(true);
+    }
 
-    /**
-     * Utiliza o HostServices injetado no MainController para abrir URLs de forma
-     * nativa e segura.
-     */
+    // =========================================================================
+    // INTEGRAÇÕES EXTERNAS (Navegador e WhatsApp)
+    // =========================================================================
     private void abrirLinkNoNavegador(String url) {
         if (url == null || url.trim().isEmpty())
             return;
 
-        // Normalização simples do link
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             url = "https://" + url;
         }
-
         mainController.getHostServices().showDocument(url);
     }
 
@@ -276,15 +298,12 @@ public class BancosConveniosController {
             return;
         }
 
-        // Pega apenas os números para a API do WhatsApp
         String numeroLimpo = telefone.replaceAll("[^0-9]", "");
 
-        // Se o número tiver 11 dígitos ou menos (padrão Brasil sem DDI), adiciona o 55
         if (numeroLimpo.length() <= 11) {
             numeroLimpo = "55" + numeroLimpo;
         }
 
-        String url = "https://wa.me/" + numeroLimpo;
-        mainController.getHostServices().showDocument(url);
+        mainController.getHostServices().showDocument(URL_WHATSAPP_BASE + numeroLimpo);
     }
 }
