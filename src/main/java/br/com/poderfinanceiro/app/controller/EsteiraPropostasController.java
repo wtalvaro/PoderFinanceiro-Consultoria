@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Predicate;
 
@@ -34,10 +35,45 @@ import java.util.function.Predicate;
 @Scope("prototype")
 public class EsteiraPropostasController {
 
+    // =========================================================================
+    // CONSTANTES E TEMPLATES (Clean Code & DRY)
+    // =========================================================================
+    private static final DateTimeFormatter FMT_DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    private static final String STYLE_BTN_BASE = "-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 30; -fx-background-radius: 6;";
+    private static final String STYLE_BTN_SUCCESS = "-fx-background-color: #2e7d32; " + STYLE_BTN_BASE;
+    private static final String STYLE_BTN_DANGER = "-fx-background-color: #c62828; " + STYLE_BTN_BASE;
+    private static final String STYLE_BTN_WARNING = "-fx-background-color: #f57c00; " + STYLE_BTN_BASE;
+
+    private static final String STYLE_LBL_CONFIRM_TITULO = "-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: %s;";
+    private static final String STYLE_BTN_CONFIRM = "-fx-background-color: %s; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4;";
+
+    private static final String HTML_TEMPLATE_IA = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body { font-family: sans-serif; padding: 25px; box-sizing: border-box; color: #333; }
+                </style>
+            </head>
+            <body>
+                %s
+            </body>
+            </html>
+            """;
+
+    // =========================================================================
+    // DEPENDÊNCIAS
+    // =========================================================================
     private final PropostaRepository repository;
     private final PropostaService propostaService;
     private final ApplicationContext context;
 
+    // =========================================================================
+    // COMPONENTES UI (FXML)
+    // =========================================================================
     @FXML
     private TextField txtBusca;
     @FXML
@@ -49,17 +85,14 @@ public class EsteiraPropostasController {
     @FXML
     private VBox paneVazio;
 
-    // Overlays Universais
     @FXML
     private VBox overlayConfirmacao, overlayFeedback, overlayAlertaSimples;
 
-    // Componentes Overlay Confirmação
     @FXML
     private Label lblConfirmacaoTitulo, lblConfirmacaoTexto;
     @FXML
     private Button btnConfirmarAcao;
 
-    // Componentes Overlay Feedback IA (WebView)
     @FXML
     private Label lblFeedbackIcon, lblFeedbackTitle;
     @FXML
@@ -67,19 +100,18 @@ public class EsteiraPropostasController {
     @FXML
     private WebView webFeedback;
 
-    // Componentes Overlay Alerta Simples (Novo)
     @FXML
     private Label lblAlertaIcone, lblAlertaTitulo, lblAlertaMensagem;
     @FXML
     private Button btnAlertaAcao;
 
+    // =========================================================================
+    // ESTADO DA CLASSE
+    // =========================================================================
     private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
-    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
     private PropostaController formController;
     private boolean isRevertendoSelecao = false;
 
-    // Controle de Callbacks dos Overlays
     private Runnable acaoPendente;
     private Runnable cancelPendente;
     private Runnable onFeedbackClose;
@@ -91,6 +123,9 @@ public class EsteiraPropostasController {
         this.context = context;
     }
 
+    // =========================================================================
+    // INICIALIZAÇÃO
+    // =========================================================================
     @FXML
     public void initialize() {
         configurarTabela();
@@ -98,13 +133,24 @@ public class EsteiraPropostasController {
         recarregarDados();
     }
 
+    // =========================================================================
+    // CONFIGURAÇÃO DA TABELA (SRP)
+    // =========================================================================
     private void configurarTabela() {
+        configurarColunasDados();
+        configurarColunaStatus();
+        configurarEventosSelecao();
+    }
+
+    private void configurarColunasDados() {
         colData.setCellValueFactory(d -> formatarData(d.getValue().getDataSolicitacao()));
         colCliente.setCellValueFactory(d -> textoOuHifen(d.getValue().getProponente().getNomeCompleto()));
         colBanco.setCellValueFactory(
                 d -> textoOuHifen(d.getValue().getBanco() != null ? d.getValue().getBanco().getNome() : null));
         colValorSol.setCellValueFactory(d -> formatarMoeda(d.getValue().getValorSolicitado()));
+    }
 
+    private void configurarColunaStatus() {
         colStatus.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -114,40 +160,50 @@ public class EsteiraPropostasController {
                     setGraphic(null);
                     return;
                 }
+
                 PropostaModel p = getTableRow().getItem();
                 setText(p.getStatus().name().replace("_", " "));
                 setTextFill(corDoStatus(p.getStatus()));
                 setStyle(p.getStatus() == StatusPropostaModel.PAGO ? "-fx-font-weight: bold;" : "");
             }
         });
+    }
 
+    private void configurarEventosSelecao() {
         tablePropostas.getSelectionModel().selectedItemProperty().addListener((obs, old, novaProposta) -> {
             if (isRevertendoSelecao) {
                 isRevertendoSelecao = false;
                 return;
             }
-            if (novaProposta != null)
+            if (novaProposta != null) {
                 abrirFormularioComProposta(novaProposta, old);
+            }
         });
     }
 
+    // =========================================================================
+    // FILTROS E BUSCA
+    // =========================================================================
     private void configurarFiltroReativo() {
         FilteredList<PropostaModel> filteredData = new FilteredList<>(masterData, p -> true);
         txtBusca.textProperty()
                 .addListener((obs, old, newValue) -> filteredData.setPredicate(criarPredicadoBusca(newValue)));
+
         SortedList<PropostaModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tablePropostas.comparatorProperty());
         tablePropostas.setItems(sortedData);
     }
 
     private Predicate<PropostaModel> criarPredicadoBusca(String filtro) {
-        if (filtro == null || filtro.isEmpty())
+        if (filtro == null || filtro.isBlank())
             return p -> true;
+
         String termo = filtro.toLowerCase();
         return p -> {
             String nome = p.getProponente().getNomeCompleto().toLowerCase();
             String cpf = p.getProponente().getCpf().replaceAll("[^0-9]", "");
             String banco = p.getBanco() != null ? p.getBanco().getNome().toLowerCase() : "";
+
             return nome.contains(termo) || cpf.contains(termo) || banco.contains(termo)
                     || p.getStatus().name().toLowerCase().contains(termo);
         };
@@ -158,6 +214,9 @@ public class EsteiraPropostasController {
         masterData.setAll(repository.findAllComDetalhes());
     }
 
+    // =========================================================================
+    // INTEGRAÇÃO COM FORMULÁRIO (PROPOSTA CONTROLLER)
+    // =========================================================================
     @FXML
     public void criarNovaProposta() {
         abrirFormularioComProposta(new PropostaModel(), null);
@@ -166,7 +225,8 @@ public class EsteiraPropostasController {
 
     private void abrirFormularioComProposta(PropostaModel proposta, PropostaModel oldSelection) {
         if (formController != null && formController.getViewModel().isDirty()) {
-            solicitarConfirmacao("⚠️ Alterações Não Salvas",
+            solicitarConfirmacao(
+                    "⚠️ Alterações Não Salvas",
                     "Tem alterações não guardadas no formulário ativo. Deseja descartá-las para abrir este registo?",
                     "Descartar", "#c62828",
                     () -> carregarPropostaNoFormulario(proposta),
@@ -179,39 +239,45 @@ public class EsteiraPropostasController {
     private void carregarPropostaNoFormulario(PropostaModel proposta) {
         try {
             garantirFormularioCarregado();
+
             if (proposta.getId() != null) {
-                Task<PropostaModel> task = new Task<>() {
-                    @Override
-                    protected PropostaModel call() {
-                        return propostaService.carregarPropostaDetalhada(proposta.getId());
-                    }
-                };
-                task.setOnSucceeded(e -> {
-                    PropostaModel completa = task.getValue();
-                    if (completa != null) {
-                        formController.carregarProposta(completa);
-                        paneVazio.setVisible(false);
-                        paneVazio.setManaged(false);
-                    } else
-                        mostrarErro("Proposta não encontrada no banco de dados.");
-                });
-                task.setOnFailed(e -> {
-                    task.getException().printStackTrace();
-                });
-                new Thread(task).start();
+                carregarPropostaExistenteAssincrono(proposta.getId());
             } else {
                 formController.getViewModel().loadFromModel(proposta);
-                paneVazio.setVisible(false);
-                paneVazio.setManaged(false);
+                exibirPainelFormulario();
             }
         } catch (IOException e) {
             throw new RuntimeException("Falha ao carregar formulário de proposta", e);
         }
     }
 
+    private void carregarPropostaExistenteAssincrono(Long id) {
+        Task<PropostaModel> task = new Task<>() {
+            @Override
+            protected PropostaModel call() {
+                return propostaService.carregarPropostaDetalhada(id);
+            }
+        };
+
+        task.setOnSucceeded(e -> processarSucessoCarregamentoProposta(task.getValue()));
+        task.setOnFailed(e -> task.getException().printStackTrace());
+
+        new Thread(task).start();
+    }
+
+    private void processarSucessoCarregamentoProposta(PropostaModel completa) {
+        if (completa != null) {
+            formController.carregarProposta(completa);
+            exibirPainelFormulario();
+        } else {
+            mostrarErro("Proposta não encontrada no banco de dados.");
+        }
+    }
+
     private void garantirFormularioCarregado() throws IOException {
         if (formController != null)
             return;
+
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/proposta.fxml"));
         loader.setControllerFactory(context::getBean);
         Node view = loader.load();
@@ -229,13 +295,19 @@ public class EsteiraPropostasController {
         containerFormulario.getChildren().add(view);
     }
 
+    private void exibirPainelFormulario() {
+        paneVazio.setVisible(false);
+        paneVazio.setManaged(false);
+    }
+
     private void reverterSelecao(PropostaModel oldSelection) {
         isRevertendoSelecao = true;
         Platform.runLater(() -> {
-            if (oldSelection != null)
+            if (oldSelection != null) {
                 tablePropostas.getSelectionModel().select(oldSelection);
-            else
+            } else {
                 tablePropostas.getSelectionModel().clearSelection();
+            }
         });
     }
 
@@ -247,20 +319,34 @@ public class EsteiraPropostasController {
         formController = null;
     }
 
-    // =========================================================================
-    // API PUBLICA DE OVERLAYS (Chamada pelo PropostaController)
-    // =========================================================================
+    public void selecionarPropostaPorId(Long idTarget) {
+        if (idTarget == null || tablePropostas == null)
+            return;
 
+        if (txtBusca != null)
+            txtBusca.clear();
+
+        masterData.stream()
+                .filter(p -> idTarget.equals(p.getId()))
+                .findFirst()
+                .ifPresent(proposta -> {
+                    tablePropostas.getSelectionModel().select(proposta);
+                    tablePropostas.scrollTo(proposta);
+                });
+    }
+
+    // =========================================================================
+    // API PUBLICA DE OVERLAYS (SISTEMA DE AVISOS E IA)
+    // =========================================================================
     public void solicitarConfirmacao(String titulo, String mensagem, String txtBotao, String corHex, Runnable onConfirm,
             Runnable onCancel) {
         Platform.runLater(() -> {
             lblConfirmacaoTitulo.setText(titulo);
-            lblConfirmacaoTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + corHex + ";");
+            lblConfirmacaoTitulo.setStyle(String.format(STYLE_LBL_CONFIRM_TITULO, corHex));
             lblConfirmacaoTexto.setText(mensagem);
 
             btnConfirmarAcao.setText(txtBotao);
-            btnConfirmarAcao.setStyle("-fx-background-color: " + corHex
-                    + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4;");
+            btnConfirmarAcao.setStyle(String.format(STYLE_BTN_CONFIRM, corHex));
 
             this.acaoPendente = onConfirm;
             this.cancelPendente = onCancel;
@@ -287,68 +373,52 @@ public class EsteiraPropostasController {
         acaoPendente = null;
     }
 
-    // 🚀 MÁGICA: O mesmo método agora roteia para o layout adequado dependendo do
-    // conteúdo
     public void mostrarFeedback(String icone, String titulo, String conteudo, Runnable callback) {
         Platform.runLater(() -> {
-            // Verifica de forma segura se o conteúdo tem marcadores HTML usados pela IA
-            boolean isHtml = conteudo != null && (conteudo.contains("<strong") || conteudo.contains("<span")
-                    || conteudo.contains("<p>") || conteudo.contains("<br>") || conteudo.contains("<table")
-                    || conteudo.contains("<ul"));
-
             this.onFeedbackClose = callback;
 
-            if (isHtml) {
-                // EXIBIÇÃO RICA (Gemini IA em WebView)
-                lblFeedbackIcon.setText(icone);
-                lblFeedbackTitle.setText(titulo);
-
-                String htmlTemplate = """
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-                            <style>
-                                body {
-                                    font-family: sans-serif;
-                                    padding: 25px;
-                                    box-sizing: border-box;
-                                    color: #333;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            %s
-                        </body>
-                        </html>
-                        """
-                        .formatted(conteudo);
-
-                WebEngine engine = webFeedback.getEngine();
-                engine.loadContent(htmlTemplate);
-                estilizarBotaoBaseadoNoIcone(btnFeedbackAction, icone);
-                overlayFeedback.setVisible(true);
-
+            if (isConteudoHtml(conteudo)) {
+                exibirFeedbackRico(icone, titulo, conteudo);
             } else {
-                // EXIBIÇÃO COMPACTA (Notificações do Sistema: Salvar, Excluir, etc)
-                lblAlertaIcone.setText(icone);
-                lblAlertaTitulo.setText(titulo);
-                lblAlertaMensagem.setText(conteudo);
-                estilizarBotaoBaseadoNoIcone(btnAlertaAcao, icone);
-                overlayAlertaSimples.setVisible(true);
+                exibirFeedbackSimples(icone, titulo, conteudo);
             }
         });
     }
 
+    private boolean isConteudoHtml(String conteudo) {
+        return conteudo != null && (conteudo.contains("<strong") || conteudo.contains("<span") ||
+                conteudo.contains("<p>") || conteudo.contains("<br>") ||
+                conteudo.contains("<table") || conteudo.contains("<ul"));
+    }
+
+    private void exibirFeedbackRico(String icone, String titulo, String htmlBody) {
+        lblFeedbackIcon.setText(icone);
+        lblFeedbackTitle.setText(titulo);
+
+        WebEngine engine = webFeedback.getEngine();
+        engine.loadContent(String.format(HTML_TEMPLATE_IA, htmlBody));
+
+        estilizarBotaoBaseadoNoIcone(btnFeedbackAction, icone);
+        overlayFeedback.setVisible(true);
+    }
+
+    private void exibirFeedbackSimples(String icone, String titulo, String conteudo) {
+        lblAlertaIcone.setText(icone);
+        lblAlertaTitulo.setText(titulo);
+        lblAlertaMensagem.setText(conteudo);
+
+        estilizarBotaoBaseadoNoIcone(btnAlertaAcao, icone);
+        overlayAlertaSimples.setVisible(true);
+    }
+
     private void estilizarBotaoBaseadoNoIcone(Button botao, String icone) {
-        String baseStyle = "-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 30; -fx-background-radius: 6;";
-        if (icone.contains("✅"))
-            botao.setStyle("-fx-background-color: #2e7d32; " + baseStyle);
-        else if (icone.contains("❌") || icone.contains("🗑️"))
-            botao.setStyle("-fx-background-color: #c62828; " + baseStyle);
-        else
-            botao.setStyle("-fx-background-color: #f57c00; " + baseStyle);
+        if (icone.contains("✅")) {
+            botao.setStyle(STYLE_BTN_SUCCESS);
+        } else if (icone.contains("❌") || icone.contains("🗑️")) {
+            botao.setStyle(STYLE_BTN_DANGER);
+        } else {
+            botao.setStyle(STYLE_BTN_WARNING);
+        }
     }
 
     @FXML
@@ -370,31 +440,15 @@ public class EsteiraPropostasController {
         }
     }
 
-    // 🚀 Método invocado pelo WorkspaceController para selecionar uma proposta
-    // vinda do Dashboard
-    public void selecionarPropostaPorId(Long idTarget) {
-        if (idTarget == null || tablePropostas == null)
-            return;
-
-        if (txtBusca != null) {
-            txtBusca.clear();
-        }
-
-        for (PropostaModel proposta : masterData) {
-            if (idTarget.equals(proposta.getId())) {
-                tablePropostas.getSelectionModel().select(proposta);
-                tablePropostas.scrollTo(proposta);
-                break;
-            }
-        }
-    }
-
     private void mostrarErro(String msg) {
         mostrarFeedback("❌", "Erro Interno", msg, null);
     }
 
-    private SimpleStringProperty formatarData(java.time.LocalDate data) {
-        return new SimpleStringProperty(data != null ? data.format(dateFormatter) : "-");
+    // =========================================================================
+    // UTILITÁRIOS INTERNOS
+    // =========================================================================
+    private SimpleStringProperty formatarData(LocalDate data) {
+        return new SimpleStringProperty(data != null ? data.format(FMT_DATA) : "-");
     }
 
     private SimpleStringProperty formatarMoeda(BigDecimal valor) {
@@ -404,7 +458,7 @@ public class EsteiraPropostasController {
     }
 
     private SimpleStringProperty textoOuHifen(String texto) {
-        return new SimpleStringProperty(texto != null ? texto : "-");
+        return new SimpleStringProperty(texto != null && !texto.isBlank() ? texto : "-");
     }
 
     private Color corDoStatus(StatusPropostaModel status) {

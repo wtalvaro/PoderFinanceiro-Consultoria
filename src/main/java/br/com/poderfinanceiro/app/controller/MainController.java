@@ -1,8 +1,14 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.model.ProponenteModel;
+import br.com.poderfinanceiro.app.model.PropostaModel;
+import br.com.poderfinanceiro.app.service.AuthService;
+import javafx.application.HostServices;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -11,18 +17,28 @@ import javafx.scene.layout.VBox;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.model.PropostaModel;
-
 import java.io.IOException;
-import javafx.application.HostServices;
-
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Component
 public class MainController {
 
+    // =========================================================================
+    // CONSTANTES (Clean Code & DRY)
+    // =========================================================================
+    private static final String FXML_WORKSPACE = "/fxml/workspace.fxml";
+    private static final String FXML_LOGIN = "/fxml/login.fxml";
+
+    private static final double CHAT_LARGURA_MINIMA = 320.0;
+    private static final double CHAT_LARGURA_MAXIMA = 750.0;
+    private static final String STYLE_DRAG_HOVER = "-fx-cursor: h-resize; -fx-background-color: rgba(30, 64, 175, 0.15);";
+    private static final String STYLE_DRAG_DEFAULT = "-fx-cursor: default; -fx-background-color: rgba(0, 0, 0, 0.03);";
+
+    // =========================================================================
+    // DEPENDÊNCIAS DE UI E FXML
+    // =========================================================================
     @FXML
     private StackPane contentArea;
     @FXML
@@ -38,35 +54,27 @@ public class MainController {
     @FXML
     private HBox overlayChatIA;
 
-    // 🎯 INJEÇÕES PARA REDIMENSIONAMENTO DINÂMICO
     @FXML
-    private Region dragHandleChat; // Alça de arrasto mapeada no FXML
+    private Region dragHandleChat;
     @FXML
-    private Region painelChat; // O nó raiz do ajuda_chat.fxml injetado pelo fx:id do include
+    private Region painelChat;
     @FXML
     private AjudaChatController painelChatController;
 
+    // =========================================================================
+    // ESTADO E INJEÇÕES
+    // =========================================================================
     private final HostServices hostServices;
     private final ApplicationContext context;
-
-    // 🚀 VARIÁVEIS DE CONTROLE FISICO DO MOUSE
-    private double mouseStartX = 0;
-    private double chatStartWidth = 0;
-
-    private static class ViewPair {
-        Node view;
-        Object controller;
-
-        ViewPair(Node view, Object controller) {
-            this.view = view;
-            this.controller = controller;
-        }
-    }
-
     private final Map<String, ViewPair> cacheDeViews = new HashMap<>();
 
-    // Rastreamento da tela ativa para evitar recarregamentos desnecessários
+    private double mouseStartX = 0;
+    private double chatStartWidth = 0;
     private String telaAtual = "";
+
+    // Padrão moderno (Java 14+) para classes de puro transporte de dados
+    private record ViewPair(Node view, Object controller) {
+    }
 
     public MainController(ApplicationContext context, HostServices hostServices) {
         this.context = context;
@@ -77,85 +85,67 @@ public class MainController {
         return hostServices;
     }
 
-    // ========================================================================
-    // CICLO DE INICIALIZAÇÃO NATIVA (Controle das Alças do Mouse)
-    // ========================================================================
+    // =========================================================================
+    // INICIALIZAÇÃO E UX
+    // =========================================================================
     @FXML
     public void initialize() {
-        // 🚀 CAPTURA DA FÍSICA DE ARRASTO DO OVERLAY FLUTUANTE
-        if (dragHandleChat != null) {
-            dragHandleChat.setOnMousePressed(event -> {
-                mouseStartX = event.getSceneX();
-                if (painelChat != null) {
-                    chatStartWidth = painelChat.getWidth();
-                }
-            });
-
-            dragHandleChat.setOnMouseDragged(event -> {
-                if (painelChat == null)
-                    return;
-
-                // Calcula o deslocamento horizontal do mouse
-                double deltaX = event.getSceneX() - mouseStartX;
-
-                // Engenharia Reversa: Como o painel está colado na DIREITA, arrastar o mouse
-                // para a ESQUERDA (deltaX negativo) aumenta o tamanho útil do chat.
-                double novaLargura = chatStartWidth - deltaX;
-
-                // Margens de segurança de UX para não quebrar as tabelas Bootstrap nem amassar
-                // a tela
-                double larguraMinima = 320.0;
-                double larguraMaxima = 750.0;
-
-                if (novaLargura >= larguraMinima && novaLargura <= larguraMaxima) {
-                    painelChat.setPrefWidth(novaLargura);
-                    painelChat.setMinWidth(novaLargura);
-                    painelChat.setMaxWidth(novaLargura);
-                }
-            });
-
-            // Feedback visual elegante ao passar o mouse sobre a alça de arrasto
-            dragHandleChat.setOnMouseEntered(e -> dragHandleChat
-                    .setStyle("-fx-cursor: h-resize; -fx-background-color: rgba(30, 64, 175, 0.15);"));
-            dragHandleChat.setOnMouseExited(
-                    e -> dragHandleChat.setStyle("-fx-cursor: default; -fx-background-color: rgba(0, 0, 0, 0.03);"));
-        }
-
-        // 🚀 O BOTÃO FECHAR INVISÍVEL (Clique fora para fechar)
-        if (overlayChatIA != null) {
-            overlayChatIA.setOnMouseClicked(event -> {
-                // Se o alvo real do clique foi a área vazia do HBox, e não o chat ou a alça
-                if (event.getTarget() == overlayChatIA) {
-                    alternarPainelIA(); // Executa a sua lógica nativa de fechar/esconder
-                    event.consume(); // Consome o evento para não propagar para os componentes de baixo
-                }
-            });
-        }
+        configurarArrastoChat();
+        configurarFechamentoChat();
     }
 
-    /**
-     * O Cérebro da Navegação: Ponto de entrada para todas as trocas de tela
-     * principais.
-     */
+    private void configurarArrastoChat() {
+        if (dragHandleChat == null)
+            return;
+
+        dragHandleChat.setOnMousePressed(event -> {
+            mouseStartX = event.getSceneX();
+            if (painelChat != null) {
+                chatStartWidth = painelChat.getWidth();
+            }
+        });
+
+        dragHandleChat.setOnMouseDragged(event -> {
+            if (painelChat == null)
+                return;
+
+            double deltaX = event.getSceneX() - mouseStartX;
+            double novaLargura = chatStartWidth - deltaX;
+
+            if (novaLargura >= CHAT_LARGURA_MINIMA && novaLargura <= CHAT_LARGURA_MAXIMA) {
+                painelChat.setPrefWidth(novaLargura);
+                painelChat.setMinWidth(novaLargura);
+                painelChat.setMaxWidth(novaLargura);
+            }
+        });
+
+        dragHandleChat.setOnMouseEntered(e -> dragHandleChat.setStyle(STYLE_DRAG_HOVER));
+        dragHandleChat.setOnMouseExited(e -> dragHandleChat.setStyle(STYLE_DRAG_DEFAULT));
+    }
+
+    private void configurarFechamentoChat() {
+        if (overlayChatIA == null)
+            return;
+
+        overlayChatIA.setOnMouseClicked(event -> {
+            if (event.getTarget() == overlayChatIA) {
+                alternarPainelIA();
+                event.consume();
+            }
+        });
+    }
+
+    // =========================================================================
+    // MOTOR DE NAVEGAÇÃO E CACHE
+    // =========================================================================
     public void navegarPara(String fxmlPath, boolean mostrarEstrutura) {
         executarNavegacao(fxmlPath, mostrarEstrutura);
     }
 
     private void executarNavegacao(String fxmlPath, boolean mostrarEstrutura) {
         try {
-            ViewPair pair;
-
-            if (cacheDeViews.containsKey(fxmlPath)) {
-                pair = cacheDeViews.get(fxmlPath);
-            } else {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-                loader.setControllerFactory(context::getBean);
-                Node view = loader.load();
-
-                // Captura o controller REAL gerado pelo Spring para esta tela
-                pair = new ViewPair(view, loader.getController());
-                cacheDeViews.put(fxmlPath, pair);
-            }
+            // Uso de computeIfAbsent elimina a necessidade de if/else manual para cache
+            ViewPair pair = cacheDeViews.computeIfAbsent(fxmlPath, this::carregarNovaView);
 
             topBar.setVisible(mostrarEstrutura);
             topBar.setManaged(mostrarEstrutura);
@@ -163,11 +153,22 @@ public class MainController {
             bottomBar.setVisible(mostrarEstrutura);
             bottomBar.setManaged(mostrarEstrutura);
 
-            contentArea.getChildren().setAll(pair.view);
+            contentArea.getChildren().setAll(pair.view());
             this.telaAtual = fxmlPath;
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Erro ao carregar a tela: " + fxmlPath, e);
+        }
+    }
+
+    private ViewPair carregarNovaView(String fxmlPath) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            loader.setControllerFactory(context::getBean);
+            Node view = loader.load();
+            return new ViewPair(view, loader.getController());
+        } catch (IOException e) {
+            throw new RuntimeException("Falha ao instanciar o FXML: " + fxmlPath, e);
         }
     }
 
@@ -175,45 +176,66 @@ public class MainController {
         cacheDeViews.clear();
     }
 
-    // ========================================================================
-    // ROTEAMENTO DE ABAS NO WORKSPACE (Clean Architecture)
-    // ========================================================================
-
-    public void irParaNovoContato() {
-        abrirClienteNoWorkspace(null);
-    }
-
-    // ========================================================================
-    // MOTOR DE NAVEGAÇÃO INTERNA (O "Protocolo Padrão")
-    // ========================================================================
-
-    private void executarNoWorkspace(java.util.function.Consumer<WorkspaceController> acao) {
+    // =========================================================================
+    // ROTAS DO WORKSPACE
+    // =========================================================================
+    private void executarNoWorkspace(Consumer<WorkspaceController> acao) {
         try {
             garantirWorkspaceVisivel();
-            ViewPair pair = cacheDeViews.get("/fxml/workspace.fxml");
+            ViewPair pair = cacheDeViews.get(FXML_WORKSPACE);
 
-            if (pair != null && pair.controller instanceof WorkspaceController) {
-                acao.accept((WorkspaceController) pair.controller);
+            if (pair != null && pair.controller() instanceof WorkspaceController wsController) {
+                acao.accept(wsController);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // ========================================================================
-    // MÉTODOS PÚBLICOS (As Ordens Diretas)
-    // ========================================================================
+    private void garantirWorkspaceVisivel() {
+        if (!FXML_WORKSPACE.equals(this.telaAtual)) {
+            navegarPara(FXML_WORKSPACE, true);
+        }
+    }
+
+    public void irParaNovoContato() {
+        abrirClienteNoWorkspace(null);
+    }
 
     public void abrirDashboard() {
-        executarNoWorkspace(ws -> ws.abrirAbaDashboard());
+        executarNoWorkspace(WorkspaceController::abrirAbaDashboard);
     }
 
     public void abrirPlaybook() {
-        executarNoWorkspace(ws -> ws.abrirAbaPlaybook());
+        executarNoWorkspace(WorkspaceController::abrirAbaPlaybook);
     }
 
     public void abrirClientes() {
-        executarNoWorkspace(ws -> ws.abrirAbaClientes());
+        executarNoWorkspace(WorkspaceController::abrirAbaClientes);
+    }
+
+    public void irParaLinksUteis() {
+        executarNoWorkspace(WorkspaceController::abrirAbaLinks);
+    }
+
+    public void irParaTabelasJuros() {
+        executarNoWorkspace(WorkspaceController::abrirAbaTabelasJuros);
+    }
+
+    public void irParaBancosConvenios() {
+        executarNoWorkspace(WorkspaceController::abrirAbaBancosConvenios);
+    }
+
+    public void irParaTabelaComissoes() {
+        executarNoWorkspace(WorkspaceController::abrirAbaComissoes);
+    }
+
+    public void irParaPropostas() {
+        executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
+    }
+
+    public void irParaImportadorTabelas() {
+        executarNoWorkspace(WorkspaceController::abrirAbaImportadorTabelas);
     }
 
     public void abrirClienteNoWorkspace(ProponenteModel proponente) {
@@ -226,53 +248,19 @@ public class MainController {
         executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
     }
 
-    public void irParaLinksUteis() {
-        executarNoWorkspace(ws -> ws.abrirAbaLinks());
-    }
-
-    public void irParaTabelasJuros() {
-        executarNoWorkspace(ws -> ws.abrirAbaTabelasJuros());
-    }
-
-    public void irParaBancosConvenios() {
-        executarNoWorkspace(ws -> ws.abrirAbaBancosConvenios());
-    }
-
-    public void irParaTabelaComissoes() {
-        executarNoWorkspace(ws -> ws.abrirAbaComissoes());
-    }
-
-    public void irParaPropostas() {
-        executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
-    }
-
-    // Adicione junto aos outros métodos "irPara..."
-    public void irParaImportadorTabelas() {
-        executarNoWorkspace(ws -> ws.abrirAbaImportadorTabelas());
-    }
-
-    private void garantirWorkspaceVisivel() {
-        if (!"/fxml/workspace.fxml".equals(this.telaAtual)) {
-            navegarPara("/fxml/workspace.fxml", true);
-        }
-    }
-
+    // =========================================================================
+    // CONTROLES DE OVERLAY (LOADING & SAIR & IA)
+    // =========================================================================
     public void mostrarLoading(String mensagem) {
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             lblLoadingTexto.setText(mensagem);
             overlayLoading.setVisible(true);
         });
     }
 
     public void ocultarLoading() {
-        javafx.application.Platform.runLater(() -> {
-            overlayLoading.setVisible(false);
-        });
+        Platform.runLater(() -> overlayLoading.setVisible(false));
     }
-
-    // ========================================================================
-    // LÓGICA DO OVERLAY DE SAÍDA
-    // ========================================================================
 
     public void mostrarOverlaySair() {
         overlaySair.setVisible(true);
@@ -286,35 +274,9 @@ public class MainController {
     @FXML
     private void confirmarLogout() {
         overlaySair.setVisible(false);
-        context.getBean(br.com.poderfinanceiro.app.service.AuthService.class).logout();
+        context.getBean(AuthService.class).logout();
         limparCacheDeTelas();
-        navegarPara("/fxml/login.fxml", false);
-    }
-
-    // ========================================================================
-    // SISTEMA DE NOTIFICAÇÕES GLOBAIS
-    // ========================================================================
-
-    public void notificarSucesso(String mensagem) {
-        javafx.application.Platform.runLater(() -> {
-            javafx.scene.control.Alert alerta = new javafx.scene.control.Alert(
-                    javafx.scene.control.Alert.AlertType.INFORMATION);
-            alerta.setTitle("Poder Financeiro");
-            alerta.setHeaderText(null);
-            alerta.setContentText(mensagem);
-            alerta.showAndWait();
-        });
-    }
-
-    public void notificarAviso(String mensagem) {
-        javafx.application.Platform.runLater(() -> {
-            javafx.scene.control.Alert alerta = new javafx.scene.control.Alert(
-                    javafx.scene.control.Alert.AlertType.WARNING);
-            alerta.setTitle("Atenção");
-            alerta.setHeaderText(null);
-            alerta.setContentText(mensagem);
-            alerta.showAndWait();
-        });
+        navegarPara(FXML_LOGIN, false);
     }
 
     @FXML
@@ -325,5 +287,26 @@ public class MainController {
         if (!estaAberto && painelChatController != null) {
             painelChatController.setMainController(this);
         }
+    }
+
+    // =========================================================================
+    // NOTIFICAÇÕES GLOBAIS (DRY)
+    // =========================================================================
+    public void notificarSucesso(String mensagem) {
+        exibirAlertaGeral(Alert.AlertType.INFORMATION, "Poder Financeiro", mensagem);
+    }
+
+    public void notificarAviso(String mensagem) {
+        exibirAlertaGeral(Alert.AlertType.WARNING, "Atenção", mensagem);
+    }
+
+    private void exibirAlertaGeral(Alert.AlertType tipo, String titulo, String mensagem) {
+        Platform.runLater(() -> {
+            Alert alerta = new Alert(tipo);
+            alerta.setTitle(titulo);
+            alerta.setHeaderText(null);
+            alerta.setContentText(mensagem);
+            alerta.showAndWait();
+        });
     }
 }

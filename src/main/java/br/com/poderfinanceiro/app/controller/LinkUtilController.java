@@ -16,18 +16,24 @@ import javafx.util.StringConverter;
 import javafx.scene.Cursor;
 import org.springframework.stereotype.Component;
 
+import java.util.function.Function;
+
 @Component
 public class LinkUtilController {
 
+    // =========================================================================
+    // CONSTANTES (Clean Code & DRY)
+    // =========================================================================
+    private static final String MSG_TITULO_PADRAO = "🔗 Gestão de Links e Atalhos";
+    private static final String MSG_TITULO_EDICAO = "✏️ Editando: ";
+
+    // =========================================================================
+    // DEPENDÊNCIAS DE UI E FXML
+    // =========================================================================
     @FXML
     private ComboBox<CategoriaLinkModel> comboCategoria;
-
-    // Adicionado txtTags aqui:
     @FXML
-    private TextField txtTitulo, txtUrl, txtDescricao, txtTags;
-
-    @FXML
-    private TextField txtBusca;
+    private TextField txtTitulo, txtUrl, txtDescricao, txtTags, txtBusca;
 
     @FXML
     private TableView<LinkUtilModel> tableLinks;
@@ -35,79 +41,53 @@ public class LinkUtilController {
     private TableColumn<LinkUtilModel, String> colCategoria, colTitulo, colDescricao;
     @FXML
     private TableColumn<LinkUtilModel, Void> colAcao;
+
     @FXML
     private TitledPane paneFormulario;
     @FXML
     private ScrollPane scrollPrincipal;
 
+    // =========================================================================
+    // ESTADO DA CLASSE E INJEÇÕES
+    // =========================================================================
     private final LinkUtilRepository repository;
     private final MainController mainController;
+    private final ObservableList<LinkUtilModel> masterData = FXCollections.observableArrayList();
 
     private LinkUtilModel linkEmEdicao;
-
-    private final ObservableList<LinkUtilModel> masterData = FXCollections.observableArrayList();
 
     public LinkUtilController(LinkUtilRepository repository, MainController mainController) {
         this.repository = repository;
         this.mainController = mainController;
     }
 
+    // =========================================================================
+    // INICIALIZAÇÃO E CONFIGURAÇÃO
+    // =========================================================================
     @FXML
     public void initialize() {
-        configurarCombo(comboCategoria, CategoriaLinkModel.values(), CategoriaLinkModel::fromString);
-
-        colCategoria.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategoria().getLabel()));
-        colTitulo.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTitulo()));
-        colDescricao.setCellValueFactory(data -> {
-            String desc = data.getValue().getDescricao();
-            return new SimpleStringProperty(desc != null ? desc : "");
-        });
-
-        configurarColunaAcoes();
+        configurarComboCategoria();
+        configurarTabela();
         configurarBuscaReativa();
         recarregarLinks();
     }
 
-    private void configurarBuscaReativa() {
-        FilteredList<LinkUtilModel> filteredData = new FilteredList<>(masterData, p -> true);
+    private void configurarComboCategoria() {
+        configurarCombo(comboCategoria, CategoriaLinkModel.values(), CategoriaLinkModel::fromString);
+    }
 
-        txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
-            filteredData.setPredicate(link -> {
-                if (newValue == null || newValue.isEmpty()) {
-                    return true;
-                }
+    private void configurarTabela() {
+        colCategoria.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategoria().getLabel()));
+        colTitulo.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTitulo()));
+        colDescricao.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getDescricao() != null ? data.getValue().getDescricao() : ""));
 
-                String filtro = newValue.toLowerCase();
-
-                if (link.getTitulo() != null && link.getTitulo().toLowerCase().contains(filtro)) {
-                    return true;
-                }
-                if (link.getDescricao() != null && link.getDescricao().toLowerCase().contains(filtro)) {
-                    return true;
-                }
-                if (link.getCategoria() != null && link.getCategoria().getLabel().toLowerCase().contains(filtro)) {
-                    return true;
-                }
-                // NOVO: Permite que a Solange ache links pesquisando pelas tags na tela de
-                // gestão
-                if (link.getTags() != null && link.getTags().toLowerCase().contains(filtro)) {
-                    return true;
-                }
-
-                return false;
-            });
-        });
-
-        SortedList<LinkUtilModel> sortedData = new SortedList<>(filteredData);
-        sortedData.comparatorProperty().bind(tableLinks.comparatorProperty());
-
-        tableLinks.setItems(sortedData);
+        configurarColunaAcoes();
     }
 
     private <T extends Enum<T> & LabeledModel> void configurarCombo(ComboBox<T> combo, T[] values,
-            java.util.function.Function<String, T> searcher) {
+            Function<String, T> searcher) {
         combo.getItems().setAll(values);
-
         combo.setConverter(new StringConverter<T>() {
             @Override
             public String toString(T obj) {
@@ -121,90 +101,122 @@ public class LinkUtilController {
         });
     }
 
+    // =========================================================================
+    // COLUNA DE AÇÕES DA TABELA (SRP & DRY Aplicados)
+    // =========================================================================
     private void configurarColunaAcoes() {
         colAcao.setCellFactory(param -> new TableCell<>() {
-            private final Button btnAbrir = new Button("🌐");
-            private final Button btnEditar = new Button("✏️");
-            private final Button btnExcluir = new Button("🗑️");
+            private final Button btnAbrir = criarBotao("🌐", "flat");
+            private final Button btnEditar = criarBotao("✏️", "flat");
+            private final Button btnExcluir = criarBotao("🗑️", "flat", "danger");
             private final HBox container = new HBox(5, btnAbrir, btnEditar, btnExcluir);
 
             {
-                btnAbrir.setOnAction(e -> {
-                    LinkUtilModel item = getTableRow().getItem();
-                    if (item != null)
-                        mainController.getHostServices().showDocument(item.getUrl());
-                });
+                btnAbrir.setOnAction(e -> abrirUrlNoNavegador(getLinkAtual()));
+                btnEditar.setOnAction(e -> prepararEdicao(getLinkAtual()));
+                btnExcluir.setOnAction(e -> handleExcluir(getLinkAtual()));
+            }
 
-                btnAbrir.setCursor(Cursor.HAND);
-                btnEditar.setCursor(Cursor.HAND);
-                btnExcluir.setCursor(Cursor.HAND);
-
-                btnEditar.setOnAction(e -> {
-                    LinkUtilModel item = getTableRow().getItem();
-                    if (item != null)
-                        prepararEdicao(item);
-                });
-
-                btnExcluir.setOnAction(e -> {
-                    LinkUtilModel item = getTableRow().getItem();
-                    if (item != null)
-                        handleExcluir(item);
-                });
-
-                btnAbrir.getStyleClass().add("flat");
-                btnEditar.getStyleClass().add("flat");
-                btnExcluir.getStyleClass().addAll("flat", "danger");
+            private LinkUtilModel getLinkAtual() {
+                return getTableRow() != null ? getTableRow().getItem() : null;
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setGraphic(null);
-                } else {
-                    setGraphic(container);
-                }
+                setGraphic((empty || getLinkAtual() == null) ? null : container);
             }
         });
     }
 
+    private Button criarBotao(String icone, String... styleClasses) {
+        Button btn = new Button(icone);
+        btn.setCursor(Cursor.HAND);
+        btn.getStyleClass().addAll(styleClasses);
+        return btn;
+    }
+
+    // =========================================================================
+    // FILTRO E BUSCA REATIVA
+    // =========================================================================
+    private void configurarBuscaReativa() {
+        FilteredList<LinkUtilModel> filteredData = new FilteredList<>(masterData, p -> true);
+
+        txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
+            filteredData.setPredicate(link -> atendeCriterioDeBusca(link, newValue));
+        });
+
+        SortedList<LinkUtilModel> sortedData = new SortedList<>(filteredData);
+        sortedData.comparatorProperty().bind(tableLinks.comparatorProperty());
+
+        tableLinks.setItems(sortedData);
+    }
+
+    private boolean atendeCriterioDeBusca(LinkUtilModel link, String filtro) {
+        if (filtro == null || filtro.isBlank())
+            return true;
+
+        String termo = filtro.toLowerCase();
+
+        return contemTermo(link.getTitulo(), termo) ||
+                contemTermo(link.getDescricao(), termo) ||
+                contemTermo(link.getCategoria() != null ? link.getCategoria().getLabel() : null, termo) ||
+                contemTermo(link.getTags(), termo);
+    }
+
+    private boolean contemTermo(String valor, String termo) {
+        return valor != null && valor.toLowerCase().contains(termo);
+    }
+
+    // =========================================================================
+    // FLUXO DE FORMULÁRIO (SALVAR, EDITAR, LIMPAR, EXCLUIR)
+    // =========================================================================
     @FXML
     private void handleSalvar() {
-        if (txtTitulo.getText().isEmpty() || txtUrl.getText().isEmpty() || comboCategoria.getValue() == null) {
+        if (isFormularioInvalido())
             return;
-        }
 
         LinkUtilModel link = (linkEmEdicao != null) ? linkEmEdicao : new LinkUtilModel();
-        link.setTitulo(txtTitulo.getText());
-        link.setUrl(txtUrl.getText());
-        link.setDescricao(txtDescricao.getText());
-        link.setCategoria(comboCategoria.getValue());
-
-        // NOVO: Adiciona a string de tags digitadas
-        link.setTags(txtTags.getText());
+        preencherModeloComFormulario(link);
 
         repository.save(link);
         limparFormulario();
         recarregarLinks();
     }
 
+    private boolean isFormularioInvalido() {
+        return txtTitulo.getText().isBlank() || txtUrl.getText().isBlank() || comboCategoria.getValue() == null;
+    }
+
+    private void preencherModeloComFormulario(LinkUtilModel link) {
+        link.setTitulo(txtTitulo.getText());
+        link.setUrl(txtUrl.getText());
+        link.setDescricao(txtDescricao.getText());
+        link.setCategoria(comboCategoria.getValue());
+        link.setTags(txtTags.getText());
+    }
+
     private void prepararEdicao(LinkUtilModel link) {
+        if (link == null)
+            return;
+
         this.linkEmEdicao = link;
         txtTitulo.setText(link.getTitulo());
         txtUrl.setText(link.getUrl());
         txtDescricao.setText(link.getDescricao());
         comboCategoria.setValue(link.getCategoria());
-
-        // NOVO: Preenche a caixa de texto de tags ao editar
         txtTags.setText(link.getTags() != null ? link.getTags() : "");
 
-        paneFormulario.setText("✏️ Editando: " + link.getTitulo());
+        paneFormulario.setText(MSG_TITULO_EDICAO + link.getTitulo());
         paneFormulario.setExpanded(true);
         scrollPrincipal.setVvalue(0.0);
         txtTitulo.requestFocus();
     }
 
     private void handleExcluir(LinkUtilModel link) {
+        if (link == null)
+            return;
+
         repository.delete(link);
         recarregarLinks();
     }
@@ -212,18 +224,26 @@ public class LinkUtilController {
     @FXML
     private void limparFormulario() {
         this.linkEmEdicao = null;
+
         txtTitulo.clear();
         txtUrl.clear();
         txtDescricao.clear();
-
-        // NOVO: Limpa o campo de tags
         txtTags.clear();
-
         comboCategoria.getSelectionModel().clearSelection();
-        paneFormulario.setText("🔗 Gestão de Links e Atalhos");
+
+        paneFormulario.setText(MSG_TITULO_PADRAO);
     }
 
+    // =========================================================================
+    // INTEGRAÇÕES EXTERNAS E COMUNICAÇÃO
+    // =========================================================================
     public void recarregarLinks() {
         masterData.setAll(repository.findAllByOrderByCategoriaAscTituloAsc());
+    }
+
+    private void abrirUrlNoNavegador(LinkUtilModel link) {
+        if (link != null && link.getUrl() != null && !link.getUrl().isBlank()) {
+            mainController.getHostServices().showDocument(link.getUrl());
+        }
     }
 }

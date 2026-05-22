@@ -19,6 +19,20 @@ import org.springframework.stereotype.Component;
 @Scope("prototype")
 public class EnderecoController {
 
+    // =========================================================================
+    // CONSTANTES (Clean Code & DRY)
+    // =========================================================================
+    private static final int TAMANHO_CEP_VALIDO = 8;
+    private static final String REGEX_SOMENTE_NUMEROS = "\\D";
+
+    private static final String MSG_LOG_BUSCA = "Solicitando busca para o CEP: %s";
+    private static final String MSG_AVISO_TAMANHO = "⚠️ O CEP deve conter exatamente 8 números.";
+    private static final String MSG_ERRO_NAO_ENCONTRADO = "CEP Inválido ou não encontrado no ViaCEP.";
+    private static final String MSG_ERRO_UF_INVALIDA = "UF não encontrada no Enum: %s";
+
+    // =========================================================================
+    // DEPENDÊNCIAS DE UI E FXML
+    // =========================================================================
     @FXML
     private TextField txtCep;
     @FXML
@@ -36,6 +50,9 @@ public class EnderecoController {
     @FXML
     private ComboBox<UfModel> comboUf;
 
+    // =========================================================================
+    // INJEÇÃO DE DEPENDÊNCIAS E ESTADO DA CLASSE
+    // =========================================================================
     private final EnderecoViewModel viewModel;
     private final ViaCepService viaCepService;
 
@@ -44,60 +61,13 @@ public class EnderecoController {
         this.viaCepService = viaCepService;
     }
 
+    // =========================================================================
+    // INICIALIZAÇÃO
+    // =========================================================================
     @FXML
     public void initialize() {
         configurarInterface();
         estabelecerBindings();
-        // ❌ O ouvinte (Listener) automático foi removido daqui para evitar disparos
-        // acidentais
-    }
-
-    // 🎯 O GATILHO REAPROVEITADO (Botão e ENTER)
-    @FXML
-    private void buscarCep() {
-        String cepDigitado = txtCep.getText();
-
-        if (cepDigitado != null && !cepDigitado.trim().isEmpty()) {
-            String apenasNumeros = cepDigitado.replaceAll("\\D", "");
-
-            if (apenasNumeros.length() == 8) {
-                System.out.println("Solicitando busca para o CEP: " + apenasNumeros);
-                buscarEPreencherCep(apenasNumeros);
-            } else {
-                System.out.println("⚠️ O CEP deve conter exatamente 8 números.");
-            }
-        }
-    }
-
-    private void buscarEPreencherCep(String cepDigitado) {
-        Task<ViaCepResponse> buscaTask = new Task<>() {
-            @Override
-            protected ViaCepResponse call() throws Exception {
-                return viaCepService.buscarEnderecoPorCep(cepDigitado);
-            }
-        };
-
-        buscaTask.setOnSucceeded(e -> {
-            ViaCepResponse enderecoEncontrado = buscaTask.getValue();
-
-            if (enderecoEncontrado != null) {
-                txtLogradouro.setText(enderecoEncontrado.logradouro());
-                txtBairro.setText(enderecoEncontrado.bairro());
-                txtCidade.setText(enderecoEncontrado.localidade());
-
-                try {
-                    comboUf.setValue(UfModel.valueOf(enderecoEncontrado.uf().toUpperCase()));
-                } catch (IllegalArgumentException ex) {
-                    System.out.println("UF não encontrada no Enum: " + enderecoEncontrado.uf());
-                }
-
-                // txtNumero.requestFocus();
-            } else {
-                System.out.println("CEP Inválido ou não encontrado no ViaCEP.");
-            }
-        });
-
-        new Thread(buscaTask).start();
     }
 
     private void configurarInterface() {
@@ -117,6 +87,77 @@ public class EnderecoController {
         viewModel.ufProperty().bindBidirectional(comboUf.valueProperty());
     }
 
+    // =========================================================================
+    // EVENTOS E LÓGICA DE BUSCA DE CEP
+    // =========================================================================
+    @FXML
+    private void buscarCep() {
+        String cepDigitado = txtCep.getText();
+
+        if (isCepVazioOuNulo(cepDigitado))
+            return;
+
+        String apenasNumeros = extrairSomenteNumeros(cepDigitado);
+
+        if (apenasNumeros.length() == TAMANHO_CEP_VALIDO) {
+            System.out.printf((MSG_LOG_BUSCA) + "%n", apenasNumeros);
+            executarBuscaAssincrona(apenasNumeros);
+        } else {
+            System.out.println(MSG_AVISO_TAMANHO);
+        }
+    }
+
+    private void executarBuscaAssincrona(String cep) {
+        Task<ViaCepResponse> buscaTask = new Task<>() {
+            @Override
+            protected ViaCepResponse call() throws Exception {
+                return viaCepService.buscarEnderecoPorCep(cep);
+            }
+        };
+
+        buscaTask.setOnSucceeded(e -> processarResultadoBusca(buscaTask.getValue()));
+        buscaTask.setOnFailed(e -> processarErroBusca(buscaTask.getException()));
+
+        Thread thread = new Thread(buscaTask);
+        thread.setDaemon(true); // Garante que a thread não impeça o fechamento do sistema
+        thread.start();
+    }
+
+    private void processarResultadoBusca(ViaCepResponse enderecoEncontrado) {
+        if (enderecoEncontrado != null) {
+            preencherCamposEndereco(enderecoEncontrado);
+        } else {
+            System.out.println(MSG_ERRO_NAO_ENCONTRADO);
+        }
+    }
+
+    private void processarErroBusca(Throwable excecao) {
+        System.out.println("Erro ao comunicar com a API do ViaCEP.");
+        if (excecao != null)
+            excecao.printStackTrace();
+    }
+
+    private void preencherCamposEndereco(ViaCepResponse endereco) {
+        txtLogradouro.setText(endereco.logradouro());
+        txtBairro.setText(endereco.bairro());
+        txtCidade.setText(endereco.localidade());
+        selecionarUfSeguro(endereco.uf());
+    }
+
+    private void selecionarUfSeguro(String ufSigla) {
+        if (isCepVazioOuNulo(ufSigla))
+            return;
+
+        try {
+            comboUf.setValue(UfModel.valueOf(ufSigla.toUpperCase()));
+        } catch (IllegalArgumentException ex) {
+            System.out.printf((MSG_ERRO_UF_INVALIDA) + "%n", ufSigla);
+        }
+    }
+
+    // =========================================================================
+    // MÉTODOS PÚBLICOS (Contratos do Controller) E UTILITÁRIOS
+    // =========================================================================
     public void carregarEndereco(EnderecoProponenteModel endereco) {
         viewModel.loadFromModel(endereco);
     }
@@ -127,5 +168,13 @@ public class EnderecoController {
 
     public EnderecoViewModel getViewModel() {
         return viewModel;
+    }
+
+    private boolean isCepVazioOuNulo(String valor) {
+        return valor == null || valor.trim().isEmpty();
+    }
+
+    private String extrairSomenteNumeros(String valor) {
+        return valor.replaceAll(REGEX_SOMENTE_NUMEROS, "");
     }
 }

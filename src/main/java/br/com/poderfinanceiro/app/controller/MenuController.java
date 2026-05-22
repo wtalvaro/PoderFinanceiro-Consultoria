@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
-import org.springframework.stereotype.Component;
-import javafx.fxml.FXML;
 import javafx.application.Platform;
+import javafx.fxml.FXML;
+import org.springframework.stereotype.Component;
 
 @Component
 public class MenuController {
@@ -13,7 +13,9 @@ public class MenuController {
         this.mainController = mainController;
     }
 
-    // --- GRUPO: PODER FINANCEIRO ---
+    // =========================================================================
+    // GRUPO: PODER FINANCEIRO (Geral & Sistema)
+    // =========================================================================
     @FXML
     private void handleDashboard() {
         mainController.abrirDashboard();
@@ -35,7 +37,9 @@ public class MenuController {
         System.exit(0);
     }
 
-    // --- GRUPO: OPERACIONAL ---
+    // =========================================================================
+    // GRUPO: OPERACIONAL (Esteira de Vendas)
+    // =========================================================================
     @FXML
     private void handleClientes() {
         mainController.abrirClientes();
@@ -46,7 +50,9 @@ public class MenuController {
         mainController.irParaPropostas();
     }
 
-    // --- GRUPO: FINANCEIRO ---
+    // =========================================================================
+    // GRUPO: FINANCEIRO
+    // =========================================================================
     @FXML
     private void handleComissoes() {
         mainController.irParaTabelaComissoes();
@@ -57,23 +63,24 @@ public class MenuController {
         mainController.irParaTabelasJuros();
     }
 
-    // --- GRUPO: FERRAMENTAS ---
+    @FXML
+    private void handleImportarTabelas() {
+        mainController.irParaImportadorTabelas();
+    }
+
+    // =========================================================================
+    // GRUPO: FERRAMENTAS & SUPORTE
+    // =========================================================================
     @FXML
     private void handlePlaybook() {
         mainController.abrirPlaybook();
     }
-    
+
     @FXML
     private void handleBancos() {
         mainController.irParaBancosConvenios();
     }
 
-    // Adicione no GRUPO: FINANCEIRO (ou FERRAMENTAS)
-    @FXML
-    private void handleImportarTabelas() {
-        mainController.irParaImportadorTabelas();
-    }
-    
     @FXML
     private void handleLinks() {
         mainController.irParaLinksUteis();
@@ -86,7 +93,6 @@ public class MenuController {
 
     @FXML
     public void handleAbrirIA() {
-        // "Chefe (MainController), o usuário clicou no botão! Abre o painel de IA aí!"
         mainController.alternarPainelIA();
     }
 }
