@@ -10,6 +10,7 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
@@ -36,12 +37,20 @@ import java.util.function.Consumer;
 public class AjudaChatController {
 
     // =========================================================================
-    // CONSTANTES
+    // CONSTANTES (Clean Code)
     // =========================================================================
     private static final String MODELO_PADRAO = "gemini-3.5-flash";
     private static final String CAMINHO_CHAT_HTML = "/html/chat.html";
+    private static final String NOME_ARQUIVO_CHAT = "chat.html";
+    private static final String URL_BLANK = "about:blank";
+    private static final String URL_AI_STUDIO = "https://aistudio.google.com/";
+
     private static final String JS_MOSTRAR_CARREGAMENTO = "mostrarCarregamentoJS();";
     private static final String JS_REMOVER_CARREGAMENTO = "removerCarregamentoJS();";
+    private static final String JS_ADICIONAR_BALAO = "adicionarBalaoJS('%s', %b);";
+
+    private static final String MSG_PADRAO_DOCUMENTO = "📄 Analise este documento.";
+    private static final String MSG_ERRO_SISTEMA = "Desculpe, ocorreu uma falha técnica ao consultar o sistema.";
 
     // =========================================================================
     // COMPONENTES DE UI (FXML)
@@ -99,13 +108,16 @@ public class AjudaChatController {
     // =========================================================================
     @FXML
     public void initialize() {
-        configurarComboBoxModelo();
         configurarWebView();
+        carregarModelosIniciais();
     }
 
-    private void configurarComboBoxModelo() {
-        cmbModelo.getItems().add(MODELO_PADRAO);
-        cmbModelo.getSelectionModel().selectFirst();
+    private void carregarModelosIniciais() {
+        String token = (authService.getUsuarioLogado() != null)
+                ? authService.getUsuarioLogado().getGeminiApiKey()
+                : null;
+
+        carregarModelosDisponiveis(token);
     }
 
     private void configurarWebView() {
@@ -115,7 +127,7 @@ public class AjudaChatController {
         if (url != null) {
             webEngine.load(url.toExternalForm());
         } else {
-            System.err.println("⚠️ Arquivo chat.html não encontrado!");
+            System.err.println("⚠️ Arquivo chat.html não encontrado no classpath!");
         }
 
         webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
@@ -132,17 +144,14 @@ public class AjudaChatController {
     }
 
     private void lidarComNavegacaoExterna(String newLocation) {
-        if (newLocation != null && !newLocation.isEmpty() && !newLocation.equals("about:blank")
-                && !newLocation.contains("chat.html")) {
-            Platform.runLater(() -> webEngine.getLoadWorker().cancel());
-            Platform.runLater(() -> {
-                if (mainController != null && mainController.getHostServices() != null) {
-                    mainController.getHostServices().showDocument(newLocation);
-                } else {
-                    System.err.println("⚠️ MainController ou HostServices não configurados para o Chat!");
-                }
-            });
+        // Early Return pattern: sai rápido se for uma URL irrelevante
+        if (newLocation == null || newLocation.isEmpty() || newLocation.equals(URL_BLANK)
+                || newLocation.contains(NOME_ARQUIVO_CHAT)) {
+            return;
         }
+
+        Platform.runLater(() -> webEngine.getLoadWorker().cancel());
+        abrirLinkExterno(newLocation);
     }
 
     // =========================================================================
@@ -152,23 +161,21 @@ public class AjudaChatController {
     private void escolherFicheiro() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Anexar Documento ou Holerite");
-        fileChooser.getExtensionFilters().addAll(
+        fileChooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("Documentos e Imagens", "*.pdf", "*.png", "*.jpg", "*.jpeg"));
 
         File file = fileChooser.showOpenDialog(txtMensagem.getScene().getWindow());
         if (file != null) {
             ficheiroAnexado = file;
             lblNomeFicheiro.setText(file.getName());
-            boxAnexo.setVisible(true);
-            boxAnexo.setManaged(true);
+            setVisibilidadeElemento(boxAnexo, true);
         }
     }
 
     @FXML
     private void removerAnexo() {
         ficheiroAnexado = null;
-        boxAnexo.setVisible(false);
-        boxAnexo.setManaged(false);
+        setVisibilidadeElemento(boxAnexo, false);
     }
 
     @FXML
@@ -179,9 +186,7 @@ public class AjudaChatController {
 
     @FXML
     private void abrirGoogleAIStudioChat() {
-        if (mainController != null && mainController.getHostServices() != null) {
-            mainController.getHostServices().showDocument("https://aistudio.google.com/");
-        }
+        abrirLinkExterno(URL_AI_STUDIO);
     }
 
     // =========================================================================
@@ -193,7 +198,7 @@ public class AjudaChatController {
         if (isEntradaInvalida(texto))
             return;
 
-        String mensagemExibida = texto.trim().isEmpty() ? "📄 Analise este documento." : texto;
+        String mensagemExibida = texto.trim().isEmpty() ? MSG_PADRAO_DOCUMENTO : texto;
 
         prepararInterfaceParaEnvio(mensagemExibida);
         final File ficheiroParaEnvio = ficheiroAnexado;
@@ -201,8 +206,8 @@ public class AjudaChatController {
 
         executarTaskAsync(
                 () -> processarChamadaIA(mensagemExibida, ficheiroParaEnvio),
-                resposta -> finalizarEnvioInterface(resposta),
-                erro -> finalizarEnvioInterface("Desculpe, ocorreu uma falha técnica ao consultar o sistema."));
+                this::finalizarEnvioInterface,
+                erro -> finalizarEnvioInterface(MSG_ERRO_SISTEMA));
     }
 
     private boolean isEntradaInvalida(String texto) {
@@ -260,18 +265,16 @@ public class AjudaChatController {
     @FXML
     private void toggleConfigChave() {
         boolean visivel = !paneConfigChave.isVisible();
-        paneConfigChave.setVisible(visivel);
-        paneConfigChave.setManaged(visivel);
+        setVisibilidadeElemento(paneConfigChave, visivel);
 
         if (visivel && authService.getUsuarioLogado() != null) {
-            String token = authService.getUsuarioLogado().getGeminiApiKey();
-            txtNovaApiKey.setText(token);
-            carregarModelosDisponiveis(token);
+            txtNovaApiKey.setText(authService.getUsuarioLogado().getGeminiApiKey());
         }
     }
 
     private void carregarModelosDisponiveis(String token) {
-        if (modelosCarregados || token == null || token.isBlank())
+        // 🚀 Removida a trava do token nulo. O Service agora manda no fluxo!
+        if (modelosCarregados)
             return;
 
         executarTaskAsync(
@@ -280,15 +283,17 @@ public class AjudaChatController {
                     String atual = cmbModelo.getValue();
                     cmbModelo.getItems().setAll(modelos);
 
-                    if (modelos.contains(atual))
+                    if (atual != null && modelos.contains(atual)) {
                         cmbModelo.getSelectionModel().select(atual);
-                    else if (modelos.contains(MODELO_PADRAO))
+                    } else if (modelos.contains(MODELO_PADRAO)) {
                         cmbModelo.getSelectionModel().select(MODELO_PADRAO);
-                    else
+                    } else {
                         cmbModelo.getSelectionModel().selectFirst();
+                    }
 
                     modelosCarregados = true;
-                }, null);
+                },
+                null);
     }
 
     @FXML
@@ -301,8 +306,7 @@ public class AjudaChatController {
 
         try {
             authService.atualizarGeminiApiKey(chaveDigitada.trim());
-            paneConfigChave.setVisible(false);
-            paneConfigChave.setManaged(false);
+            setVisibilidadeElemento(paneConfigChave, false);
             adicionarBalao(
                     "✅ Sua chave de API foi atualizada com sucesso! O Gemini já está operando com as novas credenciais.",
                     false);
@@ -312,7 +316,7 @@ public class AjudaChatController {
     }
 
     // =========================================================================
-    // UTILITÁRIOS (JAVASCRIPT INTEROP & ASYNC TASKS)
+    // UTILITÁRIOS (DRY, INTEROP & ASYNC)
     // =========================================================================
     private void adicionarBalao(String texto, boolean isUsuario) {
         if (texto == null)
@@ -321,18 +325,17 @@ public class AjudaChatController {
         Runnable rotinaInjecao = () -> {
             try {
                 String textoB64 = Base64.getEncoder().encodeToString(texto.getBytes(StandardCharsets.UTF_8));
-                String script = String.format("adicionarBalaoJS('%s', %b);", textoB64, isUsuario);
+                String script = String.format(JS_ADICIONAR_BALAO, textoB64, isUsuario);
                 webEngine.executeScript(script);
             } catch (Exception e) {
                 System.err.println("Erro ao injetar script no WebView: " + e.getMessage());
             }
         };
 
-        if (paginaCarregada) {
+        if (paginaCarregada)
             Platform.runLater(rotinaInjecao);
-        } else {
+        else
             filaMensagensPendentes.add(rotinaInjecao);
-        }
     }
 
     private void executarScriptSeguro(String script) {
@@ -344,6 +347,24 @@ public class AjudaChatController {
                 System.err.println("Aviso: Falha silenciada ao executar JS visual: " + e.getMessage());
             }
         });
+    }
+
+    private void abrirLinkExterno(String url) {
+        Platform.runLater(() -> {
+            if (mainController != null && mainController.getHostServices() != null) {
+                mainController.getHostServices().showDocument(url);
+            } else {
+                System.err.println("⚠️ MainController ou HostServices não configurados para o Chat!");
+            }
+        });
+    }
+
+    /**
+     * Utilitário DRY para controle de visibilidade no layout do JavaFX
+     */
+    private void setVisibilidadeElemento(Node elemento, boolean visivel) {
+        elemento.setVisible(visivel);
+        elemento.setManaged(visivel);
     }
 
     private <T> void executarTaskAsync(Callable<T> acao, Consumer<T> onSuccess, Consumer<Throwable> onError) {

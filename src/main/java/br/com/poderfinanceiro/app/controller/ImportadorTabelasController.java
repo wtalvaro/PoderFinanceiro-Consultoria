@@ -1,6 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
+import br.com.poderfinanceiro.app.model.BancoModel;
+import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.repository.BancoRepository;
 import br.com.poderfinanceiro.app.service.AuthService;
 import br.com.poderfinanceiro.app.service.GeminiService;
@@ -11,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -21,19 +24,42 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 
 @Component
-@Scope("prototype") // Segue a sua regra de arquitetura
+@Scope("prototype")
 public class ImportadorTabelasController {
 
+    // =========================================================================
+    // COMPONENTES DE UI GLOBAIS (LOTE & IA)
+    // =========================================================================
     @FXML
     private ComboBox<String> cmbModeloIA;
+    @FXML
+    private ComboBox<String> cmbBancoLote;
+    @FXML
+    private ComboBox<String> cmbConvenioLote;
+    @FXML
+    private Button btnAplicarLote;
+    @FXML
+    private Button btnGravarLote;
+    @FXML
+    private Button btnProcessarImagem;
+
+    // =========================================================================
+    // COMPONENTES DE UI (TABELA MASTER)
+    // =========================================================================
     @FXML
     private TableView<TabelaImportadaDTO> tableMaster;
     @FXML
     private TableColumn<TabelaImportadaDTO, String> colStatus, colBanco, colNome;
 
+    // =========================================================================
+    // COMPONENTES DE UI (FORMULÁRIO DE REVISÃO INDIVIDUAL)
+    // =========================================================================
     @FXML
     private ComboBox<String> cmbBanco;
     @FXML
@@ -44,16 +70,21 @@ public class ImportadorTabelasController {
     private TextField txtValorMin, txtValorMax, txtPrazoMin, txtPrazoMax, txtIdadeMin, txtIdadeMax;
     @FXML
     private TextField txtTaxa, txtComissao;
-
     @FXML
-    private Button btnConfirmarTabela, btnGravarLote, btnProcessarImagem;
+    private Button btnConfirmarTabela;
 
+    // =========================================================================
+    // DEPENDÊNCIAS
+    // =========================================================================
     private final GeminiService geminiService;
     private final TabelaJurosService tabelaJurosService;
     private final AuthService authService;
-    private final MainController mainController; // Para gerenciar loading
+    private final MainController mainController;
     private final BancoRepository bancoRepository;
 
+    // =========================================================================
+    // ESTADO DA CLASSE
+    // =========================================================================
     private final ObservableList<TabelaImportadaDTO> loteAtual = FXCollections.observableArrayList();
     private TabelaImportadaDTO selecionadaAtual;
 
@@ -66,175 +97,169 @@ public class ImportadorTabelasController {
         this.bancoRepository = bancoRepository;
     }
 
+    // =========================================================================
+    // INICIALIZAÇÃO
+    // =========================================================================
     @FXML
     public void initialize() {
-        carregarBancosOficiais();
-        carregarTiposConvenio();
-
-        // 🚀 PATCH PARA SINCRONIZAR CLICK COM TEXTO NO EDITOR
-        sincronizarEditor(cmbBanco);
-        sincronizarEditor(cmbConvenio);
-        
-        configurarTabela();
-        configurarListeners();
-        carregarModelosIA();
-        btnGravarLote.setDisable(true);
-        alternarFormulario(true);
+        carregarDependenciasBasicas();
+        configurarTabelaMaster();
+        configurarListenersDeEstado();
+        alternarFormularioIndividual(true);
     }
 
-    /**
-     * Força o editor de texto a atualizar instantaneamente quando um item é clicado
-     * na lista.
-     */
-    private void sincronizarEditor(ComboBox<String> comboBox) {
-        comboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
-                // O Platform.runLater garante que o texto seja setado após o evento de clique
-                // terminar
-                Platform.runLater(() -> comboBox.getEditor().setText(newVal));
-            }
-        });
-    }
-
-    private void carregarBancosOficiais() {
-        Task<List<String>> taskBancos = new Task<>() {
-            @Override
-            protected List<String> call() {
-                return bancoRepository.findByAtivoTrueOrderByNomeAsc()
-                        .stream()
-                        .map(br.com.poderfinanceiro.app.model.BancoModel::getNome)
-                        .toList();
-            }
-        };
-        taskBancos.setOnSucceeded(e -> cmbBanco.getItems().setAll(taskBancos.getValue()));
-        new Thread(taskBancos).start();
-    }
-
-    private void carregarTiposConvenio() {
-        // Pega todos os Enums e converte para String
-        List<String> convenios = java.util.Arrays
-                .stream(br.com.poderfinanceiro.app.model.enums.TipoConvenioModel.values())
-                .map(Enum::name)
-                .toList();
+    private void carregarDependenciasBasicas() {
+        // Carrega Convênios (Síncrono pois é Enum local)
+        List<String> convenios = Arrays.stream(TipoConvenioModel.values()).map(Enum::name).toList();
         cmbConvenio.getItems().setAll(convenios);
-    }
+        if (cmbConvenioLote != null)
+            cmbConvenioLote.getItems().setAll(convenios);
 
-    private void carregarModelosIA() {
+        // Carrega Bancos (Assíncrono para não travar UI)
+        executarTaskAsync(
+                () -> bancoRepository.findByAtivoTrueOrderByNomeAsc().stream().map(BancoModel::getNome).toList(),
+                bancos -> {
+                    cmbBanco.getItems().setAll(bancos);
+                    if (cmbBancoLote != null)
+                        cmbBancoLote.getItems().setAll(bancos);
+                },
+                null);
+
+        // Carrega Modelos de IA
         if (authService.estaLogado()) {
-            Task<List<String>> taskModelos = new Task<>() {
-                @Override
-                protected List<String> call() {
-                    return geminiService.listarModelosMultimodais(authService.getUsuarioLogado().getGeminiApiKey());
-                }
-            };
-            taskModelos.setOnSucceeded(e -> {
-                cmbModeloIA.getItems().setAll(taskModelos.getValue());
-                cmbModeloIA.getSelectionModel().selectFirst();
-            });
-            new Thread(taskModelos).start();
+            executarTaskAsync(
+                    () -> geminiService.listarModelosMultimodais(authService.getUsuarioLogado().getGeminiApiKey()),
+                    modelos -> {
+                        cmbModeloIA.getItems().setAll(modelos);
+                        cmbModeloIA.getSelectionModel().selectFirst();
+                    },
+                    null);
         }
+
+        sincronizarEditorCombo(cmbBanco);
+        sincronizarEditorCombo(cmbConvenio);
     }
 
-    private void configurarTabela() {
+    private void configurarTabelaMaster() {
         tableMaster.setItems(loteAtual);
-
         colStatus.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isRevisado() ? "🟢" : "🟡"));
         colBanco.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBanco()));
         colNome.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNomeTabela()));
 
         tableMaster.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            selecionadaAtual = newVal;
             if (newVal != null) {
-                selecionadaAtual = newVal;
-                preencherFormulario(newVal);
-                alternarFormulario(false);
+                preencherFormularioRevisao(newVal);
+                alternarFormularioIndividual(false);
             } else {
-                alternarFormulario(true);
+                alternarFormularioIndividual(true);
             }
         });
     }
 
-    private void configurarListeners() {
-        loteAtual.addListener((javafx.collections.ListChangeListener.Change<? extends TabelaImportadaDTO> c) -> {
-            validarBotaoGravacao();
+    private void configurarListenersDeEstado() {
+        btnGravarLote.setDisable(true);
+        if (btnAplicarLote != null)
+            btnAplicarLote.setDisable(true);
+
+        // O listener agora apenas delega para o método principal
+        loteAtual.addListener((ListChangeListener.Change<? extends TabelaImportadaDTO> c) -> {
+            validarBotoesDeAcao();
         });
     }
 
-    private void validarBotaoGravacao() {
-        boolean todosRevisados = !loteAtual.isEmpty() && loteAtual.stream().allMatch(TabelaImportadaDTO::isRevisado);
+    // 🚀 NOVO MÉTODO PARA FORÇAR A VALIDAÇÃO DO ESTADO
+    private void validarBotoesDeAcao() {
+        boolean temItens = !loteAtual.isEmpty();
+        boolean todosRevisados = temItens && loteAtual.stream().allMatch(TabelaImportadaDTO::isRevisado);
+
         btnGravarLote.setDisable(!todosRevisados);
+        if (btnAplicarLote != null)
+            btnAplicarLote.setDisable(!temItens);
     }
 
-    private void alternarFormulario(boolean disable) {
-        cmbBanco.setDisable(disable);
-        txtNomeTabela.setDisable(disable);
-        cmbConvenio.setDisable(disable);
-        txtValorMin.setDisable(disable);
-        txtValorMax.setDisable(disable);
-        txtPrazoMin.setDisable(disable);
-        txtPrazoMax.setDisable(disable);
-        txtIdadeMin.setDisable(disable);
-        txtIdadeMax.setDisable(disable);
-        txtTaxa.setDisable(disable);
-        txtComissao.setDisable(disable);
-        btnConfirmarTabela.setDisable(disable);
+    // =========================================================================
+    // AÇÕES EM LOTE (NOVIDADE)
+    // =========================================================================
+    @FXML
+    public void handleAplicarLote() {
+        if (loteAtual.isEmpty())
+            return;
+
+        String bancoGlobal = cmbBancoLote.getValue();
+        String convenioGlobal = cmbConvenioLote.getValue();
+
+        if (bancoGlobal == null && convenioGlobal == null) {
+            System.err.println("Selecione pelo menos um Banco ou Convênio para aplicar em lote.");
+            return;
+        }
+
+        loteAtual.forEach(tabela -> {
+            if (bancoGlobal != null && !bancoGlobal.isBlank())
+                tabela.setBanco(bancoGlobal);
+            if (convenioGlobal != null && !convenioGlobal.isBlank())
+                tabela.setTipoConvenio(convenioGlobal);
+        });
+
+        tableMaster.refresh();
+
+        // Se houver uma tabela aberta no formulário de revisão, atualiza ela
+        // visualmente
+        if (selecionadaAtual != null) {
+            preencherFormularioRevisao(selecionadaAtual);
+        }
+
+        System.out.println("✅ Aplicação em lote concluída! Revisão individual necessária.");
     }
 
+    // =========================================================================
+    // MOTOR DE IA (GEMINI)
+    // =========================================================================
     @FXML
     public void processarImagemIA() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Selecione o Print/Imagem da Tabela");
-        fileChooser.getExtensionFilters()
-                .add(new FileChooser.ExtensionFilter("Imagens/PDF", "*.png", "*.jpg", "*.jpeg", "*.pdf"));
-        File arquivo = fileChooser.showOpenDialog(tableMaster.getScene().getWindow());
-
+        File arquivo = escolherArquivo();
         if (arquivo == null)
             return;
 
-        mainController.mostrarLoading("Analisando layout e extraindo regras...");
+        mainController.mostrarLoading("Analisando layout e extraindo regras de negócio...");
 
         String token = authService.getUsuarioLogado().getGeminiApiKey();
         String modelo = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : "gemini-3.5-flash";
 
-        Task<List<TabelaImportadaDTO>> task = new Task<>() {
-            @Override
-            protected List<TabelaImportadaDTO> call() throws Exception {
-                String jsonResposta = geminiService.extrairTabelasEmLote(arquivo, token, modelo);
-                ObjectMapper mapper = new ObjectMapper();
-                return mapper.readValue(jsonResposta, new TypeReference<List<TabelaImportadaDTO>>() {
-                });
-            }
-        };
-
-        task.setOnSucceeded(e -> {
-            mainController.ocultarLoading();
-            loteAtual.setAll(task.getValue());
-            if (!loteAtual.isEmpty())
-                tableMaster.getSelectionModel().selectFirst();
-        });
-
-        task.setOnFailed(e -> {
-            mainController.ocultarLoading();
-            System.err.println("Erro na IA: " + task.getException().getMessage());
-            // Sugestão: Mostrar Alert de erro do JavaFX aqui
-        });
-
-        new Thread(task).start();
+        executarTaskAsync(
+                () -> processarChamadaIA(arquivo, token, modelo),
+                tabelas -> finalizarImportacaoComSucesso(tabelas),
+                erro -> finalizarComErro("Falha na extração da IA: " + erro.getMessage()));
     }
 
-    private void preencherFormulario(TabelaImportadaDTO dto) {
-        cmbBanco.getEditor().setText(dto.getBanco());
-        cmbConvenio.getEditor().setText(dto.getTipoConvenio());
-        txtNomeTabela.setText(dto.getNomeTabela());
-        txtValorMin.setText(String.valueOf(dto.getValorMinimo()));
-        txtValorMax.setText(String.valueOf(dto.getValorMaximo()));
-        txtPrazoMin.setText(String.valueOf(dto.getPrazoMinimo()));
-        txtPrazoMax.setText(String.valueOf(dto.getPrazoMaximo()));
-        txtIdadeMin.setText(String.valueOf(dto.getIdadeMinima()));
-        txtIdadeMax.setText(String.valueOf(dto.getIdadeMaxima()));
-        txtTaxa.setText(String.valueOf(dto.getTaxaMensal()));
-        txtComissao.setText(String.valueOf(dto.getComissaoPercentual()));
+    private List<TabelaImportadaDTO> processarChamadaIA(File arquivo, String token, String modelo) throws Exception {
+        String jsonResposta = geminiService.extrairTabelasEmLote(arquivo, token, modelo);
+        return new ObjectMapper().readValue(jsonResposta, new TypeReference<List<TabelaImportadaDTO>>() {
+        });
     }
 
+    private void finalizarImportacaoComSucesso(List<TabelaImportadaDTO> tabelas) {
+        mainController.ocultarLoading();
+
+        // 🚀 AUTO-APLICAR LOTE SE JÁ ESTIVER SELECIONADO ANTES DO PROCESSAMENTO
+        String bancoGlobal = cmbBancoLote != null ? cmbBancoLote.getValue() : null;
+        String convenioGlobal = cmbConvenioLote != null ? cmbConvenioLote.getValue() : null;
+
+        tabelas.forEach(t -> {
+            if (bancoGlobal != null && !bancoGlobal.isBlank())
+                t.setBanco(bancoGlobal);
+            if (convenioGlobal != null && !convenioGlobal.isBlank())
+                t.setTipoConvenio(convenioGlobal);
+        });
+
+        loteAtual.setAll(tabelas);
+        if (!loteAtual.isEmpty())
+            tableMaster.getSelectionModel().selectFirst();
+    }
+
+    // =========================================================================
+    // REVISÃO INDIVIDUAL E SALVAMENTO
+    // =========================================================================
     @FXML
     public void confirmarTabelaAtual() {
         if (selecionadaAtual == null)
@@ -254,43 +279,109 @@ public class ImportadorTabelasController {
             selecionadaAtual.setComissaoPercentual(new BigDecimal(txtComissao.getText()));
 
             selecionadaAtual.setRevisado(true);
-            tableMaster.refresh(); // Atualiza a bolinha para verde 🟢
-            validarBotaoGravacao();
+            tableMaster.refresh();
 
-            // Desce automaticamente para o próximo
+            // 🚀 CORREÇÃO AQUI: Valida o estado dos botões a cada confirmação
+            validarBotoesDeAcao();
+
+            // Avanço automático produtivo
             int nextIndex = tableMaster.getSelectionModel().getSelectedIndex() + 1;
             if (nextIndex < loteAtual.size()) {
                 tableMaster.getSelectionModel().select(nextIndex);
             }
         } catch (Exception e) {
-            System.err.println("Por favor, verifique os campos numéricos. " + e.getMessage());
+            System.err.println("⚠️ Verifique os campos numéricos. " + e.getMessage());
         }
     }
 
     @FXML
     public void gravarLoteNoBanco() {
-        mainController.mostrarLoading("Salvando lote e ativando tabelas...");
+        mainController.mostrarLoading("Persistindo lote e ativando novas vigências...");
 
-        Task<Void> task = new Task<>() {
+        executarTaskAsync(
+                () -> {
+                    tabelaJurosService.salvarLoteTabelasImportadas(loteAtual);
+                    return null;
+                },
+                sucesso -> {
+                    mainController.ocultarLoading();
+                    loteAtual.clear();
+                    alternarFormularioIndividual(true);
+                    System.out.println("✅ Lote gravado com sucesso!");
+                },
+                erro -> finalizarComErro("Erro ao gravar lote: " + erro.getMessage()));
+    }
+
+    // =========================================================================
+    // MÉTODOS UTILITÁRIOS E UI
+    // =========================================================================
+    private void preencherFormularioRevisao(TabelaImportadaDTO dto) {
+        cmbBanco.getEditor().setText(dto.getBanco());
+        cmbConvenio.getEditor().setText(dto.getTipoConvenio());
+        txtNomeTabela.setText(dto.getNomeTabela());
+        txtValorMin.setText(String.valueOf(dto.getValorMinimo()));
+        txtValorMax.setText(String.valueOf(dto.getValorMaximo()));
+        txtPrazoMin.setText(String.valueOf(dto.getPrazoMinimo()));
+        txtPrazoMax.setText(String.valueOf(dto.getPrazoMaximo()));
+        txtIdadeMin.setText(String.valueOf(dto.getIdadeMinima()));
+        txtIdadeMax.setText(String.valueOf(dto.getIdadeMaxima()));
+        txtTaxa.setText(String.valueOf(dto.getTaxaMensal()));
+        txtComissao.setText(String.valueOf(dto.getComissaoPercentual()));
+    }
+
+    private void alternarFormularioIndividual(boolean disable) {
+        cmbBanco.setDisable(disable);
+        cmbConvenio.setDisable(disable);
+        txtNomeTabela.setDisable(disable);
+        txtValorMin.setDisable(disable);
+        txtValorMax.setDisable(disable);
+        txtPrazoMin.setDisable(disable);
+        txtPrazoMax.setDisable(disable);
+        txtIdadeMin.setDisable(disable);
+        txtIdadeMax.setDisable(disable);
+        txtTaxa.setDisable(disable);
+        txtComissao.setDisable(disable);
+        btnConfirmarTabela.setDisable(disable);
+    }
+
+    private File escolherArquivo() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Selecione o Print/Imagem da Tabela");
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Imagens/PDF", "*.png", "*.jpg", "*.jpeg", "*.pdf"));
+        return fileChooser.showOpenDialog(tableMaster.getScene().getWindow());
+    }
+
+    private void sincronizarEditorCombo(ComboBox<String> comboBox) {
+        comboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null)
+                Platform.runLater(() -> comboBox.getEditor().setText(newVal));
+        });
+    }
+
+    private void finalizarComErro(String mensagem) {
+        mainController.ocultarLoading();
+        System.err.println("❌ " + mensagem);
+    }
+
+    /**
+     * Motor utilitário DRY para concorrência
+     */
+    private <T> void executarTaskAsync(Callable<T> acao, Consumer<T> onSuccess, Consumer<Throwable> onError) {
+        Task<T> task = new Task<>() {
             @Override
-            protected Void call() throws Exception {
-                tabelaJurosService.salvarLoteTabelasImportadas(loteAtual);
-                return null;
+            protected T call() throws Exception {
+                return acao.call();
             }
         };
-
-        task.setOnSucceeded(e -> {
-            mainController.ocultarLoading();
-            loteAtual.clear();
-            alternarFormulario(true);
-            System.out.println("Lote gravado com sucesso!");
-        });
-
-        task.setOnFailed(e -> {
-            mainController.ocultarLoading();
-            System.err.println("Erro ao gravar no banco: " + task.getException().getMessage());
-        });
-
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            if (onSuccess != null)
+                onSuccess.accept(task.getValue());
+        }));
+        task.setOnFailed(e -> Platform.runLater(() -> {
+            if (onError != null)
+                onError.accept(task.getException());
+        }));
         new Thread(task).start();
     }
 }

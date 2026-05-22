@@ -17,6 +17,22 @@
             <ComboBox fx:id="cmbModeloIA" prefWidth="200" />
         </HBox>
 
+        <VBox spacing="5"
+            style="-fx-background-color: #e3f2fd; -fx-padding: 10; -fx-border-radius: 5; -fx-border-color: #bbdefb;">
+            <Label text="⚡ Aplicação Rápida em Lote"
+                style="-fx-font-weight: bold; -fx-text-fill: #1565c0;" />
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <ComboBox fx:id="cmbBancoLote" promptText="Selecione o Banco Global..."
+                    prefWidth="200" />
+                <ComboBox fx:id="cmbConvenioLote" promptText="Selecione o Convênio Global..."
+                    prefWidth="200" />
+                <Button fx:id="btnAplicarLote" text="Aplicar a Todas as Tabelas"
+                    onAction="#handleAplicarLote"
+                    style="-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold;"
+                    disable="true" />
+            </HBox>
+        </VBox>
+
         <TableView fx:id="tableMaster" VBox.vgrow="ALWAYS" style="-fx-border-color: #e0e0e0;">
             <columns>
                 <TableColumn fx:id="colStatus" text="St" prefWidth="35" />
