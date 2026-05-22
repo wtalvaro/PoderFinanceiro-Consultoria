@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.service.ProponenteService;
-import br.com.poderfinanceiro.app.utils.ContatoUtils;
-import br.com.poderfinanceiro.app.utils.DocumentoUtils;
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.service.ProponenteService;
+import br.com.poderfinanceiro.app.util.ContatoUtils;
+import br.com.poderfinanceiro.app.util.DocumentoUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;

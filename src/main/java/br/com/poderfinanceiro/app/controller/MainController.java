@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.model.PropostaModel;
-import br.com.poderfinanceiro.app.service.AuthService;
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import br.com.poderfinanceiro.app.domain.service.AuthService;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.fxml.FXML;

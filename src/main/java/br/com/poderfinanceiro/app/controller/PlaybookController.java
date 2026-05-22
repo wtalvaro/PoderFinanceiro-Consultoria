@@ -1,9 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.PlaybookItemModel;
-import br.com.poderfinanceiro.app.service.AuthService;
-import br.com.poderfinanceiro.app.service.PlaybookService;
-import br.com.poderfinanceiro.app.service.GeminiService;
+import br.com.poderfinanceiro.app.domain.model.PlaybookItemModel;
+import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.domain.service.GeminiService;
+import br.com.poderfinanceiro.app.domain.service.PlaybookService;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import javafx.application.Platform;

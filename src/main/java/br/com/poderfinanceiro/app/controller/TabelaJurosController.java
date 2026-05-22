@@ -1,13 +1,12 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.BancoModel;
-import br.com.poderfinanceiro.app.model.TabelaJurosModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.repository.BancoRepository;
-import br.com.poderfinanceiro.app.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.domain.model.BancoModel;
+import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.TabelaJurosViewModel;
-import br.com.poderfinanceiro.app.utils.FinanceiroUtils; // 🚀 SUA CLASSE UTILITÁRIA INJETADA
-
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

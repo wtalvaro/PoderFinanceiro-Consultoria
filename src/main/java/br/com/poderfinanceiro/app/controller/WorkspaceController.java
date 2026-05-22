@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.service.AtendimentoContextService;
-import br.com.poderfinanceiro.app.service.AtendimentoContextService.TipoTelaFocada;
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;

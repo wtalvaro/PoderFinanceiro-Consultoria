@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.enums.LabeledModel;
-import br.com.poderfinanceiro.app.model.LinkUtilModel;
-import br.com.poderfinanceiro.app.model.enums.CategoriaLinkModel;
-import br.com.poderfinanceiro.app.repository.LinkUtilRepository;
+import br.com.poderfinanceiro.app.domain.model.LinkUtilModel;
+import br.com.poderfinanceiro.app.domain.model.enums.CategoriaLinkModel;
+import br.com.poderfinanceiro.app.domain.model.enums.LabeledModel;
+import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

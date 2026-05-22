@@ -6,9 +6,9 @@ import java.util.Objects;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import br.com.poderfinanceiro.app.model.BancoModel;
-import br.com.poderfinanceiro.app.model.TabelaJurosModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.domain.model.BancoModel;
+import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import javafx.beans.Observable;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;

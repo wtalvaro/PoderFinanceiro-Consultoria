@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.*;
-import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.service.*;
-import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
+import br.com.poderfinanceiro.app.domain.model.*;
+import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.domain.service.*;
+import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -638,7 +638,7 @@ public class PropostaController {
         String modeloSelecionado = cmbModeloIA != null && cmbModeloIA.getValue() != null ? cmbModeloIA.getValue()
                 : MODELO_IA_FALLBACK;
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
-        String jsonCliente = br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils
+        String jsonCliente = br.com.poderfinanceiro.app.util.SummaryGeneratorUtils
                 .gerarJsonContextualParaIA(viewModel.proponenteProperty().get(), true);
 
         executarTaskAsync(

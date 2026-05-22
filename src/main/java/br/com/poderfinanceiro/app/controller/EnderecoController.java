@@ -1,11 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.service.ViaCepService;
+import br.com.poderfinanceiro.app.domain.model.EnderecoProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoLogradouroModel;
+import br.com.poderfinanceiro.app.domain.model.enums.UfModel;
+import br.com.poderfinanceiro.app.domain.service.ViaCepService;
 import br.com.poderfinanceiro.app.dto.ViaCepResponse;
-import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
-import br.com.poderfinanceiro.app.model.enums.TipoLogradouroModel;
-import br.com.poderfinanceiro.app.model.enums.UfModel;
-import br.com.poderfinanceiro.app.utils.EnderecoUtils;
+import br.com.poderfinanceiro.app.util.EnderecoUtils;
 import br.com.poderfinanceiro.app.viewmodel.EnderecoViewModel;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;

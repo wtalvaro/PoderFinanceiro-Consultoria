@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.service.DocumentoService;
+import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.service.DocumentoService;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;

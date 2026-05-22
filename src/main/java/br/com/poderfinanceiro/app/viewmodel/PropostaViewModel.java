@@ -1,15 +1,16 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.BancoModel;
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.model.PropostaModel;
-import br.com.poderfinanceiro.app.model.UsuarioModel;
-import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.domain.model.BancoModel;
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
+import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

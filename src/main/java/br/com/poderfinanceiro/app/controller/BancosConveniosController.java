@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.BancoModel;
-import br.com.poderfinanceiro.app.repository.BancoRepository;
-import br.com.poderfinanceiro.app.utils.ContatoUtils;
+import br.com.poderfinanceiro.app.domain.model.BancoModel;
+import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+import br.com.poderfinanceiro.app.util.ContatoUtils;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

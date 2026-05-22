@@ -1,13 +1,14 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.model.enums.OrigemLeadModel;
-import br.com.poderfinanceiro.app.model.enums.TipoRelacionamentoModel;
-import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.enums.OrigemLeadModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoRelacionamentoModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoVinculoModel;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

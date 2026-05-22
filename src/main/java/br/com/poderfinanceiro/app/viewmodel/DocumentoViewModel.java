@@ -1,10 +1,12 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.DocumentoProponenteModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
+
 import java.util.Objects;
 
 @Component

@@ -1,10 +1,11 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.BancoModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.domain.model.BancoModel;
 
 import java.util.Objects;
 

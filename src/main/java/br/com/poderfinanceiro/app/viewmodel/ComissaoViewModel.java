@@ -1,12 +1,13 @@
 package br.com.poderfinanceiro.app.viewmodel;
 
-import br.com.poderfinanceiro.app.model.ComissaoModel;
-import br.com.poderfinanceiro.app.model.PropostaModel;
-import br.com.poderfinanceiro.app.model.UsuarioModel;
 import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
+import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

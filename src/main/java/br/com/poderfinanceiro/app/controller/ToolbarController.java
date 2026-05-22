@@ -1,8 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.StageInitializer;
 import javafx.fxml.FXML;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.ui.stage.StageInitializer;
 
 @Component
 public class ToolbarController {

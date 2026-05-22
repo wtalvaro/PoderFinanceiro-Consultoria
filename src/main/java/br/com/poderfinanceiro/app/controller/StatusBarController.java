@@ -1,9 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.service.AuthService;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.domain.service.AuthService;
 
 @Component
 public class StatusBarController {

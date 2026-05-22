@@ -1,12 +1,13 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.domain.model.BancoModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.domain.service.GeminiService;
+import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
-import br.com.poderfinanceiro.app.model.BancoModel;
-import br.com.poderfinanceiro.app.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.repository.BancoRepository;
-import br.com.poderfinanceiro.app.service.AuthService;
-import br.com.poderfinanceiro.app.service.GeminiService;
-import br.com.poderfinanceiro.app.service.TabelaJurosService;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;

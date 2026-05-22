@@ -1,10 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.service.AuthService;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.domain.service.AuthService;
 
 @Component
 public class LoginController {

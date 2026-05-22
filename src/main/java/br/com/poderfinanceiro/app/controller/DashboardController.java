@@ -1,13 +1,13 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.PropostaModel;
-import br.com.poderfinanceiro.app.model.UsuarioModel;
-import br.com.poderfinanceiro.app.model.ComissaoModel;
-import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.repository.PropostaRepository;
-import br.com.poderfinanceiro.app.repository.ComissaoRepository;
-import br.com.poderfinanceiro.app.service.AuthService;
-import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
+import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
+import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
+import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
+import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
+import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;

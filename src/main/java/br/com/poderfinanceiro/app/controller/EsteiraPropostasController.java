@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.PropostaModel;
-import br.com.poderfinanceiro.app.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.repository.PropostaRepository;
-import br.com.poderfinanceiro.app.service.PropostaService;
-import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
+import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
+import br.com.poderfinanceiro.app.domain.service.PropostaService;
+import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;

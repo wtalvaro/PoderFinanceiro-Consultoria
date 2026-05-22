@@ -1,11 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.ComissaoModel;
-import br.com.poderfinanceiro.app.repository.ComissaoRepository;
-import br.com.poderfinanceiro.app.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
+import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
+import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
+import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.ComissaoViewModel;
-import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
-import br.com.poderfinanceiro.app.utils.CicloFinanceiroUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

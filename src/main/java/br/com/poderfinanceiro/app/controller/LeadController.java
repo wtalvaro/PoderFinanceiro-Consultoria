@@ -1,13 +1,13 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.enums.LabeledModel;
-import br.com.poderfinanceiro.app.model.enums.OrigemLeadModel;
-import br.com.poderfinanceiro.app.model.enums.TipoRelacionamentoModel;
-import br.com.poderfinanceiro.app.model.enums.TipoVinculoModel;
-import br.com.poderfinanceiro.app.utils.ContatoUtils;
-import br.com.poderfinanceiro.app.utils.DataUtils;
-import br.com.poderfinanceiro.app.utils.DocumentoUtils;
-import br.com.poderfinanceiro.app.utils.FinanceiroUtils;
+import br.com.poderfinanceiro.app.domain.model.enums.LabeledModel;
+import br.com.poderfinanceiro.app.domain.model.enums.OrigemLeadModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoRelacionamentoModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoVinculoModel;
+import br.com.poderfinanceiro.app.util.ContatoUtils;
+import br.com.poderfinanceiro.app.util.DataUtils;
+import br.com.poderfinanceiro.app.util.DocumentoUtils;
+import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.LeadViewModel;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;

@@ -1,11 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.service.TabelaJurosService;
-import br.com.poderfinanceiro.app.repository.LinkUtilRepository;
-import br.com.poderfinanceiro.app.service.AtendimentoContextService;
-import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
-import br.com.poderfinanceiro.app.service.AuthService;
-import br.com.poderfinanceiro.app.service.GeminiService;
+import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
+import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.domain.service.GeminiService;
+import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;

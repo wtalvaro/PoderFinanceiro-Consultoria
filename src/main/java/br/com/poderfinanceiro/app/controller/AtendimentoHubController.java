@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.model.EnderecoProponenteModel;
-import br.com.poderfinanceiro.app.model.ProponenteModel;
-import br.com.poderfinanceiro.app.service.AtendimentoContextService;
-import br.com.poderfinanceiro.app.service.ProponenteService;
-import br.com.poderfinanceiro.app.utils.SummaryGeneratorUtils;
+import br.com.poderfinanceiro.app.domain.model.EnderecoProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.domain.service.ProponenteService;
+import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.concurrent.Task;
