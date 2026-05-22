@@ -12,6 +12,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.controlsfx.control.MasterDetailPane;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Component
 public class TabelaJurosController {
@@ -87,6 +89,9 @@ public class TabelaJurosController {
     private ComboBox<BancoModel> comboBanco;
     @FXML
     private VBox overlayArquivar;
+
+    private SortedList<TabelaJurosModel> sortedData;
+    private FilteredList<TabelaJurosModel> filteredData;
 
     private ObservableList<TabelaJurosModel> dadosOriginais;
     private TabelaJurosModel tabelaSelecionadaParaArquivar;
@@ -266,22 +271,53 @@ public class TabelaJurosController {
     }
 
     private void carregarDados() {
-        dadosOriginais = FXCollections.observableArrayList(service.listarAtivas());
-        tableTabelas.setItems(dadosOriginais);
+        List<TabelaJurosModel> novasTabelas = service.listarAtivas();
+
+        // Se a lista não existir, cria. Se existir, apenas atualiza.
+        if (dadosOriginais == null) {
+            dadosOriginais = FXCollections.observableArrayList(novasTabelas);
+        } else {
+            dadosOriginais.setAll(novasTabelas);
+        }
     }
 
     private void configurarFiltroBusca() {
-        FilteredList<TabelaJurosModel> filteredData = new FilteredList<>(dadosOriginais, b -> true);
+        filteredData = new FilteredList<>(dadosOriginais, b -> true);
+        sortedData = new SortedList<>(filteredData);
+        sortedData.comparatorProperty().bind(tableTabelas.comparatorProperty());
+
         txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredData.setPredicate(tabela -> {
-                if (newValue == null || newValue.isEmpty())
+                // Se o campo de busca estiver vazio, mostra tudo
+                if (newValue == null || newValue.trim().isEmpty()) {
                     return true;
-                String lowerCaseFilter = newValue.toLowerCase();
-                return tabela.getNomeTabela().toLowerCase().contains(lowerCaseFilter) ||
-                        tabela.getTipoConvenio().name().toLowerCase().contains(lowerCaseFilter);
+                }
+
+                // Transforma o que foi digitado em minúsculo
+                String termoBusca = newValue.toLowerCase().trim();
+
+                // Compara com a nossa string de busca completa do objeto
+                return gerarStringDeBusca(tabela).contains(termoBusca);
             });
         });
-        tableTabelas.setItems(filteredData);
+
+        tableTabelas.setItems(sortedData);
+    }
+
+    private String gerarStringDeBusca(TabelaJurosModel t) {
+        // Concatenamos tudo o que está nas colunas, usando espaços para separar os
+        // campos
+        return ((t.getBanco() != null ? t.getBanco().getNome() : "") + " " +
+                (t.getNomeTabela() != null ? t.getNomeTabela() : "") + " " +
+                (t.getTipoConvenio() != null ? t.getTipoConvenio().name() : "") + " " +
+                FinanceiroUtils.formatarParaExibicao(t.getTaxaMensal()) + " " +
+                FinanceiroUtils.formatarParaExibicao(t.getComissaoPercentual()) + " " +
+                t.getValorMinimoEmprestimo() + " " +
+                t.getValorMaximoEmprestimo() + " " +
+                t.getIdadeMinima() + " " +
+                t.getIdadeMaxima() + " " +
+                t.getPrazoMinimo() + " " +
+                t.getPrazoMaximo()).toLowerCase();
     }
 
     // =========================================================

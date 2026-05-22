@@ -194,7 +194,7 @@
                                     <Label text="🔍 Buscar Tabela Ativa:"
                                         style="-fx-font-weight: bold; -fx-text-fill: #495057;" />
                                     <TextField fx:id="txtBusca"
-                                        promptText="Filtre por nome, convênio ou taxa..."
+                                        promptText="Filtre por nome, taxa, idade, prazo ou convênio..."
                                         HBox.hgrow="ALWAYS"
                                         style="-fx-font-size: 14px; -fx-background-color: transparent;" />
                                 </children>
