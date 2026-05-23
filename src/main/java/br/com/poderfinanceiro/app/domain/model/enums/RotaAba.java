@@ -11,7 +11,8 @@ public enum RotaAba {
     COMISSOES("ABA_COMISSOES", TipoTelaFocada.GESTAO_COMISSOES),
     PROPOSTAS("ABA_PROPOSTAS", TipoTelaFocada.ESTEIRA_PROPOSTAS),
     IMPORTADOR_TABELAS("ABA_IMPORTADOR_TABELAS", null),
-    COPILOTO("ABA_COPILOTO", null);
+    COPILOTO("ABA_COPILOTO", null),
+    PLAYBOOK("ABA_PLAYBOOK", null);
 
     private final String id;
     private final TipoTelaFocada tipoTelaFocada;
