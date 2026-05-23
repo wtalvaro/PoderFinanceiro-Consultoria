@@ -95,4 +95,11 @@ public class MenuController {
     public void handleAbrirIA() {
         mainController.alternarPainelIA();
     }
+
+    @FXML
+    private void handleAbrirCopiloto() {
+        // Usa null porque o menu não passa o nó de âncora (o AnchorNode foi removido na
+        // nossa última refatoração)
+        mainController.abrirCopilotoSimulacao(null);
+    }
 }

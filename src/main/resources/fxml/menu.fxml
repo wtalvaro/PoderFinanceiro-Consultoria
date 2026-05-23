@@ -6,28 +6,34 @@
 
     <Menu text="_Poder Financeiro">
         <MenuItem text="📊 Visão Geral" onAction="#handleDashboard" accelerator="Shortcut+D" />
-        <MenuItem text="👤 Novo Contato" onAction="#handleNovoContato" accelerator="Shortcut+N" />
         <SeparatorMenuItem />
         <MenuItem text="🚪 Encerrar Sessão (Logout)" onAction="#handleLogout" />
         <MenuItem text="❌ Sair do Sistema" onAction="#handleSair" />
     </Menu>
 
     <Menu text="_Operacional">
+        <MenuItem text="✨ Copiloto de Vendas" onAction="#handleAbrirCopiloto"
+            accelerator="Shortcut+Space" />
+        <SeparatorMenuItem />
+        <MenuItem text="👤 Novo Contato" onAction="#handleNovoContato" accelerator="Shortcut+N" />
         <MenuItem text="👥 Gestão de Clientes" onAction="#handleClientes" accelerator="Shortcut+G" />
         <MenuItem text="📄 Esteira de Propostas" onAction="#handlePropostas"
             accelerator="Shortcut+P" />
     </Menu>
 
     <Menu text="_Financeiro">
-        <MenuItem text="💰 Comissões (RV)" onAction="#handleComissoes" accelerator="Shortcut+F" />
-        <MenuItem text="📈 Tabelas de Juros" onAction="#handleJuros" accelerator="Shortcut+J" />
-        <MenuItem text="🤖 Importar Tabelas (IA)" onAction="#handleImportarTabelas" />
+        <MenuItem text="💰 Gestão de Comissões (RV)" onAction="#handleComissoes"
+            accelerator="Shortcut+F" />
     </Menu>
 
-    <Menu text="_Ferramentas">
-        <MenuItem text="📚 Playbook de Vendas" onAction="#handlePlaybook" accelerator="Shortcut+B" />
-        <SeparatorMenuItem />
-        <MenuItem text="🏦 Bancos &amp; Convênios" onAction="#handleBancos" />
+    <Menu text="P_arâmetros">
+        <MenuItem text="🏦 Bancos &amp; Convênios" onAction="#handleBancos" accelerator="Shortcut+B" />
+        <MenuItem text="📈 Tabelas de Juros" onAction="#handleJuros" accelerator="Shortcut+J" />
+    </Menu>
+
+    <Menu text="F_erramentas">
+        <MenuItem text="📥 Importador de Tabelas (IA)" onAction="#handleImportarTabelas" />
+        <MenuItem text="📚 Playbook de Vendas" onAction="#handlePlaybook" />
         <MenuItem text="🔗 Links Úteis" onAction="#handleLinks" accelerator="Shortcut+L" />
         <SeparatorMenuItem />
         <MenuItem text="🔄 Limpar Cache de Telas" onAction="#handleLimparCache" disable="true" />

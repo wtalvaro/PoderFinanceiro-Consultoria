@@ -85,6 +85,12 @@ public class ToolbarController {
         mainController.alternarPainelIA();
     }
 
+    @FXML
+    public void handleAbrirCopiloto(javafx.event.ActionEvent event) {
+        javafx.scene.Node source = (javafx.scene.Node) event.getSource();
+        mainController.abrirCopilotoSimulacao(source);
+    }
+
     // ==========================================
     // SISTEMA
     // ==========================================

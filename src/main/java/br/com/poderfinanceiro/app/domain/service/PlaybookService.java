@@ -17,10 +17,10 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import br.com.poderfinanceiro.app.domain.model.PlaybookItemDTO;
 import br.com.poderfinanceiro.app.domain.model.PlaybookItemModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.strategy.DocumentStrategy;
+import br.com.poderfinanceiro.app.dto.PlaybookItemDTO;
 
 @Service
 public class PlaybookService {

@@ -67,7 +67,7 @@
 
                     <VBox spacing="15"
                         style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
-                        <Label text="1. Triagem Inicial (Filtro Inteligente)"
+                        <Label text="1. Dados da Solicitação"
                             style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
 
                         <GridPane hgap="20" vgap="15">
@@ -103,7 +103,7 @@
 
                     <VBox spacing="15"
                         style="-fx-background-color: -color-bg-default; -fx-padding: 20; -fx-border-radius: 8; -fx-border-color: -color-border-muted;">
-                        <Label text="2. Instituição e Produto Disponível"
+                        <Label text="2. Instituição e Produto"
                             style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
 
                         <GridPane hgap="20" vgap="15">
@@ -115,13 +115,13 @@
                             <VBox spacing="5" GridPane.columnIndex="0">
                                 <Label text="Banco Parceiro" />
                                 <ComboBox fx:id="cbBanco" maxWidth="Infinity"
-                                    promptText="Aguardando triagem..." />
+                                    promptText="Selecione o banco..." />
                             </VBox>
 
                             <VBox spacing="5" GridPane.columnIndex="1">
                                 <Label text="Tabela / Regra de Juros" />
                                 <ComboBox fx:id="cbTabela" maxWidth="Infinity"
-                                    promptText="Aguardando banco..." />
+                                    promptText="Selecione a tabela..." />
                             </VBox>
                         </GridPane>
                     </VBox>

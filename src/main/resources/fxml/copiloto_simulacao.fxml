@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<SplitPane dividerPositions="0.4"
+    style="-fx-background-color: transparent;"
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.CopilotoController">
+
+    <VBox spacing="15" style="-fx-padding: 15; -fx-background-color: #ffffff;">
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="✨" style="-fx-font-size: 20px;" />
+            <Label text="Copiloto de Vendas" style="-fx-font-size: 14px; -fx-font-weight: bold;" />
+        </HBox>
+
+        <GridPane hgap="10" vgap="10">
+            <columnConstraints>
+                <ColumnConstraints percentWidth="50" />
+                <ColumnConstraints percentWidth="50" />
+            </columnConstraints>
+
+            <VBox GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2">
+                <Label text="Cliente" style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
+                <ComboBox fx:id="cbCliente" maxWidth="Infinity" promptText="Selecione o cliente..." />
+            </VBox>
+
+            <VBox GridPane.columnIndex="0" GridPane.rowIndex="1">
+                <Label text="Convênio" style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
+                <ComboBox fx:id="cbConvenio" maxWidth="Infinity" promptText="Selecione..." />
+            </VBox>
+
+            <VBox GridPane.columnIndex="1" GridPane.rowIndex="1">
+                <Label text="Valor Desejado (R$)"
+                    style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
+                <TextField fx:id="txtValor" promptText="0,00" />
+            </VBox>
+
+            <VBox GridPane.columnIndex="0" GridPane.rowIndex="2">
+                <Label text="Prazo Desejado"
+                    style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
+                <TextField fx:id="txtPrazo" promptText="Ex: 84" />
+            </VBox>
+
+            <VBox GridPane.columnIndex="1" GridPane.rowIndex="2">
+                <Label text="Idade do Cliente"
+                    style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
+                <TextField fx:id="txtIdade" promptText="Ex: 65" />
+            </VBox>
+
+            <VBox GridPane.columnIndex="0" GridPane.rowIndex="3">
+                <Label text="Renda Mensal (R$)"
+                    style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
+                <TextField fx:id="txtRenda" promptText="0,00" />
+            </VBox>
+
+            <VBox GridPane.columnIndex="1" GridPane.rowIndex="3">
+                <Label text="Margem Disp. (R$)" style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
+                <HBox spacing="5" alignment="CENTER_LEFT">
+                    <TextField fx:id="txtMargem" promptText="0,00" HBox.hgrow="ALWAYS" />
+                    <Button fx:id="btnExtrairMargem" text="📎 IA" onAction="#handleExtrairMargem"
+                        style="-fx-background-color: #e0f2fe; -fx-text-fill: #0284c7; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8;">
+                        <tooltip>
+                            <Tooltip text="Analisar Holerite/Hiscon com IA" />
+                        </tooltip>
+                    </Button>
+                </HBox>
+            </VBox>
+        </GridPane>
+
+        <Button fx:id="btnSimular" text="🔍 Buscar Tabelas" onAction="#handleSimular"
+            maxWidth="Infinity"
+            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8;" />
+    </VBox>
+
+    <ScrollPane fx:id="scrollArea" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+        style="-fx-background-color: #ffffff; -fx-padding: 10;">
+
+        <VBox fx:id="boxDetalhes" spacing="15"
+            style="-fx-padding: 20; -fx-background-color: #f8fafc; -fx-border-color: #cbd5e1; -fx-border-width: 0 0 0 0;">
+            <Label text="✨ Detalhes da Análise"
+                style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;" />
+
+            <VBox fx:id="boxRespostaIA" spacing="10" visible="false" managed="false"
+                style="-fx-background-color: #ffffff; -fx-padding: 15; -fx-border-radius: 8; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);">
+                <Label text="💡 Insights do Copiloto:"
+                    style="-fx-font-weight: bold; -fx-text-fill: #4338ca;" />
+                <Label fx:id="lblRespostaIA" wrapText="true" maxHeight="Infinity"
+                    style="-fx-font-size: 13px; -fx-text-fill: #334155;" />
+            </VBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT"
+                style="-fx-background-color: #f1f5f9; -fx-padding: 8; -fx-border-radius: 6; -fx-border-color: #cbd5e1;">
+                <Label text="🤖 Motor Cognitivo:"
+                    style="-fx-font-weight: bold; -fx-text-fill: #475569;" />
+                <ComboBox fx:id="cmbModeloIA" prefWidth="200"
+                    style="-fx-background-color: white; -fx-border-color: #94a3b8; -fx-border-radius: 4;" />
+            </HBox>
+
+            <Button fx:id="btnPedirConselho" text="✨ Analisar com IA"
+                onAction="#handlePedirConselhoIA"
+                maxWidth="Infinity"
+                style="-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold;" />
+
+
+            <Separator />
+
+            <VBox fx:id="boxResultados" spacing="10" visible="false" managed="false"
+                VBox.vgrow="ALWAYS">
+                <Label text="🏆 Ranking" style="-fx-font-weight: bold;" />
+                <ListView fx:id="listaRanking" prefHeight="350"
+                    style="-fx-background-color: transparent; -fx-border-color: transparent;" />
+            </VBox>
+        </VBox>
+
+    </ScrollPane>
+</SplitPane>

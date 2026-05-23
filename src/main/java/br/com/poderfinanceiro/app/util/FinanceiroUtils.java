@@ -69,4 +69,24 @@ public class FinanceiroUtils {
             return null;
         });
     }
+
+    public static int parseSafeInt(String texto) {
+        if (texto == null || texto.replaceAll("[^0-9]", "").isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(texto.replaceAll("[^0-9]", ""));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public static TextFormatter<String> criarFormatadorInteiro() {
+        return new TextFormatter<>(change -> {
+            if (change.getControlNewText().matches("\\d*")) {
+                return change;
+            }
+            return null;
+        });
+    }
 }

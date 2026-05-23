@@ -1,8 +1,10 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -10,7 +12,6 @@ import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.application.Platform;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -49,31 +50,20 @@ public class WorkspaceController {
         Object userData = abaFocada.getUserData();
 
         if (userData instanceof String idAba) {
-            switch (idAba) {
-                case "ABA_DASHBOARD":
-                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
-                    return;
-                case "ABA_CLIENTES":
-                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.LISTA_CLIENTES);
-                    return;
-                case "ABA_LINKS":
-                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.LINKS_UTEIS);
-                    return;
-                case "ABA_JUROS":
-                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.TABELAS_JUROS);
-                    return;
-                case "ABA_COMISSOES":
-                    contextoService.atualizarFocoInterface(null, TipoTelaFocada.GESTAO_COMISSOES);
-                    return;
-                case "ABA_PROPOSTAS": // 🚀 NOVO: Mantém o contexto do Chat ciente da Esteira
-                    contextoService.setTelaAtualFocada(TipoTelaFocada.ESTEIRA_PROPOSTAS);
-                    return;
-                default:
-                    if (idAba.startsWith("ABA_")) {
-                        contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
-                        return;
-                    }
-                    break;
+            RotaAba rota = RotaAba.fromId(idAba);
+
+            // Tratamento dinâmico via Enum (adeus Switch-Case!)
+            if (rota != null && rota.getTipoTelaFocada() != null) {
+                // A esteira não limpa o proponente, apenas muda o foco da tela
+                if (rota == RotaAba.PROPOSTAS) {
+                    contextoService.setTelaAtualFocada(rota.getTipoTelaFocada());
+                } else {
+                    contextoService.atualizarFocoInterface(null, rota.getTipoTelaFocada());
+                }
+                return;
+            } else if (idAba.startsWith("ABA_")) {
+                contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
+                return;
             }
         }
 
@@ -92,7 +82,9 @@ public class WorkspaceController {
     // PROTOCOLO DE ADMISSÃO (Motor de Abas)
     // ========================================================================
 
-    private void admitirAbaSimples(String id, String titulo, String fxmlPath) {
+    public void admitirAbaSimples(RotaAba rota, String titulo, String fxmlPath) {
+        String id = rota.getId();
+
         for (Tab tab : tabPanePrincipal.getTabs()) {
             if (id.equals(tab.getUserData())) {
                 tabPanePrincipal.getSelectionModel().select(tab);
@@ -110,7 +102,6 @@ public class WorkspaceController {
             novaAba.setUserData(id);
             novaAba.setClosable(true);
 
-            // 🚀 A CURA: Salva a referência do Controller na aba para uso futuro
             novaAba.getProperties().put("controller", loader.getController());
 
             tabPanePrincipal.getTabs().add(novaAba);
@@ -125,40 +116,41 @@ public class WorkspaceController {
     // ========================================================================
 
     public void abrirAbaDashboard() {
-        admitirAbaSimples("ABA_DASHBOARD", "📊 Visão Geral", "/fxml/dashboard.fxml");
+        admitirAbaSimples(RotaAba.DASHBOARD, "📊 Visão Geral", "/fxml/dashboard.fxml");
     }
 
     public void abrirAbaPlaybook() {
-        admitirAbaSimples("ABA_PLAYBOOK", "📚 Playbook", "/fxml/playbook.fxml");
+        // Fallback temporário para strings se não estiver no enum
+        admitirAbaSimples(RotaAba.fromId("ABA_PLAYBOOK") != null ? RotaAba.fromId("ABA_PLAYBOOK") : RotaAba.DASHBOARD,
+                "📚 Playbook", "/fxml/playbook.fxml");
     }
 
     public void abrirAbaClientes() {
-        admitirAbaSimples("ABA_CLIENTES", "👥 Clientes", "/fxml/clientes_list.fxml");
+        admitirAbaSimples(RotaAba.CLIENTES, "👥 Clientes", "/fxml/clientes_list.fxml");
     }
 
     public void abrirAbaLinks() {
-        admitirAbaSimples("ABA_LINKS", "🔗 Links Úteis", "/fxml/links_uteis.fxml");
+        admitirAbaSimples(RotaAba.LINKS, "🔗 Links Úteis", "/fxml/links_uteis.fxml");
     }
 
     public void abrirAbaTabelasJuros() {
-        admitirAbaSimples("ABA_JUROS", "📈 Tabelas de Juros", "/fxml/tabelas_juros.fxml");
+        admitirAbaSimples(RotaAba.JUROS, "📈 Tabelas de Juros", "/fxml/tabelas_juros.fxml");
     }
 
     public void abrirAbaBancosConvenios() {
-        admitirAbaSimples("ABA_BANCOS", "🏦 Bancos e Convênios", "/fxml/bancos_convenios.fxml");
+        admitirAbaSimples(RotaAba.BANCOS, "🏦 Bancos e Convênios", "/fxml/bancos_convenios.fxml");
     }
 
     public void abrirAbaComissoes() {
-        admitirAbaSimples("ABA_COMISSOES", "💰 Gestão de Repasses (RV)", "/fxml/comissoes.fxml");
+        admitirAbaSimples(RotaAba.COMISSOES, "💰 Gestão de Repasses (RV)", "/fxml/comissoes.fxml");
     }
 
     public void abrirAbaPropostas(String filtroInicial) {
-        admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
+        admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
     }
 
-    // Adicione junto aos outros métodos "abrirAba..."
     public void abrirAbaImportadorTabelas() {
-        admitirAbaSimples("ABA_IMPORTADOR_TABELAS", "🤖 Importador IA", "/fxml/importador_tabelas.fxml");
+        admitirAbaSimples(RotaAba.IMPORTADOR_TABELAS, "📥 Importador IA", "/fxml/importador_tabelas.fxml");
     }
 
     // =====================================================================
@@ -213,17 +205,12 @@ public class WorkspaceController {
         }
     }
 
-    // =====================================================================
-    // 🚀 NOVO COMPORTAMENTO: ROTEAMENTO DIRETO PARA A ESTEIRA DE PROPOSTAS
-    // =====================================================================
     public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
         if (propostaIdAlvo != null) {
-            // 1. Garante que a aba da esteira está aberta e focada
-            admitirAbaSimples("ABA_PROPOSTAS", "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
+            admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
 
-            // 2. Busca o controlador e manda ele selecionar a proposta
             for (Tab tab : tabPanePrincipal.getTabs()) {
-                if ("ABA_PROPOSTAS".equals(tab.getUserData())) {
+                if (RotaAba.PROPOSTAS.getId().equals(tab.getUserData())) {
                     Object controller = tab.getProperties().get("controller");
                     if (controller instanceof EsteiraPropostasController esteira) {
                         Platform.runLater(() -> esteira.selecionarPropostaPorId(propostaIdAlvo));
@@ -232,14 +219,9 @@ public class WorkspaceController {
                 }
             }
         } else {
-            // Fallback de segurança: Se não tiver ID de proposta, abre o Hub do Cliente
             abrirOuFocarAba(proponente);
         }
     }
-
-    // ========================================================================
-    // UTILITÁRIOS INTERNOS
-    // ========================================================================
 
     private void configurarTituloReativoLead(Tab aba, AtendimentoHubController hub) {
         aba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {

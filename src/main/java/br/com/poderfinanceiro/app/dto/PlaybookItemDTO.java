@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.domain.model;
+package br.com.poderfinanceiro.app.dto;
 
 public record PlaybookItemDTO(
         String categoria,

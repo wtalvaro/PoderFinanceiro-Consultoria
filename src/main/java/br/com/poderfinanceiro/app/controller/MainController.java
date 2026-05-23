@@ -2,13 +2,18 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.domain.service.PropostaService;
+import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
+import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
+import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -61,11 +66,19 @@ public class MainController {
     @FXML
     private AjudaChatController painelChatController;
 
+    @FXML
+    private VBox overlayMensagem;
+    @FXML
+    private Label lblMsgTitulo;
+    @FXML
+    private Label lblMsgTexto;
+
     // =========================================================================
     // ESTADO E INJEÇÕES
     // =========================================================================
     private final HostServices hostServices;
     private final ApplicationContext context;
+    private final PropostaService propostaService;
     private final Map<String, ViewPair> cacheDeViews = new HashMap<>();
 
     private double mouseStartX = 0;
@@ -76,9 +89,10 @@ public class MainController {
     private record ViewPair(Node view, Object controller) {
     }
 
-    public MainController(ApplicationContext context, HostServices hostServices) {
+    public MainController(ApplicationContext context, HostServices hostServices, PropostaService propostaService) {
         this.context = context;
         this.hostServices = hostServices;
+        this.propostaService = propostaService;
     }
 
     public HostServices getHostServices() {
@@ -133,6 +147,51 @@ public class MainController {
                 event.consume();
             }
         });
+    }
+
+    public void abrirCopilotoSimulacao(Node anchorNode) {
+        // O anchorNode não é mais necessário pois não usaremos PopOver
+        executarNoWorkspace(ws -> {
+            ws.admitirAbaSimples(
+                    RotaAba.COPILOTO, // 🚀 CORREÇÃO: Substituído a String pelo Enum
+                    "✨ Copiloto de Vendas",
+                    "/fxml/copiloto_simulacao.fxml");
+        });
+    }
+
+    // 🚀 MÉTODO 2 CORRIGIDO: Executa a conversão do Rascunho para a Aba de Clientes
+    // (Lead)
+    public void iniciarConversaoCopiloto(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado, ProponenteModel cliente) {
+        try {
+            // Criação da Nova Proposta
+            PropostaModel novaProposta = new PropostaModel();
+            
+            // Vinculação Obrigatória
+            novaProposta.setProponente(cliente);
+            novaProposta.setBanco(resultado.tabela().getBanco());
+            novaProposta.setTabelaId(resultado.tabela().getId());
+            
+            // Dados da Simulação
+            novaProposta.setValorSolicitado(rascunho.valorDesejado());
+            novaProposta.setPrazoDesejado(rascunho.prazoDesejado());
+            novaProposta.setConvenioOrgao(TipoConvenioModel.valueOf(rascunho.tipoConvenio()));
+            
+            // Status Inicial
+            novaProposta.setStatus(StatusPropostaModel.DIGITADA);
+
+            // Persistência
+            PropostaModel propostaSalva = propostaService.salvarProposta(novaProposta);
+
+            // Abre a aba da proposta no Workspace
+            abrirPropostaNoWorkspace(propostaSalva);
+
+            notificarSucesso("Proposta gerada com sucesso para " + cliente.getNomeCompleto() + 
+                             "\nBanco: " + resultado.tabela().getBanco().getNome());
+
+        } catch (Exception e) {
+            notificarAviso("Erro ao gerar proposta: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     // =========================================================================
@@ -289,24 +348,31 @@ public class MainController {
         }
     }
 
+    // 🚀 MÉTODO: Exibe o overlay (substitui o Alert)
+    private void exibirOverlayMensagem(String titulo, String mensagem) {
+        Platform.runLater(() -> {
+            lblMsgTitulo.setText(titulo);
+            lblMsgTexto.setText(mensagem);
+            overlayMensagem.setVisible(true);
+            overlayMensagem.toFront(); // Garante que ele fique sobre tudo
+        });
+    }
+
+    // 🚀 MÉTODO: Oculta o overlay (chamado pelo botão do FXML)
+    @FXML
+    private void ocultarOverlayMensagem() {
+        overlayMensagem.setVisible(false);
+    }
+
     // =========================================================================
     // NOTIFICAÇÕES GLOBAIS (DRY)
     // =========================================================================
     public void notificarSucesso(String mensagem) {
-        exibirAlertaGeral(Alert.AlertType.INFORMATION, "Poder Financeiro", mensagem);
+        exibirOverlayMensagem("Sucesso", mensagem);
     }
 
     public void notificarAviso(String mensagem) {
-        exibirAlertaGeral(Alert.AlertType.WARNING, "Atenção", mensagem);
+        exibirOverlayMensagem("Atenção", mensagem);
     }
 
-    private void exibirAlertaGeral(Alert.AlertType tipo, String titulo, String mensagem) {
-        Platform.runLater(() -> {
-            Alert alerta = new Alert(tipo);
-            alerta.setTitle(titulo);
-            alerta.setHeaderText(null);
-            alerta.setContentText(mensagem);
-            alerta.showAndWait();
-        });
-    }
 }

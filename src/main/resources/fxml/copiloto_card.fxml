@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:id="cardContainer" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="br.com.poderfinanceiro.app.controller.CopilotoCardController"
+    spacing="5"
+    style="-fx-background-color: #f1f5f9; -fx-padding: 10; -fx-border-radius: 6; -fx-background-radius: 6; -fx-border-color: #e2e8f0; -fx-border-width: 1;">
+
+    <Label fx:id="lblRecomendado" text="🏆 Escolha da IA"
+        style="-fx-background-color: #fef08a; -fx-text-fill: #854d0e; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 4; -fx-font-size: 11px;"
+        managed="false" visible="false" />
+
+    <Label fx:id="lblBanco" style="-fx-font-weight: bold; -fx-text-fill: #1e293b;" />
+
+    <HBox spacing="15">
+        <Label fx:id="lblParcela" />
+        <Label fx:id="lblComissao" style="-fx-text-fill: #16a34a; -fx-font-weight: bold;" />
+    </HBox>
+
+    <HBox>
+        <padding>
+            <Insets top="5" />
+        </padding>
+        <Button fx:id="btnAproveitar" text="Gerar Proposta" onAction="#handleGerarProposta"
+            style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 10px;" />
+    </HBox>
+</VBox>

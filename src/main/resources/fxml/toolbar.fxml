@@ -9,26 +9,45 @@
     fx:controller="br.com.poderfinanceiro.app.controller.ToolbarController">
 
     <Button text="➕ Novo Contato" onAction="#handleNovoContato" styleClass="flat, accent"
-        style="-fx-font-weight: bold;" />
+        style="-fx-font-weight: bold;">
+        <tooltip>
+            <Tooltip text="Cadastrar um novo cliente manualmente" />
+        </tooltip>
+    </Button>
+    <Button text="✨ Copiloto" onAction="#handleAbrirCopiloto" styleClass="flat"
+        style="-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;">
+        <tooltip>
+            <Tooltip text="Abrir o Copiloto de Vendas (Simulação Rápida com IA)" />
+        </tooltip>
+    </Button>
 
     <Separator />
 
     <Button text="📊 Visão Geral" onAction="#abrirWorkspace" styleClass="flat" />
-    <Button text="📖 Playbook" onAction="#abrirPlaybook" styleClass="flat" />
     <Button text="👥 Clientes" onAction="#abrirTelaBaseClientes" styleClass="flat" />
     <Button text="📄 Propostas" onAction="#abrirPropostasList" styleClass="flat" />
+    <Button text="💰 Comissões" onAction="#abrirTabelaComissoes" styleClass="flat" />
 
     <Separator />
 
     <Button text="🏦 Bancos" onAction="#abrirBancosConvenios" styleClass="flat" />
     <Button text="📈 Tabelas" onAction="#abrirTabelasJuros" styleClass="flat" />
-    <Button text="📥 Importar IA" onAction="#abrirImportadorTabelas" styleClass="flat"
-        style="-fx-text-fill: #0D47A1; -fx-font-weight: bold;" />
-    <Button text="💰 Comissões" onAction="#abrirTabelaComissoes" styleClass="flat" />
+    <Button text="📖 Playbook" onAction="#abrirPlaybook" styleClass="flat" />
     <Button text="🔗 Links" onAction="#handleLinksUteis" styleClass="flat" />
 
     <Region HBox.hgrow="ALWAYS" />
+    <Separator orientation="VERTICAL" />
 
-    <Button text="🤖 Gemini IA" onAction="#handleAbrirIA" styleClass="flat"
-        style="-fx-font-weight: bold; -fx-background-color: #E3F2FD; -fx-text-fill: #0D47A1; -fx-background-radius: 15; -fx-padding: 5 15;" />
+    <Button text="📥" onAction="#abrirImportadorTabelas" styleClass="flat"
+        style="-fx-text-fill: #0D47A1; -fx-font-weight: bold; -fx-cursor: hand;">
+        <tooltip>
+            <Tooltip text="Importar novas tabelas em PDF via Inteligência Artificial" />
+        </tooltip>
+    </Button>
+    <Button text="🤖 Chat IA" onAction="#handleAbrirIA" styleClass="flat"
+        style="-fx-background-color: #E3F2FD; -fx-text-fill: #0D47A1; -fx-font-weight: bold; -fx-cursor: hand;">
+        <tooltip>
+            <Tooltip text="Abrir painel lateral do Assistente Gemini" />
+        </tooltip>
+    </Button>
 </ToolBar>

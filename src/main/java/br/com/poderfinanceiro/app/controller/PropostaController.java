@@ -25,8 +25,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -152,7 +150,6 @@ public class PropostaController {
     private Runnable onPropostaRemovida;
 
     private List<TabelaJurosModel> todasTabelasAtivas;
-    private List<TabelaJurosModel> tabelasElegiveisDaTriagem;
     private final ObservableList<DocumentoProponenteModel> listaDocumentos = FXCollections.observableArrayList();
     private boolean isUpdatingInterface = false;
     private boolean modelosCarregados = false;
@@ -187,7 +184,7 @@ public class PropostaController {
         carregarListasBase();
         configurarConversoresVisuais();
         configurarBindings();
-        configurarFiltrosInteligentes();
+        configurarCalculosAutomaticos(); // Renomeado, pois não faz mais triagem
         configurarTabelaDocumentos();
         configurarAutoSelecaoTextos();
         configurarIndicadoresDinamicos();
@@ -198,6 +195,18 @@ public class PropostaController {
 
     private void carregarListasBase() {
         todasTabelasAtivas = tabelaJurosService.listarAtivas();
+
+        // Pega apenas os Bancos únicos que possuem tabelas ativas
+        List<BancoModel> bancosAtivos = todasTabelasAtivas.stream()
+                .map(TabelaJurosModel::getBanco)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        executarSemGatilhos(() -> {
+            cbBanco.setItems(FXCollections.observableArrayList(bancosAtivos));
+        });
+
         cbStatus.setItems(FXCollections.observableArrayList(StatusPropostaModel.values()));
         if (cbConvenio != null)
             cbConvenio.setItems(FXCollections.observableArrayList(TipoConvenioModel.values()));
@@ -208,7 +217,7 @@ public class PropostaController {
     private void configurarConversoresVisuais() {
         if (cbConvenio != null)
             cbConvenio.setConverter(criarConversor(TipoConvenioModel::getLabel));
-        cbBanco.setConverter(criarConversor(b -> b != null ? b.getNome() : "Aguardando Triagem..."));
+        cbBanco.setConverter(criarConversor(b -> b != null ? b.getNome() : "Selecione o Banco..."));
         cbTabela.setConverter(
                 criarConversor(t -> t != null ? t.getNomeTabela() + " (" + t.getComissaoPercentual() + "%)"
                         : "Selecione a Tabela..."));
@@ -251,7 +260,6 @@ public class PropostaController {
     private void configurarOverlayDocumentos() {
         if (cbTipoDocumentoOverlay == null)
             return;
-
         cbTipoDocumentoOverlay.setItems(TIPOS_DOCUMENTO_PADRAO);
         cbTipoDocumentoOverlay.valueProperty().addListener((obs, old, val) -> validarFormularioDocumento());
         cbTipoDocumentoOverlay.getEditor().textProperty().addListener((obs, old, val) -> validarFormularioDocumento());
@@ -271,9 +279,6 @@ public class PropostaController {
                 aplicarBloqueio();
             }
         });
-
-        // 🚀 CORREÇÃO: Executa no próximo pulso de eventos da UI do JavaFX
-        Platform.runLater(this::executarTriagem);
 
         if (contextoService != null) {
             contextoService.setPropostaAtiva(completa);
@@ -325,10 +330,16 @@ public class PropostaController {
         executarTaskAsync(() -> {
             propostaService.excluirProposta(viewModel.idProperty().get());
             return null;
-        }, sucesso -> mostrarFeedback("🗑️", "Removida", "Proposta excluída permanentemente.", () -> {
-            if (onPropostaRemovida != null)
+        }, sucesso -> {
+            // 🚀 CORREÇÃO: Removemos a segunda overlay (feedback de sucesso).
+            // Apenas executa a limpeza da tela e atualização da tabela silenciosamente.
+            if (onPropostaRemovida != null) {
                 onPropostaRemovida.run();
-        }), erro -> mostrarFeedback("❌", "Erro", "Não foi possível remover.", null));
+            }
+        }, erro -> {
+            // Mantemos a overlay de erro, pois se algo falhar, o usuário precisa saber.
+            mostrarFeedback("❌", "Erro", "Não foi possível remover: " + erro.getMessage(), null);
+        });
     }
 
     @FXML
@@ -348,15 +359,17 @@ public class PropostaController {
     }
 
     // =========================================================================
-    // LÓGICA DE NEGÓCIO E TRIAGEM
+    // LÓGICA DE NEGÓCIO E CÁLCULOS
     // =========================================================================
-    private void configurarFiltrosInteligentes() {
-        viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> executarTriagem());
-        viewModel.prazoDesejadoProperty().addListener((obs, old, val) -> executarTriagem());
-        viewModel.convenioProperty().addListener((obs, old, val) -> executarTriagem());
-        viewModel.bancoProperty().addListener((obs, old, banco) -> atualizarTabelasDoBanco((BancoModel) banco));
+    private void configurarCalculosAutomaticos() {
+        // Ao alterar valor aprovado ou solicitado, refaz a conta de comissão
         viewModel.valorAprovadoProperty().addListener((obs, old, val) -> calcularComissao());
+        viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> calcularComissao());
 
+        // Quando o usuário escolhe um Banco, filtra as tabelas
+        viewModel.bancoProperty().addListener((obs, old, banco) -> atualizarTabelasDoBanco((BancoModel) banco));
+
+        // Quando o usuário escolhe a Tabela, atualiza a propriedade ID e calcula
         cbTabela.valueProperty().addListener((obs, old, nova) -> {
             if (!isUpdatingInterface) {
                 viewModel.tabelaIdProperty().set(nova != null ? nova.getId() : null);
@@ -364,75 +377,11 @@ public class PropostaController {
             }
         });
 
+        // Quando o ID muda via ViewModel, reflete visualmente
         viewModel.tabelaIdProperty().addListener((obs, old, id) -> {
             if (!isUpdatingInterface)
                 carregarDadosDaTabela(id);
         });
-    }
-
-    private void executarTriagem() {
-        if (isUpdatingInterface)
-            return;
-
-        TipoConvenioModel convenio = cbConvenio != null ? cbConvenio.getValue() : null;
-        BigDecimal valor = viewModel.valorSolicitadoProperty().get();
-
-        if (convenio == null || valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
-            limparFiltrosDeTriagem();
-            return;
-        }
-
-        ProponenteModel proponente = viewModel.proponenteProperty().get();
-        Integer prazo = viewModel.prazoDesejadoProperty().get();
-
-        tabelasElegiveisDaTriagem = todasTabelasAtivas.stream()
-                .filter(t -> t.getTipoConvenio() == convenio)
-                .filter(t -> atendeValor(t, valor))
-                .filter(t -> atendePrazo(t, prazo))
-                .filter(t -> atendeRenda(t, proponente))
-                .filter(t -> atendeIdade(t, proponente))
-                .toList();
-
-        List<BancoModel> bancos = tabelasElegiveisDaTriagem.stream()
-                .map(TabelaJurosModel::getBanco)
-                .filter(Objects::nonNull).distinct().toList();
-
-        atualizarComboBancos(bancos);
-    }
-
-    private boolean atendeValor(TabelaJurosModel t, BigDecimal valor) {
-        BigDecimal min = t.getValorMinimoEmprestimo() != null ? t.getValorMinimoEmprestimo() : BigDecimal.ZERO;
-        if (valor.compareTo(min) < 0)
-            return false;
-
-        boolean hasMax = t.getValorMaximoEmprestimo() != null
-                && t.getValorMaximoEmprestimo().compareTo(BigDecimal.ZERO) > 0;
-        return !hasMax || valor.compareTo(t.getValorMaximoEmprestimo()) <= 0;
-    }
-
-    private boolean atendePrazo(TabelaJurosModel t, Integer prazo) {
-        if (prazo == null || prazo <= 0)
-            return true;
-        int min = (t.getPrazoMinimo() != null && t.getPrazoMinimo() > 0) ? t.getPrazoMinimo() : 1;
-        int max = (t.getPrazoMaximo() != null && t.getPrazoMaximo() > 0) ? t.getPrazoMaximo() : 999;
-        return prazo >= min && prazo <= max;
-    }
-
-    private boolean atendeRenda(TabelaJurosModel t, ProponenteModel p) {
-        BigDecimal minRenda = t.getRendaMinima() != null ? t.getRendaMinima() : BigDecimal.ZERO;
-        if (minRenda.compareTo(BigDecimal.ZERO) <= 0)
-            return true;
-        BigDecimal renda = (p != null && p.getRendaMensal() != null) ? p.getRendaMensal() : BigDecimal.ZERO;
-        return renda.compareTo(minRenda) >= 0;
-    }
-
-    private boolean atendeIdade(TabelaJurosModel t, ProponenteModel p) {
-        int idade = calcularIdade(p);
-        if (idade <= 0)
-            return true;
-        int min = (t.getIdadeMinima() != null && t.getIdadeMinima() > 0) ? t.getIdadeMinima() : 0;
-        int max = (t.getIdadeMaxima() != null && t.getIdadeMaxima() > 0) ? t.getIdadeMaxima() : 999;
-        return idade >= min && idade <= max;
     }
 
     private void calcularComissao() {
@@ -448,14 +397,98 @@ public class PropostaController {
             viewModel.comissaoEstimadaProperty().set(comissao);
             lblComissaoEstimada.setText(String.format("%s (%s%%)", FinanceiroUtils.formatarParaExibicao(comissao),
                     tabela.getComissaoPercentual()));
-            // Mantém a formatação verde e a fonte compacta ideal para a ToolBar
             lblComissaoEstimada.setStyle("-fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-font-size: 14px;");
         } else {
             viewModel.comissaoEstimadaProperty().set(BigDecimal.ZERO);
             lblComissaoEstimada.setText("R$ 0,00 (0%)");
-            // Estilo neutro quando estiver zerado
             lblComissaoEstimada.setStyle("-fx-text-fill: -color-fg-muted; -fx-font-weight: bold; -fx-font-size: 14px;");
         }
+    }
+
+    private void atualizarTabelasDoBanco(BancoModel banco) {
+        if (isUpdatingInterface)
+            return;
+
+        if (banco != null) {
+            // Filtra da lista mestra apenas as tabelas do banco selecionado
+            List<TabelaJurosModel> tabelas = todasTabelasAtivas.stream()
+                    .filter(t -> t.getBanco() != null && t.getBanco().getId().equals(banco.getId()))
+                    .sorted(Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed())
+                    .toList();
+
+            TabelaJurosModel atual = cbTabela.getValue();
+            executarSemGatilhos(() -> {
+                cbTabela.setItems(FXCollections.observableArrayList(tabelas));
+                if (atual != null) {
+                    tabelas.stream()
+                            .filter(t -> t.getId().equals(atual.getId()))
+                            .findFirst()
+                            .ifPresentOrElse(cbTabela::setValue, () -> cbTabela.setValue(null));
+                } else {
+                    cbTabela.setValue(null);
+                }
+            });
+        } else {
+            executarSemGatilhos(() -> {
+                cbTabela.getItems().clear();
+                cbTabela.setValue(null);
+            });
+        }
+        viewModel.tabelaIdProperty().set(cbTabela.getValue() != null ? cbTabela.getValue().getId() : null);
+        calcularComissao();
+    }
+
+    private void carregarDadosDaTabela(Long idTabela) {
+        if (isUpdatingInterface)
+            return;
+        executarSemGatilhos(() -> {
+            if (idTabela != null) {
+                TabelaJurosModel tab = todasTabelasAtivas.stream()
+                        .filter(t -> t.getId().equals(idTabela))
+                        .findFirst()
+                        .orElse(null);
+
+                if (tab != null) {
+                    cbConvenio.setValue(tab.getTipoConvenio());
+                    viewModel.convenioProperty().set(tab.getTipoConvenio());
+
+                    cbBanco.setValue(tab.getBanco());
+                    viewModel.bancoProperty().set(tab.getBanco());
+
+                    atualizarTabelasDoBanco(tab.getBanco());
+
+                    cbTabela.setValue(tab);
+                    viewModel.tabelaIdProperty().set(tab.getId());
+                }
+            } else {
+                cbTabela.setValue(null);
+            }
+            calcularComissao();
+        });
+    }
+
+    private void sincronizarComboBoxesComViewModel() {
+        sincronizarComboModel(cbCliente, viewModel.proponenteProperty().get(), ProponenteModel::getId);
+        cbStatus.setValue(viewModel.statusProperty().get());
+        cbConvenio.setValue(viewModel.convenioProperty().get());
+
+        BancoModel b = viewModel.bancoProperty().get();
+        sincronizarComboModel(cbBanco, b, BancoModel::getId);
+
+        Long idTabela = viewModel.tabelaIdProperty().get();
+        if (idTabela != null) {
+            TabelaJurosModel tab = todasTabelasAtivas.stream().filter(t -> t.getId().equals(idTabela)).findFirst()
+                    .orElse(null);
+
+            // Garante que a lista de tabelas está populada pro banco correto
+            if (b != null)
+                atualizarTabelasDoBanco(b);
+
+            sincronizarComboModel(cbTabela, tab, TabelaJurosModel::getId);
+        } else {
+            cbTabela.getSelectionModel().clearSelection();
+        }
+        calcularComissao();
     }
 
     // =========================================================================
@@ -467,7 +500,6 @@ public class PropostaController {
         colTipoDocumento.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoDocumento()));
         colDataUpload.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getDataUpload() != null ? d.getValue().getDataUpload().format(DATE_FORMATTER) : "-"));
-
         colAcoes.setCellFactory(param -> new BotoesAcaoDocumentoCell());
     }
 
@@ -502,14 +534,11 @@ public class PropostaController {
         documentoSendoEditado = doc;
         arquivoSelecionadoParaUpload = null;
         lblOverlayDocTitulo.setText(titulo);
-
         cbTipoDocumentoOverlay.setValue(doc != null ? doc.getTipoDocumento() : null);
         cbTipoDocumentoOverlay.getEditor().setText(doc != null ? doc.getTipoDocumento() : "");
-
         boxSelecaoArquivo.setVisible(doc == null);
         boxSelecaoArquivo.setManaged(doc == null);
         lblArquivoSelecionado.setText("Nenhum arquivo selecionado");
-
         validarFormularioDocumento();
         overlayDocumento.setVisible(true);
     }
@@ -630,10 +659,8 @@ public class PropostaController {
         }
 
         ConfigIA config = determinarConfiguracaoIA(doc.getTipoDocumento());
-
-        if (mainController != null) {
+        if (mainController != null)
             mainController.mostrarLoading("O Gemini está atuando como especialista em " + config.titulo() + "...");
-        }
 
         String modeloSelecionado = cmbModeloIA != null && cmbModeloIA.getValue() != null ? cmbModeloIA.getValue()
                 : MODELO_IA_FALLBACK;
@@ -739,23 +766,6 @@ public class PropostaController {
                 val == null ? "-fx-border-color: #ffb74d; -fx-border-width: 1px; -fx-border-radius: 4px;" : ""));
     }
 
-    private void sincronizarComboBoxesComViewModel() {
-        sincronizarComboModel(cbCliente, viewModel.proponenteProperty().get(), ProponenteModel::getId);
-        cbStatus.setValue(viewModel.statusProperty().get());
-        cbConvenio.setValue(viewModel.convenioProperty().get());
-        sincronizarComboModel(cbBanco, viewModel.bancoProperty().get(), BancoModel::getId);
-
-        Long idTabela = viewModel.tabelaIdProperty().get();
-        if (idTabela != null) {
-            TabelaJurosModel tab = todasTabelasAtivas.stream().filter(t -> t.getId().equals(idTabela)).findFirst()
-                    .orElse(null);
-            sincronizarComboModel(cbTabela, tab, TabelaJurosModel::getId);
-        } else {
-            cbTabela.getSelectionModel().clearSelection();
-        }
-        calcularComissao();
-    }
-
     private <T> void sincronizarComboModel(ComboBox<T> combo, T model, Function<T, Long> idExtractor) {
         if (model != null) {
             combo.getItems().stream()
@@ -768,83 +778,6 @@ public class PropostaController {
         } else {
             combo.getSelectionModel().clearSelection();
         }
-    }
-
-    private void limparFiltrosDeTriagem() {
-        cbBanco.getItems().clear();
-        cbTabela.getItems().clear();
-        tabelasElegiveisDaTriagem = null;
-    }
-
-    private void atualizarComboBancos(List<BancoModel> bancos) {
-        BancoModel atual = cbBanco.getValue();
-        executarSemGatilhos(() -> {
-            cbBanco.setItems(FXCollections.observableArrayList(bancos));
-            if (atual != null) {
-                // 🚀 CORREÇÃO: Localiza e seleciona a instância viva correspondente da lista
-                bancos.stream()
-                        .filter(b -> b.getId().equals(atual.getId()))
-                        .findFirst()
-                        .ifPresentOrElse(cbBanco::setValue, () -> cbBanco.setValue(atual));
-            }
-        });
-        viewModel.bancoProperty().set(cbBanco.getValue());
-        atualizarTabelasDoBanco(cbBanco.getValue());
-    }
-
-    private void atualizarTabelasDoBanco(BancoModel banco) {
-        if (isUpdatingInterface)
-            return;
-        if (banco != null && tabelasElegiveisDaTriagem != null) {
-            List<TabelaJurosModel> tabelas = tabelasElegiveisDaTriagem.stream()
-                    .filter(t -> t.getBanco().getId().equals(banco.getId()))
-                    .sorted(Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed()).toList();
-            TabelaJurosModel atual = cbTabela.getValue();
-            executarSemGatilhos(() -> {
-                cbTabela.setItems(FXCollections.observableArrayList(tabelas));
-                if (atual != null) {
-                    // 🚀 CORREÇÃO: Localiza e seleciona a instância de tabela correspondente por ID
-                    tabelas.stream()
-                            .filter(t -> t.getId().equals(atual.getId()))
-                            .findFirst()
-                            .ifPresentOrElse(cbTabela::setValue, () -> cbTabela.setValue(atual));
-                } else {
-                    cbTabela.setValue(null);
-                }
-            });
-        } else {
-            executarSemGatilhos(() -> {
-                cbTabela.getItems().clear();
-                cbTabela.setValue(null);
-            });
-        }
-        viewModel.tabelaIdProperty().set(cbTabela.getValue() != null ? cbTabela.getValue().getId() : null);
-        calcularComissao();
-    }
-
-    private void carregarDadosDaTabela(Long idTabela) {
-        if (isUpdatingInterface)
-            return;
-        executarSemGatilhos(() -> {
-            if (idTabela != null) {
-                TabelaJurosModel tab = todasTabelasAtivas.stream().filter(t -> t.getId().equals(idTabela)).findFirst()
-                        .orElse(null);
-                if (tab != null) {
-                    cbConvenio.setValue(tab.getTipoConvenio());
-                    viewModel.convenioProperty().set(tab.getTipoConvenio());
-                    executarTriagem();
-                    cbBanco.setValue(tab.getBanco());
-                    viewModel.bancoProperty().set(tab.getBanco());
-                    atualizarTabelasDoBanco(tab.getBanco());
-                    cbTabela.setValue(tab);
-                    viewModel.tabelaIdProperty().set(tab.getId());
-                    calcularComissao();
-                }
-            } else {
-                limparFiltrosDeTriagem();
-                calcularComissao();
-            }
-        });
     }
 
     private void executarSemGatilhos(Runnable acao) {
@@ -931,12 +864,6 @@ public class PropostaController {
             });
     }
 
-    private int calcularIdade(ProponenteModel p) {
-        return (p != null && p.getDataNascimento() != null)
-                ? Period.between(p.getDataNascimento(), LocalDate.now()).getYears()
-                : 0;
-    }
-
     public PropostaViewModel getViewModel() {
         return viewModel;
     }
@@ -961,13 +888,9 @@ public class PropostaController {
     // =========================================================================
     // CLASSES E RECORDS AUXILIARES
     // =========================================================================
-
     private record ConfigIA(String icone, String titulo, String prompt) {
     }
 
-    /**
-     * Isola a responsabilidade visual e lógica dos botões da tabela de documentos.
-     */
     private class BotoesAcaoDocumentoCell extends TableCell<DocumentoProponenteModel, Void> {
         private final Button btnAbrir = criarBotaoAcao("👁️", "Visualizar Documento", "flat");
         private final Button btnEditar = criarBotaoAcao("✏️", "Renomear / Mudar Tipo", "flat");

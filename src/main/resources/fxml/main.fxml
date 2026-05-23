@@ -74,4 +74,14 @@
                             
               </VBox>
        </VBox>
+
+       <VBox fx:id="overlayMensagem" visible="false" alignment="CENTER" maxWidth="400" maxHeight="200"
+              style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
+              <Label fx:id="lblMsgTitulo"
+                     style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b;" />
+              <Label fx:id="lblMsgTexto" wrapText="true"
+                     style="-fx-font-size: 14px; -fx-text-fill: #475569; -fx-padding: 10 0 20 0;" />
+              <Button text="Entendido" onAction="#ocultarOverlayMensagem" maxWidth="Infinity"
+                     style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold;" />
+       </VBox>
 </StackPane>
