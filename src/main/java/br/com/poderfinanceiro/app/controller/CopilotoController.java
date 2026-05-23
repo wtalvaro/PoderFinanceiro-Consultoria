@@ -28,11 +28,17 @@ import javafx.util.StringConverter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import javafx.util.converter.LocalDateStringConverter;
+import br.com.poderfinanceiro.app.util.DataUtils;
+
 @Component
 public class CopilotoController {
 
     @FXML
-    private TextField txtIdade, txtRenda, txtValor, txtPrazo, txtMargem;
+    private TextField txtRenda, txtValor, txtPrazo, txtMargem;
     @FXML
     private ComboBox<TipoConvenioModel> cbConvenio;
     @FXML
@@ -43,6 +49,8 @@ public class CopilotoController {
     private Label lblRespostaIA;
     @FXML
     private ComboBox<ProponenteModel> cbCliente;
+    @FXML
+    private DatePicker dpDataNascimento;
 
     // 🔥 NOVO: ListView substitui o VBox engessado
     @FXML
@@ -81,8 +89,13 @@ public class CopilotoController {
         txtRenda.setTextFormatter(FinanceiroUtils.criarFormatadorMoeda());
         txtValor.setTextFormatter(FinanceiroUtils.criarFormatadorMoeda());
         txtMargem.setTextFormatter(FinanceiroUtils.criarFormatadorMoeda());
-        txtIdade.setTextFormatter(createIntegerFormatter());
         txtPrazo.setTextFormatter(createIntegerFormatter());
+
+        // 🔥 NOVO: Formatação Robusta do DatePicker (Idêntico ao LeadController)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        dpDataNascimento.setConverter(new LocalDateStringConverter(formatter, formatter));
+        TextFormatter<LocalDate> dataFormatter = DataUtils.criarFormatadorData();
+        dpDataNascimento.getEditor().setTextFormatter(dataFormatter);
 
         cbCliente.getItems().setAll(proponenteService.listarMinhaCarteira());
         cbCliente.setConverter(new StringConverter<>() {
@@ -94,6 +107,22 @@ public class CopilotoController {
             @Override
             public ProponenteModel fromString(String s) {
                 return null;
+            }
+        });
+
+        // 🚀 NOVO: Auto-preenchimento ao selecionar o cliente
+        cbCliente.valueProperty().addListener((obs, old, cliente) -> {
+            if (cliente != null) {
+                dpDataNascimento.setValue(cliente.getDataNascimento());
+                if (cliente.getRendaMensal() != null && cliente.getRendaMensal().compareTo(BigDecimal.ZERO) > 0) {
+                    txtRenda.setText(FinanceiroUtils.formatarParaExibicao(cliente.getRendaMensal()));
+                } else {
+                    txtRenda.setText("");
+                }
+            } else {
+                // Limpa os campos se o consultor desmarcar o cliente
+                dpDataNascimento.setValue(null);
+                txtRenda.setText("");
             }
         });
 
@@ -172,7 +201,13 @@ public class CopilotoController {
         btnPedirConselho.setDisable(false);
         btnPedirConselho.setText("✨ Analisar com IA");
 
-        int idade = parseSafeInt(txtIdade.getText());
+        // 🚀 NOVO: Cálculo inteligente da idade baseado na data
+        int idade = 0;
+        LocalDate nascimento = dpDataNascimento.getValue();
+        if (nascimento != null) {
+            idade = Period.between(nascimento, LocalDate.now()).getYears();
+        }
+
         int prazo = parseSafeInt(txtPrazo.getText());
         BigDecimal renda = FinanceiroUtils.extrairValorParaBanco(txtRenda.getText());
         BigDecimal valor = FinanceiroUtils.extrairValorParaBanco(txtValor.getText());

@@ -32,7 +32,9 @@ public class CopilotoCardController {
 
         lblBanco.setText("🏦 " + resultado.tabela().getBanco().getNome() + " - " + resultado.tabela().getNomeTabela());
         lblParcela.setText("Parcela: R$ " + FinanceiroUtils.formatarParaExibicao(resultado.valorParcela()));
-        lblComissao.setText("💰 Comissão: R$ " + FinanceiroUtils.formatarParaExibicao(resultado.comissaoEstimada()));
+        lblComissao.setText(String.format("💰 Comissão: R$ %s (%s%%)",
+                FinanceiroUtils.formatarParaExibicao(resultado.comissaoEstimada()),
+                resultado.tabela().getComissaoPercentual()));
     }
 
     // Método responsável por iluminar o cartão escolhido

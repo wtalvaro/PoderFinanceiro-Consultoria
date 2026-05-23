@@ -44,9 +44,9 @@
             </VBox>
 
             <VBox GridPane.columnIndex="1" GridPane.rowIndex="2">
-                <Label text="Idade do Cliente"
+                <Label text="Data de Nascimento"
                     style="-fx-font-size: 11px; -fx-text-fill: #475569;" />
-                <TextField fx:id="txtIdade" promptText="Ex: 65" />
+                <DatePicker fx:id="dpDataNascimento" promptText="DD/MM/AAAA" maxWidth="Infinity" />
             </VBox>
 
             <VBox GridPane.columnIndex="0" GridPane.rowIndex="3">
