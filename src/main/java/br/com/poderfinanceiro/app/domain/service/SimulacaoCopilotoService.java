@@ -157,8 +157,11 @@ public class SimulacaoCopilotoService {
         sb.append(
                 "4. FORMATO DA RESPOSTA: Você DEVE iniciar a sua resposta exata e unicamente com a tag [TOP: X, Y, Z], onde X, Y e Z representam os números das 3 melhores opções (em ordem de prioridade do 1º ao 3º lugar). Exemplo: se as melhores forem a 4, depois a 1 e depois a 2, escreva [TOP: 4, 1, 2]. Se houver menos opções disponíveis, liste as que existirem (ex: [TOP: 1, 2]).\n\n");
 
+        // 🚀 PATCH: Refinamento do prompt para exigir respostas ultra-concisas (estilo
+        // executivo)
         sb.append(
-                "5. JUSTIFICATIVA COMERCIAL: Logo após a tag, redija a justificativa para o seu ranking, explicando rapidamente o porquê destas serem as melhores alternativas (equilibrando aprovação no banco, aceite do cliente e comissão do consultor).");
-        return sb.toString();
+                "5. JUSTIFICATIVA EXECUTIVA (MÁXIMA CONCISÃO): Logo após a tag [TOP], redija uma justificativa EXTREMAMENTE CURTA e direta. Use 'bullet points' (marcadores 🔹). Vá direto ao ponto: diga por que a opção 1 é a melhor (focando em aprovação/lucro) e por que as outras são boas alternativas secundárias. Não use parágrafos longos, não faça introduções educadas. O consultor está com pressa. Limite-se a no máximo 4 linhas de texto no total.");
+        
+                return sb.toString();
     }
 }

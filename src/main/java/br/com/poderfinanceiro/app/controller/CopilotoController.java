@@ -234,6 +234,119 @@ public class CopilotoController {
         }
     }
 
+    @FXML
+    private void handlePedirConselhoIA() {
+        if (rankingAtual == null || rankingAtual.isEmpty())
+            return;
+
+        // 🚀 SOLUÇÃO 1: Roubar o foco do botão ANTES de desativá-lo.
+        // Isso evita que o JavaFX passe o foco para a ListView e puxe a tela para
+        // baixo.
+        if (scrollArea != null) {
+            scrollArea.requestFocus();
+        }
+
+        btnPedirConselho.setText("✨ Analisando...");
+        btnPedirConselho.setDisable(true);
+        boxRespostaIA.setVisible(true);
+        boxRespostaIA.setManaged(true);
+        lblRespostaIA.setText("Pensando em estratégias comerciais...");
+
+        // 🚀 SOLUÇÃO 2: Forçar o CSS e o Layout a se atualizarem ANTES de mover o
+        // scroll
+        if (scrollArea != null) {
+            javafx.application.Platform.runLater(() -> {
+                scrollArea.applyCss(); // Aplica estilos pendentes
+                scrollArea.layout(); // Calcula a altura real da nova caixa visível
+                scrollArea.setVvalue(0.0); // Crava no topo com precisão
+            });
+        }
+
+        // 🚀 Pega o modelo escolhido pelo consultor
+        String modeloEscolhido = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : "gemini-3.5-flash";
+
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() {
+                // Passa o modelo para o serviço
+                return copilotoService.gerarRecomendacaoInteligenteIA(rascunhoAtual, rankingAtual, modeloEscolhido);
+            }
+        };
+
+        AsyncUtils.executarTask(task,
+                resposta -> {
+                    // Captura os números separados por vírgula dentro de [TOP: X, Y, Z]
+                    Pattern p = Pattern.compile("\\[TOP:\\s*([\\d,\\s]+)\\]", Pattern.CASE_INSENSITIVE);
+                    Matcher m = p.matcher(resposta);
+
+                    recomendacoesIA.clear();
+
+                    if (m.find()) {
+                        try {
+                            String[] numerosExtraidos = m.group(1).split(",");
+                            for (String numeroStr : numerosExtraidos) {
+                                int indiceReal = Integer.parseInt(numeroStr.trim()) - 1;
+                                if (indiceReal >= 0 && indiceReal < rankingAtual.size()) {
+                                    recomendacoesIA.add(indiceReal);
+                                }
+                            }
+
+                            // Limpa a tag para o consultor ver só o texto limpo
+                            resposta = resposta.replace(m.group(0), "").trim();
+
+                            // 🚀 PATCH DECLARATIVO: Reordena a lista baseada nas escolhas da IA
+                            if (!recomendacoesIA.isEmpty()) {
+                                // Separa os recomendados dos não recomendados usando Streams
+                                java.util.List<ResultadoSimulacaoDTO> topChoices = recomendacoesIA.stream()
+                                        .map(arg0 -> rankingAtual.get(arg0))
+                                        .toList();
+
+                                java.util.List<ResultadoSimulacaoDTO> remainingChoices = java.util.stream.IntStream
+                                        .range(0, rankingAtual.size())
+                                        .filter(i -> !recomendacoesIA.contains(i))
+                                        .mapToObj(rankingAtual::get)
+                                        .toList();
+
+                                // Reconstrói a lista oficial e atualiza o estado
+                                rankingAtual.clear();
+                                rankingAtual.addAll(topChoices);
+                                rankingAtual.addAll(remainingChoices);
+
+                                // Como reordenamos a lista, os índices das recomendações mudaram (agora são os
+                                // primeiros: 0, 1, 2)
+                                recomendacoesIA.clear();
+                                for (int i = 0; i < topChoices.size(); i++) {
+                                    recomendacoesIA.add(i);
+                                }
+
+                                // Atualiza a View
+                                listaRanking.setItems(FXCollections.observableArrayList(rankingAtual));
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("Erro ao processar ranking da IA: " + ex.getMessage());
+                        }
+                    }
+
+                    lblRespostaIA.setText(resposta);
+                    btnPedirConselho.setText("✨ Atualizar Conselho");
+                    btnPedirConselho.setDisable(false);
+                    listaRanking.refresh();
+
+                    // Crava no topo com precisão
+                    if (scrollArea != null) {
+                        javafx.application.Platform.runLater(() -> {
+                            scrollArea.applyCss();
+                            scrollArea.layout();
+                            scrollArea.setVvalue(0.0);
+                        });
+                    }
+                },
+                erro -> {
+                    lblRespostaIA.setText("Erro ao conectar com o Copiloto.");
+                    btnPedirConselho.setDisable(false);
+                });
+    }
+
     private void extrairMargemAssincrona(File arquivo) {
         btnExtrairMargem.setDisable(true);
         btnExtrairMargem.setText("⏳");
@@ -317,93 +430,6 @@ public class CopilotoController {
             return;
         }
         mainController.iniciarConversaoCopiloto(rascunhoAtual, resultadoEscolhido, cliente);
-    }
-
-    @FXML
-    private void handlePedirConselhoIA() {
-        if (rankingAtual == null || rankingAtual.isEmpty())
-            return;
-
-        // 🚀 SOLUÇÃO 1: Roubar o foco do botão ANTES de desativá-lo.
-        // Isso evita que o JavaFX passe o foco para a ListView e puxe a tela para
-        // baixo.
-        if (scrollArea != null) {
-            scrollArea.requestFocus();
-        }
-
-        btnPedirConselho.setText("✨ Analisando...");
-        btnPedirConselho.setDisable(true);
-        boxRespostaIA.setVisible(true);
-        boxRespostaIA.setManaged(true);
-        lblRespostaIA.setText("Pensando em estratégias comerciais...");
-
-        // 🚀 SOLUÇÃO 2: Forçar o CSS e o Layout a se atualizarem ANTES de mover o
-        // scroll
-        if (scrollArea != null) {
-            javafx.application.Platform.runLater(() -> {
-                scrollArea.applyCss(); // Aplica estilos pendentes
-                scrollArea.layout(); // Calcula a altura real da nova caixa visível
-                scrollArea.setVvalue(0.0); // Crava no topo com precisão
-            });
-        }
-
-        // 🚀 Pega o modelo escolhido pelo consultor
-        String modeloEscolhido = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : "gemini-3.5-flash";
-
-        Task<String> task = new Task<>() {
-            @Override
-            protected String call() {
-                // Passa o modelo para o serviço
-                return copilotoService.gerarRecomendacaoInteligenteIA(rascunhoAtual, rankingAtual, modeloEscolhido);
-            }
-        };
-
-        AsyncUtils.executarTask(task,
-                resposta -> {
-                    // 🚀 NOVO: Captura os números separados por vírgula dentro de [TOP: X, Y, Z]
-                    Pattern p = Pattern.compile("\\[TOP:\\s*([\\d,\\s]+)\\]", Pattern.CASE_INSENSITIVE);
-                    Matcher m = p.matcher(resposta);
-
-                    recomendacoesIA.clear();
-
-                    if (m.find()) {
-                        try {
-                            // Extrai "4, 1, 2" e divide num array
-                            String[] numerosExtraidos = m.group(1).split(",");
-                            for (String numeroStr : numerosExtraidos) {
-                                // Subtrai 1 para equiparar com os índices do Java (0-based)
-                                int indiceReal = Integer.parseInt(numeroStr.trim()) - 1;
-                                if (indiceReal >= 0) {
-                                    recomendacoesIA.add(indiceReal);
-                                }
-                            }
-                            // Limpa a tag para o consultor ver só o texto limpo
-                            resposta = resposta.replace(m.group(0), "").trim();
-                        } catch (Exception ex) {
-                            System.err.println("Erro ao processar ranking da IA: " + ex.getMessage());
-                        }
-                    }
-
-                    lblRespostaIA.setText(resposta);
-                    btnPedirConselho.setText("✨ Atualizar Conselho");
-                    btnPedirConselho.setDisable(false);
-                    listaRanking.refresh();
-
-                    // 🚀 REPETE A SOLUÇÃO 2 AQUI DENTRO!
-                    // Como o texto do Gemini pode ter 3 ou 4 linhas, a caixa vai crescer de novo.
-                    // Precisamos re-ancorar no topo após o texto ser renderizado.
-                    if (scrollArea != null) {
-                        javafx.application.Platform.runLater(() -> {
-                            scrollArea.applyCss();
-                            scrollArea.layout();
-                            scrollArea.setVvalue(0.0);
-                        });
-                    }
-                },
-                erro -> {
-                    lblRespostaIA.setText("Erro ao conectar com o Copiloto.");
-                    btnPedirConselho.setDisable(false);
-                });
     }
 
     private void resetarBotoes() {

@@ -84,6 +84,8 @@ public class ImportadorTabelasController {
     private TextField txtTaxa, txtComissao;
     @FXML
     private Button btnConfirmarTabela;
+    @FXML
+    private Label lblTotalTabelas;
 
     // =========================================================================
     // DEPENDÊNCIAS
@@ -177,7 +179,12 @@ public class ImportadorTabelasController {
         if (btnAplicarLote != null)
             btnAplicarLote.setDisable(true);
 
-        loteAtual.addListener((ListChangeListener.Change<? extends TabelaImportadaDTO> c) -> validarBotoesDeAcao());
+        loteAtual.addListener((ListChangeListener.Change<? extends TabelaImportadaDTO> c) -> {
+            validarBotoesDeAcao();
+            if (lblTotalTabelas != null) {
+                lblTotalTabelas.setText(String.valueOf(loteAtual.size()));
+            }
+        });
     }
 
     private void validarBotoesDeAcao() {
@@ -301,6 +308,7 @@ public class ImportadorTabelasController {
         int nextIndex = tableMaster.getSelectionModel().getSelectedIndex() + 1;
         if (nextIndex < loteAtual.size()) {
             tableMaster.getSelectionModel().select(nextIndex);
+            tableMaster.scrollTo(nextIndex); // 🚀 Força a tabela a rolar acompanhando a seleção
         }
     }
 
@@ -398,4 +406,13 @@ public class ImportadorTabelasController {
         thread.setDaemon(true); // Garante que a JVM possa encerrar mesmo com a task rodando
         thread.start();
     }
+
+    @FXML
+    public void removerTabelaAtual() {
+        if (selecionadaAtual != null) {
+            loteAtual.remove(selecionadaAtual);
+            tableMaster.refresh();
+        }
+    }
+    
 }

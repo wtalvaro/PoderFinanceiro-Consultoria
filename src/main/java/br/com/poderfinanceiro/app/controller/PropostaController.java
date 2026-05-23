@@ -268,6 +268,9 @@ public class PropostaController {
     // =========================================================================
     // CORE FLUXO DA PROPOSTA (CARREGAR, SALVAR, EXCLUIR)
     // =========================================================================
+    // =========================================================================
+    // CORE FLUXO DA PROPOSTA (CARREGAR, SALVAR, EXCLUIR)
+    // =========================================================================
     public void carregarProposta(PropostaModel completa) {
         executarSemGatilhos(() -> {
             viewModel.loadFromModel(completa);
@@ -276,8 +279,11 @@ public class PropostaController {
 
             if (completa.getId() != null) {
                 carregarDocumentosDaProposta(completa.getId());
-                aplicarBloqueio();
             }
+
+            // 🚀 CORREÇÃO: Fora do 'if' para limpar o estado de desabilitação em novas
+            // propostas
+            aplicarBloqueio();
         });
 
         if (contextoService != null) {
@@ -698,18 +704,35 @@ public class PropostaController {
     // =========================================================================
     // UTILITÁRIOS E UI
     // =========================================================================
+    // 🚀 PATCH: PropostaController.java
     public void aplicarBloqueio() {
         boolean terminal = isPropostaTerminal();
+
+        // Identifica se a proposta nasceu da IA lendo a assinatura
+        String obs = viewModel.observacoesProperty().get();
+        boolean bloqueadaPeloCopiloto = obs != null && obs.contains("Copiloto de Vendas");
+
         cbStatus.setDisable(terminal);
-        cbTabela.setDisable(terminal);
-        cbBanco.setDisable(terminal);
-        cbConvenio.setDisable(terminal);
-        txtValorSolicitado.setDisable(terminal);
+
+        // Se veio do Copiloto, trava a inteligência de negócio e a intenção original do
+        // cliente
+        cbTabela.setDisable(terminal || bloqueadaPeloCopiloto);
+        cbBanco.setDisable(terminal || bloqueadaPeloCopiloto);
+        cbConvenio.setDisable(terminal || bloqueadaPeloCopiloto);
+
+        // 🚀 NOVO: Trava o Valor Solicitado e o Prazo Desejado para propostas da IA
+        txtValorSolicitado.setDisable(terminal || bloqueadaPeloCopiloto);
+        spinPrazoDesejado.setDisable(terminal || bloqueadaPeloCopiloto);
+
+        // Campos que o consultor sempre pode editar (até a proposta ser
+        // liquidada/terminal)
         txtValorAprovado.setDisable(terminal);
         txtParcela.setDisable(terminal);
-        spinPrazoDesejado.setDisable(terminal);
         spinPrazo.setDisable(terminal);
-        txtObservacoes.setPromptText(terminal ? "Proposta liquidada. Alterações não permitidas." : "");
+
+        if (terminal) {
+            txtObservacoes.setPromptText("Proposta liquidada. Alterações não permitidas.");
+        }
 
         if (btnSalvar != null)
             btnSalvar.setDisable(terminal);

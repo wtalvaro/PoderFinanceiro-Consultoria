@@ -8,8 +8,14 @@
     fx:controller="br.com.poderfinanceiro.app.controller.ImportadorTabelasController">
 
     <VBox spacing="15" style="-fx-padding: 15; -fx-background-color: #ffffff;">
-        <Label text="Lote de Inteligência Artificial"
-            style="-fx-font-weight: bold; -fx-font-size: 16px;" />
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="Lote de Inteligência Artificial"
+                style="-fx-font-weight: bold; -fx-font-size: 16px;" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label text="Total Extraído:" style="-fx-text-fill: #64748b; -fx-font-size: 13px;" />
+            <Label fx:id="lblTotalTabelas" text="0"
+                style="-fx-font-weight: bold; -fx-text-fill: #0f172a; -fx-font-size: 14px;" />
+        </HBox>
 
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Button fx:id="btnProcessarImagem" text="📸 Extrair Imagem"
@@ -122,11 +128,15 @@
                 </HBox>
             </VBox>
 
-            <Button fx:id="btnConfirmarTabela" text="✓ Revisado: Confirmar e ir para o Próximo"
-                onAction="#confirmarTabelaAtual"
-                maxWidth="Infinity"
-                style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12;" />
+            <HBox spacing="10">
+                <Button fx:id="btnConfirmarTabela" text="✓ Revisado: Confirmar e ir para o Próximo"
+                    onAction="#confirmarTabelaAtual" HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                    style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12;" />
 
+                <Button text="🗑️ Remover" onAction="#removerTabelaAtual"
+                    style="-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12;" />
+            </HBox>
+            
         </VBox>
     </ScrollPane>
 

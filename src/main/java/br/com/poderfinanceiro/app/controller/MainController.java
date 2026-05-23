@@ -178,7 +178,8 @@ public class MainController {
             
             // Status Inicial
             novaProposta.setStatus(StatusPropostaModel.DIGITADA);
-
+            novaProposta.setObservacoes("✨ Proposta originada automaticamente via Copiloto de Vendas.");
+            
             // Persistência
             PropostaModel propostaSalva = propostaService.salvarProposta(novaProposta);
 

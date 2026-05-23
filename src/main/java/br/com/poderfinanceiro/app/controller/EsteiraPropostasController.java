@@ -236,6 +236,7 @@ public class EsteiraPropostasController {
         }
     }
 
+    // 🚀 PATCH: EsteiraPropostasController.java
     private void carregarPropostaNoFormulario(PropostaModel proposta) {
         try {
             garantirFormularioCarregado();
@@ -243,7 +244,10 @@ public class EsteiraPropostasController {
             if (proposta.getId() != null) {
                 carregarPropostaExistenteAssincrono(proposta.getId());
             } else {
-                formController.getViewModel().loadFromModel(proposta);
+                // 🚀 CORREÇÃO: Agora a Esteira delega para o PropostaController assumir o
+                // controle total,
+                // garantindo que os bloqueios e sincronizações visuais sejam resetados!
+                formController.carregarProposta(proposta);
                 exibirPainelFormulario();
             }
         } catch (IOException e) {
