@@ -153,12 +153,12 @@ public class SimulacaoCopilotoService {
         sb.append(
                 "3. PROBABILIDADE DE ACEITAÇÃO (CLIENTE): Avalie o esforço de vendas. Baseie-se no impacto do valor da parcela no orçamento mensal do cliente e no benefício imediato liberado.\n\n");
 
+        // 🚀 NOVO: Instrução para retornar as 3 melhores opções ranqueadas
         sb.append(
-                "4. FORMATO DA RESPOSTA: Você DEVE iniciar a sua resposta exata e unicamente com a tag [ESCOLHA: X], onde X é o número da opção (1, 2, 3...) que você recomenda.\n\n");
+                "4. FORMATO DA RESPOSTA: Você DEVE iniciar a sua resposta exata e unicamente com a tag [TOP: X, Y, Z], onde X, Y e Z representam os números das 3 melhores opções (em ordem de prioridade do 1º ao 3º lugar). Exemplo: se as melhores forem a 4, depois a 1 e depois a 2, escreva [TOP: 4, 1, 2]. Se houver menos opções disponíveis, liste as que existirem (ex: [TOP: 1, 2]).\n\n");
 
         sb.append(
-                "5. JUSTIFICATIVA COMERCIAL: Logo após a tag, redija um parágrafo persuasivo equilibrando a probabilidade de aprovação no banco, a facilidade de aceitação pelo cliente e o retorno financeiro da comissão.");
-
+                "5. JUSTIFICATIVA COMERCIAL: Logo após a tag, redija a justificativa para o seu ranking, explicando rapidamente o porquê destas serem as melhores alternativas (equilibrando aprovação no banco, aceite do cliente e comissão do consultor).");
         return sb.toString();
     }
 }

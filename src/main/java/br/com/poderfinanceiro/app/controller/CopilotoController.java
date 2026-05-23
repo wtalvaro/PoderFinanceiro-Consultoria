@@ -70,8 +70,9 @@ public class CopilotoController {
     private SimulacaoRascunhoDTO rascunhoAtual;
     private List<ResultadoSimulacaoDTO> rankingAtual;
 
-    // 🔥 NOVO: Armazena o índice (-1 significa que nenhum foi escolhido ainda)
-    private int indiceRecomendadoIA = -1;
+    // 🔥 Antes: private int indiceRecomendadoIA = -1;
+    // 🚀 NOVO: Armazena a ordem de escolha da IA
+    private java.util.List<Integer> recomendacoesIA = new java.util.ArrayList<>();
 
     public CopilotoController(SimulacaoCopilotoService copilotoService, MainController mainController,
             ProponenteService proponenteService, GeminiService geminiService, AuthService authService) {
@@ -180,8 +181,10 @@ public class CopilotoController {
                     controller.setDados(item, res -> converterParaProposta(res, cbCliente.getValue()));
                     controller.getBtnAproveitar().disableProperty().bind(cbCliente.valueProperty().isNull());
 
-                    // 🔥 NOVO: Verifica se o índice atual da célula é o escolhido pela IA
-                    controller.setRecomendadoIA(getIndex() == indiceRecomendadoIA);
+                    // 🔥 NOVO: Verifica qual é a colocação deste item no ranking da IA (0 significa
+                    // que não entrou no Top 3)
+                    int rank = recomendacoesIA.indexOf(getIndex()) + 1;
+                    controller.setRecomendadoIA(rank);
 
                     setGraphic(view);
                 }
@@ -274,7 +277,7 @@ public class CopilotoController {
     private void iniciarSimulacaoAssincrona() {
         btnSimular.setText("⏳ Buscando...");
         btnSimular.setDisable(true);
-        indiceRecomendadoIA = -1; // 🔥 NOVO: Reseta o destaque
+        recomendacoesIA.clear();
 
         Task<List<ResultadoSimulacaoDTO>> task = new Task<>() {
             @Override
@@ -357,19 +360,28 @@ public class CopilotoController {
 
         AsyncUtils.executarTask(task,
                 resposta -> {
-                    // (Lógica do Regex [ESCOLHA: X])
-                    Pattern p = Pattern.compile("\\[ESCOLHA:\\s*(\\d+)\\]");
+                    // 🚀 NOVO: Captura os números separados por vírgula dentro de [TOP: X, Y, Z]
+                    Pattern p = Pattern.compile("\\[TOP:\\s*([\\d,\\s]+)\\]", Pattern.CASE_INSENSITIVE);
                     Matcher m = p.matcher(resposta);
+
+                    recomendacoesIA.clear();
 
                     if (m.find()) {
                         try {
-                            indiceRecomendadoIA = Integer.parseInt(m.group(1)) - 1;
+                            // Extrai "4, 1, 2" e divide num array
+                            String[] numerosExtraidos = m.group(1).split(",");
+                            for (String numeroStr : numerosExtraidos) {
+                                // Subtrai 1 para equiparar com os índices do Java (0-based)
+                                int indiceReal = Integer.parseInt(numeroStr.trim()) - 1;
+                                if (indiceReal >= 0) {
+                                    recomendacoesIA.add(indiceReal);
+                                }
+                            }
+                            // Limpa a tag para o consultor ver só o texto limpo
                             resposta = resposta.replace(m.group(0), "").trim();
                         } catch (Exception ex) {
-                            indiceRecomendadoIA = -1;
+                            System.err.println("Erro ao processar ranking da IA: " + ex.getMessage());
                         }
-                    } else {
-                        indiceRecomendadoIA = -1;
                     }
 
                     lblRespostaIA.setText(resposta);
