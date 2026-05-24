@@ -1,0 +1,38 @@
+name: Publicar Release Automática
+
+on:
+  push:
+    tags:
+      - 'v*' # Dispara o fluxo quando você commita uma tag começando com 'v' (ex: v1.0.0)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Fazer checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar o Java 25
+      uses: actions/setup-java@v4
+      with:
+        java-version: '25'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Compilar e Empacotar (.jar)
+      run: ./mvnw clean package -DskipTests
+
+    # Se você usa um script ou ferramenta CLI para gerar o .exe no Linux, o comando entraria aqui.
+    # Caso contrário, o upload foca no .jar gerado.
+
+    - name: Criar Release e Upload dos Artefatos
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          target/*.jar
+          # target/*.exe (Descomente se o build gerar o exe automaticamente)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
