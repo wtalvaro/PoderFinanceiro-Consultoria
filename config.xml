@@ -3,7 +3,7 @@
   <dontWrapJar>false</dontWrapJar>
   <headerType>console</headerType>
   <jar>target/app-0.0.1-SNAPSHOT.jar</jar>
-  <outfile>/home/wtalvaro/Downloads/Container/dev-fedora/Downloads/Poder_Financeiro/Executavel/PoderFinanceiro.exe</outfile>
+  <outfile>target/app-0.0.1-SNAPSHOT.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
