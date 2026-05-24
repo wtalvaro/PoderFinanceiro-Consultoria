@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # O ambiente Linux mais rápido e estável
     permissions:
       contents: write
 
@@ -25,45 +25,10 @@ jobs:
     - name: Compilar e Empacotar o projeto (.jar)
       run: ./mvnw clean package -DskipTests
 
-    - name: Gerar Executável Windows (.exe) via Launch4j CLI
-      run: |
-        sudo dpkg --add-architecture i386
-        sudo apt-get update
-        sudo apt-get install -y wget binfmt-support lib32z1
-        wget https://sourceforge.net/projects/launch4j/files/launch4j-three/3.50/launch4j-3.50-linux-x64.tgz/download -O launch4j.tgz
-        tar -xf launch4j.tgz
-        
-        # 🚀 PATCH DEFINITIVO: Omitido a tag <path> para compatibilidade cross-platform no compilador
-        cat <<EOF > launch4j-config.xml
-        <launch4jConfig>
-          <dontWrapJar>false</dontWrapJar>
-          <headerType>console</headerType>
-          <jar>target/app-0.0.1-SNAPSHOT.jar</jar>
-          <outfile>target/app-0.0.1-SNAPSHOT.exe</outfile>
-          <chdir>.</chdir>
-          <priority>normal</priority>
-          <stayAlive>false</stayAlive>
-          <restartOnCrash>false</restartOnCrash>
-          <icon>src/main/resources/icons/app.ico</icon>
-          <jre>
-            <requiresJdk>false</requiresJdk>
-            <requires64Bit>true</requires64Bit>
-            <minVersion>21.0.0</minVersion>
-            <opt>--add-exports=javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED</opt>
-            <opt>--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED</opt>
-            <opt>--add-exports=javafx.graphics/com.sun.glass.utils=ALL-UNNAMED</opt>
-          </jre>
-        </launch4jConfig>
-        EOF
-        
-        # Executa o compilador binário do Launch4j
-        ./launch4j/launch4j launch4j-config.xml
-
     - name: Criar Release e Upload dos Artefatos
       uses: softprops/action-gh-release@v2
       with:
         files: |
           target/app-0.0.1-SNAPSHOT.jar
-          target/PoderFinanceiro.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
