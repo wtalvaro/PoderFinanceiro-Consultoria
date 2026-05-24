@@ -205,6 +205,7 @@ public class WorkspaceController {
         }
     }
 
+    // DEPOIS:
     public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
         if (propostaIdAlvo != null) {
             admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
@@ -213,7 +214,8 @@ public class WorkspaceController {
                 if (RotaAba.PROPOSTAS.getId().equals(tab.getUserData())) {
                     Object controller = tab.getProperties().get("controller");
                     if (controller instanceof EsteiraPropostasController esteira) {
-                        Platform.runLater(() -> esteira.selecionarPropostaPorId(propostaIdAlvo));
+                        // Sem Platform.runLater — selecionarPropostaPorId já é assíncrono internamente
+                        esteira.selecionarPropostaPorId(propostaIdAlvo);
                     }
                     break;
                 }

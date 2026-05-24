@@ -322,20 +322,29 @@ public class EsteiraPropostasController {
         formController = null;
     }
 
+    // DEPOIS:
     public void selecionarPropostaPorId(Long idTarget) {
         if (idTarget == null || tablePropostas == null)
             return;
 
-        if (txtBusca != null)
-            txtBusca.clear();
+        // Sempre recarrega do banco para garantir que a proposta recém-criada
+        // já esteja no masterData, independente do estado da aba.
+        AsyncUtils.executarTaskAsync(
+                repository::findAllComDetalhes,
+                dados -> {
+                    if (txtBusca != null)
+                        txtBusca.clear();
+                    masterData.setAll(dados);
 
-        masterData.stream()
-                .filter(p -> idTarget.equals(p.getId()))
-                .findFirst()
-                .ifPresent(proposta -> {
-                    tablePropostas.getSelectionModel().select(proposta);
-                    tablePropostas.scrollTo(proposta);
-                });
+                    dados.stream()
+                            .filter(p -> idTarget.equals(p.getId()))
+                            .findFirst()
+                            .ifPresent(proposta -> {
+                                tablePropostas.getSelectionModel().select(proposta);
+                                tablePropostas.scrollTo(proposta);
+                            });
+                },
+                erro -> System.err.println("Erro ao recarregar dados: " + erro.getMessage()));
     }
 
     // =========================================================================
