@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.ComissaoViewModel;
@@ -86,17 +87,17 @@ public class ComissoesController {
     // =========================================================================
     private final ComissaoRepository repository;
     private final ComissaoViewModel viewModel;
-    private final MainController mainController;
+    private final Navigator navigator;
     private final AtendimentoContextService contextoService;
 
     private final ObservableList<ComissaoModel> masterData = FXCollections.observableArrayList();
     private PopOver popOverAjuste;
 
     public ComissoesController(ComissaoRepository repository, ComissaoViewModel viewModel,
-            MainController mainController, AtendimentoContextService contextoService) {
+            Navigator navigator, AtendimentoContextService contextoService) {
         this.repository = repository;
         this.viewModel = viewModel;
-        this.mainController = mainController;
+        this.navigator = navigator;
         this.contextoService = contextoService;
     }
 
@@ -279,14 +280,14 @@ public class ComissoesController {
     // COMUNICAÇÃO DE DADOS
     // =========================================================================
     public void recarregarDados() {
-        mainController.mostrarLoading(MSG_SYNC_CAIXA);
+        navigator.mostrarLoading(MSG_SYNC_CAIXA);
 
         List<ComissaoModel> dados = repository.findAllComDetalhes();
         masterData.setAll(dados);
         atualizarCardsResumo(dados);
         contextoService.setComissoesAtivas(dados);
 
-        mainController.ocultarLoading();
+        navigator.ocultarLoading();
     }
 
     private void atualizarCardsResumo(List<ComissaoModel> comissoes) {

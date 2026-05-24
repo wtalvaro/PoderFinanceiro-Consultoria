@@ -3,15 +3,14 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
 
-<!-- Alterado: prefHeight e prefWidth para -1.0 -->
 <StackPane fx:id="rootPane" style="-fx-background-color: white;"
     xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.CadastroController">
     <children>
-        <!-- Borda removida: mantivemos apenas o padding e o maxWidth -->
-        <VBox alignment="CENTER" maxWidth="450.0" spacing="25.0"
+        <VBox alignment="CENTER" maxWidth="600.0" spacing="25.0"
             style="-fx-background-color: white; -fx-padding: 40;">
             <children>
+
                 <VBox alignment="CENTER" spacing="10.0">
                     <children>
                         <Label text="👤" style="-fx-font-size: 50;" />
@@ -21,8 +20,8 @@
                     </children>
                 </VBox>
 
-                <VBox spacing="12.0">
-                    <children>
+                <HBox spacing="20.0" alignment="TOP_CENTER">
+                    <VBox spacing="12.0" HBox.hgrow="ALWAYS">
                         <VBox spacing="5.0">
                             <Label text="Nome Completo" />
                             <TextField fx:id="txtNome" prefHeight="35.0" />
@@ -36,44 +35,40 @@
                             <TextField fx:id="txtUsername" prefHeight="35.0"
                                 promptText="ex: user.financeiro" />
                         </VBox>
+                    </VBox>
+
+                    <VBox spacing="12.0" HBox.hgrow="ALWAYS">
                         <VBox spacing="5.0">
-                            <Label text="Senha (Mínimo 8 caracteres)" />
+                            <Label text="Senha" />
                             <PasswordField fx:id="txtSenha" prefHeight="35.0" />
                         </VBox>
                         <VBox spacing="5.0">
                             <Label text="Confirmar Senha" />
                             <PasswordField fx:id="txtConfirmarSenha" prefHeight="35.0" />
                         </VBox>
-                        <VBox spacing="6.0" style="-fx-margin-top: 10;">
-                            <children>
-                                <HBox alignment="CENTER_LEFT" spacing="5">
-                                    <Label text="Chave de API do Gemini"
-                                        style="-fx-font-weight: bold; -fx-font-size: 13px;" />
-                                    <Label text="(Obrigatório)"
-                                        style="-fx-font-size: 11px; -fx-text-fill: #999999; -fx-font-style: italic;" />
-                                </HBox>
-                                <HBox spacing="10.0" alignment="CENTER_LEFT">
-                                    <children>
-                                        <PasswordField fx:id="txtGeminiApiKey" prefHeight="40.0"
-                                            HBox.hgrow="ALWAYS"
-                                            promptText="Cole sua chave AIzaSy... aqui"
-                                            style="-fx-background-radius: 6; -fx-padding: 10;" />
+                    </VBox>
+                </HBox>
 
-                                        <Button fx:id="btnGerarChave"
-                                            onAction="#abrirGoogleAIStudio" text="🌐 Obter Chave"
-                                            style="-fx-background-color: #0D47A1; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;"
-                                            prefHeight="40.0">
-                                            <tooltip>
-                                                <Tooltip
-                                                    text="Clique para abrir o Google AI Studio. Faça login com sua conta Google e clique em 'Create API Key' de forma 100% gratuita!"
-                                                    prefWidth="250" wrapText="true"
-                                                    style="-fx-font-size: 12px;" />
-                                            </tooltip>
-                                        </Button>
-                                    </children>
-                                </HBox>
+                <VBox spacing="6.0">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" spacing="5">
+                            <Label text="Chave de API do Gemini"
+                                style="-fx-font-weight: bold; -fx-font-size: 13px;" />
+                            <Label text="(Obrigatório)"
+                                style="-fx-font-size: 11px; -fx-text-fill: #999999; -fx-font-style: italic;" />
+                        </HBox>
+                        <HBox spacing="10.0" alignment="CENTER_LEFT">
+                            <children>
+                                <PasswordField fx:id="txtGeminiApiKey" prefHeight="40.0"
+                                    HBox.hgrow="ALWAYS"
+                                    promptText="Cole sua chave AIzaSy... aqui"
+                                    style="-fx-background-radius: 6; -fx-padding: 10;" />
+                                <Button fx:id="btnGerarChave" onAction="#abrirGoogleAIStudio"
+                                    text="🌐 Obter Chave"
+                                    style="-fx-background-color: #0D47A1; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;"
+                                    prefHeight="40.0" />
                             </children>
-                        </VBox>
+                        </HBox>
                     </children>
                 </VBox>
 

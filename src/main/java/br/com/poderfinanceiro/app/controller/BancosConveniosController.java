@@ -2,7 +2,9 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.ContatoUtils;
+import javafx.application.HostServices;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -34,7 +36,8 @@ public class BancosConveniosController {
     // DEPENDÊNCIAS
     // =========================================================================
     private final BancoRepository bancoRepository;
-    private final MainController mainController;
+    private final Navigator navigator;
+    private final HostServices hostServices;
 
     // =========================================================================
     // COMPONENTES DE UI (FXML)
@@ -71,9 +74,10 @@ public class BancosConveniosController {
     private BancoModel bancoEmEdicao = null;
     private List<BancoModel> todosBancos;
 
-    public BancosConveniosController(BancoRepository bancoRepository, MainController mainController) {
+    public BancosConveniosController(BancoRepository bancoRepository, Navigator navigator, HostServices hostServices) {
         this.bancoRepository = bancoRepository;
-        this.mainController = mainController;
+        this.navigator = navigator;
+        this.hostServices = hostServices;
     }
 
     @FXML
@@ -289,12 +293,12 @@ public class BancosConveniosController {
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             url = "https://" + url;
         }
-        mainController.getHostServices().showDocument(url);
+        hostServices.showDocument(url);
     }
 
     private void abrirWhatsApp(String telefone) {
         if (telefone == null || telefone.trim().isEmpty()) {
-            mainController.notificarAviso("Este banco não possui um telefone cadastrado.");
+            navigator.notificarAviso("Este banco não possui um telefone cadastrado.");
             return;
         }
 
@@ -304,6 +308,6 @@ public class BancosConveniosController {
             numeroLimpo = "55" + numeroLimpo;
         }
 
-        mainController.getHostServices().showDocument(URL_WHATSAPP_BASE + numeroLimpo);
+        hostServices.showDocument(URL_WHATSAPP_BASE + numeroLimpo);
     }
 }

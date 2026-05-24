@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.service.ProponenteService;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.ContatoUtils;
 import br.com.poderfinanceiro.app.util.DocumentoUtils;
@@ -55,14 +56,14 @@ public class ProponenteListController {
     // INJEÇÃO DE DEPENDÊNCIAS E ESTADO DA CLASSE
     // =========================================================================
     private final ProponenteService proponenteService;
-    private final MainController mainController;
+    private final Navigator navigator;
     private final ObservableList<ProponenteModel> listaContatos = FXCollections.observableArrayList();
     private final ProponenteUIEventHub eventHub;
 
-    public ProponenteListController(ProponenteService proponenteService, MainController mainController,
+    public ProponenteListController(ProponenteService proponenteService, Navigator navigator,
             ProponenteUIEventHub eventHub) {
         this.proponenteService = proponenteService;
-        this.mainController = mainController;
+        this.navigator = navigator;
         this.eventHub = eventHub;
     }
 
@@ -90,7 +91,7 @@ public class ProponenteListController {
             TableRow<ProponenteModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    mainController.abrirClienteNoWorkspace(row.getItem());
+                    navigator.abrirClienteNoWorkspace(row.getItem());
                 }
             });
             return row;
@@ -121,7 +122,7 @@ public class ProponenteListController {
 
     @FXML
     private void handleNovoProponente() {
-        mainController.irParaNovoContato();
+        navigator.irParaNovoContato();
     }
 
     // =========================================================================
@@ -153,17 +154,17 @@ public class ProponenteListController {
      * O MOTOR DA CLÍNICA: Gerencia o Maqueiro (Task) e a Sala de Espera (Loading).
      */
     private void executarTarefaAssincrona(Supplier<List<ProponenteModel>> acaoBusca, String mensagem) {
-        mainController.mostrarLoading(mensagem);
+        navigator.mostrarLoading(mensagem);
 
         AsyncUtils.executarTaskAsync(
                 acaoBusca::get, // Converte o Supplier no Callable esperado pelo AsyncUtils
                 resultado -> {
                     listaContatos.setAll(resultado);
                     atualizarContador();
-                    mainController.ocultarLoading();
+                    navigator.ocultarLoading();
                 },
                 erro -> {
-                    mainController.ocultarLoading();
+                    navigator.ocultarLoading();
                     if (erro != null) {
                         erro.printStackTrace();
                     }

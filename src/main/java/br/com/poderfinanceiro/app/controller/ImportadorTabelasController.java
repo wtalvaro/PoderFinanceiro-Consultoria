@@ -7,6 +7,7 @@ import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -94,7 +95,7 @@ public class ImportadorTabelasController {
     private final GeminiService geminiService;
     private final TabelaJurosService tabelaJurosService;
     private final AuthService authService;
-    private final MainController mainController;
+    private final Navigator navigator;
     private final BancoRepository bancoRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -105,11 +106,11 @@ public class ImportadorTabelasController {
     private TabelaImportadaDTO selecionadaAtual;
 
     public ImportadorTabelasController(GeminiService geminiService, TabelaJurosService tabelaJurosService,
-            AuthService authService, MainController mainController, BancoRepository bancoRepository) {
+            AuthService authService, Navigator navigator, BancoRepository bancoRepository) {
         this.geminiService = geminiService;
         this.tabelaJurosService = tabelaJurosService;
         this.authService = authService;
-        this.mainController = mainController;
+        this.navigator = navigator;
         this.bancoRepository = bancoRepository;
     }
 
@@ -248,7 +249,7 @@ public class ImportadorTabelasController {
         if (arquivo == null)
             return;
 
-        mainController.mostrarLoading(MSG_LOADING_IA);
+        navigator.mostrarLoading(MSG_LOADING_IA);
         String token = authService.getUsuarioLogado().getGeminiApiKey();
         String modelo = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : MODELO_IA_PADRAO;
 
@@ -265,7 +266,7 @@ public class ImportadorTabelasController {
     }
 
     private void finalizarImportacaoComSucesso(List<TabelaImportadaDTO> tabelas) {
-        mainController.ocultarLoading();
+        navigator.ocultarLoading();
         aplicarPropriedadesGlobaisAoLote(tabelas); // Reaproveitamento da função de lote
 
         loteAtual.setAll(tabelas);
@@ -318,7 +319,7 @@ public class ImportadorTabelasController {
     // 🚀 PATCH: gravarLoteNoBanco
     @FXML
     public void gravarLoteNoBanco() {
-        mainController.mostrarLoading(MSG_LOADING_GRAVACAO);
+        navigator.mostrarLoading(MSG_LOADING_GRAVACAO);
 
         AsyncUtils.executarTaskAsync(
                 () -> {
@@ -326,7 +327,7 @@ public class ImportadorTabelasController {
                     return null;
                 },
                 sucesso -> {
-                    mainController.ocultarLoading();
+                    navigator.ocultarLoading();
                     loteAtual.clear();
                     alternarBloqueioFormularioRevisao(true);
                     System.out.println("✅ Lote gravado com sucesso!");
@@ -383,7 +384,7 @@ public class ImportadorTabelasController {
     }
 
     private void finalizarComErro(String mensagem) {
-        mainController.ocultarLoading();
+        navigator.ocultarLoading();
         System.err.println("❌ " + mensagem);
     }
 

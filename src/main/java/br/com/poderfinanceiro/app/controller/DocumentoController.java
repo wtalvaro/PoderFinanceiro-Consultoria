@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.service.DocumentoService;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -64,16 +65,16 @@ public class DocumentoController {
     // ESTADO DA CLASSE E INJEÇÕES
     // =========================================================================
     private final DocumentoService documentoService;
-    private final MainController mainController;
+    private final HostServices hostServices;
 
     private ProponenteModel proponenteAtual;
     private File arquivoPendenteUpload;
     private DocumentoProponenteModel documentoEmEdicao;
     private DocumentoProponenteModel documentoParaExcluir;
 
-    public DocumentoController(DocumentoService documentoService, MainController mainController) {
+    public DocumentoController(DocumentoService documentoService, HostServices hostServices) {
         this.documentoService = documentoService;
-        this.mainController = mainController;
+        this.hostServices = hostServices;
     }
 
     // =========================================================================
@@ -325,7 +326,7 @@ public class DocumentoController {
     private void handleVisualizarArquivo(DocumentoProponenteModel doc) {
         File file = new File(doc.getArquivoPath());
         if (file.exists()) {
-            mainController.getHostServices().showDocument(file.toURI().toString());
+            hostServices.showDocument(file.toURI().toString());
         } else {
             mostrarAviso("Erro: O arquivo físico não foi encontrado no disco.", false);
         }

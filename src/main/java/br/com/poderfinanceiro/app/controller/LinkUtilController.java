@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.LinkUtilModel;
 import br.com.poderfinanceiro.app.domain.model.enums.CategoriaLinkModel;
 import br.com.poderfinanceiro.app.domain.model.enums.LabeledModel;
 import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
+import javafx.application.HostServices;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -51,14 +52,15 @@ public class LinkUtilController {
     // ESTADO DA CLASSE E INJEÇÕES
     // =========================================================================
     private final LinkUtilRepository repository;
-    private final MainController mainController;
+    private final HostServices hostServices;
+
     private final ObservableList<LinkUtilModel> masterData = FXCollections.observableArrayList();
 
     private LinkUtilModel linkEmEdicao;
 
-    public LinkUtilController(LinkUtilRepository repository, MainController mainController) {
+    public LinkUtilController(LinkUtilRepository repository, HostServices hostServices) {
         this.repository = repository;
-        this.mainController = mainController;
+        this.hostServices = hostServices;
     }
 
     // =========================================================================
@@ -243,7 +245,7 @@ public class LinkUtilController {
 
     private void abrirUrlNoNavegador(LinkUtilModel link) {
         if (link != null && link.getUrl() != null && !link.getUrl().isBlank()) {
-            mainController.getHostServices().showDocument(link.getUrl());
+            hostServices.showDocument(link.getUrl());
         }
     }
 }

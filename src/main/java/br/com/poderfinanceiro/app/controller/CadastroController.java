@@ -1,18 +1,21 @@
 package br.com.poderfinanceiro.app.controller;
 
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import org.springframework.stereotype.Component;
 
 import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 
 @Component
 public class CadastroController {
 
     private final AuthService authService;
-    private final MainController mainController;
+    private final Navigator navigator;
+    private final HostServices hostServices;
 
     @FXML
     private TextField txtNome;
@@ -31,9 +34,10 @@ public class CadastroController {
     @FXML
     private PasswordField txtGeminiApiKey;
 
-    public CadastroController(AuthService authService, MainController mainController) {
+    public CadastroController(AuthService authService, Navigator navigator, HostServices hostServices) {
         this.authService = authService;
-        this.mainController = mainController;
+        this.navigator = navigator;
+        this.hostServices = hostServices;
     }
 
     @FXML
@@ -55,7 +59,7 @@ public class CadastroController {
                 },
                 sucesso -> {
                     // 🎯 CORRIGIDO: Método ajustado de navigatePara para navegarPara
-                    mainController.navegarPara("/fxml/login.fxml", false);
+                    navigator.navegarPara("/fxml/login.fxml", false);
                 },
                 erro -> {
                     setLoading(false);
@@ -66,13 +70,13 @@ public class CadastroController {
     @FXML
     private void handleVoltarLogin() {
         // 🎯 CORRIGIDO: Método ajustado de navigatePara para navegarPara
-        mainController.navegarPara("/fxml/login.fxml", false);
+        navigator.navegarPara("/fxml/login.fxml", false);
     }
 
     @FXML
     private void abrirGoogleAIStudio() {
-        if (mainController != null && mainController.getHostServices() != null) {
-            mainController.getHostServices().showDocument("https://aistudio.google.com/");
+        if (hostServices != null) {
+            hostServices.showDocument("https://aistudio.google.com/");
         } else {
             System.out.println("Erro técnico: HostServices indisponível no momento.");
         }

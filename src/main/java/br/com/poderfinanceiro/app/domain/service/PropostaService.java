@@ -5,13 +5,17 @@ import br.com.poderfinanceiro.app.domain.event.PropostaCriadaEvent;
 import br.com.poderfinanceiro.app.domain.event.PropostaExcluidaEvent;
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
+import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.domain.repository.DocumentoProponenteRepository;
 import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
+import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
+import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
 import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
 
 import org.springframework.stereotype.Service;
@@ -68,12 +72,12 @@ public class PropostaService {
     public PropostaModel salvarProposta(PropostaModel proposta) {
         // 🚀 Descobre se é um insert ou update antes de salvar
         boolean isNovo = proposta.getId() == null;
-        
+
         // 🚀 Garantia de integridade: se não tem usuário, define o logado
         if (proposta.getUsuario() == null) {
             proposta.setUsuario(authService.getUsuarioLogado());
         }
-        
+
         // 1. Sincronização de metadados da Tabela de Juros
         sincronizarDadosTabela(proposta);
 
@@ -172,7 +176,7 @@ public class PropostaService {
     @Transactional
     public void excluirProposta(Long id) {
         propostaRepository.deleteById(id);
-        
+
         // 🚀 DISPARO DO EVENTO DE EXCLUSÃO
         eventPublisher.publishEvent(new PropostaExcluidaEvent(id));
     }
@@ -181,5 +185,28 @@ public class PropostaService {
     @Transactional(readOnly = true)
     public PropostaModel carregarPropostaDetalhada(Long id) {
         return propostaRepository.findByIdWithDetails(id).orElse(null);
+    }
+
+    public PropostaModel converterRascunhoParaProposta(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado,
+            ProponenteModel cliente) {
+        // Criação da Nova Proposta
+        PropostaModel novaProposta = new PropostaModel();
+
+        // Vinculação Obrigatória
+        novaProposta.setProponente(cliente);
+        novaProposta.setBanco(resultado.tabela().getBanco());
+        novaProposta.setTabelaId(resultado.tabela().getId());
+
+        // Dados da Simulação
+        novaProposta.setValorSolicitado(rascunho.valorDesejado());
+        novaProposta.setPrazoDesejado(rascunho.prazoDesejado());
+        novaProposta.setConvenioOrgao(TipoConvenioModel.valueOf(rascunho.tipoConvenio()));
+
+        // Status Inicial
+        novaProposta.setStatus(StatusPropostaModel.DIGITADA);
+        novaProposta.setObservacoes("✨ Proposta originada automaticamente via Copiloto de Vendas.");
+
+        // Persistência usando o método que já existe nesta classe
+        return salvarProposta(novaProposta);
     }
 }

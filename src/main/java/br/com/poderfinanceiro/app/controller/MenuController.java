@@ -4,13 +4,15 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import org.springframework.stereotype.Component;
 
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+
 @Component
 public class MenuController {
 
-    private final MainController mainController;
+    private final Navigator navigator;
 
-    public MenuController(MainController mainController) {
-        this.mainController = mainController;
+    public MenuController(Navigator navigator) {
+        this.navigator = navigator;
     }
 
     // =========================================================================
@@ -18,17 +20,17 @@ public class MenuController {
     // =========================================================================
     @FXML
     private void handleDashboard() {
-        mainController.abrirDashboard();
+        navigator.abrirDashboard();
     }
 
     @FXML
     private void handleNovoContato() {
-        mainController.irParaNovoContato();
+        navigator.irParaNovoContato();
     }
 
     @FXML
     private void handleLogout() {
-        mainController.mostrarOverlaySair();
+        navigator.mostrarOverlaySair();
     }
 
     @FXML
@@ -42,12 +44,12 @@ public class MenuController {
     // =========================================================================
     @FXML
     private void handleClientes() {
-        mainController.abrirClientes();
+        navigator.abrirClientes();
     }
 
     @FXML
     private void handlePropostas() {
-        mainController.irParaPropostas();
+        navigator.irParaPropostas();
     }
 
     // =========================================================================
@@ -55,17 +57,17 @@ public class MenuController {
     // =========================================================================
     @FXML
     private void handleComissoes() {
-        mainController.irParaTabelaComissoes();
+        navigator.irParaTabelaComissoes();
     }
 
     @FXML
     private void handleJuros() {
-        mainController.irParaTabelasJuros();
+        navigator.irParaTabelasJuros();
     }
 
     @FXML
     private void handleImportarTabelas() {
-        mainController.irParaImportadorTabelas();
+        navigator.irParaImportadorTabelas();
     }
 
     // =========================================================================
@@ -73,33 +75,33 @@ public class MenuController {
     // =========================================================================
     @FXML
     private void handlePlaybook() {
-        mainController.abrirPlaybook();
+        navigator.abrirPlaybook();
     }
 
     @FXML
     private void handleBancos() {
-        mainController.irParaBancosConvenios();
+        navigator.irParaBancosConvenios();
     }
 
     @FXML
     private void handleLinks() {
-        mainController.irParaLinksUteis();
+        navigator.irParaLinksUteis();
     }
 
     @FXML
     private void handleLimparCache() {
-        mainController.limparCacheDeTelas();
+        navigator.limparCacheDeTelas();
     }
 
     @FXML
     public void handleAbrirIA() {
-        mainController.alternarPainelIA();
+        navigator.alternarPainelIA();
     }
 
     @FXML
     private void handleAbrirCopiloto() {
         // Usa null porque o menu não passa o nó de âncora (o AnchorNode foi removido na
         // nossa última refatoração)
-        mainController.abrirCopilotoSimulacao(null);
+        navigator.abrirCopilotoSimulacao(null);
     }
 }

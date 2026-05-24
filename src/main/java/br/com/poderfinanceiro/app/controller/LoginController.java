@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+
 
 @Component
 public class LoginController {
@@ -38,13 +40,13 @@ public class LoginController {
     // ESTADO DA CLASSE E INJEÇÕES
     // =========================================================================
     private final AuthService authService;
-    private final MainController mainController;
+    private final Navigator navigator;
     private final StatusBarController statusBarController;
 
-    public LoginController(AuthService authService, MainController mainController,
+    public LoginController(AuthService authService, Navigator navigator,
             StatusBarController statusBarController) {
         this.authService = authService;
-        this.mainController = mainController;
+        this.navigator = navigator;
         this.statusBarController = statusBarController;
     }
 
@@ -91,7 +93,7 @@ public class LoginController {
         if (loginBemSucedido != null && loginBemSucedido) {
             statusBarController.atualizarStatusUsuario();
             txtSenha.clear(); // Limpa a senha por segurança
-            mainController.navegarPara(ROTA_WORKSPACE, true);
+            navigator.navegarPara(ROTA_WORKSPACE, true);
         } else {
             exibirErro(MSG_ERRO_CREDENCIAIS);
         }
@@ -111,7 +113,7 @@ public class LoginController {
     // =========================================================================
     @FXML
     private void handleIrParaCadastro() {
-        mainController.navegarPara(ROTA_CADASTRO, false);
+        navigator.navegarPara(ROTA_CADASTRO, false);
     }
 
     private void alternarEstadoCarregamento(boolean isCarregando) {

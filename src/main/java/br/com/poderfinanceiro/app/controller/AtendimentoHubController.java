@@ -6,6 +6,7 @@ import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.ProponenteService;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
+import javafx.application.HostServices;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.fxml.FXML;
@@ -76,7 +77,7 @@ public class AtendimentoHubController {
     // INJEÇÃO DE DEPENDÊNCIAS E ESTADO DA CLASSE
     // =========================================================================
     private final ProponenteService atendimentoService;
-    private final MainController mainController;
+    private final HostServices hostServices;
     private final AtendimentoContextService contextoService;
     private final ApplicationContext context;
 
@@ -86,10 +87,10 @@ public class AtendimentoHubController {
     private Tab tabPertencente;
     private boolean slaveJaCarregado = false;
 
-    public AtendimentoHubController(ProponenteService atendimentoService, MainController mainController,
+    public AtendimentoHubController(ProponenteService atendimentoService, HostServices hostServices,
             ApplicationContext context, AtendimentoContextService contextoService) {
         this.atendimentoService = atendimentoService;
-        this.mainController = mainController;
+        this.hostServices = hostServices;
         this.context = context;
         this.contextoService = contextoService;
     }
@@ -244,7 +245,7 @@ public class AtendimentoHubController {
                 : PREFIXO_BRASIL_WHATSAPP + numeroLimpo;
 
         try {
-            mainController.getHostServices().showDocument(URL_WHATSAPP_BASE + linkFinal);
+            hostServices.showDocument(URL_WHATSAPP_BASE + linkFinal);
         } catch (Exception e) {
             exibirMensagem("Erro ao tentar abrir o navegador para o WhatsApp.", false);
         }

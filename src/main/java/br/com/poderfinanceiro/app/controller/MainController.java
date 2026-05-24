@@ -2,12 +2,11 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
-import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.PropostaService;
 import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
 import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -28,7 +27,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 @Component
-public class MainController {
+public class MainController implements Navigator {
 
     // =========================================================================
     // CONSTANTES (Clean Code & DRY)
@@ -149,45 +148,19 @@ public class MainController {
         });
     }
 
-    public void abrirCopilotoSimulacao(Node anchorNode) {
-        // O anchorNode não é mais necessário pois não usaremos PopOver
-        executarNoWorkspace(ws -> {
-            ws.admitirAbaSimples(
-                    RotaAba.COPILOTO, // 🚀 CORREÇÃO: Substituído a String pelo Enum
-                    "✨ Copiloto de Vendas",
-                    "/fxml/copiloto_simulacao.fxml");
-        });
-    }
-
     // 🚀 MÉTODO 2 CORRIGIDO: Executa a conversão do Rascunho para a Aba de Clientes
     // (Lead)
-    public void iniciarConversaoCopiloto(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado, ProponenteModel cliente) {
+    public void iniciarConversaoCopiloto(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado,
+            ProponenteModel cliente) {
         try {
-            // Criação da Nova Proposta
-            PropostaModel novaProposta = new PropostaModel();
-            
-            // Vinculação Obrigatória
-            novaProposta.setProponente(cliente);
-            novaProposta.setBanco(resultado.tabela().getBanco());
-            novaProposta.setTabelaId(resultado.tabela().getId());
-            
-            // Dados da Simulação
-            novaProposta.setValorSolicitado(rascunho.valorDesejado());
-            novaProposta.setPrazoDesejado(rascunho.prazoDesejado());
-            novaProposta.setConvenioOrgao(TipoConvenioModel.valueOf(rascunho.tipoConvenio()));
-            
-            // Status Inicial
-            novaProposta.setStatus(StatusPropostaModel.DIGITADA);
-            novaProposta.setObservacoes("✨ Proposta originada automaticamente via Copiloto de Vendas.");
-            
-            // Persistência
-            PropostaModel propostaSalva = propostaService.salvarProposta(novaProposta);
+            // A lógica de negócio está no service!
+            PropostaModel propostaSalva = propostaService.converterRascunhoParaProposta(rascunho, resultado, cliente);
 
-            // Abre a aba da proposta no Workspace
+            // O Controller cuida apenas da Navegação/UI
             abrirPropostaNoWorkspace(propostaSalva);
 
-            notificarSucesso("Proposta gerada com sucesso para " + cliente.getNomeCompleto() + 
-                             "\nBanco: " + resultado.tabela().getBanco().getNome());
+            notificarSucesso("Proposta gerada com sucesso para " + cliente.getNomeCompleto() +
+                    "\nBanco: " + resultado.tabela().getBanco().getNome());
 
         } catch (Exception e) {
             notificarAviso("Erro ao gerar proposta: " + e.getMessage());
@@ -198,10 +171,6 @@ public class MainController {
     // =========================================================================
     // MOTOR DE NAVEGAÇÃO E CACHE
     // =========================================================================
-    public void navegarPara(String fxmlPath, boolean mostrarEstrutura) {
-        executarNavegacao(fxmlPath, mostrarEstrutura);
-    }
-
     private void executarNavegacao(String fxmlPath, boolean mostrarEstrutura) {
         try {
             // Uso de computeIfAbsent elimina a necessidade de if/else manual para cache
@@ -232,10 +201,6 @@ public class MainController {
         }
     }
 
-    public void limparCacheDeTelas() {
-        cacheDeViews.clear();
-    }
-
     // =========================================================================
     // ROTAS DO WORKSPACE
     // =========================================================================
@@ -258,74 +223,9 @@ public class MainController {
         }
     }
 
-    public void irParaNovoContato() {
-        abrirClienteNoWorkspace(null);
-    }
-
-    public void abrirDashboard() {
-        executarNoWorkspace(WorkspaceController::abrirAbaDashboard);
-    }
-
-    public void abrirPlaybook() {
-        executarNoWorkspace(WorkspaceController::abrirAbaPlaybook);
-    }
-
-    public void abrirClientes() {
-        executarNoWorkspace(WorkspaceController::abrirAbaClientes);
-    }
-
-    public void irParaLinksUteis() {
-        executarNoWorkspace(WorkspaceController::abrirAbaLinks);
-    }
-
-    public void irParaTabelasJuros() {
-        executarNoWorkspace(WorkspaceController::abrirAbaTabelasJuros);
-    }
-
-    public void irParaBancosConvenios() {
-        executarNoWorkspace(WorkspaceController::abrirAbaBancosConvenios);
-    }
-
-    public void irParaTabelaComissoes() {
-        executarNoWorkspace(WorkspaceController::abrirAbaComissoes);
-    }
-
-    public void irParaPropostas() {
-        executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
-    }
-
-    public void irParaImportadorTabelas() {
-        executarNoWorkspace(WorkspaceController::abrirAbaImportadorTabelas);
-    }
-
-    public void abrirClienteNoWorkspace(ProponenteModel proponente) {
-        executarNoWorkspace(ws -> ws.abrirOuFocarAba(proponente));
-    }
-
-    public void abrirPropostaNoWorkspace(PropostaModel proposta) {
-        if (proposta == null || proposta.getProponente() == null)
-            return;
-        executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
-    }
-
     // =========================================================================
     // CONTROLES DE OVERLAY (LOADING & SAIR & IA)
     // =========================================================================
-    public void mostrarLoading(String mensagem) {
-        Platform.runLater(() -> {
-            lblLoadingTexto.setText(mensagem);
-            overlayLoading.setVisible(true);
-        });
-    }
-
-    public void ocultarLoading() {
-        Platform.runLater(() -> overlayLoading.setVisible(false));
-    }
-
-    public void mostrarOverlaySair() {
-        overlaySair.setVisible(true);
-    }
-
     @FXML
     private void cancelarLogout() {
         overlaySair.setVisible(false);
@@ -337,18 +237,6 @@ public class MainController {
         context.getBean(AuthService.class).logout();
         limparCacheDeTelas();
         navegarPara(FXML_LOGIN, false);
-    }
-
-    @FXML
-    public void alternarPainelIA() {
-        boolean estaAberto = overlayChatIA.isVisible();
-        overlayChatIA.setVisible(!estaAberto);
-
-        if (!estaAberto && painelChatController != null) {
-            painelChatController.setMainController(this);
-            // Chama o método que criamos no AjudaChatController para solicitar o foco
-            painelChatController.solicitarFoco();
-        }
     }
 
     // 🚀 MÉTODO: Exibe o overlay (substitui o Alert)
@@ -368,14 +256,128 @@ public class MainController {
     }
 
     // =========================================================================
-    // NOTIFICAÇÕES GLOBAIS (DRY)
+    // NAVIGATOR
     // =========================================================================
+    @Override
+    public void navegarPara(String fxmlPath, boolean mostrarEstrutura) {
+        executarNavegacao(fxmlPath, mostrarEstrutura);
+    }
+
+    @Override
+    public void abrirDashboard() {
+        executarNoWorkspace(WorkspaceController::abrirAbaDashboard);
+    }
+
+    @Override
+    public void abrirPlaybook() {
+        executarNoWorkspace(WorkspaceController::abrirAbaPlaybook);
+    }
+
+    @Override
+    public void abrirClientes() {
+        executarNoWorkspace(WorkspaceController::abrirAbaClientes);
+    }
+
+    @Override
+    public void abrirClienteNoWorkspace(ProponenteModel proponente) {
+        executarNoWorkspace(ws -> ws.abrirOuFocarAba(proponente));
+    }
+
+    @Override
+    public void abrirPropostaNoWorkspace(PropostaModel proposta) {
+        if (proposta == null || proposta.getProponente() == null)
+            return;
+        executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
+    }
+
+    @Override
+    public void mostrarLoading(String mensagem) {
+        Platform.runLater(() -> {
+            lblLoadingTexto.setText(mensagem);
+            overlayLoading.setVisible(true);
+        });
+    }
+
+    @Override
+    public void ocultarLoading() {
+        Platform.runLater(() -> overlayLoading.setVisible(false));
+    }
+
+    @Override
     public void notificarSucesso(String mensagem) {
         exibirOverlayMensagem("Sucesso", mensagem);
     }
 
+    @Override
     public void notificarAviso(String mensagem) {
         exibirOverlayMensagem("Atenção", mensagem);
+    }
+
+    @FXML
+    @Override
+    public void alternarPainelIA() {
+        boolean estaAberto = overlayChatIA.isVisible();
+        overlayChatIA.setVisible(!estaAberto);
+
+        if (!estaAberto && painelChatController != null) {
+            painelChatController.solicitarFoco();
+        }
+    }
+
+    @Override
+    public void irParaNovoContato() {
+        abrirClienteNoWorkspace(null);
+    }
+
+    @Override
+    public void irParaPropostas() {
+        executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
+    }
+
+    @Override
+    public void irParaTabelaComissoes() {
+        executarNoWorkspace(WorkspaceController::abrirAbaComissoes);
+    }
+
+    @Override
+    public void irParaTabelasJuros() {
+        executarNoWorkspace(WorkspaceController::abrirAbaTabelasJuros);
+    }
+
+    @Override
+    public void irParaImportadorTabelas() {
+        executarNoWorkspace(WorkspaceController::abrirAbaImportadorTabelas);
+    }
+
+    @Override
+    public void irParaBancosConvenios() {
+        executarNoWorkspace(WorkspaceController::abrirAbaBancosConvenios);
+    }
+
+    @Override
+    public void irParaLinksUteis() {
+        executarNoWorkspace(WorkspaceController::abrirAbaLinks);
+    }
+
+    @Override
+    public void limparCacheDeTelas() {
+        cacheDeViews.clear();
+    }
+
+    @Override
+    public void abrirCopilotoSimulacao(Node anchorNode) {
+        // O anchorNode não é mais necessário pois não usaremos PopOver
+        executarNoWorkspace(ws -> {
+            ws.admitirAbaSimples(
+                    RotaAba.COPILOTO, // 🚀 CORREÇÃO: Substituído a String pelo Enum
+                    "✨ Copiloto de Vendas",
+                    "/fxml/copiloto_simulacao.fxml");
+        });
+    }
+
+    @Override
+    public void mostrarOverlaySair() {
+        overlaySair.setVisible(true);
     }
 
 }

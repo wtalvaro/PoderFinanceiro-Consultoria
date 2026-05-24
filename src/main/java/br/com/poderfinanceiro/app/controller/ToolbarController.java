@@ -3,17 +3,18 @@ package br.com.poderfinanceiro.app.controller;
 import javafx.fxml.FXML;
 import org.springframework.stereotype.Component;
 
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.ui.stage.StageInitializer;
 
 @Component
 public class ToolbarController {
 
     private final StageInitializer stageInitializer;
-    private final MainController mainController;
+    private final Navigator navigator;
 
-    public ToolbarController(StageInitializer stageInitializer, MainController mainController) {
+    public ToolbarController(StageInitializer stageInitializer, Navigator navigator) {
         this.stageInitializer = stageInitializer;
-        this.mainController = mainController;
+        this.navigator = navigator;
     }
 
     // ==========================================
@@ -22,7 +23,7 @@ public class ToolbarController {
 
     @FXML
     private void handleNovoContato() {
-        mainController.irParaNovoContato();
+        navigator.irParaNovoContato();
     }
 
     // ==========================================
@@ -31,28 +32,28 @@ public class ToolbarController {
 
     @FXML
     private void abrirWorkspace() {
-        mainController.abrirDashboard();
+        navigator.abrirDashboard();
     }
 
     @FXML
     private void abrirPlaybook() {
-        mainController.abrirPlaybook();
+        navigator.abrirPlaybook();
     }
 
     @FXML
     private void abrirTelaBaseClientes() {
-        mainController.abrirClientes();
+        navigator.abrirClientes();
     }
 
     @FXML
     private void abrirPropostasList() {
-        mainController.irParaPropostas();
+        navigator.irParaPropostas();
     }
 
     // Adicione no grupo CONFIGURAÇÕES E AUXILIARES
     @FXML
     private void abrirImportadorTabelas() {
-        mainController.irParaImportadorTabelas();
+        navigator.irParaImportadorTabelas();
     }
     
     // ==========================================
@@ -61,34 +62,34 @@ public class ToolbarController {
 
     @FXML
     private void abrirBancosConvenios() {
-        mainController.irParaBancosConvenios();
+        navigator.irParaBancosConvenios();
     }
 
     @FXML
     private void abrirTabelasJuros() {
-        mainController.irParaTabelasJuros();
+        navigator.irParaTabelasJuros();
     }
 
     @FXML
     private void abrirTabelaComissoes() {
-        mainController.irParaTabelaComissoes();
+        navigator.irParaTabelaComissoes();
     }
 
     @FXML
     private void handleLinksUteis() {
-        mainController.irParaLinksUteis();
+        navigator.irParaLinksUteis();
     }
 
     @FXML
     public void handleAbrirIA() {
-        // "Chefe (MainController), o usuário clicou no botão! Abre o painel de IA aí!"
-        mainController.alternarPainelIA();
+        // "Chefe (Navigator), o usuário clicou no botão! Abre o painel de IA aí!"
+        navigator.alternarPainelIA();
     }
 
     @FXML
     public void handleAbrirCopiloto(javafx.event.ActionEvent event) {
         javafx.scene.Node source = (javafx.scene.Node) event.getSource();
-        mainController.abrirCopilotoSimulacao(source);
+        navigator.abrirCopilotoSimulacao(source);
     }
 
     // ==========================================

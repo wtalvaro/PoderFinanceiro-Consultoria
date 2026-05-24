@@ -7,6 +7,7 @@ import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.animation.PauseTransition;
@@ -53,7 +54,7 @@ public class DashboardController {
     // =========================================================================
     private final PropostaRepository propostaRepository;
     private final ComissaoRepository comissaoRepository;
-    private final MainController mainController;
+    private final Navigator navigator;;
     private final AuthService authService;
 
     // =========================================================================
@@ -95,10 +96,10 @@ public class DashboardController {
     private final Random randomGenerator = new Random();
 
     public DashboardController(PropostaRepository propostaRepository, ComissaoRepository comissaoRepository,
-            MainController mainController, AuthService authService) {
+            Navigator navigator, AuthService authService) {
         this.propostaRepository = propostaRepository;
         this.comissaoRepository = comissaoRepository;
-        this.mainController = mainController;
+        this.navigator = navigator;
         this.authService = authService;
     }
 
@@ -167,7 +168,7 @@ public class DashboardController {
                 btn.setOnAction(event -> {
                     PropostaModel proposta = getTableView().getItems().get(getIndex());
                     if (proposta != null && proposta.getProponente() != null) {
-                        mainController.abrirPropostaNoWorkspace(proposta);
+                        navigator.abrirPropostaNoWorkspace(proposta);
                     }
                 });
                 return btn;
@@ -205,7 +206,7 @@ public class DashboardController {
     // 🚀 PATCH: Delegação assíncrona usando o AsyncUtils
     @FXML
     public void carregarDadosReais() {
-        mainController.mostrarLoading(MSG_CARREGANDO);
+        navigator.mostrarLoading(MSG_CARREGANDO);
 
         AsyncUtils.executarTaskAsync(
                 () -> {
@@ -215,7 +216,7 @@ public class DashboardController {
                 },
                 this::atualizarInterfaceDoDashboard, // onSuccess
                 erro -> { // onFailed
-                    mainController.ocultarLoading();
+                    navigator.ocultarLoading();
                     erro.printStackTrace();
                 });
     }
@@ -272,17 +273,17 @@ public class DashboardController {
 
     private void exibirLoadingMotivacional() {
         String fraseSorteada = FRASES_MOTIVACIONAIS[randomGenerator.nextInt(FRASES_MOTIVACIONAIS.length)];
-        mainController.mostrarLoading("💡 " + fraseSorteada);
+        navigator.mostrarLoading("💡 " + fraseSorteada);
 
         PauseTransition delay = new PauseTransition(Duration.seconds(3.5));
-        delay.setOnFinished(e -> mainController.ocultarLoading());
+        delay.setOnFinished(e -> navigator.ocultarLoading());
         delay.play();
     }
 
     @FXML
     private void simularNovo() {
         txtBuscaPropostas.clear();
-        mainController.abrirClienteNoWorkspace(null);
+        navigator.abrirClienteNoWorkspace(null);
     }
 
     // =========================================================================

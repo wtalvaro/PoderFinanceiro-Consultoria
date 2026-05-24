@@ -6,8 +6,10 @@ import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.dto.GeminiRequest;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
@@ -77,7 +79,6 @@ public class AjudaChatController {
     private boolean paginaCarregada = false;
     private WebEngine webEngine;
     private File ficheiroAnexado = null;
-    private MainController mainController;
     private final List<Runnable> filaMensagensPendentes = new ArrayList<>();
     // No AjudaChatController
     private final List<GeminiRequest.Content> historicoConversa = Collections.synchronizedList(new ArrayList<>());
@@ -91,19 +92,19 @@ public class AjudaChatController {
     private final AtendimentoContextService contextoService;
     private final TabelaJurosService tabelaService;
     private final LinkUtilRepository linkRepository;
+    private final Navigator navigator;
+    private final HostServices hostServices;
 
     public AjudaChatController(GeminiService geminiService, AuthService authService,
             AtendimentoContextService contextoService, TabelaJurosService tabelaService,
-            LinkUtilRepository linkRepository) {
+            LinkUtilRepository linkRepository, Navigator navigator, HostServices hostServices) {
         this.geminiService = geminiService;
         this.authService = authService;
         this.contextoService = contextoService;
         this.tabelaService = tabelaService;
         this.linkRepository = linkRepository;
-    }
-
-    public void setMainController(MainController mainController) {
-        this.mainController = mainController;
+        this.navigator = navigator;
+        this.hostServices = hostServices;
     }
 
     // =========================================================================
@@ -183,8 +184,7 @@ public class AjudaChatController {
 
     @FXML
     private void fecharPainel() {
-        if (mainController != null)
-            mainController.alternarPainelIA();
+        navigator.alternarPainelIA();
     }
 
     @FXML
@@ -397,13 +397,11 @@ public class AjudaChatController {
     }
 
     private void abrirLinkExterno(String url) {
-        Platform.runLater(() -> {
-            if (mainController != null && mainController.getHostServices() != null) {
-                mainController.getHostServices().showDocument(url);
-            } else {
-                System.err.println("⚠️ MainController ou HostServices não configurados para o Chat!");
-            }
-        });
+        if (hostServices != null) {
+            hostServices.showDocument(url);
+        } else {
+            System.err.println("⚠️ HostServices não configurados para o Chat!");
+        }
     }
 
     /**

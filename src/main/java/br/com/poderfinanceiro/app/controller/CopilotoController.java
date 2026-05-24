@@ -8,6 +8,7 @@ import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
 import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.collections.FXCollections;
@@ -62,6 +63,7 @@ public class CopilotoController {
 
     private final SimulacaoCopilotoService copilotoService;
     private final MainController mainController;
+    private final Navigator navigator;
     private final ProponenteService proponenteService;
     private final GeminiService geminiService; // 🚀 Injetar
     private final AuthService authService; // 🚀 Injetar
@@ -73,10 +75,11 @@ public class CopilotoController {
     // 🚀 NOVO: Armazena a ordem de escolha da IA
     private java.util.List<Integer> recomendacoesIA = new java.util.ArrayList<>();
 
-    public CopilotoController(SimulacaoCopilotoService copilotoService, MainController mainController,
+    public CopilotoController(SimulacaoCopilotoService copilotoService, MainController mainController, Navigator navigator,
             ProponenteService proponenteService, GeminiService geminiService, AuthService authService) {
         this.copilotoService = copilotoService;
         this.mainController = mainController;
+        this.navigator = navigator;
         this.proponenteService = proponenteService;
         this.geminiService = geminiService;
         this.authService = authService;
@@ -343,17 +346,17 @@ public class CopilotoController {
     private void extrairMargemAssincrona(File arquivo) {
         btnExtrairMargem.setDisable(true);
         btnExtrairMargem.setText("⏳");
-        mainController.mostrarLoading("A IA está lendo o documento...");
+        navigator.mostrarLoading("A IA está lendo o documento...");
 
         AsyncUtils.executarTaskAsync(
                 () -> copilotoService.extrairMargemDocumento(arquivo),
                 respostaCompleta -> {
-                    mainController.ocultarLoading();
+                    navigator.ocultarLoading();
                     btnExtrairMargem.setDisable(false);
                     btnExtrairMargem.setText("📎 IA");
 
                     if (respostaCompleta != null && !respostaCompleta.isBlank()) {
-                        mainController.notificarAviso("Análise concluída! O log está no console.");
+                        navigator.notificarAviso("Análise concluída! O log está no console.");
                         if (respostaCompleta.contains("RESULTADO FINAL:")) {
                             String[] partes = respostaCompleta.split("RESULTADO FINAL:");
                             String margemLimpa = partes[1].trim().replaceAll("[^0-9,]", "");
@@ -362,14 +365,14 @@ public class CopilotoController {
                             }
                         }
                     } else {
-                        mainController.notificarAviso("A IA não conseguiu analisar o documento.");
+                        navigator.notificarAviso("A IA não conseguiu analisar o documento.");
                     }
                 },
                 erro -> {
-                    mainController.ocultarLoading();
+                    navigator.ocultarLoading();
                     btnExtrairMargem.setDisable(false);
                     btnExtrairMargem.setText("📎 IA");
-                    mainController.notificarAviso("Erro na extração de documento.");
+                    navigator.notificarAviso("Erro na extração de documento.");
                 });
     }
 
@@ -389,7 +392,7 @@ public class CopilotoController {
                     resetarBotoes();
                 },
                 erro -> {
-                    mainController.notificarAviso("Erro ao processar. Verifique os valores.");
+                    navigator.notificarAviso("Erro ao processar. Verifique os valores.");
                     resetarBotoes();
                 });
     }
@@ -406,7 +409,7 @@ public class CopilotoController {
 
     private void converterParaProposta(ResultadoSimulacaoDTO resultadoEscolhido, ProponenteModel cliente) {
         if (cliente == null) {
-            mainController.notificarAviso("Selecione um cliente no campo acima antes de gerar a proposta.");
+            navigator.notificarAviso("Selecione um cliente no campo acima antes de gerar a proposta.");
             return;
         }
         mainController.iniciarConversaoCopiloto(rascunhoAtual, resultadoEscolhido, cliente);

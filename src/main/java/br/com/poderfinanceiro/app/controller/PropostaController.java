@@ -4,9 +4,11 @@ import br.com.poderfinanceiro.app.domain.model.*;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.service.*;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -84,7 +86,8 @@ public class PropostaController {
     private final PropostaService propostaService;
     private final TabelaJurosService tabelaJurosService;
     private final DocumentoService documentoService;
-    private final MainController mainController;
+    private final Navigator navigator;
+    private final HostServices hostServices;
     private final ProponenteService proponenteService;
     private final AtendimentoContextService contextoService;
     private final AuthService authService;
@@ -156,17 +159,19 @@ public class PropostaController {
     // =========================================================================
     public PropostaController(PropostaViewModel viewModel, DocumentoService documentoService,
             PropostaService propostaService, TabelaJurosService tabelaJurosService,
-            MainController mainController, ProponenteService proponenteService,
-            AtendimentoContextService contextoService, AuthService authService, GeminiService geminiService) {
+            Navigator navigator, ProponenteService proponenteService,
+            AtendimentoContextService contextoService, AuthService authService, GeminiService geminiService,
+            HostServices hostServices) {
         this.viewModel = viewModel;
         this.documentoService = documentoService;
         this.propostaService = propostaService;
         this.tabelaJurosService = tabelaJurosService;
-        this.mainController = mainController;
+        this.navigator = navigator;
         this.proponenteService = proponenteService;
         this.contextoService = contextoService;
         this.authService = authService;
         this.geminiService = geminiService;
+        this.hostServices = hostServices;
     }
 
     public void setEsteiraController(EsteiraPropostasController esteiraController) {
@@ -625,7 +630,7 @@ public class PropostaController {
 
         if (f.exists()) {
             Platform.runLater(
-                    () -> mainController.getHostServices().showDocument(f.getAbsoluteFile().toURI().toString()));
+                    () -> hostServices.showDocument(f.getAbsoluteFile().toURI().toString()));
         } else {
             mostrarFeedback("⚠️", "Aviso", "Arquivo físico não encontrado no servidor.", null);
         }
@@ -672,8 +677,8 @@ public class PropostaController {
         }
 
         ConfigIA config = determinarConfiguracaoIA(doc.getTipoDocumento());
-        if (mainController != null)
-            mainController.mostrarLoading("O Gemini está atuando como especialista em " + config.titulo() + "...");
+        if (navigator != null)
+            navigator.mostrarLoading("O Gemini está atuando como especialista em " + config.titulo() + "...");
 
         String modeloSelecionado = cmbModeloIA != null && cmbModeloIA.getValue() != null ? cmbModeloIA.getValue()
                 : MODELO_IA_FALLBACK;
@@ -686,13 +691,13 @@ public class PropostaController {
                         jsonCliente, "[]", "[]", "[]", List
                                 .of()),
                 resultado -> {
-                    if (mainController != null)
-                        mainController.ocultarLoading();
+                    if (navigator != null)
+                        navigator.ocultarLoading();
                     mostrarFeedback(config.icone(), config.titulo(), resultado, null);
                 },
                 erro -> {
-                    if (mainController != null)
-                        mainController.ocultarLoading();
+                    if (navigator != null)
+                        navigator.ocultarLoading();
                     erro.printStackTrace();
                     mostrarFeedback("❌", "Falha na Análise", "O motor de IA falhou: " + erro.getMessage(), null);
                 });
