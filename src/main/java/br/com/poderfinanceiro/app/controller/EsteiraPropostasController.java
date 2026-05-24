@@ -6,6 +6,7 @@ import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.service.PropostaService;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
+import br.com.poderfinanceiro.app.domain.event.*;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -24,7 +25,6 @@ import javafx.scene.web.WebEngine;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -70,6 +70,7 @@ public class EsteiraPropostasController {
     private final PropostaRepository repository;
     private final PropostaService propostaService;
     private final ApplicationContext context;
+    private final PropostaUIEventHub eventHub;
 
     // =========================================================================
     // COMPONENTES UI (FXML)
@@ -117,10 +118,11 @@ public class EsteiraPropostasController {
     private Runnable onFeedbackClose;
 
     public EsteiraPropostasController(PropostaRepository repository, PropostaService propostaService,
-            ApplicationContext context) {
+            ApplicationContext context, PropostaUIEventHub eventHub) {
         this.repository = repository;
         this.propostaService = propostaService;
         this.context = context;
+        this.eventHub = eventHub;
     }
 
     // =========================================================================
@@ -131,6 +133,9 @@ public class EsteiraPropostasController {
         configurarTabela();
         configurarFiltroReativo();
         recarregarDados();
+
+        // 🚀 O Hub agora só precisa mandar recarregar os dados
+        eventHub.inscrever(this::recarregarDados);
     }
 
     // =========================================================================
@@ -215,7 +220,12 @@ public class EsteiraPropostasController {
     public void recarregarDados() {
         AsyncUtils.executarTaskAsync(
                 repository::findAllComDetalhes,
-                masterData::setAll,
+                dados -> {
+                    masterData.setAll(dados); // 1. Atualiza a lista visual com o banco real
+
+                    // 🚀 2. AGORA SIM: Valida o formulário ativo com a lista já atualizada!
+                    limparPainelSeExcluido();
+                },
                 erro -> System.err.println("Erro ao recarregar dados: " + erro.getMessage()));
     }
 
@@ -288,12 +298,8 @@ public class EsteiraPropostasController {
         formController = loader.getController();
         formController.setEsteiraController(this);
 
-        formController.setOnPropostaSalva(this::recarregarDados);
+        // A única dependência manual restante é fechar o painel (UX local)
         formController.setOnPropostaFechada(this::limparPainelDetail);
-        formController.setOnPropostaRemovida(() -> {
-            limparPainelDetail();
-            recarregarDados();
-        });
 
         containerFormulario.getChildren().add(view);
     }
@@ -345,6 +351,22 @@ public class EsteiraPropostasController {
                             });
                 },
                 erro -> System.err.println("Erro ao recarregar dados: " + erro.getMessage()));
+    }
+
+    private void limparPainelSeExcluido() {
+        if (formController != null) {
+            Long idAtivo = formController.getViewModel().idProperty().get();
+            if (idAtivo != null) {
+                // Verifica se o ID que está aberto no formulário ainda existe na lista do banco
+                boolean aindaExiste = masterData.stream().anyMatch(p -> p.getId().equals(idAtivo));
+
+                // Se não existir mais (foi excluído), descarrega o formulário e exibe o painel
+                // vazio
+                if (!aindaExiste) {
+                    limparPainelDetail();
+                }
+            }
+        }
     }
 
     // =========================================================================
@@ -481,4 +503,5 @@ public class EsteiraPropostasController {
             default -> Color.BLACK;
         };
     }
+
 }

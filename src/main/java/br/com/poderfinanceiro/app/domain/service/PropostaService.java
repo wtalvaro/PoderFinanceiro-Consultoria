@@ -1,5 +1,8 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.domain.event.PropostaAtualizadaEvent;
+import br.com.poderfinanceiro.app.domain.event.PropostaCriadaEvent;
+import br.com.poderfinanceiro.app.domain.event.PropostaExcluidaEvent;
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
@@ -13,6 +16,7 @@ import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -26,17 +30,20 @@ public class PropostaService {
     private final TabelaJurosRepository tabelaJurosRepository;
     private final ComissaoRepository comissaoRepository;
     private final DocumentoProponenteRepository documentoRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final AuthService authService;
 
     public PropostaService(PropostaRepository propostaRepository,
             TabelaJurosRepository tabelaJurosRepository,
             ComissaoRepository comissaoRepository,
             DocumentoProponenteRepository documentoRepository,
+            ApplicationEventPublisher eventPublisher,
             AuthService authService) {
         this.propostaRepository = propostaRepository;
         this.tabelaJurosRepository = tabelaJurosRepository;
         this.comissaoRepository = comissaoRepository;
         this.documentoRepository = documentoRepository;
+        this.eventPublisher = eventPublisher;
         this.authService = authService;
     }
 
@@ -59,6 +66,9 @@ public class PropostaService {
 
     @Transactional
     public PropostaModel salvarProposta(PropostaModel proposta) {
+        // 🚀 Descobre se é um insert ou update antes de salvar
+        boolean isNovo = proposta.getId() == null;
+        
         // 🚀 Garantia de integridade: se não tem usuário, define o logado
         if (proposta.getUsuario() == null) {
             proposta.setUsuario(authService.getUsuarioLogado());
@@ -73,6 +83,13 @@ public class PropostaService {
         // 3. Gatilho de Ciclo Financeiro (Liquidação)
         if (propostaSalva.getStatus() == StatusPropostaModel.PAGO) {
             processarCicloPagamento(propostaSalva);
+        }
+
+        // 🚀 DISPARO DOS EVENTOS
+        if (isNovo) {
+            eventPublisher.publishEvent(new PropostaCriadaEvent(propostaSalva.getId()));
+        } else {
+            eventPublisher.publishEvent(new PropostaAtualizadaEvent(propostaSalva.getId()));
         }
 
         return propostaSalva;
@@ -155,6 +172,9 @@ public class PropostaService {
     @Transactional
     public void excluirProposta(Long id) {
         propostaRepository.deleteById(id);
+        
+        // 🚀 DISPARO DO EVENTO DE EXCLUSÃO
+        eventPublisher.publishEvent(new PropostaExcluidaEvent(id));
     }
 
     // PropostaService.java

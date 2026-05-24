@@ -144,9 +144,7 @@ public class PropostaController {
     // =========================================================================
     private File arquivoSelecionadoParaUpload;
     private DocumentoProponenteModel documentoSendoEditado;
-    private Runnable onPropostaSalva;
     private Runnable onPropostaFechada;
-    private Runnable onPropostaRemovida;
 
     private List<TabelaJurosModel> todasTabelasAtivas;
     private final ObservableList<DocumentoProponenteModel> listaDocumentos = FXCollections.observableArrayList();
@@ -302,12 +300,11 @@ public class PropostaController {
                 this::executarSalvamentoBackground,
                 salva -> {
                     carregarProposta(salva);
-                    mostrarFeedback("✅", "Sucesso!", "Proposta salva com sucesso.", () -> {
-                        if (onPropostaSalva != null)
-                            onPropostaSalva.run();
-                    });
+                    // Agora o callback no final é null, pois o EventBus do Spring já cuidou de
+                    // atualizar a tabela no fundo
+                    mostrarFeedback("✅", "Sucesso!", "Proposta salva com sucesso.", null);
                 },
-                erro -> mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null));
+                erro -> mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null));    
     }
 
     private PropostaModel executarSalvamentoBackground() {
@@ -341,8 +338,8 @@ public class PropostaController {
                     return null;
                 },
                 sucesso -> {
-                    if (onPropostaRemovida != null)
-                        onPropostaRemovida.run();
+                    // A UI não faz nada aqui! O @EventListener da Esteira intercepta a exclusão e
+                    // limpa a tela automaticamente.
                 },
                 erro -> mostrarFeedback("❌", "Erro", "Não foi possível remover: " + erro.getMessage(), null));
     }
@@ -884,16 +881,8 @@ public class PropostaController {
         return viewModel;
     }
 
-    public void setOnPropostaSalva(Runnable callback) {
-        this.onPropostaSalva = callback;
-    }
-
     public void setOnPropostaFechada(Runnable callback) {
         this.onPropostaFechada = callback;
-    }
-
-    public void setOnPropostaRemovida(Runnable callback) {
-        this.onPropostaRemovida = callback;
     }
 
     private void mostrarFeedback(String icone, String titulo, String msg, Runnable callback) {
