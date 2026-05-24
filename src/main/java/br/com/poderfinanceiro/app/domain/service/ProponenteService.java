@@ -1,11 +1,14 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.domain.event.ProponenteAtualizadoEvent;
+import br.com.poderfinanceiro.app.domain.event.ProponenteCriadoEvent;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
 import br.com.poderfinanceiro.app.domain.repository.ProponenteRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 
@@ -14,64 +17,65 @@ public class ProponenteService {
 
     private final ProponenteRepository proponenteRepository;
     private final AuthService authService; // Essencial para saber quem está logado
+    private final ApplicationEventPublisher eventPublisher;
 
-    public ProponenteService(ProponenteRepository proponenteRepository, AuthService authService) {
+    public ProponenteService(ProponenteRepository proponenteRepository, AuthService authService,
+            ApplicationEventPublisher eventPublisher) {
         this.proponenteRepository = proponenteRepository;
         this.authService = authService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
-     * Salva ou Atualiza um Lead atrelando-o ao consultor logado.
+     * Salva ou Atualiza um Proponente atrelando-o ao consultor logado.
      */
     @Transactional
-    public ProponenteModel salvarLead(ProponenteModel lead) {
-        // 1. Segurança: Verifica se há um consultor logado
+    public ProponenteModel salvarProponente(ProponenteModel lead) {
         UsuarioModel consultorLogado = authService.getUsuarioLogado();
         if (consultorLogado == null) {
             throw new IllegalStateException("Erro de segurança: Nenhum consultor logado na sessão.");
         }
 
-        // 2. Sanitização Agressiva (Dados Puros para o Banco)
-        // Removemos pontos, traços, parênteses e espaços invisíveis
+        // 🚀 Verifica se é criação antes de salvar
+        boolean isNovo = lead.getId() == null;
+
         if (lead.getCpf() != null) {
             lead.setCpf(lead.getCpf().replaceAll("[^0-9]", ""));
         }
-
         if (lead.getTelefone() != null) {
             lead.setTelefone(lead.getTelefone().replaceAll("[^0-9]", ""));
         }
 
-        // 3. Validação de Duplicidade Inteligente
         String cpfLimpo = lead.getCpf();
-        Long idAtual = lead.getId(); // No seu modelo o campo é 'id'
+        Long idAtual = lead.getId();
         boolean isCpfPreenchido = cpfLimpo != null && !cpfLimpo.trim().isEmpty();
 
         if (isCpfPreenchido) {
             if (idAtual == null) {
-                // NOVO REGISTRO: O CPF não pode existir na carteira deste consultor
-                if (proponenteRepository.existsByCpfAndUsuarioIdAndDeletadoEmIsNull(cpfLimpo,
-                        consultorLogado.getId())) {
+                if (proponenteRepository.existsByCpfAndUsuarioIdAndDeletadoEmIsNull(cpfLimpo, consultorLogado.getId())) {
                     throw new IllegalArgumentException("Você já possui um cliente cadastrado com este CPF.");
                 }
             } else {
-                // EDIÇÃO: O CPF pode existir, desde que não seja de OUTRO cliente (IdNot)
                 boolean cpfJaExisteEmOutro = proponenteRepository
-                        .existsByCpfAndUsuarioIdAndIdNotAndDeletadoEmIsNull(
-                                cpfLimpo, consultorLogado.getId(), idAtual);
+                        .existsByCpfAndUsuarioIdAndIdNotAndDeletadoEmIsNull(cpfLimpo, consultorLogado.getId(), idAtual);
 
                 if (cpfJaExisteEmOutro) {
-                    throw new IllegalArgumentException(
-                            "Este CPF já está sendo usado por outro cliente na sua carteira.");
+                    throw new IllegalArgumentException("Este CPF já está sendo usado por outro cliente na sua carteira.");
                 }
             }
         }
 
-        // 4. Vínculo de Propriedade
         lead.setUsuario(consultorLogado);
+        ProponenteModel leadSalvo = proponenteRepository.save(lead);
 
-        // 5. Persistência (O Hibernate decide: INSERT se ID for null, UPDATE se ID
-        // existir)
-        return proponenteRepository.save(lead);
+        // 🚀 DISPARO DOS EVENTOS APÓS SALVAR
+        if (isNovo) {
+            eventPublisher.publishEvent(new ProponenteCriadoEvent(leadSalvo.getId()));
+        } else {
+            eventPublisher.publishEvent(new ProponenteAtualizadoEvent(leadSalvo.getId()));
+        }
+
+        return leadSalvo;
     }
 
     /**

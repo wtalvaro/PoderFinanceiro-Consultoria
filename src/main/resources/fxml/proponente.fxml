@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.LeadController">
+    fx:controller="br.com.poderfinanceiro.app.controller.ProponenteController">
 
     <ScrollPane fx:id="scrollPrincipal" fitToWidth="true" fitToHeight="true"
         style="-fx-background-color: transparent;" styleClass="edge-to-edge">
@@ -12,7 +12,7 @@
             <VBox spacing="20" style="-fx-background-color: #ffffff; -fx-padding: 30;">
 
                 <VBox spacing="5">
-                    <Label fx:id="lblTituloTela" text="Cadastrar Novo Contato"
+                    <Label fx:id="lblTituloTela" text="Cadastrar Novo Proponente"
                         style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
                     <Label
                         text="Preencha o que tiver disponível. Conforme a conversa evoluir, você pode voltar e editar."

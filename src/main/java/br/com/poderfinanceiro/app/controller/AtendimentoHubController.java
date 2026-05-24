@@ -45,7 +45,7 @@ public class AtendimentoHubController {
     // DEPENDÊNCIAS DE UI E FXML
     // =========================================================================
     @FXML
-    private LeadController abaLeadController;
+    private ProponenteController abaLeadController;
     @FXML
     private EnderecoController abaEnderecoController;
     @FXML
@@ -201,7 +201,7 @@ public class AtendimentoHubController {
         enderecoEditado.setProponente(lead);
         lead.setEnderecos(new ArrayList<>(List.of(enderecoEditado)));
 
-        return atendimentoService.salvarLead(lead);
+        return atendimentoService.salvarProponente(lead);
     }
 
     private void processarSucessoSalvamento(ProponenteModel proponenteSalvo, Runnable onSucesso) {
@@ -341,7 +341,7 @@ public class AtendimentoHubController {
     // =========================================================================
     // GETTERS, SETTERS E HELPERS
     // =========================================================================
-    public LeadController getLeadController() {
+    public ProponenteController getLeadController() {
         return abaLeadController;
     }
 

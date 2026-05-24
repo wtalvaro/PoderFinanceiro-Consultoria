@@ -5,7 +5,7 @@
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.ClientesListController">
+    fx:controller="br.com.poderfinanceiro.app.controller.ProponenteListController">
 
     <BorderPane style="-fx-background-color: #f4f4f4;">
 
@@ -33,7 +33,7 @@
                     <Separator orientation="VERTICAL" />
 
                     <!-- Ação Principal -->
-                    <Button text="➕ Novo Contato" onAction="#handleNovoContato"
+                    <Button text="➕ Novo Proponente" onAction="#handleNovoProponente"
                         styleClass="accent"
                         style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;"
                         prefHeight="40" />
@@ -50,7 +50,7 @@
 
                         <!-- Cabeçalho (Agora apenas os Títulos) -->
                         <VBox spacing="5">
-                            <Label text="Base de Contatos e Clientes"
+                            <Label text="Base de Proponentes"
                                 style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
                             <Label
                                 text="Gerencie sua carteira. Dê um duplo clique em um registro para editar."

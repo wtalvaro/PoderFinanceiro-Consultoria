@@ -25,7 +25,7 @@ import java.util.function.Function;
 
 @Component
 @Scope("prototype")
-public class LeadController {
+public class ProponenteController {
 
     // =========================================================================
     // CONSTANTES (Clean Code & DRY)
@@ -59,7 +59,7 @@ public class LeadController {
     // =========================================================================
     private final LeadViewModel viewModel;
 
-    public LeadController(LeadViewModel viewModel) {
+    public ProponenteController(LeadViewModel viewModel) {
         this.viewModel = viewModel;
     }
 

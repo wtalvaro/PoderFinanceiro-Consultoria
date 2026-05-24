@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.domain.service.ProponenteService;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.ContatoUtils;
 import br.com.poderfinanceiro.app.util.DocumentoUtils;
+import br.com.poderfinanceiro.app.domain.event.ProponenteUIEventHub;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -21,7 +22,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Component
-public class ClientesListController {
+public class ProponenteListController {
 
     // =========================================================================
     // CONSTANTES (Clean Code)
@@ -56,10 +57,13 @@ public class ClientesListController {
     private final ProponenteService proponenteService;
     private final MainController mainController;
     private final ObservableList<ProponenteModel> listaContatos = FXCollections.observableArrayList();
+    private final ProponenteUIEventHub eventHub;
 
-    public ClientesListController(ProponenteService proponenteService, MainController mainController) {
+    public ProponenteListController(ProponenteService proponenteService, MainController mainController,
+            ProponenteUIEventHub eventHub) {
         this.proponenteService = proponenteService;
         this.mainController = mainController;
+        this.eventHub = eventHub;
     }
 
     // =========================================================================
@@ -71,6 +75,9 @@ public class ClientesListController {
         configurarColunas();
         configurarInteracaoTabela();
         carregarDados();
+
+        // 🚀 MÁGICA: Conecta a tela à reatividade do Spring
+        eventHub.inscrever(this::carregarDados);
     }
 
     private void configurarColunas() {
@@ -113,7 +120,7 @@ public class ClientesListController {
     }
 
     @FXML
-    private void handleNovoContato() {
+    private void handleNovoProponente() {
         mainController.irParaNovoContato();
     }
 

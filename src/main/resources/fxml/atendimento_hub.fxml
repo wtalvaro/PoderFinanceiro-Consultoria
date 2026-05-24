@@ -61,7 +61,7 @@
                         tabMinWidth="30" tabMaxWidth="150" xmlns:fx="http://javafx.com/fxml/1">
                         <tabs>
                             <Tab text="📝 Dados">
-                                <fx:include fx:id="abaLead" source="lead.fxml" />
+                                <fx:include fx:id="abaLead" source="proponente.fxml" />
                             </Tab>
 
                             <Tab text="📍 Localização">

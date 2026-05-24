@@ -126,7 +126,7 @@ public class WorkspaceController {
     }
 
     public void abrirAbaClientes() {
-        admitirAbaSimples(RotaAba.CLIENTES, "👥 Clientes", "/fxml/clientes_list.fxml");
+        admitirAbaSimples(RotaAba.CLIENTES, "👥 Clientes", "/fxml/proponente_list.fxml");
     }
 
     public void abrirAbaLinks() {
