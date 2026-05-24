@@ -75,7 +75,7 @@ public class SimulacaoCopilotoService {
                 """;
 
         String apiKey = authService.getUsuarioLogado().getGeminiApiKey();
-        return geminiService.perguntarAoAssistente(prompt, apiKey, "gemini-1.5-flash", arquivo, "{}", "[]", "[]", "[]");
+        return geminiService.perguntarAoAssistente(prompt, apiKey, "gemini-3.5-flash", arquivo, "{}", "[]", "[]", "[]");
     }
 
     private BigDecimal calcularComissao(BigDecimal valorOperacao, BigDecimal percentualComissao) {
@@ -160,7 +160,7 @@ public class SimulacaoCopilotoService {
         // 🚀 PATCH: Refinamento do prompt para exigir respostas ultra-concisas (estilo
         // executivo)
         sb.append(
-                "5. JUSTIFICATIVA EXECUTIVA (MÁXIMA CONCISÃO): Logo após a tag [TOP], redija uma justificativa EXTREMAMENTE CURTA e direta. Use 'bullet points' (marcadores 🔹). Vá direto ao ponto: diga por que a opção 1 é a melhor (focando em aprovação/lucro) e por que as outras são boas alternativas secundárias. Não use parágrafos longos, não faça introduções educadas. O consultor está com pressa. Limite-se a no máximo 4 linhas de texto no total.");
+                "5. JUSTIFICATIVA EXECUTIVA (MÁXIMA CONCISÃO): Logo após a tag [TOP], redija uma justificativa EXTREMAMENTE CURTA e direta. Use 'bullet points' (marcadores 🔹). Vá direto ao ponto: diga por que a opção 1 é a melhor (focando em aprovação/lucro) e por que as outras são boas alternativas secundárias. Não use parágrafos longos, faça uma introdução educadaa breve antes de apresentar as tabelas. O consultor está com pressa. Limite-se a no máximo 4 linhas de texto no total.");
         
                 return sb.toString();
     }

@@ -94,6 +94,7 @@ public class CopilotoController {
         // 🔥 NOVO: Formatação Robusta do DatePicker (Idêntico ao LeadController)
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         dpDataNascimento.setConverter(new LocalDateStringConverter(formatter, formatter));
+        
         TextFormatter<LocalDate> dataFormatter = DataUtils.criarFormatadorData();
         dpDataNascimento.getEditor().setTextFormatter(dataFormatter);
 

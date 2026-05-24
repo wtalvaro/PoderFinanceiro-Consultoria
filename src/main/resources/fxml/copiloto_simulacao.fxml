@@ -110,9 +110,9 @@
                 VBox.vgrow="ALWAYS">
                 <Label text="🏆 Ranking" style="-fx-font-weight: bold;" />
                 <ListView fx:id="listaRanking"
-                    prefHeight="300"
                     VBox.vgrow="ALWAYS"
-                    style="-fx-background-color: transparent; -fx-border-color: transparent;" />           </VBox>
+                    style="-fx-background-color: transparent; -fx-border-color: transparent;" />
+            </VBox>
         </VBox>
 
     </ScrollPane>
