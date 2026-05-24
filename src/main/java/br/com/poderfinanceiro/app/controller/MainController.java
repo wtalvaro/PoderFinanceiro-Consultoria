@@ -8,7 +8,6 @@ import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
 import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
-import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -75,7 +74,6 @@ public class MainController implements Navigator {
     // =========================================================================
     // ESTADO E INJEÇÕES
     // =========================================================================
-    private final HostServices hostServices;
     private final ApplicationContext context;
     private final PropostaService propostaService;
     private final Map<String, ViewPair> cacheDeViews = new HashMap<>();
@@ -88,14 +86,9 @@ public class MainController implements Navigator {
     private record ViewPair(Node view, Object controller) {
     }
 
-    public MainController(ApplicationContext context, HostServices hostServices, PropostaService propostaService) {
+    public MainController(ApplicationContext context, PropostaService propostaService) {
         this.context = context;
-        this.hostServices = hostServices;
         this.propostaService = propostaService;
-    }
-
-    public HostServices getHostServices() {
-        return hostServices;
     }
 
     // =========================================================================
