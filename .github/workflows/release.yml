@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest # Mantém em Windows para compatibilidade total com o compilador do Launch4j
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -23,26 +23,56 @@ jobs:
         cache: maven
 
     - name: Compilar e Empacotar o projeto (.jar)
-      run: mvn clean package -DskipTests
+      run: ./mvnw clean package -DskipTests
 
-    # 🚀 NOVO: Executa o empacotamento do Launch4j isolado na esteira do GitHub Actions
-    - name: Compilar Executável Windows (.exe) com Launch4j
-      uses: fedyat/launch4j-action@v2
-      with:
-        # Se você tiver um arquivo .xml de configuração do Launch4j no seu projeto, aponte aqui.
-        # Caso contrário, o runner monta as propriedades básicas automaticamente abaixo:
-        jar: target/*.jar
-        outfile: target/PoderFinanceiro.exe
-        mainclass: br.com.poderfinanceiro.app.PoderFinanceiroApplication
-        headerType: gui
-        dontWrapJar: false
-        minJreVersion: '25'
+    - name: Gerar Executável Windows (.exe) via Launch4j CLI
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y wget binfmt-support lib32z1
+        wget https://sourceforge.net/projects/launch4j/files/launch4j-three/3.50/launch4j-3.50-linux-x64.tgz/download -O launch4j.tgz
+        tar -xf launch4j.tgz
+        
+        # Cria o arquivo de configuração XML apontando para o seu jar correto: app-0.0.1-SNAPSHOT.jar
+        cat <<EOF > launch4j-config.xml
+        <launch4jConfig>
+          <dontWrapJar>false</dontWrapJar>
+          <headerType>gui</headerType>
+          <jar>target/app-0.0.1-SNAPSHOT.jar</jar>
+          <outfile>target/PoderFinanceiro.exe</outfile>
+          <errTitle>Erro no Sistema</errTitle>
+          <cmdLine></cmdLine>
+          <chdir>.</chdir>
+          <priority>normal</priority>
+          <downloadUrl>https://adoptium.net/temurin/releases/?version=25</downloadUrl>
+          <supportUrl></supportUrl>
+          <stayAlive>false</stayAlive>
+          <restartOnCrash>false</restartOnCrash>
+          <manifest></manifest>
+          <icon></icon>
+          <classPath>
+            <mainClass>br.com.poderfinanceiro.app.AppApplication</mainClass>
+            <precp>anything</precp>
+          </classPath>
+          <jre>
+            <path></path>
+            <bundledJre64Bit>false</bundledJre64Bit>
+            <bundledJreAsCoexistence>false</bundledJreAsCoexistence>
+            <minVersion>25</minVersion>
+            <maxVersion></maxVersion>
+            <runtimeBits>64</runtimeBits>
+          </jre>
+        </launch4jConfig>
+        EOF
+        
+        # Executa o compilador binário do Launch4j
+        ./launch4j/launch4j launch4j-config.xml
 
     - name: Criar Release e Upload dos Artefatos
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          target/*.jar
-          target/*.exe
+          target/app-0.0.1-SNAPSHOT.jar
+          target/PoderFinanceiro.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
