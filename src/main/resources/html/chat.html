@@ -7,126 +7,170 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
+        /* ---------------------------------------------------------
+           LAYOUT E BASE
+           --------------------------------------------------------- */
         body {
             background-color: #f8f9fa;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0 !important;
             padding: 0 !important;
             overflow-x: hidden;
         }
-
+    
         #chat-container {
             display: flex;
             flex-direction: column;
             gap: 0;
             width: 100%;
         }
-
+    
         .message-row {
             display: flex;
             width: 100%;
             margin-bottom: 0;
         }
-
-        /* 🎯 COESÃO VISUAL E RECUO DAS BORDAS */
+    
+        /* ---------------------------------------------------------
+           RESET E ESPAÇAMENTO EQUILIBRADO
+           --------------------------------------------------------- */
+        .chat-bubble * {
+            margin-top: 0 !important;
+            margin-bottom: 0.6rem !important;
+            /* Espaçamento padrão profissional */
+        }
+    
         .chat-bubble {
             width: 100% !important;
             max-width: 100% !important;
-            padding: 18px 32px;
-            /* 🎯 Aumentado para 32px nas laterais para o texto nunca colar na borda */
+            padding: 24px 32px;
+            /* Aumentado levemente para respirar */
             line-height: 1.6;
-            white-space: normal;
             user-select: text;
             border-radius: 0 !important;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid #e5e7eb;
+            /* Cor mais suave e elegante */
             box-shadow: none !important;
         }
-
-        /* 🤖 IA / CO_PILOT (Faixa Branca) */
+    
         .chat-bubble.bot {
             background-color: #ffffff;
-            color: #000000;
+            color: #1f2937;
         }
-
-        /* 👨‍💻 OPERADOR / VOCÊ (Faixa Verde) */
+    
         .chat-bubble.user {
-            background-color: #eeffde;
-            color: #000000;
+            background-color: #f7fee7;
+            color: #1f2937;
         }
-
+    
+        /* Verde mais sóbrio */
         .chat-bubble.loading {
-            background-color: #f1f3f4;
-            color: #6d7986;
+            background-color: #f9fafb;
+            color: #6b7280;
             font-style: italic;
         }
-
-        /* 🎯 BLINDAGEM DE FONTE MÍNIMA: Impede o Bootstrap ou a IA de encolher o texto */
+    
+        /* ---------------------------------------------------------
+           TIPOGRAFIA E HIERARQUIA (O coração da elegância)
+           --------------------------------------------------------- */
         .chat-bubble,
         .chat-bubble p,
         .chat-bubble li,
-        .chat-bubble td,
-        .chat-bubble th,
         .chat-bubble span,
         .chat-bubble a {
-            font-size: 16px !important;
-            /* 🎯 Força o tamanho padrão confortável em absolutamente tudo */
+            font-size: 15px !important;
+            color: #374151;
+            /* Texto levemente menos agressivo que o preto puro */
         }
-
-        /* Títulos ligeiramente maiores para manter a hierarquia visual */
+    
         .chat-bubble h5,
         .chat-bubble h6 {
-            font-size: 19px !important;
+            margin-top: 0.35rem !important;
+            /* Espaço maior antes de novos títulos */
+            margin-bottom: 0.35rem !important;
+            font-size: 17px !important;
+            font-weight: 700;
+            color: #111827;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            /* Elegância nos títulos */
+            border-left: 3px solid #1e40af;
+            /* Identificador visual de seção */
+            padding-left: 10px;
+        }
+    
+        /* ---------------------------------------------------------
+           ELEMENTOS ESPECÍFICOS (Listas e Destaques)
+           --------------------------------------------------------- */
+        .chat-bubble strong {
+            color: #111827;
             font-weight: 600;
-            color: #1e40af;
-            margin-top: 16px;
-            margin-bottom: 8px;
         }
-
-        /* Ajuste fino para os Badges não ficarem gigantes, mas manterem a leitura interna em 14px */
-        .chat-bubble .badge {
-            font-size: 13px !important;
-            padding: 5px 10px;
-        }
-
-        .chat-bubble p {
-            margin-bottom: 10px;
-        }
-
-        .chat-bubble p:last-child,
-        .chat-bubble ul:last-child {
-            margin-bottom: 0;
-        }
-
-        .chat-bubble ul {
-            margin-bottom: 10px;
+    
+        .chat-bubble ul,
+        .chat-bubble ol {
             padding-left: 20px;
-            /* Dá o recuo correto para os marcadores de lista */
+            margin-top: 0.2rem !important;
         }
-
+    
         .chat-bubble li {
-            margin-bottom: 6px;
+            margin-bottom: 0.4rem !important;
+            padding-left: 5px;
         }
-
+    
         .chat-bubble a {
-            color: #0284c7;
+            color: #2563eb;
             text-decoration: none;
             font-weight: 500;
         }
-
+    
         .chat-bubble a:hover {
             text-decoration: underline;
         }
-
+    
         .chat-bubble hr {
-            margin: 14px 0;
-            opacity: 0.12;
+            margin: 1.5rem 0;
+            opacity: 0.1;
         }
-
-        /* Garante que tabelas fiquem limpas e legíveis na faixa */
-        .chat-bubble .table {
-            margin-top: 12px;
-            margin-bottom: 12px;
+    
+        /* ---------------------------------------------------------
+           TABELAS (MANTIDO CONFORME SUA ESPECIFICAÇÃO)
+           --------------------------------------------------------- */
+        .chat-bubble table {
             width: 100%;
+            border-collapse: collapse;
+            margin: 0.8rem 0 !important;
+            border: 1px solid #e5e7eb;
+            background-color: #ffffff;
+        }
+    
+        .chat-bubble table thead th {
+            background-color: #f3f4f6 !important;
+            color: #374151;
+            font-weight: 600;
+            padding: 10px 12px;
+            border-bottom: 2px solid #e5e7eb;
+            text-transform: uppercase;
+            font-size: 12px !important;
+        }
+    
+        .chat-bubble table tbody tr:nth-child(even) {
+            background-color: #f9fafb !important;
+        }
+    
+        .chat-bubble table tbody tr:nth-child(odd) {
+            background-color: #ffffff !important;
+        }
+    
+        .chat-bubble table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px !important;
+            color: #1f2937;
+        }
+    
+        .chat-bubble table tbody tr:hover {
+            background-color: #eff6ff !important;
         }
     </style>
 </head>

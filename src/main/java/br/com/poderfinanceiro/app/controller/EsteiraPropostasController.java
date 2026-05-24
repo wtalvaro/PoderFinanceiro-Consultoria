@@ -203,14 +203,44 @@ public class EsteiraPropostasController {
         if (filtro == null || filtro.isBlank())
             return p -> true;
 
-        String termo = filtro.toLowerCase();
+        String termo = filtro.trim().toLowerCase();
+
+        // 1. Lógica para Busca Financeira (Valores)
+        try {
+            // Remove formatação para converter
+            String valorLimpo = termo.replaceAll("[^0-9,.]", "").replace(',', '.');
+
+            // Intervalo (ex: 1000 - 5000)
+            if (termo.contains("-")) {
+                String[] partes = termo.split("-");
+                BigDecimal min = new BigDecimal(partes[0].replaceAll("[^0-9,.]", "").replace(',', '.'));
+                BigDecimal max = new BigDecimal(partes[1].replaceAll("[^0-9,.]", "").replace(',', '.'));
+                return p -> p.getValorSolicitado().compareTo(min) >= 0 && p.getValorSolicitado().compareTo(max) <= 0;
+            }
+
+            // Maior que (ex: > 5000)
+            if (termo.startsWith(">")) {
+                BigDecimal valor = new BigDecimal(valorLimpo);
+                return p -> p.getValorSolicitado().compareTo(valor) > 0;
+            }
+
+            // Menor que (ex: < 1000)
+            if (termo.startsWith("<")) {
+                BigDecimal valor = new BigDecimal(valorLimpo);
+                return p -> p.getValorSolicitado().compareTo(valor) < 0;
+            }
+        } catch (Exception e) {
+            // Se não for um valor financeiro válido, ignora e segue para busca textual
+        }
+
+        // 2. Lógica de Busca Textual (Padrão)
         return p -> {
             String nome = p.getProponente().getNomeCompleto().toLowerCase();
             String cpf = p.getProponente().getCpf().replaceAll("[^0-9]", "");
             String banco = p.getBanco() != null ? p.getBanco().getNome().toLowerCase() : "";
+            String status = p.getStatus().name().toLowerCase().replace("_", " ");
 
-            return nome.contains(termo) || cpf.contains(termo) || banco.contains(termo)
-                    || p.getStatus().name().toLowerCase().contains(termo);
+            return nome.contains(termo) || cpf.contains(termo) || banco.contains(termo) || status.contains(termo);
         };
     }
 

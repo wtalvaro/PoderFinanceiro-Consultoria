@@ -28,18 +28,17 @@ public class GeminiService {
         this.restClient = RestClient.builder().build();
     }
 
-    // 🚀 SOBRECARGA: Mantém a compatibilidade com o PropostaController (Usa o 3.5
-    // Flash como padrão)
+    // 🚀 SOBRECARGA DE COMPATIBILIDADE: Para PropostaController (sem histórico)
     public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, File arquivoAnexo,
             String jsonClienteAtivo, String jsonTabelasJuros, String jsonLinksUteis, String jsonComissoes) {
-        return perguntarAoAssistente(perguntaUsuario, apiKeyDoConsultor, "gemini-3.5-flash", arquivoAnexo,
-                jsonClienteAtivo, jsonTabelasJuros, jsonLinksUteis, jsonComissoes);
+        return perguntarAoAssistente(perguntaUsuario, apiKeyDoConsultor, "gemini-2.5-flash", arquivoAnexo,
+                jsonClienteAtivo, jsonTabelasJuros, jsonLinksUteis, jsonComissoes, List.of());
     }
 
-    // 🚀 ASSINATURA PRINCIPAL: Com Modelo Dinâmico e Exponential Backoff
+    // 🚀 ASSINATURA PRINCIPAL: Com Modelo Dinâmico, Memória e Exponential Backoff
     public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, String modeloEscolhido,
             File arquivoAnexo, String jsonClienteAtivo, String jsonTabelasJuros, String jsonLinksUteis,
-            String jsonComissoes) {
+            String jsonComissoes, List<GeminiRequest.Content> historico) {
 
         if (apiKeyDoConsultor == null || apiKeyDoConsultor.isBlank()) {
             return "⚠️ Acesso Negado: A sua chave de API do Gemini não está configurada.";
@@ -63,6 +62,7 @@ public class GeminiService {
                     2. Postura de Mentor: Mantenha sempre a postura de consultor financeiro do Poder Financeiro. Seja prestativo, persuasivo e estratégico.
                     3. Postura Consultiva: Atue como um mentor. Destaque vantagens, contorne objeções e seja um consultor ativo.
                     4. Proibição de Termos Técnicos: Nunca diga 'o JSON não contém essa info'. Simplesmente responda com a autoridade de quem domina o assunto.
+                    5. Concisão Estratégica: Vá direto ao ponto. Seja objetivo, eliminando redundâncias sem sacrificar a precisão, a autoridade ou a qualidade da informação.
 
                     [CONTEXTO FORNECIDO PARA CONSULTA]
                     - REGRAS DE NEGÓCIO: %s
@@ -71,17 +71,22 @@ public class GeminiService {
                     - LINKS ÚTEIS: %s
                     - COMISSÕES: %s
 
-                    [DIRETRIZES DE FORMATAÇÃO VISUAL (BOOTSTRAP 5)]
-                    O chat do sistema renderiza HTML. É OBRIGATÓRIO formatar todas as respostas para serem visualmente atraentes:
-                    - Use <strong> ou <b> para destacar valores financeiros e conceitos-chave.
-                    - Tabelas de simulação devem usar <table class="table table-sm table-striped table-hover bg-white my-2">.
-                    - Listas devem ser <ul class="list-unstyled"> ou <li> com emojis.
+                    [DIRETRIZES DE FORMATAÇÃO HTML]
+                    O chat renderiza HTML. Use a estrutura semântica correta:
+                    - Valores financeiros e conceitos-chave: use <strong> ou <b>.
+                    - Tabelas de simulação: use <table class="table table-sm table-striped table-hover bg-white my-2">.
+                    - Listas: use <ul> com <li> (adicione emojis se apropriado).
+                    - Para separar blocos de informação, prefira o uso de elementos semânticos.
                     """
                     .formatted(playbookJson, clienteSeguro, tabelasSeguro, linksSeguro, comissoesSeguro);
 
-            String promptFinal = instrucaoSistema + "\n\n[DÚVIDA ATUAL DO OPERADOR]: " + perguntaUsuario;
-            List<GeminiRequest.Part> parts = new ArrayList<>();
-            parts.add(GeminiRequest.Part.ofText(promptFinal));
+            // ✅ system_instruction vai num campo dedicado — NÃO entra no contents[]
+            GeminiRequest.Content systemContent = new GeminiRequest.Content(
+                    List.of(GeminiRequest.Part.ofText(instrucaoSistema)));
+
+            // ✅ Monta a mensagem atual do usuário (texto + anexo opcional)
+            List<GeminiRequest.Part> partsUsuario = new ArrayList<>();
+            partsUsuario.add(GeminiRequest.Part.ofText(perguntaUsuario));
 
             if (arquivoAnexo != null && arquivoAnexo.exists()) {
                 byte[] fileBytes = Files.readAllBytes(arquivoAnexo.toPath());
@@ -91,15 +96,20 @@ public class GeminiService {
                         : fileName.endsWith(".png") ? "image/png"
                                 : (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) ? "image/jpeg"
                                         : "application/octet-stream";
-                parts.add(GeminiRequest.Part.ofFile(mimeType, base64Data));
+                partsUsuario.add(GeminiRequest.Part.ofFile(mimeType, base64Data));
             }
 
-            GeminiRequest payload = new GeminiRequest(List.of(new GeminiRequest.Content(parts)));
+            // ✅ contents = histórico completo + mensagem atual (user/model alternados)
+            List<GeminiRequest.Content> contents = new ArrayList<>(historico);
+            contents.add(new GeminiRequest.Content("user", partsUsuario));
+
+            // ✅ Payload com system_instruction separado do histórico
+            GeminiRequest payload = new GeminiRequest(systemContent, contents);
             String urlCompleta = baseUrl + "/" + modeloEscolhido + ":generateContent?key=" + apiKeyDoConsultor;
 
             // 🛡️ MOTOR DE RESILIÊNCIA (EXPONENTIAL BACKOFF)
             int maxTentativas = 6;
-            int tempoEspera = 2000; // Começa aguardando 2 segundos
+            int tempoEspera = 2000;
 
             for (int tentativaAtual = 1; tentativaAtual <= maxTentativas; tentativaAtual++) {
                 try {
@@ -116,7 +126,6 @@ public class GeminiService {
 
                 } catch (RestClientResponseException e) {
                     int status = e.getStatusCode().value();
-                    // Falhas de Sobrecarga: 429 (Rate Limit), 500, 502, 503, 504
                     if (status == 429 || status >= 500) {
                         if (tentativaAtual == maxTentativas) {
                             return "⚠️ Os servidores da Google estão sobrecarregados no momento (Erro " + status
@@ -126,14 +135,14 @@ public class GeminiService {
                         System.out.println("⚠️ Erro " + status + " na IA. Aguardando " + (tempoEspera / 1000)
                                 + "s para nova tentativa (" + tentativaAtual + "/" + maxTentativas + ")...");
                         Thread.sleep(tempoEspera);
-                        tempoEspera *= 2; // Dobra o tempo (2s, 4s, 8s, 16s, 32s)
+                        tempoEspera *= 2;
                     } else {
-                        // Erros 400 (Bad Request), 403 (Auth) não adiantam tentar de novo
                         return "❌ Erro na consulta (Código " + status
                                 + "). Verifique sua chave de API ou o anexo enviado.";
                     }
                 }
             }
+
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             return "⚠️ Consulta cancelada.";

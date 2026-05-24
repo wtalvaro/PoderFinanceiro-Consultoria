@@ -14,7 +14,14 @@ import java.util.Optional;
 @Repository
 public interface PropostaRepository extends JpaRepository<PropostaModel, Long> {
 
-    List<PropostaModel> findByUsuarioId(Long usuarioId);
+    @Query("""
+            SELECT p FROM PropostaModel p
+            JOIN FETCH p.proponente
+            JOIN FETCH p.banco
+            LEFT JOIN FETCH p.tabela
+            WHERE p.usuario.id = :usuarioId
+            """)
+    List<PropostaModel> findByUsuarioId(@Param("usuarioId") Long usuarioId);
 
     // CORREÇÃO: Usar o Enum StatusProposta em vez de String
     List<PropostaModel> findByUsuarioIdAndStatus(Long usuarioId, StatusPropostaModel status);

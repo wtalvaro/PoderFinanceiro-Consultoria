@@ -1,24 +1,32 @@
 package br.com.poderfinanceiro.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-public record GeminiRequest(List<Content> contents) {
-
-    public record Content(List<Part> parts) {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record GeminiRequest(
+        @JsonProperty("system_instruction") Content systemInstruction,
+        List<Content> contents) {
+    // Construtor de compatibilidade para quem não usa systemInstruction
+    public GeminiRequest(List<Content> contents) {
+        this(null, contents);
     }
 
-    // A anotação NON_NULL garante que se não houver ficheiro, ele não envia a chave
-    // "inlineData" vazia
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Content(String role, List<Part> parts) {
+        // Construtor legado (sem role) para evitar quebrar outros usos
+        public Content(List<Part> parts) {
+            this(null, parts);
+        }
+    }
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Part(String text, InlineData inlineData) {
-
-        // Método auxiliar para enviar apenas texto
         public static Part ofText(String text) {
             return new Part(text, null);
         }
 
-        // Método auxiliar para enviar o ficheiro (Holerite/PDF/Imagem)
         public static Part ofFile(String mimeType, String base64Data) {
             return new Part(null, new InlineData(mimeType, base64Data));
         }

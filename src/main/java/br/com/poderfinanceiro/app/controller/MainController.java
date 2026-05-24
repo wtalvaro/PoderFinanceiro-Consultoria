@@ -346,6 +346,8 @@ public class MainController {
 
         if (!estaAberto && painelChatController != null) {
             painelChatController.setMainController(this);
+            // Chama o método que criamos no AjudaChatController para solicitar o foco
+            painelChatController.solicitarFoco();
         }
     }
 

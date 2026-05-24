@@ -304,7 +304,7 @@ public class PropostaController {
                     // atualizar a tabela no fundo
                     mostrarFeedback("✅", "Sucesso!", "Proposta salva com sucesso.", null);
                 },
-                erro -> mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null));    
+                erro -> mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null));
     }
 
     private PropostaModel executarSalvamentoBackground() {
@@ -683,7 +683,8 @@ public class PropostaController {
 
         AsyncUtils.executarTaskAsync(
                 () -> geminiService.perguntarAoAssistente(config.prompt(), token, modeloSelecionado, arquivoFisico,
-                        jsonCliente, "[]", "[]", "[]"),
+                        jsonCliente, "[]", "[]", "[]", List
+                                .of()),
                 resultado -> {
                     if (mainController != null)
                         mainController.ocultarLoading();
@@ -818,8 +819,6 @@ public class PropostaController {
             isUpdatingInterface = false;
         }
     }
-
-   
 
     private <T> void bindComboSafely(ComboBox<T> combo, javafx.beans.property.Property<T> property) {
         combo.valueProperty().addListener((obs, old, val) -> {

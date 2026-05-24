@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.dto.GeminiRequest;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import javafx.application.Platform;
@@ -28,6 +29,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -77,6 +79,9 @@ public class AjudaChatController {
     private File ficheiroAnexado = null;
     private MainController mainController;
     private final List<Runnable> filaMensagensPendentes = new ArrayList<>();
+    // No AjudaChatController
+    private final List<GeminiRequest.Content> historicoConversa = Collections.synchronizedList(new ArrayList<>());
+    private static final int MAX_TURNOS = 20; // 10 pares user/model
 
     // =========================================================================
     // DEPENDÊNCIAS
@@ -187,10 +192,19 @@ public class AjudaChatController {
         abrirLinkExterno(URL_AI_STUDIO);
     }
 
+    public void solicitarFoco() {
+        Platform.runLater(() -> {
+            if (txtMensagem != null) {
+                txtMensagem.requestFocus();
+                // Opcional: Seleciona o texto se já houver algo escrito
+                txtMensagem.positionCaret(txtMensagem.getText().length());
+            }
+        });
+    }
+
     // =========================================================================
     // LÓGICA DE ENVIO DE MENSAGENS (CORE DA IA)
     // =========================================================================
-    // 🚀 PATCH: AjudaChatController.java - Método enviarMensagem()
     @FXML
     private void enviarMensagem() {
         String texto = txtMensagem.getText();
@@ -198,16 +212,61 @@ public class AjudaChatController {
             return;
 
         String mensagemExibida = texto.trim().isEmpty() ? MSG_PADRAO_DOCUMENTO : texto;
-
         prepararInterfaceParaEnvio(mensagemExibida);
-        final File ficheiroParaEnvio = ficheiroAnexado;
+
+        // Capturamos o que o usuário enviou para salvar no histórico caso o sucesso
+        // ocorra
+        GeminiRequest.Content userContent = new GeminiRequest.Content("user",
+                List.of(GeminiRequest.Part.ofText(mensagemExibida)));
+
+        File file = ficheiroAnexado;
         removerAnexo();
 
-        // DELEGADO PARA O UTILS!
         AsyncUtils.executarTaskAsync(
-                () -> processarChamadaIA(mensagemExibida, ficheiroParaEnvio),
-                this::finalizarEnvioInterface,
-                erro -> finalizarEnvioInterface(MSG_ERRO_SISTEMA));
+                () -> processarChamadaIA(mensagemExibida, file), // Apenas chama a API
+                (resposta) -> {
+                    // SUCESSO: Agora atualizamos o histórico atomicamente
+                    historicoConversa.add(userContent);
+                    historicoConversa.add(new GeminiRequest.Content("model",
+                            List.of(GeminiRequest.Part.ofText(resposta))));
+
+                    // Atualiza a UI
+                    finalizarEnvioInterface(resposta);
+                },
+                (erro) -> {
+                    // ERRO: O histórico NÃO é alterado. A integridade está preservada.
+                    finalizarEnvioInterface(MSG_ERRO_SISTEMA);
+                });
+    }
+
+    private String processarChamadaIA(String mensagem, File ficheiro) throws Exception {
+        String token = authService.getUsuarioLogado() != null ? authService.getUsuarioLogado().getGeminiApiKey() : null;
+        String modeloSelecionado = cmbModelo.getValue() != null ? cmbModelo.getValue() : MODELO_PADRAO;
+
+        String jsonFoco = obterContextoPrincipal();
+        String jsonComissoes = obterContextoComissoes();
+        String jsonTabelas = SummaryGeneratorUtils.gerarJsonTabelasJuros(tabelaService.listarAtivas());
+        String jsonLinks = SummaryGeneratorUtils.gerarJsonLinksUteis(linkRepository.findAll());
+
+        List<GeminiRequest.Content> historicoAtual = obterHistoricoTruncado();
+
+        // Apenas retorna a resposta. A responsabilidade de salvar no histórico sai
+        // daqui.
+        return geminiService.perguntarAoAssistente(
+                mensagem, token, modeloSelecionado, ficheiro,
+                jsonFoco, jsonTabelas, jsonLinks, jsonComissoes,
+                historicoAtual);
+    }
+
+    // Método auxiliar para garantir segurança na leitura
+    private List<GeminiRequest.Content> obterHistoricoTruncado() {
+        synchronized (historicoConversa) {
+            if (historicoConversa.size() > MAX_TURNOS) { // Ex: manter apenas as últimas 10 trocas (20 msg)
+                return new ArrayList<>(
+                        historicoConversa.subList(historicoConversa.size() - MAX_TURNOS, historicoConversa.size()));
+            }
+            return new ArrayList<>(historicoConversa);
+        }
     }
 
     private boolean isEntradaInvalida(String texto) {
@@ -223,19 +282,6 @@ public class AjudaChatController {
     private void finalizarEnvioInterface(String mensagemIA) {
         executarScriptSeguro(JS_REMOVER_CARREGAMENTO);
         adicionarBalao(mensagemIA, false);
-    }
-
-    private String processarChamadaIA(String mensagem, File ficheiro) throws Exception {
-        String token = authService.getUsuarioLogado() != null ? authService.getUsuarioLogado().getGeminiApiKey() : null;
-        String modeloSelecionado = cmbModelo.getValue() != null ? cmbModelo.getValue() : MODELO_PADRAO;
-
-        String jsonFoco = obterContextoPrincipal();
-        String jsonComissoes = obterContextoComissoes();
-        String jsonTabelas = SummaryGeneratorUtils.gerarJsonTabelasJuros(tabelaService.listarAtivas());
-        String jsonLinks = SummaryGeneratorUtils.gerarJsonLinksUteis(linkRepository.findAll());
-
-        return geminiService.perguntarAoAssistente(mensagem, token, modeloSelecionado, ficheiro, jsonFoco, jsonTabelas,
-                jsonLinks, jsonComissoes);
     }
 
     // =========================================================================

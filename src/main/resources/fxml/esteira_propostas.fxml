@@ -22,7 +22,8 @@
 
             <HBox spacing="10" alignment="CENTER_LEFT">
                 <TextField fx:id="txtBusca"
-                    promptText="🔍 Pesquisar cliente, CPF, banco ou status..." HBox.hgrow="ALWAYS"
+                    promptText="Busque por Nome, CPF, Banco ou valores (ex: &gt; 1000, &lt; 5000, 1000-5000)"
+                    HBox.hgrow="ALWAYS"
                     style="-fx-background-radius: 20; -fx-padding: 8 15;" />
                 <Button text="🔄 Atualizar" onAction="#recarregarDados" styleClass="flat" />
             </HBox>
