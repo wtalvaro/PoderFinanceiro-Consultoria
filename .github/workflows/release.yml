@@ -33,34 +33,26 @@ jobs:
         wget https://sourceforge.net/projects/launch4j/files/launch4j-three/3.50/launch4j-3.50-linux-x64.tgz/download -O launch4j.tgz
         tar -xf launch4j.tgz
         
-        # Cria o arquivo de configuração XML apontando para o seu jar correto: app-0.0.1-SNAPSHOT.jar
+        # Cria o arquivo XML com as SUAS configurações (sem tags vazias para evitar o Erro 8)
         cat <<EOF > launch4j-config.xml
         <launch4jConfig>
           <dontWrapJar>false</dontWrapJar>
-          <headerType>gui</headerType>
+          <headerType>console</headerType>
           <jar>target/app-0.0.1-SNAPSHOT.jar</jar>
-          <outfile>target/PoderFinanceiro.exe</outfile>
-          <errTitle>Erro no Sistema</errTitle>
-          <cmdLine></cmdLine>
+          <outfile>target/app-0.0.1-SNAPSHOT.exe</outfile>
           <chdir>.</chdir>
           <priority>normal</priority>
-          <downloadUrl>https://adoptium.net/temurin/releases/?version=25</downloadUrl>
-          <supportUrl></supportUrl>
           <stayAlive>false</stayAlive>
           <restartOnCrash>false</restartOnCrash>
-          <manifest></manifest>
-          <icon></icon>
-          <classPath>
-            <mainClass>br.com.poderfinanceiro.app.AppApplication</mainClass>
-            <precp>anything</precp>
-          </classPath>
+          <icon>src/main/resources/icons/app.ico</icon>
           <jre>
-            <path></path>
-            <bundledJre64Bit>false</bundledJre64Bit>
-            <bundledJreAsCoexistence>false</bundledJreAsCoexistence>
-            <minVersion>25</minVersion>
-            <maxVersion></maxVersion>
-            <runtimeBits>64</runtimeBits>
+            <path>%JAVA_HOME%;%PATH%</path>
+            <requiresJdk>false</requiresJdk>
+            <requires64Bit>true</requires64Bit>
+            <minVersion>21.0.0</minVersion>
+            <opt>--add-exports=javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED</opt>
+            <opt>--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED</opt>
+            <opt>--add-exports=javafx.graphics/com.sun.glass.utils=ALL-UNNAMED</opt>
           </jre>
         </launch4jConfig>
         EOF
