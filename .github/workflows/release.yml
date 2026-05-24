@@ -33,7 +33,7 @@ jobs:
         wget https://sourceforge.net/projects/launch4j/files/launch4j-three/3.50/launch4j-3.50-linux-x64.tgz/download -O launch4j.tgz
         tar -xf launch4j.tgz
         
-        # Cria o arquivo XML com as SUAS configurações (sem tags vazias para evitar o Erro 8)
+        # 🚀 PATCH DEFINITIVO: Omitido a tag <path> para compatibilidade cross-platform no compilador
         cat <<EOF > launch4j-config.xml
         <launch4jConfig>
           <dontWrapJar>false</dontWrapJar>
@@ -46,7 +46,6 @@ jobs:
           <restartOnCrash>false</restartOnCrash>
           <icon>src/main/resources/icons/app.ico</icon>
           <jre>
-            <path>%JAVA_HOME%;%PATH%</path>
             <requiresJdk>false</requiresJdk>
             <requires64Bit>true</requires64Bit>
             <minVersion>21.0.0</minVersion>
