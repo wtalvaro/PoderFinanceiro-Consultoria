@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.domain.model.enums.TipoLogradouroModel;
 import br.com.poderfinanceiro.app.domain.model.enums.UfModel;
 import br.com.poderfinanceiro.app.domain.service.ViaCepService;
 import br.com.poderfinanceiro.app.dto.ViaCepResponse;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.EnderecoUtils;
 import br.com.poderfinanceiro.app.viewmodel.EnderecoViewModel;
 import javafx.collections.FXCollections;
@@ -107,20 +108,13 @@ public class EnderecoController {
         }
     }
 
+    // 🚀 PATCH: Refatoração para usar o utilitário assíncrono (AsyncUtils)
     private void executarBuscaAssincrona(String cep) {
-        Task<ViaCepResponse> buscaTask = new Task<>() {
-            @Override
-            protected ViaCepResponse call() throws Exception {
-                return viaCepService.buscarEnderecoPorCep(cep);
-            }
-        };
-
-        buscaTask.setOnSucceeded(e -> processarResultadoBusca(buscaTask.getValue()));
-        buscaTask.setOnFailed(e -> processarErroBusca(buscaTask.getException()));
-
-        Thread thread = new Thread(buscaTask);
-        thread.setDaemon(true); // Garante que a thread não impeça o fechamento do sistema
-        thread.start();
+        AsyncUtils.executarTaskAsync(
+                () -> viaCepService.buscarEnderecoPorCep(cep), // Callable
+                this::processarResultadoBusca, // onSuccess
+                this::processarErroBusca // onFailed
+        );
     }
 
     private void processarResultadoBusca(ViaCepResponse enderecoEncontrado) {

@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -192,6 +193,7 @@ public class AjudaChatController {
     // =========================================================================
     // LÓGICA DE ENVIO DE MENSAGENS (CORE DA IA)
     // =========================================================================
+    // 🚀 PATCH: AjudaChatController.java - Método enviarMensagem()
     @FXML
     private void enviarMensagem() {
         String texto = txtMensagem.getText();
@@ -204,7 +206,8 @@ public class AjudaChatController {
         final File ficheiroParaEnvio = ficheiroAnexado;
         removerAnexo();
 
-        executarTaskAsync(
+        // DELEGADO PARA O UTILS!
+        AsyncUtils.executarTaskAsync(
                 () -> processarChamadaIA(mensagemExibida, ficheiroParaEnvio),
                 this::finalizarEnvioInterface,
                 erro -> finalizarEnvioInterface(MSG_ERRO_SISTEMA));
@@ -272,12 +275,13 @@ public class AjudaChatController {
         }
     }
 
+    // 🚀 PATCH: AjudaChatController.java - Método carregarModelosDisponiveis()
     private void carregarModelosDisponiveis(String token) {
-        // 🚀 Removida a trava do token nulo. O Service agora manda no fluxo!
         if (modelosCarregados)
             return;
 
-        executarTaskAsync(
+        // DELEGADO PARA O UTILS!
+        AsyncUtils.executarTaskAsync(
                 () -> geminiService.listarModelosMultimodais(token),
                 modelos -> {
                     String atual = cmbModelo.getValue();
@@ -365,26 +369,5 @@ public class AjudaChatController {
     private void setVisibilidadeElemento(Node elemento, boolean visivel) {
         elemento.setVisible(visivel);
         elemento.setManaged(visivel);
-    }
-
-    private <T> void executarTaskAsync(Callable<T> acao, Consumer<T> onSuccess, Consumer<Throwable> onError) {
-        Task<T> task = new Task<>() {
-            @Override
-            protected T call() throws Exception {
-                return acao.call();
-            }
-        };
-
-        task.setOnSucceeded(e -> {
-            if (onSuccess != null)
-                onSuccess.accept(task.getValue());
-        });
-
-        task.setOnFailed(e -> {
-            if (onError != null)
-                onError.accept(task.getException());
-        });
-
-        new Thread(task).start();
     }
 }

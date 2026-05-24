@@ -7,6 +7,7 @@ import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.SimpleStringProperty;
@@ -202,28 +203,22 @@ public class DashboardController {
     // =========================================================================
     // LÓGICA DE DADOS (ASYNC) E MÉTRICAS
     // =========================================================================
+    // 🚀 PATCH: Delegação assíncrona usando o AsyncUtils
     @FXML
     public void carregarDadosReais() {
         mainController.mostrarLoading(MSG_CARREGANDO);
 
-        Task<ResultadoDashboard> taskBusca = new Task<>() {
-            @Override
-            protected ResultadoDashboard call() {
-                List<PropostaModel> propostas = propostaRepository.findAllComDetalhes();
-                List<ComissaoModel> comissoes = comissaoRepository.findAll();
-                return calcularMetricasDoDashboard(propostas, comissoes);
-            }
-        };
-
-        taskBusca.setOnSucceeded(event -> atualizarInterfaceDoDashboard(taskBusca.getValue()));
-        taskBusca.setOnFailed(event -> {
-            mainController.ocultarLoading();
-            taskBusca.getException().printStackTrace();
-        });
-
-        Thread thread = new Thread(taskBusca);
-        thread.setDaemon(true);
-        thread.start();
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    List<PropostaModel> propostas = propostaRepository.findAllComDetalhes();
+                    List<ComissaoModel> comissoes = comissaoRepository.findAll();
+                    return calcularMetricasDoDashboard(propostas, comissoes);
+                },
+                this::atualizarInterfaceDoDashboard, // onSuccess
+                erro -> { // onFailed
+                    mainController.ocultarLoading();
+                    erro.printStackTrace();
+                });
     }
 
     private ResultadoDashboard calcularMetricasDoDashboard(List<PropostaModel> propostas,

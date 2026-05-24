@@ -131,7 +131,7 @@ public class CopilotoController {
         carregarModelosGemini();
     }
 
-    // 🚀 NOVO MÉTODO: Carrega os modelos na ComboBox
+    // 🚀 PATCH: Refatorado para AsyncUtils com Callable enxuto
     private void carregarModelosGemini() {
         if (cmbModeloIA == null)
             return;
@@ -141,19 +141,17 @@ public class CopilotoController {
 
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
         if (token != null && !token.isBlank()) {
-            AsyncUtils.executarTask(new Task<List<String>>() {
-                @Override
-                protected List<String> call() {
-                    return geminiService.listarModelosMultimodais(token);
-                }
-            }, modelos -> {
-                String atual = cmbModeloIA.getValue();
-                cmbModeloIA.getItems().setAll(modelos);
-                if (modelos.contains(atual))
-                    cmbModeloIA.getSelectionModel().select(atual);
-                else
-                    cmbModeloIA.getSelectionModel().selectFirst();
-            }, null);
+            AsyncUtils.executarTaskAsync(
+                    () -> geminiService.listarModelosMultimodais(token),
+                    modelos -> {
+                        String atual = cmbModeloIA.getValue();
+                        cmbModeloIA.getItems().setAll(modelos);
+                        if (modelos.contains(atual))
+                            cmbModeloIA.getSelectionModel().select(atual);
+                        else
+                            cmbModeloIA.getSelectionModel().selectFirst();
+                    },
+                    null);
         }
     }
 
@@ -265,15 +263,9 @@ public class CopilotoController {
         // 🚀 Pega o modelo escolhido pelo consultor
         String modeloEscolhido = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : "gemini-3.5-flash";
 
-        Task<String> task = new Task<>() {
-            @Override
-            protected String call() {
-                // Passa o modelo para o serviço
-                return copilotoService.gerarRecomendacaoInteligenteIA(rascunhoAtual, rankingAtual, modeloEscolhido);
-            }
-        };
-
-        AsyncUtils.executarTask(task,
+        // 🚀 PATCH: Delegação para o utilitário
+        AsyncUtils.executarTaskAsync(
+                () -> copilotoService.gerarRecomendacaoInteligenteIA(rascunhoAtual, rankingAtual, modeloEscolhido),
                 resposta -> {
                     // Captura os números separados por vírgula dentro de [TOP: X, Y, Z]
                     Pattern p = Pattern.compile("\\[TOP:\\s*([\\d,\\s]+)\\]", Pattern.CASE_INSENSITIVE);
@@ -347,20 +339,14 @@ public class CopilotoController {
                 });
     }
 
+    // 🚀 PATCH: Refatorado para AsyncUtils
     private void extrairMargemAssincrona(File arquivo) {
         btnExtrairMargem.setDisable(true);
         btnExtrairMargem.setText("⏳");
         mainController.mostrarLoading("A IA está lendo o documento...");
 
-        Task<String> task = new Task<>() {
-            @Override
-            protected String call() {
-                return copilotoService.extrairMargemDocumento(arquivo);
-            }
-        };
-
-        // 🔥 USO DO ASYNC UTILS
-        AsyncUtils.executarTask(task,
+        AsyncUtils.executarTaskAsync(
+                () -> copilotoService.extrairMargemDocumento(arquivo),
                 respostaCompleta -> {
                     mainController.ocultarLoading();
                     btnExtrairMargem.setDisable(false);
@@ -387,20 +373,14 @@ public class CopilotoController {
                 });
     }
 
+    // 🚀 PATCH: Refatorado para AsyncUtils
     private void iniciarSimulacaoAssincrona() {
         btnSimular.setText("⏳ Buscando...");
         btnSimular.setDisable(true);
         recomendacoesIA.clear();
 
-        Task<List<ResultadoSimulacaoDTO>> task = new Task<>() {
-            @Override
-            protected List<ResultadoSimulacaoDTO> call() {
-                return copilotoService.processarSimulacaoRapida(rascunhoAtual);
-            }
-        };
-
-        // 🔥 USO DO ASYNC UTILS: Desacoplado da renderização nativa de nós
-        AsyncUtils.executarTask(task,
+        AsyncUtils.executarTaskAsync(
+                () -> copilotoService.processarSimulacaoRapida(rascunhoAtual),
                 ranking -> {
                     rankingAtual = ranking;
                     listaRanking.setItems(FXCollections.observableArrayList(ranking)); // Preenche o ListView

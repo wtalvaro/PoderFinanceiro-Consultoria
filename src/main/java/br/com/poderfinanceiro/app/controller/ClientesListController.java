@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.service.ProponenteService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.ContatoUtils;
 import br.com.poderfinanceiro.app.util.DocumentoUtils;
 import javafx.collections.FXCollections;
@@ -148,29 +149,18 @@ public class ClientesListController {
     private void executarTarefaAssincrona(Supplier<List<ProponenteModel>> acaoBusca, String mensagem) {
         mainController.mostrarLoading(mensagem);
 
-        Task<List<ProponenteModel>> task = new Task<>() {
-            @Override
-            protected List<ProponenteModel> call() {
-                return acaoBusca.get();
-            }
-        };
-
-        task.setOnSucceeded(e -> {
-            listaContatos.setAll(task.getValue());
-            atualizarContador();
-            mainController.ocultarLoading();
-        });
-
-        task.setOnFailed(e -> {
-            mainController.ocultarLoading();
-            Throwable erro = task.getException();
-            if (erro != null) {
-                erro.printStackTrace();
-            }
-        });
-
-        Thread thread = new Thread(task);
-        thread.setDaemon(true);
-        thread.start();
+        AsyncUtils.executarTaskAsync(
+                acaoBusca::get, // Converte o Supplier no Callable esperado pelo AsyncUtils
+                resultado -> {
+                    listaContatos.setAll(resultado);
+                    atualizarContador();
+                    mainController.ocultarLoading();
+                },
+                erro -> {
+                    mainController.ocultarLoading();
+                    if (erro != null) {
+                        erro.printStackTrace();
+                    }
+                });
     }
 }

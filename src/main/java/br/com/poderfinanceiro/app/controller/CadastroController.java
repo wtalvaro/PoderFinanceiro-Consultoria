@@ -7,6 +7,7 @@ import javafx.scene.control.*;
 import org.springframework.stereotype.Component;
 
 import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 
 @Component
 public class CadastroController {
@@ -43,31 +44,24 @@ public class CadastroController {
 
         setLoading(true);
 
-        Task<Void> cadastroTask = new Task<>() {
-            @Override
-            protected Void call() {
-                authService.cadastrar(
-                        txtNome.getText().trim(),
-                        txtUsername.getText().trim(),
-                        txtEmail.getText().toLowerCase().trim(),
-                        txtSenha.getText(),
-                        txtGeminiApiKey.getText().trim());
-                return null;
-            }
-        };
-
-        cadastroTask.setOnSucceeded(e -> {
-            // 🎯 CORRIGIDO: Método ajustado de navigatePara para navegarPara
-            mainController.navegarPara("/fxml/login.fxml", false);
-        });
-
-        cadastroTask.setOnFailed(e -> {
-            setLoading(false);
-            Throwable exception = cadastroTask.getException();
-            exibirErro(exception.getMessage());
-        });
-
-        new Thread(cadastroTask).start();
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    authService.cadastrar(
+                            txtNome.getText().trim(),
+                            txtUsername.getText().trim(),
+                            txtEmail.getText().toLowerCase().trim(),
+                            txtSenha.getText(),
+                            txtGeminiApiKey.getText().trim());
+                    return null; // O Callable exige retorno
+                },
+                sucesso -> {
+                    // 🎯 CORRIGIDO: Método ajustado de navigatePara para navegarPara
+                    mainController.navegarPara("/fxml/login.fxml", false);
+                },
+                erro -> {
+                    setLoading(false);
+                    exibirErro(erro.getMessage());
+                });
     }
 
     @FXML

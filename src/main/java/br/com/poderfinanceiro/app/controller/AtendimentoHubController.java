@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.EnderecoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.ProponenteService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -185,18 +186,12 @@ public class AtendimentoHubController {
         executarSalvamento(null);
     }
 
+    // 🚀 PATCH: Delegação do salvamento para o AsyncUtils (Pool de Threads)
     private void executarSalvamento(Runnable onSucesso) {
-        Task<ProponenteModel> task = new Task<>() {
-            @Override
-            protected ProponenteModel call() {
-                return mapearESalvarProponente();
-            }
-        };
-
-        task.setOnSucceeded(ev -> processarSucessoSalvamento(task.getValue(), onSucesso));
-        task.setOnFailed(ev -> processarErroSalvamento(task.getException()));
-
-        new Thread(task).start();
+        AsyncUtils.executarTaskAsync(
+                this::mapearESalvarProponente,
+                proponenteSalvo -> processarSucessoSalvamento(proponenteSalvo, onSucesso),
+                this::processarErroSalvamento);
     }
 
     private ProponenteModel mapearESalvarProponente() {
