@@ -198,6 +198,33 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>com.akazeing</groupId>
+				<artifactId>launch4j-maven-plugin</artifactId>
+				<version>2.5.2</version>
+				<executions>
+					<execution>
+						<id>l4j-clui</id>
+						<phase>package</phase>
+						<goals>
+							<goal>launch4j</goal>
+						</goals>
+						<configuration>
+							<headerType>gui</headerType>
+							<jar>${project.build.directory}/${project.build.finalName}.jar</jar>
+							<outfile>${project.build.directory}/PoderFinanceiro.exe</outfile>
+							<classPath>
+								<mainClass>br.com.poderfinanceiro.app.PoderFinanceiroApplication</mainClass>
+								<precp>anything</precp>
+							</classPath>
+							<jre>
+								<minVersion>25</minVersion>
+								<runtimeBits>64</runtimeBits>
+							</jre>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>

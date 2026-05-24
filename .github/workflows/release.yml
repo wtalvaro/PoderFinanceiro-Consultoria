@@ -3,11 +3,11 @@ name: Publicar Release Automática
 on:
   push:
     tags:
-      - 'v*' # Dispara o fluxo quando você commita uma tag começando com 'v' (ex: v1.0.0)
+      - 'v*'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest # 🚀 Máquina Windows nativa no servidor do GitHub
     permissions:
       contents: write
 
@@ -22,8 +22,8 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Compilar e Empacotar (.jar)
-      run: ./mvnw clean package -DskipTests
+    - name: Compilar, Empacotar e Gerar Executável (.jar + .exe)
+      run: mvn clean package -DskipTests # Remove o './' pois o Windows não usa shell script
 
     - name: Criar Release e Upload dos Artefatos
       uses: softprops/action-gh-release@v2
