@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.service.PropostaService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -11,7 +12,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -209,9 +209,14 @@ public class EsteiraPropostasController {
         };
     }
 
+    // 🚀 PATCH: recarregarDados agora é async para não congelar a UI na
+    // inicialização
     @FXML
     public void recarregarDados() {
-        masterData.setAll(repository.findAllComDetalhes());
+        AsyncUtils.executarTaskAsync(
+                repository::findAllComDetalhes,
+                masterData::setAll,
+                erro -> System.err.println("Erro ao recarregar dados: " + erro.getMessage()));
     }
 
     // =========================================================================
@@ -255,18 +260,12 @@ public class EsteiraPropostasController {
         }
     }
 
+    // 🚀 PATCH: carregarPropostaExistenteAssincrono delegando para AsyncUtils
     private void carregarPropostaExistenteAssincrono(Long id) {
-        Task<PropostaModel> task = new Task<>() {
-            @Override
-            protected PropostaModel call() {
-                return propostaService.carregarPropostaDetalhada(id);
-            }
-        };
-
-        task.setOnSucceeded(e -> processarSucessoCarregamentoProposta(task.getValue()));
-        task.setOnFailed(e -> task.getException().printStackTrace());
-
-        new Thread(task).start();
+        AsyncUtils.executarTaskAsync(
+                () -> propostaService.carregarPropostaDetalhada(id),
+                this::processarSucessoCarregamentoProposta,
+                erro -> erro.printStackTrace());
     }
 
     private void processarSucessoCarregamentoProposta(PropostaModel completa) {

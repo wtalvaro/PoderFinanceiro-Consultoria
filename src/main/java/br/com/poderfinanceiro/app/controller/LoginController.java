@@ -1,11 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import org.springframework.stereotype.Component;
 
 import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 
 @Component
 public class LoginController {
@@ -77,26 +77,18 @@ public class LoginController {
         return email == null || email.isBlank() || senha == null || senha.isBlank();
     }
 
+    // 🚀 PATCH: Refatoração do fluxo de login para o AsyncUtils
     private void executarLoginAssincrono(String email, String senha) {
-        Task<Boolean> loginTask = new Task<>() {
-            @Override
-            protected Boolean call() throws Exception {
-                return authService.login(email, senha);
-            }
-        };
-
-        loginTask.setOnSucceeded(event -> processarResultadoLogin(loginTask.getValue()));
-        loginTask.setOnFailed(event -> processarErroLogin(loginTask.getException()));
-
-        Thread thread = new Thread(loginTask);
-        thread.setDaemon(true); // Garante que a JVM encerre mesmo se a Task estiver rodando
-        thread.start();
+        AsyncUtils.executarTaskAsync(
+                () -> authService.login(email, senha),
+                this::processarResultadoLogin,
+                this::processarErroLogin);
     }
 
-    private void processarResultadoLogin(boolean loginBemSucedido) {
+    private void processarResultadoLogin(Boolean loginBemSucedido) {
         alternarEstadoCarregamento(false);
 
-        if (loginBemSucedido) {
+        if (loginBemSucedido != null && loginBemSucedido) {
             statusBarController.atualizarStatusUsuario();
             txtSenha.clear(); // Limpa a senha por segurança
             mainController.navegarPara(ROTA_WORKSPACE, true);

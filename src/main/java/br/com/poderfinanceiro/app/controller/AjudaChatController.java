@@ -8,7 +8,6 @@ import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -30,8 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 
 @Component
 @Scope("prototype")

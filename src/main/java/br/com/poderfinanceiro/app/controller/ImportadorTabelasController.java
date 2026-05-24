@@ -7,6 +7,7 @@ import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -134,8 +135,9 @@ public class ImportadorTabelasController {
         sincronizarEditorCombo(cmbConvenio);
     }
 
+    // 🚀 PATCH: carregarBancos
     private void carregarBancos() {
-        executarTaskAsync(
+        AsyncUtils.executarTaskAsync(
                 () -> bancoRepository.findByAtivoTrueOrderByNomeAsc().stream().map(BancoModel::getNome).toList(),
                 bancos -> {
                     cmbBanco.getItems().setAll(bancos);
@@ -239,6 +241,7 @@ public class ImportadorTabelasController {
     // =========================================================================
     // MOTOR DE IA (GEMINI)
     // =========================================================================
+    // 🚀 PATCH: processarImagemIA
     @FXML
     public void processarImagemIA() {
         File arquivo = escolherArquivoImagemOuPdf();
@@ -249,7 +252,7 @@ public class ImportadorTabelasController {
         String token = authService.getUsuarioLogado().getGeminiApiKey();
         String modelo = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : MODELO_IA_PADRAO;
 
-        executarTaskAsync(
+        AsyncUtils.executarTaskAsync(
                 () -> processarChamadaIA(arquivo, token, modelo),
                 this::finalizarImportacaoComSucesso,
                 erro -> finalizarComErro(MSG_ERRO_IA + erro.getMessage()));
@@ -312,11 +315,12 @@ public class ImportadorTabelasController {
         }
     }
 
+    // 🚀 PATCH: gravarLoteNoBanco
     @FXML
     public void gravarLoteNoBanco() {
         mainController.mostrarLoading(MSG_LOADING_GRAVACAO);
 
-        executarTaskAsync(
+        AsyncUtils.executarTaskAsync(
                 () -> {
                     tabelaJurosService.salvarLoteTabelasImportadas(loteAtual);
                     return null;

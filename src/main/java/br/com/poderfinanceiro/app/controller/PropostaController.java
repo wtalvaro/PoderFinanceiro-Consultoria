@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.*;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.service.*;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;
 import javafx.application.Platform;
@@ -12,7 +13,6 @@ import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -29,7 +29,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 @Component
@@ -299,13 +298,16 @@ public class PropostaController {
             return;
         }
 
-        executarTaskAsync(this::executarSalvamentoBackground, salva -> {
-            carregarProposta(salva);
-            mostrarFeedback("✅", "Sucesso!", "Proposta salva com sucesso.", () -> {
-                if (onPropostaSalva != null)
-                    onPropostaSalva.run();
-            });
-        }, erro -> mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null));
+        AsyncUtils.executarTaskAsync(
+                this::executarSalvamentoBackground,
+                salva -> {
+                    carregarProposta(salva);
+                    mostrarFeedback("✅", "Sucesso!", "Proposta salva com sucesso.", () -> {
+                        if (onPropostaSalva != null)
+                            onPropostaSalva.run();
+                    });
+                },
+                erro -> mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null));
     }
 
     private PropostaModel executarSalvamentoBackground() {
@@ -333,19 +335,16 @@ public class PropostaController {
     }
 
     private void confirmarRemover() {
-        executarTaskAsync(() -> {
-            propostaService.excluirProposta(viewModel.idProperty().get());
-            return null;
-        }, sucesso -> {
-            // 🚀 CORREÇÃO: Removemos a segunda overlay (feedback de sucesso).
-            // Apenas executa a limpeza da tela e atualização da tabela silenciosamente.
-            if (onPropostaRemovida != null) {
-                onPropostaRemovida.run();
-            }
-        }, erro -> {
-            // Mantemos a overlay de erro, pois se algo falhar, o usuário precisa saber.
-            mostrarFeedback("❌", "Erro", "Não foi possível remover: " + erro.getMessage(), null);
-        });
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    propostaService.excluirProposta(viewModel.idProperty().get());
+                    return null;
+                },
+                sucesso -> {
+                    if (onPropostaRemovida != null)
+                        onPropostaRemovida.run();
+                },
+                erro -> mostrarFeedback("❌", "Erro", "Não foi possível remover: " + erro.getMessage(), null));
     }
 
     @FXML
@@ -514,7 +513,8 @@ public class PropostaController {
             listaDocumentos.clear();
             return;
         }
-        executarTaskAsync(() -> documentoService.buscarPorProposta(propostaId),
+        AsyncUtils.executarTaskAsync(
+                () -> documentoService.buscarPorProposta(propostaId),
                 docs -> {
                     listaDocumentos.setAll(docs);
                     tableDocumentos.refresh();
@@ -579,36 +579,44 @@ public class PropostaController {
     }
 
     @FXML
-    private void confirmarSalvarDocumento() {
+    public void confirmarSalvarDocumento() {
         String nomePersonalizado = cbTipoDocumentoOverlay.getEditor().getText().trim();
         btnSalvarDocumento.setDisable(true);
 
-        executarTaskAsync(() -> {
-            if (documentoSendoEditado != null) {
-                return documentoService.atualizarTipoDocumento(documentoSendoEditado.getId(), nomePersonalizado);
-            } else {
-                PropostaModel p = viewModel.atualizarModel(new PropostaModel());
-                return documentoService.processarUpload(arquivoSelecionadoParaUpload, nomePersonalizado,
-                        p.getProponente(), p);
-            }
-        }, sucesso -> {
-            fecharOverlayDocumento();
-            carregarDocumentosDaProposta(viewModel.idProperty().get());
-        }, erro -> {
-            btnSalvarDocumento.setDisable(false);
-            mostrarFeedback("❌", "Erro de Documento", erro.getMessage(), null);
-        });
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    if (documentoSendoEditado != null) {
+                        return documentoService.atualizarTipoDocumento(documentoSendoEditado.getId(),
+                                nomePersonalizado);
+                    } else {
+                        PropostaModel p = viewModel.atualizarModel(new PropostaModel());
+                        return documentoService.processarUpload(arquivoSelecionadoParaUpload, nomePersonalizado,
+                                p.getProponente(), p);
+                    }
+                },
+                sucesso -> {
+                    fecharOverlayDocumento();
+                    carregarDocumentosDaProposta(viewModel.idProperty().get());
+                },
+                erro -> {
+                    btnSalvarDocumento.setDisable(false);
+                    mostrarFeedback("❌", "Erro de Documento", erro.getMessage(), null);
+                });
     }
 
+    // 🚀 PATCH: Refatoração para usar o AsyncUtils centralizado
     private void exibirOverlayExclusao(DocumentoProponenteModel doc) {
         if (esteiraController != null) {
             esteiraController.solicitarConfirmacao("🗑️ Excluir Documento",
                     "Deseja remover '" + doc.getTipoDocumento() + "'?", "Sim, Excluir", "#c62828",
                     () -> {
-                        executarTaskAsync(() -> {
-                            documentoService.excluirDocumento(doc.getId());
-                            return null;
-                        }, sucesso -> listaDocumentos.remove(doc), null);
+                        AsyncUtils.executarTaskAsync(
+                                () -> {
+                                    documentoService.excluirDocumento(doc.getId());
+                                    return null;
+                                },
+                                sucesso -> listaDocumentos.remove(doc),
+                                null);
                     }, null);
         }
     }
@@ -637,7 +645,8 @@ public class PropostaController {
 
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
         if (!modelosCarregados && token != null && !token.isBlank()) {
-            executarTaskAsync(() -> geminiService.listarModelosMultimodais(token),
+            AsyncUtils.executarTaskAsync(
+                    () -> geminiService.listarModelosMultimodais(token),
                     modelos -> {
                         String atual = cmbModeloIA.getValue();
                         cmbModeloIA.getItems().setAll(modelos);
@@ -648,7 +657,8 @@ public class PropostaController {
                         else
                             cmbModeloIA.getSelectionModel().selectFirst();
                         modelosCarregados = true;
-                    }, null);
+                    },
+                    null);
         }
     }
 
@@ -674,7 +684,7 @@ public class PropostaController {
         String jsonCliente = br.com.poderfinanceiro.app.util.SummaryGeneratorUtils
                 .gerarJsonContextualParaIA(viewModel.proponenteProperty().get(), true);
 
-        executarTaskAsync(
+        AsyncUtils.executarTaskAsync(
                 () -> geminiService.perguntarAoAssistente(config.prompt(), token, modeloSelecionado, arquivoFisico,
                         jsonCliente, "[]", "[]", "[]"),
                 resultado -> {
@@ -812,24 +822,7 @@ public class PropostaController {
         }
     }
 
-    private <T> void executarTaskAsync(java.util.concurrent.Callable<T> acao, Consumer<T> onSuccess,
-            Consumer<Throwable> onError) {
-        Task<T> task = new Task<>() {
-            @Override
-            protected T call() throws Exception {
-                return acao.call();
-            }
-        };
-        task.setOnSucceeded(e -> {
-            if (onSuccess != null)
-                onSuccess.accept(task.getValue());
-        });
-        task.setOnFailed(e -> {
-            if (onError != null)
-                onError.accept(task.getException());
-        });
-        new Thread(task).start();
-    }
+   
 
     private <T> void bindComboSafely(ComboBox<T> combo, javafx.beans.property.Property<T> property) {
         combo.valueProperty().addListener((obs, old, val) -> {

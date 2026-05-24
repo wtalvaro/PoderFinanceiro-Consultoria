@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.PlaybookItemModel;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.PlaybookService;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,7 +17,6 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.concurrent.Task;
 import org.springframework.stereotype.Controller;
 
 import java.net.URL;
@@ -27,8 +27,6 @@ import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Controller
@@ -335,6 +333,7 @@ public class PlaybookController implements Initializable {
     // =========================================================================
     // ENGENHARIA COGNITIVA (GEMINI)
     // =========================================================================
+    // 🚀 PATCH: Delegação para AsyncUtils
     @FXML
     private void handleGerarComIA() {
         txtInputIA.clear();
@@ -344,15 +343,15 @@ public class PlaybookController implements Initializable {
         if (!modelosCarregados && cmbModeloIA != null) {
             String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
             if (token != null && !token.isBlank()) {
-                executarTaskAsync(
-                    () -> geminiService.listarModelosMultimodais(token),
-                    modelos -> {
-                        cmbModeloIA.getItems().setAll(modelos);
-                        cmbModeloIA.getSelectionModel().select(modelos.contains(MODELO_PADRAO) ? MODELO_PADRAO : modelos.get(0));
-                        modelosCarregados = true;
-                    }, 
-                    Throwable::printStackTrace
-                );
+                AsyncUtils.executarTaskAsync(
+                        () -> geminiService.listarModelosMultimodais(token),
+                        modelos -> {
+                            cmbModeloIA.getItems().setAll(modelos);
+                            cmbModeloIA.getSelectionModel()
+                                    .select(modelos.contains(MODELO_PADRAO) ? MODELO_PADRAO : modelos.get(0));
+                            modelosCarregados = true;
+                        },
+                        Throwable::printStackTrace);
             }
         }
     }
@@ -362,23 +361,26 @@ public class PlaybookController implements Initializable {
         overlayIA.setVisible(false);
     }
 
+    // 🚀 PATCH: Delegação para AsyncUtils
     @FXML
     private void processarTextoComIA() {
         String textoBruto = txtInputIA.getText();
-        if (textoBruto == null || textoBruto.trim().isEmpty()) return;
+        if (textoBruto == null || textoBruto.trim().isEmpty())
+            return;
 
         btnProcessarIA.setDisable(true);
         btnProcessarIA.setText("Processando...");
 
-        String promptCompleto = PROMPT_ENGENHARIA_VENDAS + "--- inicio do conteudo --- \n" + textoBruto + "\n --- final do conteudo ---";
+        String promptCompleto = PROMPT_ENGENHARIA_VENDAS + "--- inicio do conteudo --- \n" + textoBruto
+                + "\n --- final do conteudo ---";
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
-        String modelo = (cmbModeloIA != null && cmbModeloIA.getValue() != null) ? cmbModeloIA.getValue() : MODELO_PADRAO;
+        String modelo = (cmbModeloIA != null && cmbModeloIA.getValue() != null) ? cmbModeloIA.getValue()
+                : MODELO_PADRAO;
 
-        executarTaskAsync(
-            () -> formatarRespostaIAParaJson(geminiService.perguntarTexto(promptCompleto, token, modelo)),
-            jsonNode -> aplicarEstruturaIA(jsonNode),
-            erro -> aplicarErroIA(erro, textoBruto)
-        );
+        AsyncUtils.executarTaskAsync(
+                () -> formatarRespostaIAParaJson(geminiService.perguntarTexto(promptCompleto, token, modelo)),
+                jsonNode -> aplicarEstruturaIA(jsonNode),
+                erro -> aplicarErroIA(erro, textoBruto));
     }
 
     private JsonNode formatarRespostaIAParaJson(String respostaBruta) throws Exception {
@@ -418,15 +420,4 @@ public class PlaybookController implements Initializable {
         btnProcessarIA.setText("✨ Estruturar com Gemini");
     }
 
-    // =========================================================================
-    // UTILITÁRIO DRY PARA CONCORRÊNCIA
-    // =========================================================================
-    private <T> void executarTaskAsync(Callable<T> acao, Consumer<T> onSuccess, Consumer<Throwable> onError) {
-        Task<T> task = new Task<>() {
-            @Override protected T call() throws Exception { return acao.call(); }
-        };
-        task.setOnSucceeded(e -> Platform.runLater(() -> { if (onSuccess != null) onSuccess.accept(task.getValue()); }));
-        task.setOnFailed(e -> Platform.runLater(() -> { if (onError != null) onError.accept(task.getException()); }));
-        new Thread(task).start();
-    }
 }
