@@ -3,11 +3,11 @@ name: Publicar Release Automática
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*' # Dispara o fluxo quando você commita uma tag começando com 'v' (ex: v1.0.0)
 
 jobs:
   build:
-    runs-on: windows-latest # 🚀 Máquina Windows nativa no servidor do GitHub
+    runs-on: windows-latest # Mantém em Windows para compatibilidade total com o compilador do Launch4j
     permissions:
       contents: write
 
@@ -22,8 +22,21 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Compilar, Empacotar e Gerar Executável (.jar + .exe)
-      run: mvn clean package -DskipTests # Remove o './' pois o Windows não usa shell script
+    - name: Compilar e Empacotar o projeto (.jar)
+      run: mvn clean package -DskipTests
+
+    # 🚀 NOVO: Executa o empacotamento do Launch4j isolado na esteira do GitHub Actions
+    - name: Compilar Executável Windows (.exe) com Launch4j
+      uses: fedyat/launch4j-action@v2
+      with:
+        # Se você tiver um arquivo .xml de configuração do Launch4j no seu projeto, aponte aqui.
+        # Caso contrário, o runner monta as propriedades básicas automaticamente abaixo:
+        jar: target/*.jar
+        outfile: target/PoderFinanceiro.exe
+        mainclass: br.com.poderfinanceiro.app.PoderFinanceiroApplication
+        headerType: gui
+        dontWrapJar: false
+        minJreVersion: '25'
 
     - name: Criar Release e Upload dos Artefatos
       uses: softprops/action-gh-release@v2
