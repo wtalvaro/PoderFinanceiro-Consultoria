@@ -8,9 +8,11 @@ import java.util.function.Consumer;
 
 public class AsyncUtils {
 
-    // O CachedThreadPool cria novas threads conforme a demanda e as recicla se
-    // ficarem ociosas (ótimo para UI)
-    private static final ExecutorService executor = Executors.newCachedThreadPool();
+    // 🚀 ATUALIZAÇÃO PARA VIRTUAL THREADS (Project Loom)
+    // Não usamos mais pool de threads fixas ou cache.
+    // Cada tarefa agora é executada em uma Virtual Thread dedicada,
+    // oferecendo performance superior e custo de memória irrisório.
+    private static final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     /**
      * Executa uma Task do JavaFX já preconfigurada.
@@ -29,7 +31,7 @@ public class AsyncUtils {
 
     /**
      * Novo método de conveniência (Boilerplate-free).
-     * Cria a Task internamente usando um Callable, mantendo os controllers limpos.
+     * Cria a Task internamente usando um Callable.
      */
     public static <T> void executarTaskAsync(Callable<T> acao, Consumer<T> onSuccess, Consumer<Throwable> onError) {
         Task<T> task = new Task<>() {
