@@ -109,9 +109,10 @@
             <VBox fx:id="boxResultados" spacing="10" visible="false" managed="false"
                 VBox.vgrow="ALWAYS">
                 <Label text="🏆 Ranking" style="-fx-font-weight: bold;" />
-                <ListView fx:id="listaRanking" prefHeight="350"
-                    style="-fx-background-color: transparent; -fx-border-color: transparent;" />
-            </VBox>
+                <ListView fx:id="listaRanking"
+                    prefHeight="300"
+                    VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent; -fx-border-color: transparent;" />           </VBox>
         </VBox>
 
     </ScrollPane>
