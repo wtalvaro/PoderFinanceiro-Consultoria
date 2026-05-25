@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
+import br.com.poderfinanceiro.app.util.Disposable;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -102,8 +103,10 @@ public class WorkspaceController {
             novaAba.setUserData(id);
             novaAba.setClosable(true);
 
-            novaAba.getProperties().put("controller", loader.getController());
-
+            Object controller = loader.getController();
+            novaAba.getProperties().put("controller", controller);
+            novaAba.setOnCloseRequest(event -> tentarDisposar(controller));
+            
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
         } catch (IOException e) {
@@ -192,9 +195,14 @@ public class WorkspaceController {
             novaAba.setOnCloseRequest(event -> {
                 if (hub.temAlteracoesNaoSalvas()) {
                     event.consume();
-                    hub.solicitarFechamento(() -> tabPanePrincipal.getTabs().remove(novaAba));
+                    hub.solicitarFechamento(() -> {
+                        hub.limparRecursos();
+                        tentarDisposar(hub); // Limpeza ao fechar
+                        tabPanePrincipal.getTabs().remove(novaAba);
+                    });
                 } else {
                     hub.limparRecursos();
+                    tentarDisposar(hub);
                 }
             });
 
@@ -252,4 +260,10 @@ public class WorkspaceController {
             }
         });
     }
+
+    private void tentarDisposar(Object controller) {
+    if (controller instanceof Disposable disposable) {
+        disposable.dispose();
+    }
+}
 }

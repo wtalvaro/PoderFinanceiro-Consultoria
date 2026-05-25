@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.domain.service.ProponenteService;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.ContatoUtils;
+import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.DocumentoUtils;
 import br.com.poderfinanceiro.app.domain.event.ProponenteUIEventHub;
 import javafx.collections.FXCollections;
@@ -23,7 +24,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Component
-public class ProponenteListController {
+public class ProponenteListController implements Disposable {
 
     // =========================================================================
     // CONSTANTES (Clean Code)
@@ -169,5 +170,12 @@ public class ProponenteListController {
                         erro.printStackTrace();
                     }
                 });
+    }
+
+    @Override
+    public void dispose() {
+        // Remove a inscrição para que o eventHub não mantenha
+        // referência a este objeto, permitindo que o Garbage Collector o limpe
+        eventHub.desinscrever(this::carregarDados);
     }
 }

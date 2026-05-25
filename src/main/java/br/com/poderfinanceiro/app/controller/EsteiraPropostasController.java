@@ -5,6 +5,7 @@ import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.service.PropostaService;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
+import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.domain.event.*;
 import javafx.application.Platform;
@@ -33,7 +34,7 @@ import java.util.function.Predicate;
 
 @Component
 @Scope("prototype")
-public class EsteiraPropostasController {
+public class EsteiraPropostasController implements Disposable {
 
     // =========================================================================
     // CONSTANTES E TEMPLATES (Clean Code & DRY)
@@ -532,6 +533,12 @@ public class EsteiraPropostasController {
             case PENDENTE, AGUARDANDO_DOC -> Color.DARKORANGE;
             default -> Color.BLACK;
         };
+    }
+
+    @Override
+    public void dispose() {
+        // Desinscreve o listener para liberar a memória
+        eventHub.desinscrever(this::recarregarDados);
     }
 
 }
