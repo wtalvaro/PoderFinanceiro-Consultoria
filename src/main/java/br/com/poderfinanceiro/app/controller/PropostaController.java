@@ -270,9 +270,6 @@ public class PropostaController {
     // =========================================================================
     // CORE FLUXO DA PROPOSTA (CARREGAR, SALVAR, EXCLUIR)
     // =========================================================================
-    // =========================================================================
-    // CORE FLUXO DA PROPOSTA (CARREGAR, SALVAR, EXCLUIR)
-    // =========================================================================
     public void carregarProposta(PropostaModel completa) {
         executarSemGatilhos(() -> {
             viewModel.loadFromModel(completa);

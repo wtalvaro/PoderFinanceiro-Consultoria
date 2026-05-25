@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 @Scope("prototype")
 public class ImportadorTabelasController {
@@ -46,6 +49,8 @@ public class ImportadorTabelasController {
 
     private static final String STATUS_REVISADO = "🟢";
     private static final String STATUS_PENDENTE = "🟡";
+
+    private static final Logger log = LoggerFactory.getLogger(ImportadorTabelasController.class);
 
     // =========================================================================
     // COMPONENTES DE UI GLOBAIS E LOTE
@@ -208,7 +213,7 @@ public class ImportadorTabelasController {
             return;
 
         if (isSelecaoGlobalVazia()) {
-            System.err.println("Selecione pelo menos um Banco ou Convênio para aplicar em lote.");
+            log.error(("Selecione pelo menos um Banco ou Convênio para aplicar em lote."));
             return;
         }
 
@@ -218,7 +223,7 @@ public class ImportadorTabelasController {
         if (selecionadaAtual != null) {
             preencherFormularioRevisao(selecionadaAtual);
         }
-        System.out.println("✅ Aplicação em lote concluída! Revisão individual necessária.");
+        log.info("✅ Aplicação em lote concluída! Revisão individual necessária.");
     }
 
     private boolean isSelecaoGlobalVazia() {
@@ -290,7 +295,7 @@ public class ImportadorTabelasController {
             validarBotoesDeAcao();
             avancarSelecaoTabela();
         } catch (NumberFormatException e) {
-            System.err.println("⚠️ Verifique os campos numéricos. " + e.getMessage());
+            log.error(("⚠️ Verifique os campos numéricos. " + e.getMessage()));
         }
     }
 
@@ -330,7 +335,7 @@ public class ImportadorTabelasController {
                     navigator.ocultarLoading();
                     loteAtual.clear();
                     alternarBloqueioFormularioRevisao(true);
-                    System.out.println("✅ Lote gravado com sucesso!");
+                    log.info("✅ Lote gravado com sucesso!");
                 },
                 erro -> finalizarComErro(MSG_ERRO_GRAVACAO + erro.getMessage()));
     }
@@ -385,7 +390,7 @@ public class ImportadorTabelasController {
 
     private void finalizarComErro(String mensagem) {
         navigator.ocultarLoading();
-        System.err.println("❌ " + mensagem);
+        log.error(("❌ " + mensagem));
     }
 
     /**

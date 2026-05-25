@@ -22,16 +22,23 @@ import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.strategy.DocumentStrategy;
 import br.com.poderfinanceiro.app.dto.PlaybookItemDTO;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class PlaybookService {
+
+    private static final Logger log = LoggerFactory.getLogger(PlaybookService.class);
 
     private final List<DocumentStrategy> documentStrategies;
     private final ObjectMapper objectMapper;
 
-    // Armazena em memória os itens estáticos carregados do JSON (O Prontuário Ativo)
+    // Armazena em memória os itens estáticos carregados do JSON (O Prontuário
+    // Ativo)
     private final List<PlaybookItemModel> itensEstaticos = new ArrayList<>();
-    
-    // O prontuário agora tem um endereço dinâmico (resolve o problema de salvar dentro do JAR/EXE)
+
+    // O prontuário agora tem um endereço dinâmico (resolve o problema de salvar
+    // dentro do JAR/EXE)
     private String caminhoArquivoFinal;
 
     public PlaybookService(List<DocumentStrategy> documentStrategies) {
@@ -43,10 +50,10 @@ public class PlaybookService {
     public void init() {
         // 1. Define o endereço da ala hospitalar baseada no SO (Windows/Linux/Mac)
         this.caminhoArquivoFinal = obterCaminhoDoProntuario();
-        
+
         // 2. Garante que o arquivo existe (ou clona o protocolo padrão do JAR)
         garantirArquivoExiste();
-        
+
         // 3. Carrega os dados para a memória da UTI
         carregarPlaybook();
     }
@@ -65,9 +72,9 @@ public class PlaybookService {
         } else {
             // Linux e outros Unix: Seguindo o protocolo XDG
             String xdgData = System.getenv("XDG_DATA_HOME");
-            caminhoBase = (xdgData != null && !xdgData.isEmpty()) 
-                          ? xdgData + File.separator + "PoderFinanceiro" 
-                          : home + File.separator + ".local" + File.separator + "share" + File.separator + "PoderFinanceiro";
+            caminhoBase = (xdgData != null && !xdgData.isEmpty())
+                    ? xdgData + File.separator + "PoderFinanceiro"
+                    : home + File.separator + ".local" + File.separator + "share" + File.separator + "PoderFinanceiro";
         }
 
         // Garante que a "ala" do hospital existe
@@ -86,9 +93,9 @@ public class PlaybookService {
         if (!arquivo.exists()) {
             try (InputStream is = new ClassPathResource("playbooks/playbook_scripts.json").getInputStream()) {
                 Files.copy(is, arquivo.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                System.out.println("Protocolo inicial clonado para a pasta de usuário: " + caminhoArquivoFinal);
+                log.info("Protocolo inicial clonado para a pasta de usuário: " + caminhoArquivoFinal);
             } catch (IOException e) {
-                System.err.println("Erro crítico: Não foi possível criar o prontuário inicial.");
+                log.error(("Erro crítico: Não foi possível criar o prontuário inicial."));
             }
         }
     }
@@ -107,9 +114,9 @@ public class PlaybookService {
                         dto.dica()));
             }
             
-            System.out.println("Sinais vitais do Playbook carregados com sucesso a partir de: " + caminhoArquivoFinal);
+            log.info("Sinais vitais do Playbook carregados com sucesso a partir de: " + caminhoArquivoFinal);
         } catch (IOException e) {
-            System.err.println("Erro ao ler o prontuário: " + e.getMessage());
+            log.error(("Erro ao ler o prontuário: " + e.getMessage()));
         }
     }
 
@@ -145,9 +152,9 @@ public class PlaybookService {
                     .filter(item -> item.getCategoria() != null && !item.getCategoria().contains("Checklists de Documentos"))
                     .forEach(itensEstaticos::add);
             
-            System.out.println("Prontuário atualizado e persistido com segurança no disco.");
+            log.info("Prontuário atualizado e persistido com segurança no disco.");
         } catch (IOException e) {
-            System.err.println("Erro na 'cirurgia' de salvamento do playbook: " + e.getMessage());
+            log.error(("Erro na 'cirurgia' de salvamento do playbook: " + e.getMessage()));
         }
     }
 
@@ -164,7 +171,8 @@ public class PlaybookService {
                                 categoria,
                                 "Documentação Exigida",
                                 strategy.getChecklist(),
-                                "Fotos nítidas, sem cortes e sem reflexos para o convênio " + convenio.getLabel() + "."));
+                                "Fotos nítidas, sem cortes e sem reflexos para o convênio " + convenio.getLabel()
+                                        + "."));
                     });
         }
         return checklists;

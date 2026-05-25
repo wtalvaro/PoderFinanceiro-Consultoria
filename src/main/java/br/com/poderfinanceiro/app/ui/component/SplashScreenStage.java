@@ -12,12 +12,16 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Splash Screen invisível. Exibe APENAS a imagem PNG flutuando na tela,
  * sem bordas do sistema operacional.
  */
 public class SplashScreenStage extends Stage {
+
+    private static final Logger log = LoggerFactory.getLogger(SplashScreenStage.class);
 
     private final ProgressBar progressBar;
     private final Label lblStatus;
@@ -33,10 +37,10 @@ public class SplashScreenStage extends Stage {
             if (imageStream != null) {
                 imageView.setImage(new Image(imageStream));
             } else {
-                System.err.println("🚨 AVISO: /images/splash.png não encontrada!");
+                log.error(("🚨 AVISO: /images/splash.png não encontrada!"));
             }
         } catch (Exception e) {
-            System.err.println("🚨 ERRO ao ler a imagem: " + e.getMessage());
+            log.error(("🚨 ERRO ao ler a imagem: " + e.getMessage()));
         }
 
         imageView.setFitWidth(600);

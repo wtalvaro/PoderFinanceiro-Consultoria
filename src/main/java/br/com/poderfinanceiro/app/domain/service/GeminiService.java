@@ -16,8 +16,13 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class GeminiService {
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiService.class);
 
     private final RestClient restClient;
 
@@ -132,7 +137,7 @@ public class GeminiService {
                                     + "). Tentamos " + maxTentativas
                                     + " vezes. Por favor, aguarde um minuto ou selecione outro modelo na engrenagem de configuração.";
                         }
-                        System.out.println("⚠️ Erro " + status + " na IA. Aguardando " + (tempoEspera / 1000)
+                        log.info("⚠️ Erro " + status + " na IA. Aguardando " + (tempoEspera / 1000)
                                 + "s para nova tentativa (" + tentativaAtual + "/" + maxTentativas + ")...");
                         Thread.sleep(tempoEspera);
                         tempoEspera *= 2;
@@ -190,7 +195,7 @@ public class GeminiService {
                             return "⚠️ Os servidores estão sobrecarregados (Erro " + status
                                     + "). Tente novamente mais tarde ou mude o modelo.";
                         }
-                        System.out.println("⚠️ Erro " + status + " na geração de texto. Aguardando "
+                        log.info("⚠️ Erro " + status + " na geração de texto. Aguardando "
                                 + (tempoEspera / 1000) + "s...");
                         Thread.sleep(tempoEspera);
                         tempoEspera *= 2;
@@ -299,7 +304,7 @@ public class GeminiService {
                         if (tentativaAtual == maxTentativas) {
                             throw new RuntimeException("Servidores do Google sobrecarregados (Erro " + status + ").");
                         }
-                        System.out.println("⚠️ API IA Ocupada (Erro " + status + "). Tentativa " + tentativaAtual
+                        log.info("⚠️ API IA Ocupada (Erro " + status + "). Tentativa " + tentativaAtual
                                 + ". Aguardando...");
                         Thread.sleep(tempoEspera);
                         tempoEspera *= 2;
@@ -384,10 +389,10 @@ public class GeminiService {
             return modelos;
 
         } catch (org.springframework.web.client.RestClientResponseException e) {
-            System.err.println("⚠️ API do Google recusou a requisição de modelos (Erro " + e.getStatusCode()
-                    + "). Usando Fallback.");
+            log.error(("⚠️ API do Google recusou a requisição de modelos (Erro " + e.getStatusCode()
+                    + "). Usando Fallback."));
         } catch (Exception e) {
-            System.err.println("⚠️ Erro interno ao processar a lista de modelos: " + e.getMessage());
+            log.error(("⚠️ Erro interno ao processar a lista de modelos: " + e.getMessage()));
         }
 
         // 🛡️ FALLBACK BLINDADO ORDENADO (Apenas 2.5+ se a API falhar)

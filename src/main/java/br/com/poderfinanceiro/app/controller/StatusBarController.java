@@ -6,9 +6,14 @@ import org.springframework.stereotype.Component;
 
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class StatusBarController {
 
+    private static final Logger log = LoggerFactory.getLogger(StatusBarController.class);
+    
     private final AuthService authService;
 
     @FXML
@@ -21,7 +26,7 @@ public class StatusBarController {
 
     @FXML
     public void initialize() {
-        System.out.println("StatusBarController carregado com sucesso!");
+        log.info("StatusBarController carregado com sucesso!");
         
         atualizarStatusUsuario();
     }

@@ -3,9 +3,13 @@ package br.com.poderfinanceiro.app.domain.service;
 import br.com.poderfinanceiro.app.dto.ViaCepResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class ViaCepService {
+
+    private static final Logger log = LoggerFactory.getLogger(ViaCepService.class);
 
     private final RestClient restClient;
 
@@ -36,7 +40,7 @@ public class ViaCepService {
             return response;
 
         } catch (Exception e) {
-            System.err.println("⚠️ Falha ao comunicar com o ViaCEP: " + e.getMessage());
+            log.error(("⚠️ Falha ao comunicar com o ViaCEP: " + e.getMessage()));
             return null;
         }
     }

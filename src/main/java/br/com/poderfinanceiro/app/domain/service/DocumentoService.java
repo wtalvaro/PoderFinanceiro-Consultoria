@@ -18,8 +18,13 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class DocumentoService {
+
+    private static final Logger log = LoggerFactory.getLogger(DocumentoService.class);
 
     private final DocumentoProponenteRepository repository;
     private final AuthService authService;
@@ -125,7 +130,7 @@ public class DocumentoService {
                 Desktop.getDesktop().open(file);
             }
         } catch (Exception e) {
-            System.err.println("Erro ao abrir arquivo: " + e.getMessage());
+            log.error(("Erro ao abrir arquivo: " + e.getMessage()));
         }
     }
 
@@ -149,7 +154,7 @@ public class DocumentoService {
         try {
             Files.deleteIfExists(Paths.get(doc.getArquivoPath()));
         } catch (Exception e) {
-            System.err.println("Aviso: Não foi possível deletar o arquivo físico: " + e.getMessage());
+            log.error(("Aviso: Não foi possível deletar o arquivo físico: " + e.getMessage()));
         }
 
         repository.delete(doc);

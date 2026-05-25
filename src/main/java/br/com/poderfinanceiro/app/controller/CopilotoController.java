@@ -36,6 +36,9 @@ import javafx.util.converter.LocalDateStringConverter;
 import br.com.poderfinanceiro.app.util.DataUtils;
 import br.com.poderfinanceiro.app.util.Disposable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class CopilotoController implements Disposable {
 
@@ -69,6 +72,8 @@ public class CopilotoController implements Disposable {
     private final GeminiService geminiService;
     private final AuthService authService;
     private final ProponenteUIEventHub eventHub;
+
+    private static final Logger log = LoggerFactory.getLogger(CopilotoController.class);
 
     private SimulacaoRascunhoDTO rascunhoAtual;
     private List<ResultadoSimulacaoDTO> rankingAtual;
@@ -341,7 +346,7 @@ public class CopilotoController implements Disposable {
                                 listaRanking.setItems(FXCollections.observableArrayList(rankingAtual));
                             }
                         } catch (Exception ex) {
-                            System.err.println("Erro ao processar ranking da IA: " + ex.getMessage());
+                            log.error(("Erro ao processar ranking da IA: " + ex.getMessage()));
                         }
                     }
 

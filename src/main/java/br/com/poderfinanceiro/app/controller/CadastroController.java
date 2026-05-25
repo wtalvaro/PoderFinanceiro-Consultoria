@@ -10,12 +10,17 @@ import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class CadastroController {
 
     private final AuthService authService;
     private final Navigator navigator;
     private final HostServices hostServices;
+
+    private static final Logger log = LoggerFactory.getLogger(CadastroController.class);
 
     @FXML
     private TextField txtNome;
@@ -78,7 +83,7 @@ public class CadastroController {
         if (hostServices != null) {
             hostServices.showDocument("https://aistudio.google.com/");
         } else {
-            System.out.println("Erro técnico: HostServices indisponível no momento.");
+            log.error("Erro técnico: HostServices indisponível no momento.");
         }
     }
 

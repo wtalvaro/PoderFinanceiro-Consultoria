@@ -34,6 +34,9 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 @Scope("prototype")
 public class AjudaChatController {
@@ -53,6 +56,9 @@ public class AjudaChatController {
 
     private static final String MSG_PADRAO_DOCUMENTO = "📄 Analise este documento.";
     private static final String MSG_ERRO_SISTEMA = "Desculpe, ocorreu uma falha técnica ao consultar o sistema.";
+
+
+    private static final Logger log = LoggerFactory.getLogger(AjudaChatController.class);
 
     // =========================================================================
     // COMPONENTES DE UI (FXML)
@@ -131,7 +137,7 @@ public class AjudaChatController {
         if (url != null) {
             webEngine.load(url.toExternalForm());
         } else {
-            System.err.println("⚠️ Arquivo chat.html não encontrado no classpath!");
+            log.error("⚠️ Arquivo chat.html não encontrado no classpath!");
         }
 
         webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
@@ -375,7 +381,7 @@ public class AjudaChatController {
                 String script = String.format(JS_ADICIONAR_BALAO, textoB64, isUsuario);
                 webEngine.executeScript(script);
             } catch (Exception e) {
-                System.err.println("Erro ao injetar script no WebView: " + e.getMessage());
+                log.error(("Erro ao injetar script no WebView: " + e.getMessage()));
             }
         };
 
@@ -391,7 +397,7 @@ public class AjudaChatController {
                 if (paginaCarregada)
                     webEngine.executeScript(script);
             } catch (Exception e) {
-                System.err.println("Aviso: Falha silenciada ao executar JS visual: " + e.getMessage());
+                log.error(("Aviso: Falha silenciada ao executar JS visual: " + e.getMessage()));
             }
         });
     }
@@ -400,7 +406,7 @@ public class AjudaChatController {
         if (hostServices != null) {
             hostServices.showDocument(url);
         } else {
-            System.err.println("⚠️ HostServices não configurados para o Chat!");
+            log.error(("⚠️ HostServices não configurados para o Chat!"));
         }
     }
 

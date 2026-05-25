@@ -7,7 +7,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SummaryGeneratorUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(SummaryGeneratorUtils.class);
 
     private static final String SEPARADOR = "————————————————————————————\n";
     private static final ObjectMapper jsonMapper = new ObjectMapper();
@@ -99,7 +104,7 @@ public class SummaryGeneratorUtils {
 
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(contextoGlobal);
         } catch (Exception e) {
-            System.err.println("⚠️ Erro ao serializar contexto completo: " + e.getMessage());
+            log.error(("⚠️ Erro ao serializar contexto completo: " + e.getMessage()));
             return "{}";
         }
     }
@@ -141,7 +146,7 @@ public class SummaryGeneratorUtils {
 
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
         } catch (Exception e) {
-            System.err.println("⚠️ Falha ao processar proposta para o Gemini: " + e.getMessage());
+            log.error(("⚠️ Falha ao processar proposta para o Gemini: " + e.getMessage()));
             return "{}";
         }
     }
@@ -166,7 +171,8 @@ public class SummaryGeneratorUtils {
         }
     }
 
-    public static String gerarJsonLinksUteis(java.util.List<br.com.poderfinanceiro.app.domain.model.LinkUtilModel> links) {
+    public static String gerarJsonLinksUteis(
+            java.util.List<br.com.poderfinanceiro.app.domain.model.LinkUtilModel> links) {
         if (links == null || links.isEmpty())
             return "[]";
         try {
@@ -218,7 +224,7 @@ public class SummaryGeneratorUtils {
             }
             return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaComissoes);
         } catch (Exception e) {
-            System.err.println("⚠️ Falha ao processar metadados de repasses para o Gemini: " + e.getMessage());
+            log.error(("⚠️ Falha ao processar metadados de repasses para o Gemini: " + e.getMessage()));
             return "[]";
         }
     }

@@ -23,8 +23,13 @@ import org.controlsfx.control.MasterDetailPane;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class TabelaJurosController {
+
+    private static final Logger log = LoggerFactory.getLogger(TabelaJurosController.class);
 
     private final TabelaJurosService service;
     private final TabelaJurosViewModel viewModel;
@@ -109,7 +114,7 @@ public class TabelaJurosController {
         carregarDados();
         configurarFiltroBusca();
 
-        System.out.println("TabelaJurosController: Centro Cirúrgico Pronto com Utils!");
+        log.info("TabelaJurosController: Centro Cirúrgico Pronto com Utils!");
     }
 
     // =========================================================

@@ -14,6 +14,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @Scope("prototype")
@@ -25,11 +27,13 @@ public class EnderecoController {
     private static final int TAMANHO_CEP_VALIDO = 8;
     private static final String REGEX_SOMENTE_NUMEROS = "\\D";
 
-    private static final String MSG_LOG_BUSCA = "Solicitando busca para o CEP: %s";
+    private static final String MSG_LOG_BUSCA = "Solicitando busca para o CEP: {}";
     private static final String MSG_AVISO_TAMANHO = "⚠️ O CEP deve conter exatamente 8 números.";
     private static final String MSG_ERRO_NAO_ENCONTRADO = "CEP Inválido ou não encontrado no ViaCEP.";
-    private static final String MSG_ERRO_UF_INVALIDA = "UF não encontrada no Enum: %s";
+    private static final String MSG_ERRO_UF_INVALIDA = "UF não encontrada no Enum: {}";
 
+    private static final Logger log = LoggerFactory.getLogger(EnderecoController.class);
+    
     // =========================================================================
     // DEPENDÊNCIAS DE UI E FXML
     // =========================================================================
@@ -100,10 +104,10 @@ public class EnderecoController {
         String apenasNumeros = extrairSomenteNumeros(cepDigitado);
 
         if (apenasNumeros.length() == TAMANHO_CEP_VALIDO) {
-            System.out.printf((MSG_LOG_BUSCA) + "%n", apenasNumeros);
+            log.info(MSG_LOG_BUSCA, apenasNumeros);
             executarBuscaAssincrona(apenasNumeros);
         } else {
-            System.out.println(MSG_AVISO_TAMANHO);
+            log.info(MSG_AVISO_TAMANHO);
         }
     }
 
@@ -120,12 +124,12 @@ public class EnderecoController {
         if (enderecoEncontrado != null) {
             preencherCamposEndereco(enderecoEncontrado);
         } else {
-            System.out.println(MSG_ERRO_NAO_ENCONTRADO);
+            log.info(MSG_ERRO_NAO_ENCONTRADO);
         }
     }
 
     private void processarErroBusca(Throwable excecao) {
-        System.out.println("Erro ao comunicar com a API do ViaCEP.");
+        log.info("Erro ao comunicar com a API do ViaCEP.");
         if (excecao != null)
             excecao.printStackTrace();
     }
@@ -144,7 +148,7 @@ public class EnderecoController {
         try {
             comboUf.setValue(UfModel.valueOf(ufSigla.toUpperCase()));
         } catch (IllegalArgumentException ex) {
-            System.out.printf((MSG_ERRO_UF_INVALIDA) + "%n", ufSigla);
+            log.error(MSG_ERRO_UF_INVALIDA, ufSigla);
         }
     }
 

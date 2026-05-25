@@ -9,6 +9,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Initializer refinado. Não escuta mais eventos automáticos do Spring.
@@ -17,6 +19,8 @@ import java.io.IOException;
  */
 @Component
 public class StageInitializer {
+
+    private static final Logger log = LoggerFactory.getLogger(StageInitializer.class);
 
     private final ApplicationContext applicationContext;
     private Stage primaryStage;
@@ -58,7 +62,7 @@ public class StageInitializer {
                     primaryStage.getIcons().add(new javafx.scene.image.Image(iconStream));
                 }
             } catch (Exception e) {
-                System.err.println("Não foi possível carregar o ícone: " + e.getMessage());
+                log.error(("Não foi possível carregar o ícone: " + e.getMessage()));
             }
 
             // 4. 🛡️ Blindagem de Geometria e Configuração Final

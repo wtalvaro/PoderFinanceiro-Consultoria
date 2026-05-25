@@ -31,6 +31,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @Scope("prototype")
@@ -64,6 +66,8 @@ public class EsteiraPropostasController implements Disposable {
             </body>
             </html>
             """;
+
+    private static final Logger log = LoggerFactory.getLogger(EsteiraPropostasController.class);
 
     // =========================================================================
     // DEPENDÊNCIAS
@@ -257,7 +261,7 @@ public class EsteiraPropostasController implements Disposable {
                     // 🚀 2. AGORA SIM: Valida o formulário ativo com a lista já atualizada!
                     limparPainelSeExcluido();
                 },
-                erro -> System.err.println("Erro ao recarregar dados: " + erro.getMessage()));
+                erro -> log.error("Erro crítico ao recarregar dados da esteira", erro));
     }
 
     // =========================================================================
@@ -306,7 +310,7 @@ public class EsteiraPropostasController implements Disposable {
         AsyncUtils.executarTaskAsync(
                 () -> propostaService.carregarPropostaDetalhada(id),
                 this::processarSucessoCarregamentoProposta,
-                erro -> erro.printStackTrace());
+                erro -> log.error("Falha ao carregar detalhamento da proposta selecionada", erro));
     }
 
     private void processarSucessoCarregamentoProposta(PropostaModel completa) {
@@ -381,7 +385,7 @@ public class EsteiraPropostasController implements Disposable {
                                 tablePropostas.scrollTo(proposta);
                             });
                 },
-                erro -> System.err.println("Erro ao recarregar dados: " + erro.getMessage()));
+                erro -> log.error("Erro ao selecionar proposta por ID", erro));
     }
 
     private void limparPainelSeExcluido() {
@@ -506,6 +510,7 @@ public class EsteiraPropostasController implements Disposable {
     }
 
     private void mostrarErro(String msg) {
+        log.error("Erro interno exibido ao usuário: {}", msg); // Adicione log antes de mostrar na UI
         mostrarFeedback("❌", "Erro Interno", msg, null);
     }
 
