@@ -36,7 +36,7 @@ public class ProponenteListController implements Disposable {
     private static final String MSG_TRIAGEM_BUSCA = "Realizando triagem da busca...";
     private static final String MSG_TOTAL_REGISTROS = "Total: %d contato(s)";
     private static final Logger log = LoggerFactory.getLogger(ProponenteListController.class);
-    
+
     // =========================================================================
     // DEPENDÊNCIAS DE UI E FXML
     // =========================================================================
@@ -70,6 +70,7 @@ public class ProponenteListController implements Disposable {
         this.proponenteService = proponenteService;
         this.navigator = navigator;
         this.eventHub = eventHub;
+        log.debug("[PROPONENTE_LIST] Construtor: Controller instanciado");
     }
 
     // =========================================================================
@@ -77,26 +78,31 @@ public class ProponenteListController implements Disposable {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.debug("[PROPONENTE_LIST] initialize: Configurando tabela e carregando dados");
         tabelaClientes.setItems(listaContatos);
         configurarColunas();
         configurarInteracaoTabela();
         carregarDados();
-
-        // 🚀 MÁGICA: Conecta a tela à reatividade do Spring
         eventHub.inscrever(this::carregarDados);
+        log.info("[PROPONENTE_LIST] initialize: Configuração concluída e inscrita no event hub");
     }
 
     private void configurarColunas() {
+        log.debug("[PROPONENTE_LIST] configurarColunas: Aplicando formatadores nas colunas CPF e Telefone");
         aplicarFormatadorColuna(colCpf, DocumentoUtils::formatarCpf);
         aplicarFormatadorColuna(colTelefone, ContatoUtils::formatarTelefone);
     }
 
     private void configurarInteracaoTabela() {
+        log.debug("[PROPONENTE_LIST] configurarInteracaoTabela: Adicionando evento de duplo clique para abrir cliente");
         tabelaClientes.setRowFactory(tv -> {
             TableRow<ProponenteModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    navigator.abrirClienteNoWorkspace(row.getItem());
+                    ProponenteModel cliente = row.getItem();
+                    log.info("[PROPONENTE_LIST] Duplo clique: abrindo cliente '{}' (ID={})",
+                            cliente.getNomeCompleto(), cliente.getId());
+                    navigator.abrirClienteNoWorkspace(cliente);
                 }
             });
             return row;
@@ -107,6 +113,7 @@ public class ProponenteListController implements Disposable {
     // EVENTOS DE TELA E BUSCA
     // =========================================================================
     public void carregarDados() {
+        log.debug("[PROPONENTE_LIST] carregarDados: Iniciando carregamento da lista completa");
         executarTarefaAssincrona(
                 proponenteService::listarMinhaCarteira,
                 MSG_CARREGANDO_BASE);
@@ -115,10 +122,13 @@ public class ProponenteListController implements Disposable {
     @FXML
     private void handleBusca() {
         String termo = txtBusca.getText();
+        log.debug("[PROPONENTE_LIST] handleBusca: termo='{}'", termo);
 
         if (termo == null || termo.isBlank()) {
+            log.debug("[PROPONENTE_LIST] Busca vazia, carregando dados completos");
             carregarDados();
         } else {
+            log.info("[PROPONENTE_LIST] Busca por termo: '{}'", termo);
             executarTarefaAssincrona(
                     () -> proponenteService.buscaRapida(termo.trim()),
                     MSG_TRIAGEM_BUSCA);
@@ -127,6 +137,7 @@ public class ProponenteListController implements Disposable {
 
     @FXML
     private void handleNovoProponente() {
+        log.info("[PROPONENTE_LIST] Usuário acionou 'Novo Proponente'");
         navigator.irParaNovoContato();
     }
 
@@ -134,7 +145,9 @@ public class ProponenteListController implements Disposable {
     // UTILITÁRIOS INTERNOS E FORMATAÇÃO (DRY & SRP)
     // =========================================================================
     private void atualizarContador() {
-        lblTotalRegistros.setText(String.format(MSG_TOTAL_REGISTROS, listaContatos.size()));
+        int total = listaContatos.size();
+        lblTotalRegistros.setText(String.format(MSG_TOTAL_REGISTROS, total));
+        log.trace("[PROPONENTE_LIST] Contador atualizado: {} contato(s)", total);
     }
 
     /**
@@ -150,6 +163,7 @@ public class ProponenteListController implements Disposable {
                     setGraphic(null);
                 } else {
                     setText(formatador.apply(item));
+                    log.trace("[PROPONENTE_LIST] Célula formatada: {}", formatador.apply(item));
                 }
             }
         });
@@ -159,27 +173,27 @@ public class ProponenteListController implements Disposable {
      * O MOTOR DA CLÍNICA: Gerencia o Maqueiro (Task) e a Sala de Espera (Loading).
      */
     private void executarTarefaAssincrona(Supplier<List<ProponenteModel>> acaoBusca, String mensagem) {
+        log.debug("[PROPONENTE_LIST] executarTarefaAssincrona: {}", mensagem);
         navigator.mostrarLoading(mensagem);
 
         AsyncUtils.executarTaskAsync(
-                acaoBusca::get, // Converte o Supplier no Callable esperado pelo AsyncUtils
+                acaoBusca::get,
                 resultado -> {
+                    log.info("[PROPONENTE_LIST] Tarefa concluída: {} registros retornados", resultado.size());
                     listaContatos.setAll(resultado);
                     atualizarContador();
                     navigator.ocultarLoading();
                 },
                 erro -> {
                     navigator.ocultarLoading();
-                    if (erro != null) {
-                        log.error("[CONTROLLER][PROPONENTE] Erro: {}", erro.getMessage(), erro);
-                    }
+                    log.error("[PROPONENTE_LIST] Erro na tarefa assíncrona: {}",
+                            erro != null ? erro.getMessage() : "exceção nula", erro);
                 });
     }
 
     @Override
     public void dispose() {
-        // Remove a inscrição para que o eventHub não mantenha
-        // referência a este objeto, permitindo que o Garbage Collector o limpe
+        log.info("[PROPONENTE_LIST] dispose: Desinscrevendo do event hub");
         eventHub.desinscrever(this::carregarDados);
     }
 }

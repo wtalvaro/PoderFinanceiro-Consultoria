@@ -11,7 +11,6 @@ import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 @Component
 public class LoginController {
 
@@ -53,6 +52,7 @@ public class LoginController {
         this.authService = authService;
         this.navigator = navigator;
         this.statusBarController = statusBarController;
+        log.debug("[LOGIN] Construtor: Controller instanciado");
     }
 
     // =========================================================================
@@ -60,7 +60,9 @@ public class LoginController {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.debug("[LOGIN] initialize: Iniciando configuração da tela de login");
         lblMensagem.setVisible(false);
+        log.info("[LOGIN] initialize: Configuração concluída");
     }
 
     // =========================================================================
@@ -70,8 +72,12 @@ public class LoginController {
     private void handleLogin() {
         String email = txtEmail.getText();
         String senha = txtSenha.getText();
+        log.debug("[LOGIN] handleLogin: Tentativa de login para email='{}'", email);
 
         if (isInputInvalido(email, senha)) {
+            log.warn("[LOGIN] handleLogin: Campos de login vazios (email vazio? {}, senha vazia? {})",
+                    email == null || email.isBlank(),
+                    senha == null || senha.isBlank());
             exibirErro(MSG_ERRO_CAMPOS_VAZIOS);
             return;
         }
@@ -86,6 +92,7 @@ public class LoginController {
 
     // 🚀 PATCH: Refatoração do fluxo de login para o AsyncUtils
     private void executarLoginAssincrono(String email, String senha) {
+        log.debug("[LOGIN] executarLoginAssincrono: Iniciando chamada assíncrona para autenticação");
         AsyncUtils.executarTaskAsync(
                 () -> authService.login(email, senha),
                 this::processarResultadoLogin,
@@ -94,18 +101,22 @@ public class LoginController {
 
     private void processarResultadoLogin(Boolean loginBemSucedido) {
         alternarEstadoCarregamento(false);
+        log.debug("[LOGIN] processarResultadoLogin: Resultado recebido = {}", loginBemSucedido);
 
         if (loginBemSucedido != null && loginBemSucedido) {
+            log.info("[LOGIN] Usuário autenticado com sucesso: email='{}'", txtEmail.getText());
             statusBarController.atualizarStatusUsuario();
-            txtSenha.clear(); // Limpa a senha por segurança
+            txtSenha.clear();
             navigator.navegarPara(ROTA_WORKSPACE, true);
         } else {
+            log.warn("[LOGIN] Falha na autenticação: credenciais inválidas para email='{}'", txtEmail.getText());
             exibirErro(MSG_ERRO_CREDENCIAIS);
         }
     }
 
     private void processarErroLogin(Throwable excecao) {
         alternarEstadoCarregamento(false);
+        log.error("[LOGIN] processarErroLogin: {}", MSG_ERRO_CONEXAO, excecao);
         exibirErro(MSG_ERRO_CONEXAO);
 
         if (excecao != null) {
@@ -118,10 +129,12 @@ public class LoginController {
     // =========================================================================
     @FXML
     private void handleIrParaCadastro() {
+        log.info("[LOGIN] Navegando para tela de cadastro");
         navigator.navegarPara(ROTA_CADASTRO, false);
     }
 
     private void alternarEstadoCarregamento(boolean isCarregando) {
+        log.trace("[LOGIN] alternarEstadoCarregamento: isCarregando={}", isCarregando);
         progress.setVisible(isCarregando);
         btnLogin.setDisable(isCarregando);
         txtEmail.setDisable(isCarregando);
@@ -133,6 +146,7 @@ public class LoginController {
     }
 
     private void exibirErro(String mensagem) {
+        log.debug("[LOGIN] exibirErro: {}", mensagem);
         lblMensagem.setText(mensagem);
         lblMensagem.setVisible(true);
     }

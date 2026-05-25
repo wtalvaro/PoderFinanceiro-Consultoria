@@ -22,9 +22,12 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 import javafx.util.converter.BigDecimalStringConverter;
 import org.controlsfx.control.PopOver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.net.URL;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,6 +37,8 @@ import java.util.List;
 
 @Component
 public class ComissoesController {
+
+    private static final Logger log = LoggerFactory.getLogger(ComissoesController.class);
 
     // =========================================================================
     // CONSTANTES (Clean Code & DRY)
@@ -106,29 +111,50 @@ public class ComissoesController {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.info("[COMISSOES] Inicializando ComissoesController...");
         configurarPopOver();
         configurarBloqueiosFinanceiros();
         configurarTabela();
         configurarFiltroReativo();
         configurarBindingsCicloFinanceiro();
         recarregarDados();
+        log.info("[COMISSOES] Inicialização concluída.");
     }
 
     private void configurarPopOver() {
+        log.debug("[COMISSOES][POPOVER] Configurando PopOver de ajuste...");
+
+        // Falha aqui causa NPE silencioso: o CSS não seria carregado e o PopOver
+        // ficaria sem estilo
+        URL cssUrl = getClass().getResource(CSS_POPOVER);
+        if (cssUrl == null) {
+            log.error("[COMISSOES][POPOVER] CRÍTICO: CSS '{}' não encontrado no classpath. " +
+                    "O PopOver será exibido sem estilo customizado.", CSS_POPOVER);
+        } else {
+            log.debug("[COMISSOES][POPOVER] CSS localizado: {}", cssUrl.toExternalForm());
+        }
+
         popOverAjuste = new PopOver(boxFormularioAjuste);
         popOverAjuste.setAnimated(false);
         popOverAjuste.setFadeInDuration(Duration.ZERO);
         popOverAjuste.setFadeOutDuration(Duration.ZERO);
-        popOverAjuste.getRoot().getStylesheets().add(getClass().getResource(CSS_POPOVER).toExternalForm());
+
+        if (cssUrl != null) {
+            popOverAjuste.getRoot().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
         popOverAjuste.setArrowSize(0);
         popOverAjuste.setTitle("Ajuste de Comissão");
         popOverAjuste.setHeaderAlwaysVisible(true);
         popOverAjuste.setDetachable(true);
         popOverAjuste.setCornerRadius(0);
+
+        log.debug("[COMISSOES][POPOVER] PopOver configurado com sucesso.");
     }
 
     private void configurarBloqueiosFinanceiros() {
-        // Bloqueio de integridade: Datas calculadas, não digitadas.
+        // Datas são calculadas pelo sistema — não devem ser editadas manualmente
+        log.debug("[COMISSOES][BLOQUEIO] Travando interação direta nos DatePickers (integridade financeira).");
         travarInteracaoDatePicker(dpRecebimentoBanco);
         travarInteracaoDatePicker(dpPrevisaoPagamento);
     }
@@ -145,13 +171,14 @@ public class ComissoesController {
     // CONFIGURAÇÃO DA TABELA E FILTROS
     // =========================================================================
     private void configurarTabela() {
+        log.debug("[COMISSOES][TABELA] Configurando colunas e interações da TableView...");
+
         colRecebBanco.setCellValueFactory(d -> formatarDataHora(d.getValue().getDataRecebimentoBanco()));
         colPrevisao.setCellValueFactory(d -> formatarDataSimples(d.getValue().getPrevisaoPagamento()));
-
         colCliente.setCellValueFactory(
                 d -> new SimpleStringProperty(d.getValue().getProposta().getProponente().getNomeCompleto()));
-        colBanco.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProposta().getBanco().getNome()));
-
+        colBanco.setCellValueFactory(
+                d -> new SimpleStringProperty(d.getValue().getProposta().getBanco().getNome()));
         colValorBruto.setCellValueFactory(d -> new SimpleStringProperty(
                 FinanceiroUtils.formatarParaExibicao(d.getValue().getValorBrutoComissao())));
         colVlrPago.setCellValueFactory(d -> new SimpleStringProperty(
@@ -159,6 +186,8 @@ public class ComissoesController {
 
         configurarCelulaStatus();
         configurarInteracaoLinhas();
+
+        log.debug("[COMISSOES][TABELA] Configuração de colunas concluída.");
     }
 
     private void configurarCelulaStatus() {
@@ -170,8 +199,7 @@ public class ComissoesController {
                     setText(null);
                     setGraphic(null);
                 } else {
-                    ComissaoModel c = getTableRow().getItem();
-                    aplicarEstiloStatus(this, c);
+                    aplicarEstiloStatus(this, getTableRow().getItem());
                 }
             }
         });
@@ -199,6 +227,8 @@ public class ComissoesController {
             TableRow<ComissaoModel> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    log.debug("[COMISSOES][TABELA] Duplo clique na comissão ID={} | status='{}'",
+                            row.getItem().getId(), row.getItem().getStatusPagamento());
                     prepararAjuste(row.getItem(), row);
                 }
             });
@@ -211,11 +241,20 @@ public class ComissoesController {
 
         txtBusca.textProperty().addListener((obs, old, newValue) -> {
             filteredData.setPredicate(comissao -> atendeCriterioDeBusca(comissao, newValue));
+
+            long totalFiltrado = masterData.stream()
+                    .filter(c -> atendeCriterioDeBusca(c, newValue))
+                    .count();
+            log.debug("[COMISSOES][FILTRO] Termo='{}' → {}/{} comissão(ões) exibida(s).",
+                    newValue, totalFiltrado, masterData.size());
         });
 
         SortedList<ComissaoModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tableComissoes.comparatorProperty());
         tableComissoes.setItems(sortedData);
+
+        log.debug("[COMISSOES][FILTRO] Filtro reativo configurado sobre {} registro(s) em masterData.",
+                masterData.size());
     }
 
     private boolean atendeCriterioDeBusca(ComissaoModel comissao, String termo) {
@@ -232,11 +271,13 @@ public class ComissoesController {
     // BINDINGS E CICLO FINANCEIRO
     // =========================================================================
     private void configurarBindingsCicloFinanceiro() {
+        log.debug("[COMISSOES][BINDING] Configurando bindings bidirecionais do ViewModel...");
         vincularDatas();
         vincularStatus();
         vincularConferencia();
         vincularValores();
         txtObservacao.textProperty().bindBidirectional(viewModel.observacaoAjusteProperty());
+        log.debug("[COMISSOES][BINDING] Todos os bindings configurados com sucesso.");
     }
 
     private void vincularDatas() {
@@ -268,11 +309,20 @@ public class ComissoesController {
 
     private void aplicarTravaHorarioQuinta() {
         LocalDateTime agora = LocalDateTime.now();
-        boolean prazoUltrapassado = agora.getDayOfWeek() == DayOfWeek.THURSDAY && agora.getHour() >= 15;
+        boolean isQuinta = agora.getDayOfWeek() == DayOfWeek.THURSDAY;
+        boolean prazoUltrapassado = isQuinta && agora.getHour() >= 15;
 
+        // Regra de negócio crítica: log permite auditar quando a trava foi ou não
+        // aplicada
         if (prazoUltrapassado) {
             cbVerificado.setDisable(true);
             cbVerificado.setTooltip(new Tooltip("Prazo de conferência encerrado às 15:00h."));
+            log.info("[COMISSOES][CICLO] Trava de quinta-feira aplicada. " +
+                    "Hora atual={}h — campo 'Verificado' desabilitado.", agora.getHour());
+        } else {
+            log.debug("[COMISSOES][CICLO] Trava de quinta-feira NÃO aplicada. " +
+                    "Dia={} | Hora={}h (trava só ativa quinta >= 15h).",
+                    agora.getDayOfWeek(), agora.getHour());
         }
     }
 
@@ -280,6 +330,8 @@ public class ComissoesController {
     // COMUNICAÇÃO DE DADOS
     // =========================================================================
     public void recarregarDados() {
+        log.info("[COMISSOES][DADOS] Iniciando recarga de comissões...");
+        long inicio = System.currentTimeMillis();
         navigator.mostrarLoading(MSG_SYNC_CAIXA);
 
         List<ComissaoModel> dados = repository.findAllComDetalhes();
@@ -288,6 +340,17 @@ public class ComissoesController {
         contextoService.setComissoesAtivas(dados);
 
         navigator.ocultarLoading();
+
+        long tempo = System.currentTimeMillis() - inicio;
+        // Contadores por status ajudam a detectar dados inconsistentes no banco
+        long qtdPagas = dados.stream().filter(c -> STATUS_PAGO.equalsIgnoreCase(c.getStatusPagamento())).count();
+        long qtdPendentes = dados.stream().filter(c -> STATUS_PENDENTE.equalsIgnoreCase(c.getStatusPagamento()))
+                .count();
+        long qtdContestadas = dados.stream().filter(ComissaoModel::isContestada).count();
+
+        log.info("[COMISSOES][DADOS] {} comissão(ões) carregada(s) em {}ms. " +
+                "Pagas={} | Pendentes={} | Contestadas={}",
+                dados.size(), tempo, qtdPagas, qtdPendentes, qtdContestadas);
     }
 
     private void atualizarCardsResumo(List<ComissaoModel> comissoes) {
@@ -296,6 +359,11 @@ public class ComissoesController {
 
         lblTotalPendente.setText(FinanceiroUtils.formatarParaExibicao(totalPendente));
         lblTotalRecebido.setText(FinanceiroUtils.formatarParaExibicao(totalRecebido));
+
+        // Totais financeiros são o dado mais crítico da tela — sempre info, nunca debug
+        log.info("[COMISSOES][RESUMO] Totais atualizados. Pendente={} | Recebido={}",
+                FinanceiroUtils.formatarParaExibicao(totalPendente),
+                FinanceiroUtils.formatarParaExibicao(totalRecebido));
     }
 
     private BigDecimal somarValoresPorStatus(List<ComissaoModel> comissoes, boolean isRecebido) {
@@ -312,11 +380,19 @@ public class ComissoesController {
     // INTERFACE DE AJUSTE (MODAL/POPOVER)
     // =========================================================================
     private void prepararAjuste(ComissaoModel comissao, Node anchor) {
+        log.info("[COMISSOES][AJUSTE] Abrindo ajuste. ID={} | Status='{}' | Valor bruto={} | Ciclo='{}'",
+                comissao.getId(),
+                comissao.getStatusPagamento(),
+                FinanceiroUtils.formatarParaExibicao(comissao.getValorBrutoComissao()),
+                comissao.getCicloReferencia() != null ? comissao.getCicloReferencia() : "a calcular");
+
         viewModel.loadFromModel(comissao);
         carregarDatasNoFormulario(comissao);
 
         lblTituloModal.setText("Conciliação: " + comissao.getProposta().getProponente().getNomeCompleto());
-        lblCicloBadge.setText("Ciclo: " + resolverNomeCiclo(comissao));
+
+        String nomeCiclo = resolverNomeCiclo(comissao);
+        lblCicloBadge.setText("Ciclo: " + nomeCiclo);
 
         atualizarEstadoInterfaceCiclo(comissao);
         exibirPopOverCentralizado();
@@ -325,49 +401,88 @@ public class ComissoesController {
     private void carregarDatasNoFormulario(ComissaoModel comissao) {
         if (comissao.getDataRecebimentoBanco() != null) {
             dpRecebimentoBanco.setValue(comissao.getDataRecebimentoBanco().toLocalDate());
+            log.debug("[COMISSOES][AJUSTE] Data recebimento banco: {}",
+                    comissao.getDataRecebimentoBanco().format(FMT_DATA_HORA));
+        } else {
+            log.debug("[COMISSOES][AJUSTE] Comissão ID={} sem data de recebimento banco.", comissao.getId());
         }
+
         if (comissao.getPrevisaoPagamento() != null) {
             dpPrevisaoPagamento.setValue(comissao.getPrevisaoPagamento());
+            log.debug("[COMISSOES][AJUSTE] Previsão de pagamento: {}",
+                    comissao.getPrevisaoPagamento().format(FMT_DATA));
+        } else {
+            log.debug("[COMISSOES][AJUSTE] Comissão ID={} sem previsão de pagamento definida.", comissao.getId());
         }
     }
 
     private String resolverNomeCiclo(ComissaoModel comissao) {
-        String cicloBadge = comissao.getCicloReferencia();
-        if (cicloBadge == null && comissao.getDataRecebimentoBanco() != null) {
-            cicloBadge = CicloFinanceiroUtils.identificarCiclo(comissao.getDataRecebimentoBanco());
+        String ciclo = comissao.getCicloReferencia();
+
+        if (ciclo != null) {
+            log.debug("[COMISSOES][CICLO] Ciclo obtido do registro: '{}'", ciclo);
+            return ciclo;
         }
-        return cicloBadge != null ? cicloBadge : "Legado";
+
+        if (comissao.getDataRecebimentoBanco() != null) {
+            ciclo = CicloFinanceiroUtils.identificarCiclo(comissao.getDataRecebimentoBanco());
+            log.debug("[COMISSOES][CICLO] Ciclo calculado via data de recebimento: '{}'", ciclo);
+            return ciclo;
+        }
+
+        // Comissão sem ciclo nem data de recebimento — pode indicar dado incompleto
+        log.warn("[COMISSOES][CICLO] Comissão ID={} sem ciclo de referência e sem data de recebimento. " +
+                "Classificada como 'Legado'.", comissao.getId());
+        return "Legado";
     }
 
     private void atualizarEstadoInterfaceCiclo(ComissaoModel comissao) {
         LocalDateTime agora = LocalDateTime.now();
+
         boolean jaLiquidado = STATUS_PAGO.equalsIgnoreCase(comissao.getStatusPagamento()) ||
                 STATUS_LIQUIDADO.equalsIgnoreCase(comissao.getStatusPagamento());
 
         boolean prazoContestacaoExpirado = comissao.getDataLimiteContestacao() != null &&
                 agora.isAfter(comissao.getDataLimiteContestacao());
 
+        // Estado do ciclo financeiro é a decisão mais importante deste bloco —
+        // determina quais campos ficam editáveis. Sempre info.
         if (jaLiquidado) {
+            log.info("[COMISSOES][CICLO] Estado: LIQUIDADO. ID={} | Status='{}'. Todos os campos bloqueados.",
+                    comissao.getId(), comissao.getStatusPagamento());
             configurarSemoforo("✅ CICLO LIQUIDADO: Registro imutável e Arquivado.",
                     "-color-success-subtle", "-color-success-emphasis", true, true);
+
         } else if (prazoContestacaoExpirado) {
+            log.info("[COMISSOES][CICLO] Estado: AGUARDANDO LIQUIDAÇÃO. ID={} | Prazo limite expirado em '{}'.",
+                    comissao.getId(),
+                    comissao.getDataLimiteContestacao().format(FMT_DATA_HORA));
             configurarSemoforo("🟡 AGUARDANDO LIQUIDAÇÃO: O prazo de contestação do consultor expirou.",
                     "-color-warning-subtle", "-color-warning-emphasis", true, false);
+
         } else {
+            String prazoStr = comissao.getDataLimiteContestacao() != null
+                    ? comissao.getDataLimiteContestacao().format(FMT_DATA_HORA)
+                    : "não definido";
+            log.info("[COMISSOES][CICLO] Estado: ABERTO. ID={} | Prazo de contestação: '{}'.",
+                    comissao.getId(), prazoStr);
             configurarSemoforo("🔵 CICLO ABERTO: Conferência do consultor disponível até Quinta às 15:00.",
                     "-color-accent-subtle", "-color-accent-emphasis", false, false);
         }
     }
 
-    private void configurarSemoforo(String texto, String corFundo, String corTexto, boolean travarConsultor,
-            boolean travarTudo) {
+    private void configurarSemoforo(String texto, String corFundo, String corTexto,
+            boolean travarConsultor, boolean travarTudo) {
         lblStatusCiclo.setText(texto);
-        bannerStatusCiclo
-                .setStyle("-fx-background-color: " + corFundo + "; -fx-padding: 10; -fx-background-radius: 5;");
+        bannerStatusCiclo.setStyle(
+                "-fx-background-color: " + corFundo + "; -fx-padding: 10; -fx-background-radius: 5;");
         lblStatusCiclo.setStyle("-fx-text-fill: " + corTexto + "; -fx-font-weight: bold;");
 
         alternarEstadoCamposConsultor(travarConsultor);
         alternarEstadoCamposGestor(travarTudo);
+
+        log.debug("[COMISSOES][CICLO] Semáforo aplicado. travarConsultor={} | travarGestor={}",
+                travarConsultor, travarTudo);
     }
 
     private void alternarEstadoCamposConsultor(boolean travar) {
@@ -403,27 +518,55 @@ public class ComissoesController {
         popOverAjuste.setX(x);
         popOverAjuste.setY(y);
         popOverAjuste.setOpacity(1);
+
+        log.debug("[COMISSOES][POPOVER] PopOver exibido. Posição: x={} y={}", (int) x, (int) y);
     }
 
     @FXML
     private void salvarAjuste() {
-        if (viewModel.isDirty()) {
-            repository.findById(viewModel.idProperty().get()).ifPresent(comissaoDoBanco -> {
-                ComissaoModel paraSalvar = viewModel.atualizarModel(comissaoDoBanco);
-                repository.save(paraSalvar);
-                recarregarDados();
-            });
+        Long idComissao = viewModel.idProperty().get();
+        boolean dirty = viewModel.isDirty();
+
+        log.info("[COMISSOES][SALVAR] Solicitação de salvamento. ID={} | dirty={}",
+                idComissao, dirty);
+
+        if (!dirty) {
+            log.info("[COMISSOES][SALVAR] Nenhuma alteração detectada. Salvamento ignorado. ID={}", idComissao);
+            fecharModal();
+            return;
         }
+
+        repository.findById(idComissao).ifPresentOrElse(
+                comissaoDoBanco -> {
+                    ComissaoModel paraSalvar = viewModel.atualizarModel(comissaoDoBanco);
+                    try {
+                        repository.save(paraSalvar);
+                        log.info("[COMISSOES][SALVAR] Comissão ID={} salva com sucesso. " +
+                                "Novo status='{}' | Valor pago={}",
+                                paraSalvar.getId(),
+                                paraSalvar.getStatusPagamento(),
+                                FinanceiroUtils.formatarParaExibicao(paraSalvar.getValorPagoPelaPoder()));
+                        recarregarDados();
+                    } catch (Exception ex) {
+                        log.error("[COMISSOES][SALVAR] FALHA ao persistir comissão ID={}. Erro: {}",
+                                idComissao, ex.getMessage(), ex);
+                    }
+                },
+                () -> log.error("[COMISSOES][SALVAR] CRÍTICO: Comissão ID={} não encontrada no banco " +
+                        "para atualização. Dado pode ter sido removido externamente.", idComissao));
+
         fecharModal();
     }
 
     @FXML
     private void fecharModal() {
+        log.debug("[COMISSOES][MODAL] Fechando PopOver de ajuste.");
         if (popOverAjuste != null && popOverAjuste.isShowing()) {
             popOverAjuste.hide();
         }
         viewModel.reset();
         dpRecebimentoBanco.setValue(null);
+        log.debug("[COMISSOES][MODAL] ViewModel resetado e DatePicker limpo.");
     }
 
     // =========================================================================
@@ -449,7 +592,9 @@ public class ComissoesController {
                 if (string != null && !string.isBlank()) {
                     try {
                         return LocalDate.parse(string, FMT_DATA);
-                    } catch (DateTimeParseException ignored) {
+                    } catch (DateTimeParseException e) {
+                        log.warn("[COMISSOES][CONVERSOR] Falha ao parsear data '{}'. " +
+                                "Formato esperado: dd/MM/yyyy.", string);
                     }
                 }
                 return null;
@@ -463,10 +608,14 @@ public class ComissoesController {
             public BigDecimal fromString(String value) {
                 if (value == null || value.isBlank())
                     return BigDecimal.ZERO;
+
                 String limpo = value.replaceAll("[R$\\s]", "").replace(",", ".");
                 try {
                     return new BigDecimal(limpo);
                 } catch (NumberFormatException e) {
+                    // Era silencioso no original — em campo financeiro, isso deve ser visível
+                    log.warn("[COMISSOES][CONVERSOR] Valor financeiro '{}' inválido após limpeza ('{}'). " +
+                            "Retornando ZERO.", value, limpo);
                     return BigDecimal.ZERO;
                 }
             }

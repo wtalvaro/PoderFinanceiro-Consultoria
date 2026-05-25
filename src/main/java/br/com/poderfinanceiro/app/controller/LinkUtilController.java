@@ -18,6 +18,8 @@ import javafx.scene.Cursor;
 import org.springframework.stereotype.Component;
 
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class LinkUtilController {
@@ -27,6 +29,8 @@ public class LinkUtilController {
     // =========================================================================
     private static final String MSG_TITULO_PADRAO = "🔗 Gestão de Links e Atalhos";
     private static final String MSG_TITULO_EDICAO = "✏️ Editando: ";
+
+    private static final Logger log = LoggerFactory.getLogger(LinkUtilController.class);
 
     // =========================================================================
     // DEPENDÊNCIAS DE UI E FXML
@@ -61,6 +65,7 @@ public class LinkUtilController {
     public LinkUtilController(LinkUtilRepository repository, HostServices hostServices) {
         this.repository = repository;
         this.hostServices = hostServices;
+        log.debug("[LINK_UTIL] Construtor: Controller instanciado");
     }
 
     // =========================================================================
@@ -68,23 +73,30 @@ public class LinkUtilController {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.debug("[LINK_UTIL] initialize: Iniciando configuração da gestão de links");
         configurarComboCategoria();
         configurarTabela();
         configurarBuscaReativa();
         recarregarLinks();
+        log.info("[LINK_UTIL] initialize: Configuração concluída");
     }
 
     private void configurarComboCategoria() {
+        log.debug("[LINK_UTIL] configurarComboCategoria: Carregando categorias no combobox");
         configurarCombo(comboCategoria, CategoriaLinkModel.values(), CategoriaLinkModel::fromString);
+        log.trace("[LINK_UTIL] configurarComboCategoria: {} categorias disponíveis",
+                CategoriaLinkModel.values().length);
     }
 
     private void configurarTabela() {
+        log.debug("[LINK_UTIL] configurarTabela: Configurando colunas da tabela de links");
         colCategoria.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategoria().getLabel()));
         colTitulo.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTitulo()));
         colDescricao.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getDescricao() != null ? data.getValue().getDescricao() : ""));
 
         configurarColunaAcoes();
+        log.debug("[LINK_UTIL] configurarTabela: Tabela configurada");
     }
 
     private <T extends Enum<T> & LabeledModel> void configurarCombo(ComboBox<T> combo, T[] values,
@@ -101,12 +113,14 @@ public class LinkUtilController {
                 return searcher.apply(str);
             }
         });
+        log.trace("[LINK_UTIL] configurarCombo: Combo configurado com {} itens", values.length);
     }
 
     // =========================================================================
     // COLUNA DE AÇÕES DA TABELA (SRP & DRY Aplicados)
     // =========================================================================
     private void configurarColunaAcoes() {
+        log.debug("[LINK_UTIL] configurarColunaAcoes: Configurando coluna de ações (abrir, editar, excluir)");
         colAcao.setCellFactory(param -> new TableCell<>() {
             private final Button btnAbrir = criarBotao("🌐", "flat");
             private final Button btnEditar = criarBotao("✏️", "flat");
@@ -114,9 +128,21 @@ public class LinkUtilController {
             private final HBox container = new HBox(5, btnAbrir, btnEditar, btnExcluir);
 
             {
-                btnAbrir.setOnAction(e -> abrirUrlNoNavegador(getLinkAtual()));
-                btnEditar.setOnAction(e -> prepararEdicao(getLinkAtual()));
-                btnExcluir.setOnAction(e -> handleExcluir(getLinkAtual()));
+                btnAbrir.setOnAction(e -> {
+                    log.debug("[LINK_UTIL] Botão 'Abrir' clicado para link: {}",
+                            getLinkAtual() != null ? getLinkAtual().getTitulo() : "null");
+                    abrirUrlNoNavegador(getLinkAtual());
+                });
+                btnEditar.setOnAction(e -> {
+                    log.debug("[LINK_UTIL] Botão 'Editar' clicado para link: {}",
+                            getLinkAtual() != null ? getLinkAtual().getTitulo() : "null");
+                    prepararEdicao(getLinkAtual());
+                });
+                btnExcluir.setOnAction(e -> {
+                    log.debug("[LINK_UTIL] Botão 'Excluir' clicado para link: {}",
+                            getLinkAtual() != null ? getLinkAtual().getTitulo() : "null");
+                    handleExcluir(getLinkAtual());
+                });
             }
 
             private LinkUtilModel getLinkAtual() {
@@ -135,6 +161,7 @@ public class LinkUtilController {
         Button btn = new Button(icone);
         btn.setCursor(Cursor.HAND);
         btn.getStyleClass().addAll(styleClasses);
+        log.trace("[LINK_UTIL] criarBotao: Botão com ícone '{}' criado", icone);
         return btn;
     }
 
@@ -142,9 +169,11 @@ public class LinkUtilController {
     // FILTRO E BUSCA REATIVA
     // =========================================================================
     private void configurarBuscaReativa() {
+        log.debug("[LINK_UTIL] configurarBuscaReativa: Configurando filtro de busca reativo");
         FilteredList<LinkUtilModel> filteredData = new FilteredList<>(masterData, p -> true);
 
         txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
+            log.debug("[LINK_UTIL] Busca alterada: '{}' -> '{}'", oldValue, newValue);
             filteredData.setPredicate(link -> atendeCriterioDeBusca(link, newValue));
         });
 
@@ -159,11 +188,15 @@ public class LinkUtilController {
             return true;
 
         String termo = filtro.toLowerCase();
-
-        return contemTermo(link.getTitulo(), termo) ||
+        boolean matches = contemTermo(link.getTitulo(), termo) ||
                 contemTermo(link.getDescricao(), termo) ||
                 contemTermo(link.getCategoria() != null ? link.getCategoria().getLabel() : null, termo) ||
                 contemTermo(link.getTags(), termo);
+        if (matches) {
+            log.trace("[LINK_UTIL] atendeCriterioDeBusca: Link '{}' corresponde ao termo '{}'", link.getTitulo(),
+                    termo);
+        }
+        return matches;
     }
 
     private boolean contemTermo(String valor, String termo) {
@@ -175,22 +208,32 @@ public class LinkUtilController {
     // =========================================================================
     @FXML
     private void handleSalvar() {
-        if (isFormularioInvalido())
+        log.debug("[LINK_UTIL] handleSalvar: Iniciando salvamento de link");
+        if (isFormularioInvalido()) {
+            log.warn("[LINK_UTIL] handleSalvar: Formulário inválido (campos obrigatórios não preenchidos)");
             return;
+        }
 
         LinkUtilModel link = (linkEmEdicao != null) ? linkEmEdicao : new LinkUtilModel();
         preencherModeloComFormulario(link);
-
+        log.info("[LINK_UTIL] handleSalvar: Salvando link '{}' (edição={})", link.getTitulo(), linkEmEdicao != null);
         repository.save(link);
         limparFormulario();
         recarregarLinks();
     }
 
     private boolean isFormularioInvalido() {
-        return txtTitulo.getText().isBlank() || txtUrl.getText().isBlank() || comboCategoria.getValue() == null;
+        boolean invalido = txtTitulo.getText().isBlank() || txtUrl.getText().isBlank()
+                || comboCategoria.getValue() == null;
+        if (invalido) {
+            log.debug("[LINK_UTIL] isFormularioInvalido: true (titulo vazio={}, url vazia={}, categoria nula={})",
+                    txtTitulo.getText().isBlank(), txtUrl.getText().isBlank(), comboCategoria.getValue() == null);
+        }
+        return invalido;
     }
 
     private void preencherModeloComFormulario(LinkUtilModel link) {
+        log.trace("[LINK_UTIL] preencherModeloComFormulario: Preenchendo modelo com dados da UI");
         link.setTitulo(txtTitulo.getText());
         link.setUrl(txtUrl.getText());
         link.setDescricao(txtDescricao.getText());
@@ -199,9 +242,12 @@ public class LinkUtilController {
     }
 
     private void prepararEdicao(LinkUtilModel link) {
-        if (link == null)
+        if (link == null) {
+            log.warn("[LINK_UTIL] prepararEdicao: Tentativa de editar link nulo");
             return;
+        }
 
+        log.info("[LINK_UTIL] prepararEdicao: Preparando edição do link '{}' (ID={})", link.getTitulo(), link.getId());
         this.linkEmEdicao = link;
         txtTitulo.setText(link.getTitulo());
         txtUrl.setText(link.getUrl());
@@ -216,15 +262,19 @@ public class LinkUtilController {
     }
 
     private void handleExcluir(LinkUtilModel link) {
-        if (link == null)
+        if (link == null) {
+            log.warn("[LINK_UTIL] handleExcluir: Tentativa de excluir link nulo");
             return;
+        }
 
+        log.info("[LINK_UTIL] handleExcluir: Excluindo link '{}' (ID={})", link.getTitulo(), link.getId());
         repository.delete(link);
         recarregarLinks();
     }
 
     @FXML
     private void limparFormulario() {
+        log.debug("[LINK_UTIL] limparFormulario: Resetando formulário e modo de edição");
         this.linkEmEdicao = null;
 
         txtTitulo.clear();
@@ -240,12 +290,20 @@ public class LinkUtilController {
     // INTEGRAÇÕES EXTERNAS E COMUNICAÇÃO
     // =========================================================================
     public void recarregarLinks() {
-        masterData.setAll(repository.findAllByOrderByCategoriaAscTituloAsc());
+        log.debug("[LINK_UTIL] recarregarLinks: Recarregando lista de links do repositório");
+        var links = repository.findAllByOrderByCategoriaAscTituloAsc();
+        masterData.setAll(links);
+        log.info("[LINK_UTIL] recarregarLinks: {} links carregados", links.size());
     }
 
     private void abrirUrlNoNavegador(LinkUtilModel link) {
         if (link != null && link.getUrl() != null && !link.getUrl().isBlank()) {
+            log.info("[LINK_UTIL] abrirUrlNoNavegador: Abrindo URL '{}' para link '{}'", link.getUrl(),
+                    link.getTitulo());
             hostServices.showDocument(link.getUrl());
+        } else {
+            log.warn("[LINK_UTIL] abrirUrlNoNavegador: Tentativa de abrir URL inválida para link {}",
+                    link != null ? link.getTitulo() : "nulo");
         }
     }
 }

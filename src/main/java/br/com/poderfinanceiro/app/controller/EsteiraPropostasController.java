@@ -128,6 +128,7 @@ public class EsteiraPropostasController implements Disposable {
         this.propostaService = propostaService;
         this.context = context;
         this.eventHub = eventHub;
+        log.debug("[ESTEIRA] Construtor: Controller instanciado (escopo prototype)");
     }
 
     // =========================================================================
@@ -135,21 +136,23 @@ public class EsteiraPropostasController implements Disposable {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.debug("[ESTEIRA] initialize: Iniciando configuração da esteira de propostas");
         configurarTabela();
         configurarFiltroReativo();
         recarregarDados();
-
-        // 🚀 O Hub agora só precisa mandar recarregar os dados
         eventHub.inscrever(this::recarregarDados);
+        log.info("[ESTEIRA] initialize: Configuração concluída e inscrição no evento realizada");
     }
 
     // =========================================================================
     // CONFIGURAÇÃO DA TABELA (SRP)
     // =========================================================================
     private void configurarTabela() {
+        log.debug("[ESTEIRA] configurarTabela: Configurando colunas e eventos da tabela");
         configurarColunasDados();
         configurarColunaStatus();
         configurarEventosSelecao();
+        log.trace("[ESTEIRA] configurarTabela: Tabela configurada");
     }
 
     private void configurarColunasDados() {
@@ -158,9 +161,11 @@ public class EsteiraPropostasController implements Disposable {
         colBanco.setCellValueFactory(
                 d -> textoOuHifen(d.getValue().getBanco() != null ? d.getValue().getBanco().getNome() : null));
         colValorSol.setCellValueFactory(d -> formatarMoeda(d.getValue().getValorSolicitado()));
+        log.trace("[ESTEIRA] configurarColunasDados: Colunas de dados configuradas");
     }
 
     private void configurarColunaStatus() {
+        log.debug("[ESTEIRA] configurarColunaStatus: Configurando coluna de status com cores");
         colStatus.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -175,13 +180,19 @@ public class EsteiraPropostasController implements Disposable {
                 setText(p.getStatus().name().replace("_", " "));
                 setTextFill(corDoStatus(p.getStatus()));
                 setStyle(p.getStatus() == StatusPropostaModel.PAGO ? "-fx-font-weight: bold;" : "");
+                log.trace("[ESTEIRA] colunaStatus: Proposta ID={} status={}", p.getId(), p.getStatus());
             }
         });
     }
 
     private void configurarEventosSelecao() {
+        log.debug("[ESTEIRA] configurarEventosSelecao: Adicionando listener de seleção da tabela");
         tablePropostas.getSelectionModel().selectedItemProperty().addListener((obs, old, novaProposta) -> {
+            log.debug("[ESTEIRA] Seleção alterada: old={}, new={}",
+                    old != null ? old.getId() : "null",
+                    novaProposta != null ? novaProposta.getId() : "null");
             if (isRevertendoSelecao) {
+                log.trace("[ESTEIRA] Revertendo seleção, ignorando evento");
                 isRevertendoSelecao = false;
                 return;
             }
@@ -195,9 +206,13 @@ public class EsteiraPropostasController implements Disposable {
     // FILTROS E BUSCA
     // =========================================================================
     private void configurarFiltroReativo() {
+        log.debug("[ESTEIRA] configurarFiltroReativo: Configurando filtro de busca reativo");
         FilteredList<PropostaModel> filteredData = new FilteredList<>(masterData, p -> true);
         txtBusca.textProperty()
-                .addListener((obs, old, newValue) -> filteredData.setPredicate(criarPredicadoBusca(newValue)));
+                .addListener((obs, old, newValue) -> {
+                    log.debug("[ESTEIRA] Busca alterada: '{}' -> '{}'", old, newValue);
+                    filteredData.setPredicate(criarPredicadoBusca(newValue));
+                });
 
         SortedList<PropostaModel> sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tablePropostas.comparatorProperty());
@@ -209,59 +224,64 @@ public class EsteiraPropostasController implements Disposable {
             return p -> true;
 
         String termo = filtro.trim().toLowerCase();
+        log.trace("[ESTEIRA] criarPredicadoBusca: termo='{}'", termo);
 
         // 1. Lógica para Busca Financeira (Valores)
         try {
-            // Remove formatação para converter
             String valorLimpo = termo.replaceAll("[^0-9,.]", "").replace(',', '.');
 
-            // Intervalo (ex: 1000 - 5000)
             if (termo.contains("-")) {
                 String[] partes = termo.split("-");
                 BigDecimal min = new BigDecimal(partes[0].replaceAll("[^0-9,.]", "").replace(',', '.'));
                 BigDecimal max = new BigDecimal(partes[1].replaceAll("[^0-9,.]", "").replace(',', '.'));
+                log.trace("[ESTEIRA] Filtro por intervalo: min={}, max={}", min, max);
                 return p -> p.getValorSolicitado().compareTo(min) >= 0 && p.getValorSolicitado().compareTo(max) <= 0;
             }
 
-            // Maior que (ex: > 5000)
             if (termo.startsWith(">")) {
                 BigDecimal valor = new BigDecimal(valorLimpo);
+                log.trace("[ESTEIRA] Filtro maior que: valor={}", valor);
                 return p -> p.getValorSolicitado().compareTo(valor) > 0;
             }
 
-            // Menor que (ex: < 1000)
             if (termo.startsWith("<")) {
                 BigDecimal valor = new BigDecimal(valorLimpo);
+                log.trace("[ESTEIRA] Filtro menor que: valor={}", valor);
                 return p -> p.getValorSolicitado().compareTo(valor) < 0;
             }
         } catch (Exception e) {
-            // Se não for um valor financeiro válido, ignora e segue para busca textual
+            log.trace("[ESTEIRA] Busca financeira não aplicável: {}", e.getMessage());
         }
 
-        // 2. Lógica de Busca Textual (Padrão)
+        // 2. Lógica de Busca Textual
         return p -> {
             String nome = p.getProponente().getNomeCompleto().toLowerCase();
             String cpf = p.getProponente().getCpf().replaceAll("[^0-9]", "");
             String banco = p.getBanco() != null ? p.getBanco().getNome().toLowerCase() : "";
             String status = p.getStatus().name().toLowerCase().replace("_", " ");
 
-            return nome.contains(termo) || cpf.contains(termo) || banco.contains(termo) || status.contains(termo);
+            boolean matches = nome.contains(termo) || cpf.contains(termo) || banco.contains(termo)
+                    || status.contains(termo);
+            if (matches)
+                log.trace("[ESTEIRA] Filtro textual match para termo '{}' na proposta ID={}", termo, p.getId());
+            return matches;
         };
     }
 
-    // 🚀 PATCH: recarregarDados agora é async para não congelar a UI na
-    // inicialização
     @FXML
     public void recarregarDados() {
+        log.info("[ESTEIRA] recarregarDados: Iniciando recarga assíncrona dos dados");
         AsyncUtils.executarTaskAsync(
-                repository::findAllComDetalhes,
+                () -> {
+                    log.debug("[ESTEIRA] recarregarDados: Buscando findAllComDetalhes");
+                    return repository.findAllComDetalhes();
+                },
                 dados -> {
-                    masterData.setAll(dados); // 1. Atualiza a lista visual com o banco real
-
-                    // 🚀 2. AGORA SIM: Valida o formulário ativo com a lista já atualizada!
+                    log.info("[ESTEIRA] recarregarDados: {} propostas carregadas", dados.size());
+                    masterData.setAll(dados);
                     limparPainelSeExcluido();
                 },
-                erro -> log.error("Erro crítico ao recarregar dados da esteira", erro));
+                erro -> log.error("[ESTEIRA] recarregarDados: Erro crítico ao recarregar dados", erro));
     }
 
     // =========================================================================
@@ -269,12 +289,17 @@ public class EsteiraPropostasController implements Disposable {
     // =========================================================================
     @FXML
     public void criarNovaProposta() {
+        log.info("[ESTEIRA] criarNovaProposta: Criando nova proposta (limpa formulário)");
         abrirFormularioComProposta(new PropostaModel(), null);
         tablePropostas.getSelectionModel().clearSelection();
     }
 
     private void abrirFormularioComProposta(PropostaModel proposta, PropostaModel oldSelection) {
+        log.debug("[ESTEIRA] abrirFormularioComProposta: Proposta ID={}, oldSelection ID={}",
+                proposta != null ? proposta.getId() : "null",
+                oldSelection != null ? oldSelection.getId() : "null");
         if (formController != null && formController.getViewModel().isDirty()) {
+            log.warn("[ESTEIRA] Formulário com alterações não salvas. Solicitando confirmação para descarte.");
             solicitarConfirmacao(
                     "⚠️ Alterações Não Salvas",
                     "Tem alterações não guardadas no formulário ativo. Deseja descartá-las para abrir este registo?",
@@ -286,65 +311,72 @@ public class EsteiraPropostasController implements Disposable {
         }
     }
 
-    // 🚀 PATCH: EsteiraPropostasController.java
     private void carregarPropostaNoFormulario(PropostaModel proposta) {
+        log.debug("[ESTEIRA] carregarPropostaNoFormulario: Carregando proposta ID={}",
+                proposta != null ? proposta.getId() : "null");
         try {
             garantirFormularioCarregado();
 
-            if (proposta.getId() != null) {
+            if (proposta != null && proposta.getId() != null) {
                 carregarPropostaExistenteAssincrono(proposta.getId());
             } else {
-                // 🚀 CORREÇÃO: Agora a Esteira delega para o PropostaController assumir o
-                // controle total,
-                // garantindo que os bloqueios e sincronizações visuais sejam resetados!
                 formController.carregarProposta(proposta);
                 exibirPainelFormulario();
+                log.debug("[ESTEIRA] Nova proposta carregada no formulário");
             }
         } catch (IOException e) {
+            log.error("[ESTEIRA] Falha ao carregar formulário de proposta", e);
             throw new RuntimeException("Falha ao carregar formulário de proposta", e);
         }
     }
 
-    // 🚀 PATCH: carregarPropostaExistenteAssincrono delegando para AsyncUtils
     private void carregarPropostaExistenteAssincrono(Long id) {
+        log.debug("[ESTEIRA] carregarPropostaExistenteAssincrono: Buscando proposta ID={}", id);
         AsyncUtils.executarTaskAsync(
                 () -> propostaService.carregarPropostaDetalhada(id),
                 this::processarSucessoCarregamentoProposta,
-                erro -> log.error("Falha ao carregar detalhamento da proposta selecionada", erro));
+                erro -> log.error("[ESTEIRA] Falha ao carregar detalhamento da proposta ID={}", id, erro));
     }
 
     private void processarSucessoCarregamentoProposta(PropostaModel completa) {
         if (completa != null) {
+            log.info("[ESTEIRA] Proposta ID={} carregada com sucesso", completa.getId());
             formController.carregarProposta(completa);
             exibirPainelFormulario();
         } else {
+            log.warn("[ESTEIRA] Proposta não encontrada no banco de dados (retornou null)");
             mostrarErro("Proposta não encontrada no banco de dados.");
         }
     }
 
     private void garantirFormularioCarregado() throws IOException {
-        if (formController != null)
+        if (formController != null) {
+            log.trace("[ESTEIRA] Formulário já carregado");
             return;
+        }
 
+        log.debug("[ESTEIRA] Carregando formulário FXML /fxml/proposta.fxml");
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/proposta.fxml"));
         loader.setControllerFactory(context::getBean);
         Node view = loader.load();
 
         formController = loader.getController();
         formController.setEsteiraController(this);
-
-        // A única dependência manual restante é fechar o painel (UX local)
         formController.setOnPropostaFechada(this::limparPainelDetail);
 
         containerFormulario.getChildren().add(view);
+        log.info("[ESTEIRA] Formulário de proposta carregado e injetado");
     }
 
     private void exibirPainelFormulario() {
+        log.trace("[ESTEIRA] Exibindo painel de formulário, ocultando pane vazio");
         paneVazio.setVisible(false);
         paneVazio.setManaged(false);
     }
 
     private void reverterSelecao(PropostaModel oldSelection) {
+        log.debug("[ESTEIRA] Revertendo seleção para proposta ID={}",
+                oldSelection != null ? oldSelection.getId() : "null");
         isRevertendoSelecao = true;
         Platform.runLater(() -> {
             if (oldSelection != null) {
@@ -356,49 +388,49 @@ public class EsteiraPropostasController implements Disposable {
     }
 
     private void limparPainelDetail() {
+        log.debug("[ESTEIRA] Limpando painel de detalhe do formulário");
         containerFormulario.getChildren().removeIf(node -> node != paneVazio);
         paneVazio.setVisible(true);
         paneVazio.setManaged(true);
         tablePropostas.getSelectionModel().clearSelection();
         formController = null;
+        log.info("[ESTEIRA] Painel de detalhe limpo e formulário removido");
     }
 
-    // DEPOIS:
     public void selecionarPropostaPorId(Long idTarget) {
-        if (idTarget == null || tablePropostas == null)
+        if (idTarget == null || tablePropostas == null) {
+            log.warn("[ESTEIRA] selecionarPropostaPorId: idTarget nulo ou tabela nula, ignorando");
             return;
-
-        // Sempre recarrega do banco para garantir que a proposta recém-criada
-        // já esteja no masterData, independente do estado da aba.
+        }
+        log.info("[ESTEIRA] selecionarPropostaPorId: Buscando e selecionando proposta ID={}", idTarget);
         AsyncUtils.executarTaskAsync(
                 repository::findAllComDetalhes,
                 dados -> {
                     if (txtBusca != null)
                         txtBusca.clear();
                     masterData.setAll(dados);
-
                     dados.stream()
                             .filter(p -> idTarget.equals(p.getId()))
                             .findFirst()
                             .ifPresent(proposta -> {
+                                log.debug("[ESTEIRA] Proposta ID={} encontrada, selecionando na tabela", idTarget);
                                 tablePropostas.getSelectionModel().select(proposta);
                                 tablePropostas.scrollTo(proposta);
                             });
                 },
-                erro -> log.error("Erro ao selecionar proposta por ID", erro));
+                erro -> log.error("[ESTEIRA] Erro ao selecionar proposta por ID={}", idTarget, erro));
     }
 
     private void limparPainelSeExcluido() {
         if (formController != null) {
             Long idAtivo = formController.getViewModel().idProperty().get();
             if (idAtivo != null) {
-                // Verifica se o ID que está aberto no formulário ainda existe na lista do banco
                 boolean aindaExiste = masterData.stream().anyMatch(p -> p.getId().equals(idAtivo));
-
-                // Se não existir mais (foi excluído), descarrega o formulário e exibe o painel
-                // vazio
                 if (!aindaExiste) {
+                    log.warn("[ESTEIRA] Proposta ID={} foi excluída, limpando painel", idAtivo);
                     limparPainelDetail();
+                } else {
+                    log.trace("[ESTEIRA] Proposta ID={} ainda existe, mantendo painel", idAtivo);
                 }
             }
         }
@@ -409,6 +441,7 @@ public class EsteiraPropostasController implements Disposable {
     // =========================================================================
     public void solicitarConfirmacao(String titulo, String mensagem, String txtBotao, String corHex, Runnable onConfirm,
             Runnable onCancel) {
+        log.info("[ESTEIRA] solicitacaoConfirmacao: titulo='{}', botao='{}'", titulo, txtBotao);
         Platform.runLater(() -> {
             lblConfirmacaoTitulo.setText(titulo);
             lblConfirmacaoTitulo.setStyle(String.format(STYLE_LBL_CONFIRM_TITULO, corHex));
@@ -425,6 +458,7 @@ public class EsteiraPropostasController implements Disposable {
 
     @FXML
     public void confirmarAcao() {
+        log.debug("[ESTEIRA] confirmarAcao: Usuário confirmou ação");
         overlayConfirmacao.setVisible(false);
         if (acaoPendente != null) {
             acaoPendente.run();
@@ -434,6 +468,7 @@ public class EsteiraPropostasController implements Disposable {
 
     @FXML
     public void cancelarAcaoBase() {
+        log.debug("[ESTEIRA] cancelarAcaoBase: Usuário cancelou ação");
         overlayConfirmacao.setVisible(false);
         if (cancelPendente != null) {
             cancelPendente.run();
@@ -443,6 +478,8 @@ public class EsteiraPropostasController implements Disposable {
     }
 
     public void mostrarFeedback(String icone, String titulo, String conteudo, Runnable callback) {
+        log.info("[ESTEIRA] mostrarFeedback: titulo='{}', conteudo length={}", titulo,
+                conteudo != null ? conteudo.length() : 0);
         Platform.runLater(() -> {
             this.onFeedbackClose = callback;
 
@@ -455,12 +492,15 @@ public class EsteiraPropostasController implements Disposable {
     }
 
     private boolean isConteudoHtml(String conteudo) {
-        return conteudo != null && (conteudo.contains("<strong") || conteudo.contains("<span") ||
+        boolean html = conteudo != null && (conteudo.contains("<strong") || conteudo.contains("<span") ||
                 conteudo.contains("<p>") || conteudo.contains("<br>") ||
                 conteudo.contains("<table") || conteudo.contains("<ul"));
+        log.trace("[ESTEIRA] isConteudoHtml: {}", html);
+        return html;
     }
 
     private void exibirFeedbackRico(String icone, String titulo, String htmlBody) {
+        log.debug("[ESTEIRA] exibirFeedbackRico: Exibindo feedback HTML");
         lblFeedbackIcon.setText(icone);
         lblFeedbackTitle.setText(titulo);
 
@@ -472,6 +512,7 @@ public class EsteiraPropostasController implements Disposable {
     }
 
     private void exibirFeedbackSimples(String icone, String titulo, String conteudo) {
+        log.debug("[ESTEIRA] exibirFeedbackSimples: Exibindo alerta simples");
         lblAlertaIcone.setText(icone);
         lblAlertaTitulo.setText(titulo);
         lblAlertaMensagem.setText(conteudo);
@@ -483,34 +524,40 @@ public class EsteiraPropostasController implements Disposable {
     private void estilizarBotaoBaseadoNoIcone(Button botao, String icone) {
         if (icone.contains("✅")) {
             botao.setStyle(STYLE_BTN_SUCCESS);
+            log.trace("[ESTEIRA] Estilo aplicado: sucesso");
         } else if (icone.contains("❌") || icone.contains("🗑️")) {
             botao.setStyle(STYLE_BTN_DANGER);
+            log.trace("[ESTEIRA] Estilo aplicado: perigo");
         } else {
             botao.setStyle(STYLE_BTN_WARNING);
+            log.trace("[ESTEIRA] Estilo aplicado: aviso");
         }
     }
 
     @FXML
     public void fecharFeedback() {
+        log.debug("[ESTEIRA] fecharFeedback: Fechando overlay de feedback");
         overlayFeedback.setVisible(false);
         dispararCallbackFechamento();
     }
 
     @FXML
     public void fecharAlertaSimples() {
+        log.debug("[ESTEIRA] fecharAlertaSimples: Fechando overlay de alerta simples");
         overlayAlertaSimples.setVisible(false);
         dispararCallbackFechamento();
     }
 
     private void dispararCallbackFechamento() {
         if (onFeedbackClose != null) {
+            log.trace("[ESTEIRA] Disparando callback de fechamento");
             onFeedbackClose.run();
             onFeedbackClose = null;
         }
     }
 
     private void mostrarErro(String msg) {
-        log.error("Erro interno exibido ao usuário: {}", msg); // Adicione log antes de mostrar na UI
+        log.error("[ESTEIRA] mostrarErro: {}", msg);
         mostrarFeedback("❌", "Erro Interno", msg, null);
     }
 
@@ -518,32 +565,39 @@ public class EsteiraPropostasController implements Disposable {
     // UTILITÁRIOS INTERNOS
     // =========================================================================
     private SimpleStringProperty formatarData(LocalDate data) {
-        return new SimpleStringProperty(data != null ? data.format(FMT_DATA) : "-");
+        String formatted = data != null ? data.format(FMT_DATA) : "-";
+        log.trace("[ESTEIRA] formatarData: {} -> {}", data, formatted);
+        return new SimpleStringProperty(formatted);
     }
 
     private SimpleStringProperty formatarMoeda(BigDecimal valor) {
-        return new SimpleStringProperty(
-                valor != null && valor.compareTo(BigDecimal.ZERO) > 0 ? FinanceiroUtils.formatarParaExibicao(valor)
-                        : "-");
+        String formatted = (valor != null && valor.compareTo(BigDecimal.ZERO) > 0)
+                ? FinanceiroUtils.formatarParaExibicao(valor)
+                : "-";
+        log.trace("[ESTEIRA] formatarMoeda: {} -> {}", valor, formatted);
+        return new SimpleStringProperty(formatted);
     }
 
     private SimpleStringProperty textoOuHifen(String texto) {
-        return new SimpleStringProperty(texto != null && !texto.isBlank() ? texto : "-");
+        String result = (texto != null && !texto.isBlank()) ? texto : "-";
+        log.trace("[ESTEIRA] textoOuHifen: '{}' -> '{}'", texto, result);
+        return new SimpleStringProperty(result);
     }
 
     private Color corDoStatus(StatusPropostaModel status) {
-        return switch (status) {
+        Color cor = switch (status) {
             case PAGO -> Color.GREEN;
             case REPROVADA, CANCELADO -> Color.RED;
             case PENDENTE, AGUARDANDO_DOC -> Color.DARKORANGE;
             default -> Color.BLACK;
         };
+        log.trace("[ESTEIRA] corDoStatus: {} -> {}", status, cor);
+        return cor;
     }
 
     @Override
     public void dispose() {
-        // Desinscreve o listener para liberar a memória
+        log.info("[ESTEIRA] dispose: Desinscrevendo do event hub e liberando recursos");
         eventHub.desinscrever(this::recarregarDados);
     }
-
 }

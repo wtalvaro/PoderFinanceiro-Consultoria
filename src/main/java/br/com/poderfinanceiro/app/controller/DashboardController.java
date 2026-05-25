@@ -59,7 +59,7 @@ public class DashboardController {
     // =========================================================================
     private final PropostaRepository propostaRepository;
     private final ComissaoRepository comissaoRepository;
-    private final Navigator navigator;;
+    private final Navigator navigator;
     private final AuthService authService;
 
     // =========================================================================
@@ -106,6 +106,7 @@ public class DashboardController {
         this.comissaoRepository = comissaoRepository;
         this.navigator = navigator;
         this.authService = authService;
+        log.debug("[DASHBOARD] Construtor: Controller instanciado com dependências injetadas");
     }
 
     // =========================================================================
@@ -113,18 +114,23 @@ public class DashboardController {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.debug("[DASHBOARD] initialize: Iniciando configuração do Dashboard");
         carregarNomeConsultor();
         configurarTabela();
         configurarBuscaReativa();
         carregarDadosReais();
+        log.info("[DASHBOARD] initialize: Dashboard configurado com sucesso");
     }
 
     private void carregarNomeConsultor() {
         UsuarioModel usuario = authService.getUsuarioLogado();
-        lblNomeConsultor.setText(usuario != null ? usuario.getNome() : MSG_OFFLINE);
+        String nome = usuario != null ? usuario.getNome() : MSG_OFFLINE;
+        lblNomeConsultor.setText(nome);
+        log.debug("[DASHBOARD] carregarNomeConsultor: Consultor = '{}'", nome);
     }
 
     private void configurarTabela() {
+        log.debug("[DASHBOARD] configurarTabela: Configurando colunas da tabela de propostas");
         colCliente.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProponente().getNomeCompleto()));
         colBanco.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getBanco().getNome()));
         colConvenio.setCellValueFactory(d -> {
@@ -138,6 +144,7 @@ public class DashboardController {
         configurarColunaMoeda(colComissao, "comissaoEstimada");
 
         configurarColunaAcoes();
+        log.debug("[DASHBOARD] configurarTabela: Tabela configurada");
     }
 
     private void configurarColunaMoeda(TableColumn<PropostaModel, BigDecimal> coluna, String propertyName) {
@@ -149,9 +156,11 @@ public class DashboardController {
                 setText((empty || item == null) ? "-" : FinanceiroUtils.formatarParaExibicao(item));
             }
         });
+        log.trace("[DASHBOARD] configurarColunaMoeda: Coluna '{}' configurada", propertyName);
     }
 
     private void configurarColunaAcoes() {
+        log.debug("[DASHBOARD] configurarColunaAcoes: Configurando coluna de ações (botão Abrir)");
         colAcoes.setCellFactory(param -> new TableCell<>() {
             private final Button btnAbrir = criarBotaoAbrirProposta();
 
@@ -173,7 +182,11 @@ public class DashboardController {
                 btn.setOnAction(event -> {
                     PropostaModel proposta = getTableView().getItems().get(getIndex());
                     if (proposta != null && proposta.getProponente() != null) {
+                        log.info("[DASHBOARD] Abrindo proposta ID={} do cliente {}", proposta.getId(),
+                                proposta.getProponente().getNomeCompleto());
                         navigator.abrirPropostaNoWorkspace(proposta);
+                    } else {
+                        log.warn("[DASHBOARD] Tentativa de abrir proposta inválida (proposta ou proponente nulo)");
                     }
                 });
                 return btn;
@@ -182,9 +195,11 @@ public class DashboardController {
     }
 
     private void configurarBuscaReativa() {
+        log.debug("[DASHBOARD] configurarBuscaReativa: Configurando busca reativa (filtro por texto)");
         FilteredList<PropostaModel> filteredData = new FilteredList<>(masterData, p -> true);
 
         txtBuscaPropostas.textProperty().addListener((obs, oldVal, newVal) -> {
+            log.debug("[DASHBOARD] Busca alterada: '{}' -> '{}'", oldVal, newVal);
             filteredData.setPredicate(proposta -> atendeFiltroDeBusca(proposta, newVal));
         });
 
@@ -202,71 +217,98 @@ public class DashboardController {
         String cpf = proposta.getProponente().getCpf().replaceAll("[^0-9]", "");
         String banco = proposta.getBanco().getNome().toLowerCase();
 
-        return nome.contains(filtro) || cpf.contains(filtro) || banco.contains(filtro);
+        boolean matches = nome.contains(filtro) || cpf.contains(filtro) || banco.contains(filtro);
+        log.trace("[DASHBOARD] atendeFiltroDeBusca: termo='{}', proposta cliente='{}' -> {}", termo, nome, matches);
+        return matches;
     }
 
     // =========================================================================
     // LÓGICA DE DADOS (ASYNC) E MÉTRICAS
     // =========================================================================
-    // 🚀 PATCH: Delegação assíncrona usando o AsyncUtils
     @FXML
     public void carregarDadosReais() {
+        log.debug("[DASHBOARD] carregarDadosReais: Iniciando carregamento assíncrono de propostas e comissões");
         navigator.mostrarLoading(MSG_CARREGANDO);
 
         AsyncUtils.executarTaskAsync(
                 () -> {
+                    log.debug("[DASHBOARD] carregarDadosReais: Buscando dados no repositório");
                     List<PropostaModel> propostas = propostaRepository.findAllComDetalhes();
                     List<ComissaoModel> comissoes = comissaoRepository.findAll();
+                    log.debug("[DASHBOARD] carregarDadosReais: Encontradas {} propostas e {} comissões",
+                            propostas.size(), comissoes.size());
                     return calcularMetricasDoDashboard(propostas, comissoes);
                 },
-                this::atualizarInterfaceDoDashboard, // onSuccess
-                erro -> { // onFailed
+                this::atualizarInterfaceDoDashboard,
+                erro -> {
                     navigator.ocultarLoading();
-                    log.error("[DASHBOARD][DADOS] Erro: {}", erro.getMessage(), erro);
+                    log.error("[DASHBOARD][DADOS] Erro ao carregar dados: {}", erro.getMessage(), erro);
                 });
     }
 
     private ResultadoDashboard calcularMetricasDoDashboard(List<PropostaModel> propostas,
             List<ComissaoModel> comissoes) {
+        log.debug("[DASHBOARD] calcularMetricasDoDashboard: Calculando métricas");
         long aguardando = propostas.stream().filter(this::isPropostaAguardando).count();
         BigDecimal volumeAprovado = somarVolumeAprovado(propostas);
         BigDecimal comissaoPendente = somarComissoes(comissoes, false);
         BigDecimal comissaoPaga = somarComissoes(comissoes, true);
 
+        log.info(
+                "[DASHBOARD] Métricas calculadas: aguardando={}, volumeAprovado={}, comissaoPendente={}, comissaoPaga={}",
+                aguardando,
+                FinanceiroUtils.formatarParaExibicao(volumeAprovado),
+                FinanceiroUtils.formatarParaExibicao(comissaoPendente),
+                FinanceiroUtils.formatarParaExibicao(comissaoPaga));
+
         return new ResultadoDashboard(propostas, aguardando, volumeAprovado, comissaoPendente, comissaoPaga);
     }
 
     private boolean isPropostaAguardando(PropostaModel p) {
-        return p.getStatus() == StatusPropostaModel.DIGITADA || p.getStatus() == StatusPropostaModel.PENDENTE;
+        boolean aguardando = p.getStatus() == StatusPropostaModel.DIGITADA
+                || p.getStatus() == StatusPropostaModel.PENDENTE;
+        log.trace("[DASHBOARD] isPropostaAguardando: Proposta ID={} status={} -> {}", p.getId(), p.getStatus(),
+                aguardando);
+        return aguardando;
     }
 
     private BigDecimal somarVolumeAprovado(List<PropostaModel> propostas) {
-        return propostas.stream()
+        BigDecimal soma = propostas.stream()
                 .filter(p -> p.getStatus() == StatusPropostaModel.PAGO)
                 .map(p -> p.getValorFinalCliente() != null ? p.getValorFinalCliente() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        log.debug("[DASHBOARD] somarVolumeAprovado: Total = {}", FinanceiroUtils.formatarParaExibicao(soma));
+        return soma;
     }
 
     private BigDecimal somarComissoes(List<ComissaoModel> comissoes, boolean isPaga) {
-        return comissoes.stream()
+        BigDecimal soma = comissoes.stream()
                 .filter(c -> isComissaoPaga(c) == isPaga)
                 .map(c -> {
                     BigDecimal valor = isPaga ? c.getValorPagoPelaPoder() : c.getValorBrutoComissao();
                     return valor != null ? valor : BigDecimal.ZERO;
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        log.debug("[DASHBOARD] somarComissoes: isPaga={}, total = {}", isPaga,
+                FinanceiroUtils.formatarParaExibicao(soma));
+        return soma;
     }
 
     private boolean isComissaoPaga(ComissaoModel c) {
         String status = c.getStatusPagamento();
-        return STATUS_PAGO_COMISSAO.equalsIgnoreCase(status) || STATUS_LIQUIDADO_COMISSAO.equalsIgnoreCase(status);
+        boolean paga = STATUS_PAGO_COMISSAO.equalsIgnoreCase(status)
+                || STATUS_LIQUIDADO_COMISSAO.equalsIgnoreCase(status);
+        log.trace("[DASHBOARD] isComissaoPaga: Comissão ID={} status='{}' -> {}", c.getId(), status, paga);
+        return paga;
     }
 
     // =========================================================================
     // ATUALIZAÇÃO DA UI E EXPERIÊNCIA DO USUÁRIO
     // =========================================================================
     private void atualizarInterfaceDoDashboard(ResultadoDashboard res) {
+        log.debug("[DASHBOARD] atualizarInterfaceDoDashboard: Atualizando componentes visuais");
         masterData.setAll(res.propostas());
+        log.info("[DASHBOARD] Atualizados {} registros na tabela", res.propostas().size());
 
         lblQtdAguardando.setText(String.valueOf(res.qtdAguardando()));
         lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(res.volumeAprovado()));
@@ -278,15 +320,20 @@ public class DashboardController {
 
     private void exibirLoadingMotivacional() {
         String fraseSorteada = FRASES_MOTIVACIONAIS[randomGenerator.nextInt(FRASES_MOTIVACIONAIS.length)];
+        log.debug("[DASHBOARD] exibirLoadingMotivacional: Frase sorteada = '{}'", fraseSorteada);
         navigator.mostrarLoading("💡 " + fraseSorteada);
 
         PauseTransition delay = new PauseTransition(Duration.seconds(3.5));
-        delay.setOnFinished(e -> navigator.ocultarLoading());
+        delay.setOnFinished(e -> {
+            log.debug("[DASHBOARD] exibirLoadingMotivacional: Ocultando loading após 3.5s");
+            navigator.ocultarLoading();
+        });
         delay.play();
     }
 
     @FXML
     private void simularNovo() {
+        log.info("[DASHBOARD] simularNovo: Usuário iniciou nova simulação (limpa busca e abre workspace vazio)");
         txtBuscaPropostas.clear();
         navigator.abrirClienteNoWorkspace(null);
     }

@@ -57,10 +57,8 @@ public class CopilotoController implements Disposable {
     @FXML
     private DatePicker dpDataNascimento;
 
-    // 🔥 NOVO: ListView substitui o VBox engessado
     @FXML
     private ListView<ResultadoSimulacaoDTO> listaRanking;
-    // 🚀 NOVO FXML para o seletor de modelo
     @FXML
     private ComboBox<String> cmbModeloIA;
     @FXML
@@ -77,9 +75,6 @@ public class CopilotoController implements Disposable {
 
     private SimulacaoRascunhoDTO rascunhoAtual;
     private List<ResultadoSimulacaoDTO> rankingAtual;
-
-    // 🔥 Antes: private int indiceRecomendadoIA = -1;
-    // 🚀 NOVO: Armazena a ordem de escolha da IA
     private java.util.List<Integer> recomendacoesIA = new java.util.ArrayList<>();
 
     public CopilotoController(SimulacaoCopilotoService copilotoService, MainController mainController,
@@ -91,23 +86,27 @@ public class CopilotoController implements Disposable {
         this.geminiService = geminiService;
         this.authService = authService;
         this.eventHub = eventHub;
+        log.debug("[COPILOTO] Construtor: Controller instanciado");
     }
 
     @FXML
     public void initialize() {
+        log.debug("[COPILOTO] initialize: Iniciando configuração da tela Copiloto");
+
         cbConvenio.getItems().setAll(TipoConvenioModel.values());
+        log.debug("[COPILOTO] initialize: Combobox convênio carregado com {} itens", TipoConvenioModel.values().length);
 
         txtRenda.setTextFormatter(FinanceiroUtils.criarFormatadorMoeda());
         txtValor.setTextFormatter(FinanceiroUtils.criarFormatadorMoeda());
         txtMargem.setTextFormatter(FinanceiroUtils.criarFormatadorMoeda());
         txtPrazo.setTextFormatter(createIntegerFormatter());
+        log.debug("[COPILOTO] initialize: Formatadores de campos configurados");
 
-        // 🔥 NOVO: Formatação Robusta do DatePicker (Idêntico ao LeadController)
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         dpDataNascimento.setConverter(new LocalDateStringConverter(formatter, formatter));
-
         TextFormatter<LocalDate> dataFormatter = DataUtils.criarFormatadorData();
         dpDataNascimento.getEditor().setTextFormatter(dataFormatter);
+        log.debug("[COPILOTO] initialize: DatePicker configurado");
 
         cbCliente.getItems().setAll(proponenteService.listarMinhaCarteira());
         cbCliente.setConverter(new StringConverter<>() {
@@ -121,10 +120,12 @@ public class CopilotoController implements Disposable {
                 return null;
             }
         });
+        log.debug("[COPILOTO] initialize: Combobox clientes carregado com {} itens", cbCliente.getItems().size());
 
-        // 🚀 NOVO: Auto-preenchimento ao selecionar o cliente
         cbCliente.valueProperty().addListener((obs, old, cliente) -> {
             if (cliente != null) {
+                log.debug("[COPILOTO] initialize: Cliente selecionado '{}' (ID={})", cliente.getNomeCompleto(),
+                        cliente.getId());
                 dpDataNascimento.setValue(cliente.getDataNascimento());
                 if (cliente.getRendaMensal() != null && cliente.getRendaMensal().compareTo(BigDecimal.ZERO) > 0) {
                     txtRenda.setText(FinanceiroUtils.formatarParaExibicao(cliente.getRendaMensal()));
@@ -132,7 +133,7 @@ public class CopilotoController implements Disposable {
                     txtRenda.setText("");
                 }
             } else {
-                // Limpa os campos se o consultor desmarcar o cliente
+                log.debug("[COPILOTO] initialize: Cliente desmarcado, limpando campos");
                 dpDataNascimento.setValue(null);
                 txtRenda.setText("");
             }
@@ -143,50 +144,65 @@ public class CopilotoController implements Disposable {
 
         eventHub.inscrever(this::atualizarListaClientes);
         atualizarListaClientes();
+        log.info("[COPILOTO] initialize: Configuração finalizada com sucesso");
     }
 
     private void atualizarListaClientes() {
+        log.debug("[COPILOTO] atualizarListaClientes: Iniciando atualização da lista de clientes");
         Platform.runLater(() -> {
             ProponenteModel selecionado = cbCliente.getValue();
             List<ProponenteModel> clientes = proponenteService.listarMinhaCarteira();
+            log.debug("[COPILOTO] atualizarListaClientes: {} clientes disponíveis na carteira", clientes.size());
 
             cbCliente.getItems().setAll(clientes);
 
-            // Tenta manter a seleção anterior caso exista na nova lista
             if (selecionado != null) {
                 clientes.stream()
                         .filter(c -> c.getId().equals(selecionado.getId()))
                         .findFirst()
-                        .ifPresent(cbCliente::setValue);
+                        .ifPresent(c -> {
+                            cbCliente.setValue(c);
+                            log.debug("[COPILOTO] atualizarListaClientes: Seleção anterior mantida (cliente ID={})",
+                                    c.getId());
+                        });
             }
         });
     }
 
-    // 🚀 PATCH: Refatorado para AsyncUtils com Callable enxuto
     private void carregarModelosGemini() {
-        if (cmbModeloIA == null)
+        log.debug("[COPILOTO] carregarModelosGemini: Iniciando carregamento de modelos disponíveis");
+        if (cmbModeloIA == null) {
+            log.warn("[COPILOTO] carregarModelosGemini: cmbModeloIA está nulo, pulando carregamento");
             return;
+        }
 
-        cmbModeloIA.getItems().add("gemini-3.5-flash"); // Fallback imediato
+        cmbModeloIA.getItems().add("gemini-3.5-flash");
         cmbModeloIA.getSelectionModel().selectFirst();
+        log.debug("[COPILOTO] carregarModelosGemini: Modelo fallback 'gemini-3.5-flash' adicionado");
 
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
         if (token != null && !token.isBlank()) {
+            log.debug("[COPILOTO] carregarModelosGemini: Token encontrado, buscando modelos da API");
             AsyncUtils.executarTaskAsync(
                     () -> geminiService.listarModelosMultimodais(token),
                     modelos -> {
+                        log.info("[COPILOTO] carregarModelosGemini: {} modelos carregados da API", modelos.size());
                         String atual = cmbModeloIA.getValue();
                         cmbModeloIA.getItems().setAll(modelos);
                         if (modelos.contains(atual))
                             cmbModeloIA.getSelectionModel().select(atual);
                         else
                             cmbModeloIA.getSelectionModel().selectFirst();
+                        log.debug("[COPILOTO] carregarModelosGemini: Modelo selecionado: '{}'", cmbModeloIA.getValue());
                     },
-                    null);
+                    erro -> log.error("[COPILOTO] carregarModelosGemini: Erro ao carregar modelos da API", erro));
+        } else {
+            log.warn("[COPILOTO] carregarModelosGemini: Nenhum token válido disponível, usando apenas fallback");
         }
     }
 
     private void configurarListViewRanking() {
+        log.debug("[COPILOTO] configurarListViewRanking: Configurando ListView de ranking");
         listaRanking.setCellFactory(lv -> new ListCell<>() {
             private Node view;
             private CopilotoCardController controller;
@@ -196,8 +212,9 @@ public class CopilotoController implements Disposable {
                     FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/copiloto_card.fxml"));
                     view = loader.load();
                     controller = loader.getController();
+                    log.trace("[COPILOTO] configurarListViewRanking: Card FXML carregado com sucesso");
                 } catch (IOException e) {
-                    log.error("[COPILOTO][RANKING] Erro: {}", e.getMessage(), e);
+                    log.error("[COPILOTO][RANKING] Erro ao carregar copiloto_card.fxml: {}", e.getMessage(), e);
                 }
             }
 
@@ -209,16 +226,13 @@ public class CopilotoController implements Disposable {
                 } else {
                     controller.setDados(item, res -> converterParaProposta(res, cbCliente.getValue()));
                     controller.getBtnAproveitar().disableProperty().bind(cbCliente.valueProperty().isNull());
-
-                    // 🔥 NOVO: Verifica qual é a colocação deste item no ranking da IA (0 significa
-                    // que não entrou no Top 3)
                     int rank = recomendacoesIA.indexOf(getIndex()) + 1;
                     controller.setRecomendadoIA(rank);
-
                     setGraphic(view);
                 }
             }
         });
+        log.info("[COPILOTO] configurarListViewRanking: ListView configurada");
     }
 
     private TextFormatter<String> createIntegerFormatter() {
@@ -227,17 +241,21 @@ public class CopilotoController implements Disposable {
 
     @FXML
     private void handleSimular() {
+        log.debug("[COPILOTO] handleSimular: Iniciando simulação manual");
+
         lblRespostaIA.setText("");
         boxRespostaIA.setVisible(false);
         boxRespostaIA.setManaged(false);
         btnPedirConselho.setDisable(false);
         btnPedirConselho.setText("✨ Analisar com IA");
 
-        // 🚀 NOVO: Cálculo inteligente da idade baseado na data
         int idade = 0;
         LocalDate nascimento = dpDataNascimento.getValue();
         if (nascimento != null) {
             idade = Period.between(nascimento, LocalDate.now()).getYears();
+            log.debug("[COPILOTO] handleSimular: Idade calculada = {} anos", idade);
+        } else {
+            log.warn("[COPILOTO] handleSimular: Data de nascimento não informada, idade será 0");
         }
 
         int prazo = parseSafeInt(txtPrazo.getText());
@@ -246,12 +264,17 @@ public class CopilotoController implements Disposable {
         BigDecimal margem = FinanceiroUtils.extrairValorParaBanco(txtMargem.getText());
         String convenio = cbConvenio.getValue() != null ? cbConvenio.getValue().name() : "";
 
+        log.info(
+                "[COPILOTO] handleSimular: Parâmetros - idade={}, renda={}, convenio={}, valor={}, prazo={}, margem={}",
+                idade, renda, convenio, valor, prazo, margem);
+
         this.rascunhoAtual = new SimulacaoRascunhoDTO(idade, renda, convenio, valor, prazo, margem);
         iniciarSimulacaoAssincrona();
     }
 
     @FXML
     private void handleExtrairMargem() {
+        log.debug("[COPILOTO] handleExtrairMargem: Iniciando extração de margem via arquivo");
         FileChooser fc = new FileChooser();
         fc.setTitle("Selecionar Holerite / Hiscon");
         fc.getExtensionFilters()
@@ -259,18 +282,24 @@ public class CopilotoController implements Disposable {
         File arquivo = fc.showOpenDialog(txtMargem.getScene().getWindow());
 
         if (arquivo != null && arquivo.exists()) {
+            log.info("[COPILOTO] handleExtrairMargem: Arquivo selecionado: {}", arquivo.getAbsolutePath());
             extrairMargemAssincrona(arquivo);
+        } else {
+            log.warn("[COPILOTO] handleExtrairMargem: Nenhum arquivo válido selecionado");
         }
     }
 
     @FXML
     private void handlePedirConselhoIA() {
-        if (rankingAtual == null || rankingAtual.isEmpty())
-            return;
+        log.debug("[COPILOTO] handlePedirConselhoIA: Iniciando consulta à IA");
 
-        // 🚀 SOLUÇÃO 1: Roubar o foco do botão ANTES de desativá-lo.
-        // Isso evita que o JavaFX passe o foco para a ListView e puxe a tela para
-        // baixo.
+        if (rankingAtual == null || rankingAtual.isEmpty()) {
+            log.warn("[COPILOTO] handlePedirConselhoIA: rankingAtual está nulo ou vazio, abortando consulta");
+            return;
+        }
+
+        log.info("[COPILOTO] handlePedirConselhoIA: ranking possui {} resultados", rankingAtual.size());
+
         if (scrollArea != null) {
             scrollArea.requestFocus();
         }
@@ -281,24 +310,22 @@ public class CopilotoController implements Disposable {
         boxRespostaIA.setManaged(true);
         lblRespostaIA.setText("Pensando em estratégias comerciais...");
 
-        // 🚀 SOLUÇÃO 2: Forçar o CSS e o Layout a se atualizarem ANTES de mover o
-        // scroll
         if (scrollArea != null) {
-            javafx.application.Platform.runLater(() -> {
-                scrollArea.applyCss(); // Aplica estilos pendentes
-                scrollArea.layout(); // Calcula a altura real da nova caixa visível
-                scrollArea.setVvalue(0.0); // Crava no topo com precisão
+            Platform.runLater(() -> {
+                scrollArea.applyCss();
+                scrollArea.layout();
+                scrollArea.setVvalue(0.0);
             });
         }
 
-        // 🚀 Pega o modelo escolhido pelo consultor
         String modeloEscolhido = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : "gemini-3.5-flash";
+        log.debug("[COPILOTO] handlePedirConselhoIA: Modelo IA selecionado: {}", modeloEscolhido);
 
-        // 🚀 PATCH: Delegação para o utilitário
         AsyncUtils.executarTaskAsync(
                 () -> copilotoService.gerarRecomendacaoInteligenteIA(rascunhoAtual, rankingAtual, modeloEscolhido),
                 resposta -> {
-                    // Captura os números separados por vírgula dentro de [TOP: X, Y, Z]
+                    log.debug("[COPILOTO] handlePedirConselhoIA: Resposta recebida da IA (tamanho={})",
+                            resposta.length());
                     Pattern p = Pattern.compile("\\[TOP:\\s*([\\d,\\s]+)\\]", Pattern.CASE_INSENSITIVE);
                     Matcher m = p.matcher(resposta);
 
@@ -307,47 +334,45 @@ public class CopilotoController implements Disposable {
                     if (m.find()) {
                         try {
                             String[] numerosExtraidos = m.group(1).split(",");
+                            log.debug("[COPILOTO] handlePedirConselhoIA: Números extraídos do TOP: {}",
+                                    (Object[]) numerosExtraidos);
                             for (String numeroStr : numerosExtraidos) {
                                 int indiceReal = Integer.parseInt(numeroStr.trim()) - 1;
                                 if (indiceReal >= 0 && indiceReal < rankingAtual.size()) {
                                     recomendacoesIA.add(indiceReal);
                                 }
                             }
-
-                            // Limpa a tag para o consultor ver só o texto limpo
                             resposta = resposta.replace(m.group(0), "").trim();
 
-                            // 🚀 PATCH DECLARATIVO: Reordena a lista baseada nas escolhas da IA
                             if (!recomendacoesIA.isEmpty()) {
-                                // Separa os recomendados dos não recomendados usando Streams
                                 java.util.List<ResultadoSimulacaoDTO> topChoices = recomendacoesIA.stream()
                                         .map(arg0 -> rankingAtual.get(arg0))
                                         .toList();
-
                                 java.util.List<ResultadoSimulacaoDTO> remainingChoices = java.util.stream.IntStream
                                         .range(0, rankingAtual.size())
                                         .filter(i -> !recomendacoesIA.contains(i))
                                         .mapToObj(rankingAtual::get)
                                         .toList();
 
-                                // Reconstrói a lista oficial e atualiza o estado
                                 rankingAtual.clear();
                                 rankingAtual.addAll(topChoices);
                                 rankingAtual.addAll(remainingChoices);
 
-                                // Como reordenamos a lista, os índices das recomendações mudaram (agora são os
-                                // primeiros: 0, 1, 2)
                                 recomendacoesIA.clear();
                                 for (int i = 0; i < topChoices.size(); i++) {
                                     recomendacoesIA.add(i);
                                 }
 
-                                // Atualiza a View
                                 listaRanking.setItems(FXCollections.observableArrayList(rankingAtual));
+                                log.info(
+                                        "[COPILOTO] handlePedirConselhoIA: Ranking reordenado com {} recomendações no topo",
+                                        topChoices.size());
                             }
                         } catch (Exception ex) {
-                            log.error(("Erro ao processar ranking da IA: " + ex.getMessage()));
+                            log.error("[COPILOTO] handlePedirConselhoIA: Erro ao processar ranking da IA", ex);
                         }
+                    } else {
+                        log.warn("[COPILOTO] handlePedirConselhoIA: Padrão [TOP: ...] não encontrado na resposta");
                     }
 
                     lblRespostaIA.setText(resposta);
@@ -355,23 +380,25 @@ public class CopilotoController implements Disposable {
                     btnPedirConselho.setDisable(false);
                     listaRanking.refresh();
 
-                    // Crava no topo com precisão
                     if (scrollArea != null) {
-                        javafx.application.Platform.runLater(() -> {
+                        Platform.runLater(() -> {
                             scrollArea.applyCss();
                             scrollArea.layout();
                             scrollArea.setVvalue(0.0);
                         });
                     }
+                    log.info("[COPILOTO] handlePedirConselhoIA: Conselho finalizado com sucesso");
                 },
                 erro -> {
+                    log.error("[COPILOTO] handlePedirConselhoIA: Erro ao chamar serviço de IA", erro);
                     lblRespostaIA.setText("Erro ao conectar com o Copiloto.");
                     btnPedirConselho.setDisable(false);
                 });
     }
 
-    // 🚀 PATCH: Refatorado para AsyncUtils
     private void extrairMargemAssincrona(File arquivo) {
+        log.debug("[COPILOTO] extrairMargemAssincrona: Iniciando extração assíncrona do arquivo: {}",
+                arquivo.getName());
         btnExtrairMargem.setDisable(true);
         btnExtrairMargem.setText("⏳");
         mainController.mostrarLoading("A IA está lendo o documento...");
@@ -382,6 +409,8 @@ public class CopilotoController implements Disposable {
                     mainController.ocultarLoading();
                     btnExtrairMargem.setDisable(false);
                     btnExtrairMargem.setText("📎 IA");
+                    log.info("[COPILOTO] extrairMargemAssincrona: Extração concluída. Resposta tamanho: {}",
+                            respostaCompleta != null ? respostaCompleta.length() : 0);
 
                     if (respostaCompleta != null && !respostaCompleta.isBlank()) {
                         mainController.notificarAviso("Análise concluída! O log está no console.");
@@ -390,13 +419,20 @@ public class CopilotoController implements Disposable {
                             String margemLimpa = partes[1].trim().replaceAll("[^0-9,]", "");
                             if (!margemLimpa.isEmpty() && !margemLimpa.equals("0") && !margemLimpa.equals("0,00")) {
                                 txtMargem.setText(margemLimpa);
+                                log.debug("[COPILOTO] extrairMargemAssincrona: Margem extraída e preenchida: {}",
+                                        margemLimpa);
+                            } else {
+                                log.warn("[COPILOTO] extrairMargemAssincrona: Margem extraída é inválida: '{}'",
+                                        margemLimpa);
                             }
                         }
                     } else {
+                        log.warn("[COPILOTO] extrairMargemAssincrona: Resposta da IA está vazia ou nula");
                         mainController.notificarAviso("A IA não conseguiu analisar o documento.");
                     }
                 },
                 erro -> {
+                    log.error("[COPILOTO] extrairMargemAssincrona: Erro durante extração", erro);
                     mainController.ocultarLoading();
                     btnExtrairMargem.setDisable(false);
                     btnExtrairMargem.setText("📎 IA");
@@ -404,8 +440,8 @@ public class CopilotoController implements Disposable {
                 });
     }
 
-    // 🚀 PATCH: Refatorado para AsyncUtils
     private void iniciarSimulacaoAssincrona() {
+        log.debug("[COPILOTO] iniciarSimulacaoAssincrona: Iniciando simulação assíncrona");
         btnSimular.setText("⏳ Buscando...");
         btnSimular.setDisable(true);
         recomendacoesIA.clear();
@@ -414,42 +450,60 @@ public class CopilotoController implements Disposable {
                 () -> copilotoService.processarSimulacaoRapida(rascunhoAtual),
                 ranking -> {
                     rankingAtual = ranking;
-                    listaRanking.setItems(FXCollections.observableArrayList(ranking)); // Preenche o ListView
+                    listaRanking.setItems(FXCollections.observableArrayList(ranking));
                     boxResultados.setVisible(true);
                     boxResultados.setManaged(true);
                     resetarBotoes();
+                    log.info("[COPILOTO] iniciarSimulacaoAssincrona: Simulação finalizada com {} resultados",
+                            ranking != null ? ranking.size() : 0);
                 },
                 erro -> {
+                    log.error("[COPILOTO] iniciarSimulacaoAssincrona: Erro na simulação", erro);
                     mainController.notificarAviso("Erro ao processar. Verifique os valores.");
                     resetarBotoes();
                 });
     }
 
     private int parseSafeInt(String texto) {
-        if (texto == null || texto.replaceAll("[^0-9]", "").isEmpty())
+        if (texto == null || texto.replaceAll("[^0-9]", "").isEmpty()) {
+            log.debug("[COPILOTO] parseSafeInt: Texto vazio ou nulo, retornando 0");
             return 0;
+        }
         try {
-            return Integer.parseInt(texto.replaceAll("[^0-9]", ""));
+            int valor = Integer.parseInt(texto.replaceAll("[^0-9]", ""));
+            log.trace("[COPILOTO] parseSafeInt: Convertido '{}' para {}", texto, valor);
+            return valor;
         } catch (NumberFormatException e) {
+            log.warn("[COPILOTO] parseSafeInt: Erro ao converter '{}' para inteiro, retornando 0", texto, e);
             return 0;
         }
     }
 
     private void converterParaProposta(ResultadoSimulacaoDTO resultadoEscolhido, ProponenteModel cliente) {
+        log.debug("[COPILOTO] converterParaProposta: Iniciando conversão para proposta. Cliente informado? {}",
+                cliente != null);
         if (cliente == null) {
+            log.warn("[COPILOTO] converterParaProposta: Cliente nulo, abortando conversão");
             mainController.notificarAviso("Selecione um cliente no campo acima antes de gerar a proposta.");
             return;
         }
+        log.info(
+                "[COPILOTO] converterParaProposta: Gerando proposta para cliente {} com resultado banco={}, parcela={}",
+                cliente.getNomeCompleto(),
+                resultadoEscolhido.tabela().getBanco().getNome(),
+                FinanceiroUtils.formatarParaExibicao(resultadoEscolhido.valorParcela()));
         mainController.iniciarConversaoCopiloto(rascunhoAtual, resultadoEscolhido, cliente);
     }
 
     private void resetarBotoes() {
+        log.debug("[COPILOTO] resetarBotoes: Restaurando estado dos botões");
         btnSimular.setText("🔍 Buscar Melhores Tabelas");
         btnSimular.setDisable(false);
     }
 
     @Override
     public void dispose() {
+        log.info("[COPILOTO] dispose: Liberando recursos e desinscrevendo do event hub");
         eventHub.desinscrever(this::atualizarListaClientes);
     }
 }

@@ -6,9 +6,14 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.function.Consumer;
 
 public class CopilotoCardController {
+
+    private static final Logger log = LoggerFactory.getLogger(CopilotoCardController.class);
 
     @FXML
     private VBox cardContainer;
@@ -27,6 +32,12 @@ public class CopilotoCardController {
     private Consumer<ResultadoSimulacaoDTO> onGerarProposta;
 
     public void setDados(ResultadoSimulacaoDTO resultado, Consumer<ResultadoSimulacaoDTO> onGerarProposta) {
+        // Dado nulo aqui causaria NPE silencioso na renderização do card
+        if (resultado == null) {
+            log.error("[COPILOTO_CARD] setDados chamado com resultado null. Card não será renderizado corretamente.");
+            return;
+        }
+
         this.resultado = resultado;
         this.onGerarProposta = onGerarProposta;
 
@@ -35,17 +46,33 @@ public class CopilotoCardController {
         lblComissao.setText(String.format("💰 Comissão: R$ %s (%s%%)",
                 FinanceiroUtils.formatarParaExibicao(resultado.comissaoEstimada()),
                 resultado.tabela().getComissaoPercentual()));
+
+        log.debug("[COPILOTO_CARD] Card populado. Banco='{}' | Tabela='{}' | Parcela={} | Comissão={}",
+                resultado.tabela().getBanco().getNome(),
+                resultado.tabela().getNomeTabela(),
+                FinanceiroUtils.formatarParaExibicao(resultado.valorParcela()),
+                FinanceiroUtils.formatarParaExibicao(resultado.comissaoEstimada()));
     }
 
-    // 🚀 NOVO: Agora recebe a posição no Ranking (1, 2, 3) ou 0 se não foi
-    // recomendado
     public void setRecomendadoIA(int rankIA) {
+        // Rank fora do esperado (0–3) indica bug no código que monta os cards
+        if (rankIA < 0 || rankIA > 3) {
+            log.warn("[COPILOTO_CARD] rankIA={} fora do intervalo válido (0–3). Banco='{}'. " +
+                    "Tratando como não recomendado.",
+                    rankIA,
+                    resultado != null ? resultado.tabela().getBanco().getNome() : "N/A");
+            rankIA = 0;
+        }
+
         boolean recomendado = rankIA > 0;
         lblRecomendado.setVisible(recomendado);
         lblRecomendado.setManaged(recomendado);
 
         if (recomendado) {
-            // Estilos dinâmicos baseados na colocação do Top 3
+            log.debug("[COPILOTO_CARD] Card marcado como recomendado. Rank={} | Banco='{}'",
+                    rankIA,
+                    resultado != null ? resultado.tabela().getBanco().getNome() : "N/A");
+
             if (rankIA == 1) {
                 lblRecomendado.setText("🏆 1ª Escolha da IA");
                 lblRecomendado.setStyle(
@@ -66,7 +93,6 @@ public class CopilotoCardController {
                         "-fx-background-color: #fff7ed; -fx-padding: 10; -fx-border-radius: 6; -fx-background-radius: 6; -fx-border-color: #fdba74; -fx-border-width: 2;");
             }
         } else {
-            // Estilo padrão (Não recomendado)
             cardContainer.setStyle(
                     "-fx-background-color: #f1f5f9; -fx-padding: 10; -fx-border-radius: 6; -fx-background-radius: 6; -fx-border-color: #e2e8f0; -fx-border-width: 1;");
         }
@@ -78,8 +104,21 @@ public class CopilotoCardController {
 
     @FXML
     private void handleGerarProposta() {
-        if (onGerarProposta != null && resultado != null) {
-            onGerarProposta.accept(resultado);
+        if (resultado == null || onGerarProposta == null) {
+            // Sem este log, o clique no botão simplesmente não faria nada — invisível para
+            // debug
+            log.warn("[COPILOTO_CARD] handleGerarProposta chamado em estado inválido. " +
+                    "resultado={} | onGerarProposta={}",
+                    resultado == null ? "NULL" : "ok",
+                    onGerarProposta == null ? "NULL" : "ok");
+            return;
         }
+
+        log.info("[COPILOTO_CARD] Usuário acionou 'Aproveitar'. Banco='{}' | Tabela='{}' | Parcela={}",
+                resultado.tabela().getBanco().getNome(),
+                resultado.tabela().getNomeTabela(),
+                FinanceiroUtils.formatarParaExibicao(resultado.valorParcela()));
+
+        onGerarProposta.accept(resultado);
     }
 }

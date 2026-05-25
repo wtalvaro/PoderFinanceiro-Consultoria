@@ -94,6 +94,7 @@ public class MainController implements Navigator {
     public MainController(ApplicationContext context, PropostaService propostaService) {
         this.context = context;
         this.propostaService = propostaService;
+        log.debug("[MAIN] Construtor: Controller instanciado");
     }
 
     // =========================================================================
@@ -101,19 +102,25 @@ public class MainController implements Navigator {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.debug("[MAIN] initialize: Configurando interações da interface principal");
         configurarArrastoChat();
         configurarFechamentoChat();
+        log.info("[MAIN] initialize: Configuração concluída");
     }
 
     private void configurarArrastoChat() {
-        if (dragHandleChat == null)
+        if (dragHandleChat == null) {
+            log.warn("[MAIN] configurarArrastoChat: dragHandleChat não encontrado, recurso de arrasto desabilitado");
             return;
+        }
 
         dragHandleChat.setOnMousePressed(event -> {
             mouseStartX = event.getSceneX();
             if (painelChat != null) {
                 chatStartWidth = painelChat.getWidth();
             }
+            log.trace("[MAIN] configurarArrastoChat: mouse pressionado (x={}, largura inicial={})", mouseStartX,
+                    chatStartWidth);
         });
 
         dragHandleChat.setOnMouseDragged(event -> {
@@ -127,6 +134,7 @@ public class MainController implements Navigator {
                 painelChat.setPrefWidth(novaLargura);
                 painelChat.setMinWidth(novaLargura);
                 painelChat.setMaxWidth(novaLargura);
+                log.trace("[MAIN] configurarArrastoChat: redimensionando chat para largura={}", novaLargura);
             }
         });
 
@@ -135,11 +143,14 @@ public class MainController implements Navigator {
     }
 
     private void configurarFechamentoChat() {
-        if (overlayChatIA == null)
+        if (overlayChatIA == null) {
+            log.warn("[MAIN] configurarFechamentoChat: overlayChatIA não encontrado");
             return;
+        }
 
         overlayChatIA.setOnMouseClicked(event -> {
             if (event.getTarget() == overlayChatIA) {
+                log.debug("[MAIN] Fechando painel IA por clique no overlay");
                 alternarPainelIA();
                 event.consume();
             }
@@ -150,19 +161,24 @@ public class MainController implements Navigator {
     // (Lead)
     public void iniciarConversaoCopiloto(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado,
             ProponenteModel cliente) {
+        log.info("[MAIN] iniciarConversaoCopiloto: Convertendo rascunho para proposta - cliente='{}', banco='{}'",
+                cliente != null ? cliente.getNomeCompleto() : "N/A",
+                resultado != null && resultado.tabela() != null ? resultado.tabela().getBanco().getNome() : "N/A");
         try {
-            // A lógica de negócio está no service!
             PropostaModel propostaSalva = propostaService.converterRascunhoParaProposta(rascunho, resultado, cliente);
-
-            // O Controller cuida apenas da Navegação/UI
             abrirPropostaNoWorkspace(propostaSalva);
 
-            notificarSucesso("Proposta gerada com sucesso para " + cliente.getNomeCompleto() +
-                    "\nBanco: " + resultado.tabela().getBanco().getNome());
+            String clienteNome = cliente != null ? cliente.getNomeCompleto() : "N/A";
+            String bancoNome = resultado != null && resultado.tabela() != null && resultado.tabela().getBanco() != null
+                    ? resultado.tabela().getBanco().getNome()
+                    : "N/A";
 
+            notificarSucesso("Proposta gerada com sucesso" + (cliente != null ? " para " + clienteNome : "") +
+                    "\nBanco: " + bancoNome);
+            log.info("[MAIN] Proposta ID={} gerada com sucesso a partir do Copiloto", propostaSalva.getId());
         } catch (Exception e) {
+            log.error("[MAIN][CONVERSACOPILOtO] Erro ao gerar proposta: {}", e.getMessage(), e);
             notificarAviso("Erro ao gerar proposta: " + e.getMessage());
-            log.error("[MAIN][CONVERSACOPILOtO] Erro: {}", e.getMessage(), e);
         }
     }
 
@@ -170,31 +186,32 @@ public class MainController implements Navigator {
     // MOTOR DE NAVEGAÇÃO E CACHE
     // =========================================================================
     private void executarNavegacao(String fxmlPath, boolean mostrarEstrutura) {
+        log.debug("[MAIN] executarNavegacao: navegando para '{}', mostrarEstrutura={}", fxmlPath, mostrarEstrutura);
         try {
-            // Uso de computeIfAbsent elimina a necessidade de if/else manual para cache
             ViewPair pair = cacheDeViews.computeIfAbsent(fxmlPath, this::carregarNovaView);
-
             topBar.setVisible(mostrarEstrutura);
             topBar.setManaged(mostrarEstrutura);
-
             bottomBar.setVisible(mostrarEstrutura);
             bottomBar.setManaged(mostrarEstrutura);
-
             contentArea.getChildren().setAll(pair.view());
             this.telaAtual = fxmlPath;
-
+            log.info("[MAIN] Navegação para '{}' concluída", fxmlPath);
         } catch (Exception e) {
+            log.error("[MAIN] executarNavegacao: erro fatal ao carregar '{}'", fxmlPath, e);
             throw new RuntimeException("Erro ao carregar a tela: " + fxmlPath, e);
         }
     }
 
     private ViewPair carregarNovaView(String fxmlPath) {
+        log.debug("[MAIN] carregarNovaView: carregando FXML '{}'", fxmlPath);
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             loader.setControllerFactory(context::getBean);
             Node view = loader.load();
+            log.info("[MAIN] FXML '{}' carregado com sucesso, controller={}", fxmlPath, loader.getController());
             return new ViewPair(view, loader.getController());
         } catch (IOException e) {
+            log.error("[MAIN] Falha ao instanciar o FXML: {}", fxmlPath, e);
             throw new RuntimeException("Falha ao instanciar o FXML: " + fxmlPath, e);
         }
     }
@@ -203,12 +220,14 @@ public class MainController implements Navigator {
     // ROTAS DO WORKSPACE
     // =========================================================================
     private void executarNoWorkspace(Consumer<WorkspaceController> acao) {
+        log.trace("[MAIN] executarNoWorkspace: tentando obter referência ao workspace");
         try {
             garantirWorkspaceVisivel();
             ViewPair pair = cacheDeViews.get(FXML_WORKSPACE);
-
             if (pair != null && pair.controller() instanceof WorkspaceController wsController) {
                 acao.accept(wsController);
+            } else {
+                log.warn("[MAIN] executarNoWorkspace: workspace não encontrado no cache ou controller inválido");
             }
         } catch (Exception e) {
             log.error("[MAIN][EXECUTAWS] Erro: {}", e.getMessage(), e);
@@ -217,6 +236,7 @@ public class MainController implements Navigator {
 
     private void garantirWorkspaceVisivel() {
         if (!FXML_WORKSPACE.equals(this.telaAtual)) {
+            log.debug("[MAIN] garantindo que workspace está visível (navegando para ele)");
             navegarPara(FXML_WORKSPACE, true);
         }
     }
@@ -226,11 +246,13 @@ public class MainController implements Navigator {
     // =========================================================================
     @FXML
     private void cancelarLogout() {
+        log.debug("[MAIN] cancelarLogout: usuário cancelou o logout");
         overlaySair.setVisible(false);
     }
 
     @FXML
     private void confirmarLogout() {
+        log.info("[MAIN] confirmarLogout: usuário confirmou logout");
         overlaySair.setVisible(false);
         context.getBean(AuthService.class).logout();
         limparCacheDeTelas();
@@ -239,17 +261,19 @@ public class MainController implements Navigator {
 
     // 🚀 MÉTODO: Exibe o overlay (substitui o Alert)
     private void exibirOverlayMensagem(String titulo, String mensagem) {
+        log.debug("[MAIN] exibirOverlayMensagem: titulo='{}', mensagem='{}'", titulo, mensagem);
         Platform.runLater(() -> {
             lblMsgTitulo.setText(titulo);
             lblMsgTexto.setText(mensagem);
             overlayMensagem.setVisible(true);
-            overlayMensagem.toFront(); // Garante que ele fique sobre tudo
+            overlayMensagem.toFront();
         });
     }
 
     // 🚀 MÉTODO: Oculta o overlay (chamado pelo botão do FXML)
     @FXML
     private void ocultarOverlayMensagem() {
+        log.trace("[MAIN] ocultarOverlayMensagem: fechando overlay de mensagem");
         overlayMensagem.setVisible(false);
     }
 
@@ -258,38 +282,49 @@ public class MainController implements Navigator {
     // =========================================================================
     @Override
     public void navegarPara(String fxmlPath, boolean mostrarEstrutura) {
+        log.debug("[MAIN] navegarPara: fxmlPath='{}', mostrarEstrutura={}", fxmlPath, mostrarEstrutura);
         executarNavegacao(fxmlPath, mostrarEstrutura);
     }
 
     @Override
     public void abrirDashboard() {
+        log.debug("[MAIN] abrirDashboard");
         executarNoWorkspace(WorkspaceController::abrirAbaDashboard);
     }
 
     @Override
     public void abrirPlaybook() {
+        log.debug("[MAIN] abrirPlaybook");
         executarNoWorkspace(WorkspaceController::abrirAbaPlaybook);
     }
 
     @Override
     public void abrirClientes() {
+        log.debug("[MAIN] abrirClientes");
         executarNoWorkspace(WorkspaceController::abrirAbaClientes);
     }
 
     @Override
     public void abrirClienteNoWorkspace(ProponenteModel proponente) {
+        log.debug("[MAIN] abrirClienteNoWorkspace: proponente={}",
+                proponente != null ? proponente.getNomeCompleto() : "null");
         executarNoWorkspace(ws -> ws.abrirOuFocarAba(proponente));
     }
 
     @Override
     public void abrirPropostaNoWorkspace(PropostaModel proposta) {
-        if (proposta == null || proposta.getProponente() == null)
+        if (proposta == null || proposta.getProponente() == null) {
+            log.warn("[MAIN] abrirPropostaNoWorkspace: proposta ou proponente nulo, ignorando");
             return;
+        }
+        log.info("[MAIN] abrirPropostaNoWorkspace: proposta ID={} do cliente {}", proposta.getId(),
+                proposta.getProponente().getNomeCompleto());
         executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
     }
 
     @Override
     public void mostrarLoading(String mensagem) {
+        log.debug("[MAIN] mostrarLoading: '{}'", mensagem);
         Platform.runLater(() -> {
             lblLoadingTexto.setText(mensagem);
             overlayLoading.setVisible(true);
@@ -298,16 +333,19 @@ public class MainController implements Navigator {
 
     @Override
     public void ocultarLoading() {
+        log.trace("[MAIN] ocultarLoading");
         Platform.runLater(() -> overlayLoading.setVisible(false));
     }
 
     @Override
     public void notificarSucesso(String mensagem) {
+        log.info("[MAIN] notificarSucesso: {}", mensagem);
         exibirOverlayMensagem("Sucesso", mensagem);
     }
 
     @Override
     public void notificarAviso(String mensagem) {
+        log.warn("[MAIN] notificarAviso: {}", mensagem);
         exibirOverlayMensagem("Atenção", mensagem);
     }
 
@@ -315,8 +353,8 @@ public class MainController implements Navigator {
     @Override
     public void alternarPainelIA() {
         boolean estaAberto = overlayChatIA.isVisible();
+        log.debug("[MAIN] alternarPainelIA: estado atual aberto={}, alternando para {}", estaAberto, !estaAberto);
         overlayChatIA.setVisible(!estaAberto);
-
         if (!estaAberto && painelChatController != null) {
             painelChatController.solicitarFoco();
         }
@@ -324,50 +362,58 @@ public class MainController implements Navigator {
 
     @Override
     public void irParaNovoContato() {
+        log.debug("[MAIN] irParaNovoContato");
         abrirClienteNoWorkspace(null);
     }
 
     @Override
     public void irParaPropostas() {
+        log.debug("[MAIN] irParaPropostas");
         executarNoWorkspace(ws -> ws.abrirAbaPropostas(null));
     }
 
     @Override
     public void irParaTabelaComissoes() {
+        log.debug("[MAIN] irParaTabelaComissoes");
         executarNoWorkspace(WorkspaceController::abrirAbaComissoes);
     }
 
     @Override
     public void irParaTabelasJuros() {
+        log.debug("[MAIN] irParaTabelasJuros");
         executarNoWorkspace(WorkspaceController::abrirAbaTabelasJuros);
     }
 
     @Override
     public void irParaImportadorTabelas() {
+        log.debug("[MAIN] irParaImportadorTabelas");
         executarNoWorkspace(WorkspaceController::abrirAbaImportadorTabelas);
     }
 
     @Override
     public void irParaBancosConvenios() {
+        log.debug("[MAIN] irParaBancosConvenios");
         executarNoWorkspace(WorkspaceController::abrirAbaBancosConvenios);
     }
 
     @Override
     public void irParaLinksUteis() {
+        log.debug("[MAIN] irParaLinksUteis");
         executarNoWorkspace(WorkspaceController::abrirAbaLinks);
     }
 
     @Override
     public void limparCacheDeTelas() {
+        log.info("[MAIN] limparCacheDeTelas: removendo {} views em cache", cacheDeViews.size());
         cacheDeViews.clear();
     }
 
     @Override
     public void abrirCopilotoSimulacao(Node anchorNode) {
-        // O anchorNode não é mais necessário pois não usaremos PopOver
+        log.debug("[MAIN] abrirCopilotoSimulacao: abrindo aba Copiloto (anchorNode ignorado)");
         executarNoWorkspace(ws -> {
             ws.admitirAbaSimples(
-                    RotaAba.COPILOTO, // 🚀 CORREÇÃO: Substituído a String pelo Enum
+                    RotaAba.COPILOTO,
                     "✨ Copiloto de Vendas",
                     "/fxml/copiloto_simulacao.fxml");
         });
@@ -375,7 +421,7 @@ public class MainController implements Navigator {
 
     @Override
     public void mostrarOverlaySair() {
+        log.debug("[MAIN] mostrarOverlaySair: exibindo confirmação de logout");
         overlaySair.setVisible(true);
     }
-
 }

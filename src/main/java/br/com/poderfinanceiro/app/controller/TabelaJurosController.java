@@ -105,16 +105,18 @@ public class TabelaJurosController {
         this.service = service;
         this.viewModel = viewModel;
         this.bancoRepository = bancoRepository;
+        log.debug("[TABELA_JUROS] Construtor: Controller instanciado");
     }
 
     @FXML
     public void initialize() {
+        log.debug("[TABELA_JUROS] initialize: Iniciando configuração da tela de tabelas de juros");
         configurarFormulario();
         configurarColunasTabela();
         carregarDados();
         configurarFiltroBusca();
 
-        log.info("TabelaJurosController: Centro Cirúrgico Pronto com Utils!");
+        log.info("[TABELA_JUROS] initialize: Centro Cirúrgico Pronto com Utils!");
     }
 
     // =========================================================
@@ -122,6 +124,7 @@ public class TabelaJurosController {
     // =========================================================
 
     private void configurarFormulario() {
+        log.debug("[TABELA_JUROS] configurarFormulario: Configurando combos, bindings e formatadores");
         comboBanco.setItems(FXCollections.observableArrayList(bancoRepository.findByAtivoTrueOrderByNomeAsc()));
         comboBanco.setConverter(new StringConverter<BancoModel>() {
             @Override
@@ -141,7 +144,6 @@ public class TabelaJurosController {
         txtNomeTabela.textProperty().bindBidirectional(viewModel.getNomeTabela());
 
         // 🚀 BINDINGS COM O SEU FINANCEIRO UTILS (Para Moeda/Percentual)
-        // Precisamos instanciar um TextFormatter NOVO para CADA campo de texto
         TextFormatter<BigDecimal> tfTaxa = FinanceiroUtils.criarFormatadorMoeda();
         txtTaxaMensal.setTextFormatter(tfTaxa);
         tfTaxa.valueProperty().bindBidirectional(viewModel.getTaxaMensal());
@@ -178,12 +180,14 @@ public class TabelaJurosController {
         TextFormatter<Integer> tfIdadeMax = criarFormatadorInteiroPadrao();
         txtIdadeMaxima.setTextFormatter(tfIdadeMax);
         tfIdadeMax.valueProperty().bindBidirectional(viewModel.getIdadeMaxima());
+        log.trace("[TABELA_JUROS] configurarFormulario: Bindings concluídos");
     }
 
     /**
      * Motor nativo de Formatação de Inteiros para impedir travamentos e letras
      */
     private TextFormatter<Integer> criarFormatadorInteiroPadrao() {
+        log.trace("[TABELA_JUROS] criarFormatadorInteiroPadrao: Criando formatador para inteiros");
         return new TextFormatter<>(new StringConverter<Integer>() {
             @Override
             public String toString(Integer object) {
@@ -197,11 +201,12 @@ public class TabelaJurosController {
                 try {
                     return Integer.parseInt(string.replaceAll("[^0-9]", ""));
                 } catch (NumberFormatException e) {
+                    log.warn("[TABELA_JUROS] criarFormatadorInteiroPadrao: Erro ao converter '{}' para inteiro",
+                            string);
                     return null;
                 }
             }
         }, null, change -> {
-            // Permite APENAS números no teclado
             if (change.getControlNewText().matches("\\d*")) {
                 return change;
             }
@@ -210,13 +215,13 @@ public class TabelaJurosController {
     }
 
     private void configurarColunasTabela() {
+        log.debug("[TABELA_JUROS] configurarColunasTabela: Configurando colunas da tabela");
         colConvenio.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getTipoConvenio().name()));
         colNome.setCellValueFactory(cell -> {
             String bancoNome = cell.getValue().getBanco() != null ? cell.getValue().getBanco().getNome() : "S/B";
             return new SimpleStringProperty("[" + bancoNome + "] " + cell.getValue().getNomeTabela());
         });
 
-        // Uso do FinanceiroUtils diretamente na tabela
         colTaxa.setCellValueFactory(cell -> new SimpleStringProperty(
                 FinanceiroUtils.formatarParaExibicao(cell.getValue().getTaxaMensal()) + "%"));
         colComissao.setCellValueFactory(cell -> new SimpleStringProperty(
@@ -259,11 +264,18 @@ public class TabelaJurosController {
             private final HBox pane = new HBox(5, btnEditar, btnArquivar);
             {
                 btnEditar.getStyleClass().add("flat");
-                btnEditar.setOnAction(event -> editarTabela(getTableView().getItems().get(getIndex())));
+                btnEditar.setOnAction(event -> {
+                    TabelaJurosModel tabela = getTableView().getItems().get(getIndex());
+                    log.debug("[TABELA_JUROS] Ação 'Editar' disparada para tabela ID={}", tabela.getId());
+                    editarTabela(tabela);
+                });
                 btnArquivar.getStyleClass().add("flat");
                 btnArquivar.setStyle("-fx-text-fill: #f57c00;");
-                btnArquivar
-                        .setOnAction(event -> abrirConfirmacaoArquivamento(getTableView().getItems().get(getIndex())));
+                btnArquivar.setOnAction(event -> {
+                    TabelaJurosModel tabela = getTableView().getItems().get(getIndex());
+                    log.debug("[TABELA_JUROS] Ação 'Arquivar' disparada para tabela ID={}", tabela.getId());
+                    abrirConfirmacaoArquivamento(tabela);
+                });
             }
 
             @Override
@@ -275,9 +287,10 @@ public class TabelaJurosController {
     }
 
     private void carregarDados() {
+        log.debug("[TABELA_JUROS] carregarDados: Carregando lista de tabelas ativas");
         List<TabelaJurosModel> novasTabelas = service.listarAtivas();
+        log.info("[TABELA_JUROS] carregarDados: {} tabelas ativas carregadas", novasTabelas.size());
 
-        // Se a lista não existir, cria. Se existir, apenas atualiza.
         if (dadosOriginais == null) {
             dadosOriginais = FXCollections.observableArrayList(novasTabelas);
         } else {
@@ -286,22 +299,23 @@ public class TabelaJurosController {
     }
 
     private void configurarFiltroBusca() {
+        log.debug("[TABELA_JUROS] configurarFiltroBusca: Configurando filtro de busca reativo");
         filteredData = new FilteredList<>(dadosOriginais, b -> true);
         sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(tableTabelas.comparatorProperty());
 
         txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
+            log.debug("[TABELA_JUROS] Busca alterada: '{}' -> '{}'", oldValue, newValue);
             filteredData.setPredicate(tabela -> {
-                // Se o campo de busca estiver vazio, mostra tudo
                 if (newValue == null || newValue.trim().isEmpty()) {
                     return true;
                 }
-
-                // Transforma o que foi digitado em minúsculo
                 String termoBusca = newValue.toLowerCase().trim();
-
-                // Compara com a nossa string de busca completa do objeto
-                return gerarStringDeBusca(tabela).contains(termoBusca);
+                boolean matches = gerarStringDeBusca(tabela).contains(termoBusca);
+                if (matches)
+                    log.trace("[TABELA_JUROS] Tabela '{}' corresponde ao termo '{}'", tabela.getNomeTabela(),
+                            termoBusca);
+                return matches;
             });
         });
 
@@ -309,8 +323,6 @@ public class TabelaJurosController {
     }
 
     private String gerarStringDeBusca(TabelaJurosModel t) {
-        // Concatenamos tudo o que está nas colunas, usando espaços para separar os
-        // campos
         return ((t.getBanco() != null ? t.getBanco().getNome() : "") + " " +
                 (t.getNomeTabela() != null ? t.getNomeTabela() : "") + " " +
                 (t.getTipoConvenio() != null ? t.getTipoConvenio().name() : "") + " " +
@@ -330,52 +342,61 @@ public class TabelaJurosController {
 
     @FXML
     private void handleSalvar() {
+        log.debug("[TABELA_JUROS] handleSalvar: Iniciando salvamento da tabela");
         if (!viewModel.isDirty()) {
+            log.warn("[TABELA_JUROS] handleSalvar: Nenhuma alteração detectada");
             mostrarMensagem("Nenhuma alteração detectada para salvar.", false);
             return;
         }
         try {
             TabelaJurosModel tabelaAtualizada = viewModel.atualizarModel(new TabelaJurosModel());
+            log.info("[TABELA_JUROS] handleSalvar: Salvando tabela '{}'", tabelaAtualizada.getNomeTabela());
             service.salvarComRegraDeOuro(tabelaAtualizada);
             mostrarMensagem("Tabela atualizada com sucesso! A vigência antiga foi arquivada.", true);
             limparFormulario();
             carregarDados();
         } catch (Exception e) {
+            log.error("[TABELA_JUROS] handleSalvar: Erro ao salvar tabela", e);
             mostrarMensagem("Erro ao salvar: " + e.getMessage(), false);
-            log.error("[CONTROLLER][TABELAJUROS] Erro: {}", e.getMessage(), e);
         }
     }
 
     @FXML
     private void handleToggleForm() {
         boolean mostrandoForm = paneFormulario.isShowDetailNode();
+        log.debug("[TABELA_JUROS] handleToggleForm: Alternando formulário. Mostrando antes? {}", mostrandoForm);
         paneFormulario.setShowDetailNode(!mostrandoForm);
         btnToggleForm.setText(!mostrandoForm ? "➖ Fechar Formulário" : "➕ Prescrever Nova Tabela");
     }
 
     @FXML
     private void limparFormulario() {
+        log.debug("[TABELA_JUROS] limparFormulario: Resetando formulário");
         viewModel.reset();
-        paneFormulario.setShowDetailNode(false); // Oculta o formulário deslizando suavemente
+        paneFormulario.setShowDetailNode(false);
         lblFormTitulo.setText("💊 Prescrever Nova Tabela (Cadastrar / Atualizar)");
         btnToggleForm.setText("➕ Prescrever Nova Tabela");
     }
 
     private void editarTabela(TabelaJurosModel tabela) {
+        log.info("[TABELA_JUROS] editarTabela: Editando tabela ID={}, nome='{}'", tabela.getId(),
+                tabela.getNomeTabela());
         viewModel.loadFromModel(tabela);
-        paneFormulario.setShowDetailNode(true); // Exibe o formulário com animação
+        paneFormulario.setShowDetailNode(true);
         lblFormTitulo.setText("🔄 Editando Tabela: " + tabela.getNomeTabela() + " (Isso gerará uma nova versão)");
         btnToggleForm.setText("➖ Fechar Formulário");
         txtNomeTabela.requestFocus();
     }
 
     private void abrirConfirmacaoArquivamento(TabelaJurosModel tabela) {
+        log.debug("[TABELA_JUROS] abrirConfirmacaoArquivamento: Abrindo overlay para tabela ID={}", tabela.getId());
         this.tabelaSelecionadaParaArquivar = tabela;
         overlayArquivar.setVisible(true);
     }
 
     @FXML
     private void cancelarArquivamento() {
+        log.debug("[TABELA_JUROS] cancelarArquivamento: Cancelando arquivamento");
         this.tabelaSelecionadaParaArquivar = null;
         overlayArquivar.setVisible(false);
     }
@@ -383,23 +404,30 @@ public class TabelaJurosController {
     @FXML
     private void prepararNovaVersao() {
         if (tabelaSelecionadaParaArquivar != null) {
+            log.info("[TABELA_JUROS] prepararNovaVersao: Preparando nova versão a partir da tabela ID={}",
+                    tabelaSelecionadaParaArquivar.getId());
             editarTabela(tabelaSelecionadaParaArquivar);
         }
         cancelarArquivamento();
-        txtNomeTabela.requestFocus(); // Foco direto no primeiro input field do formulário
+        txtNomeTabela.requestFocus();
     }
 
     @FXML
     private void confirmarArquivamento() {
         if (tabelaSelecionadaParaArquivar != null) {
+            log.info("[TABELA_JUROS] confirmarArquivamento: Arquivando tabela ID={}",
+                    tabelaSelecionadaParaArquivar.getId());
             service.arquivarTabela(tabelaSelecionadaParaArquivar);
             carregarDados();
             mostrarMensagem("Tabela arquivada! Ela não aparecerá mais para novas propostas.", true);
+        } else {
+            log.warn("[TABELA_JUROS] confirmarArquivamento: Nenhuma tabela selecionada para arquivar");
         }
         cancelarArquivamento();
     }
 
     private void mostrarMensagem(String texto, boolean sucesso) {
+        log.debug("[TABELA_JUROS] mostrarMensagem: '{}' (sucesso={})", texto, sucesso);
         lblAviso.setText(texto);
         lblAviso.setStyle(sucesso ? "-fx-text-fill: green; -fx-font-weight: bold;"
                 : "-fx-text-fill: red; -fx-font-weight: bold;");

@@ -253,3 +253,214 @@
 2026-05-25 06:24:40 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
 2026-05-25 06:24:40 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
 2026-05-25 06:24:40 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 07:42:25 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 07:42:26 [virtual-40] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 35040 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 07:42:26 [virtual-40] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 07:42:29 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 07:42:29 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 344 ms. Found 11 JPA repository interfaces.
+2026-05-25 07:42:30 [virtual-40] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 07:42:31 [virtual-40] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 07:42:32 [virtual-40] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 07:42:32 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 07:42:32 [virtual-40] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@32ff3632
+2026-05-25 07:42:32 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 07:42:32 [virtual-40] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 07:42:32 [virtual-40] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 07:42:35 [virtual-40] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 07:42:35 [virtual-40] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 07:42:35 [virtual-40] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 07:42:46 [virtual-40] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 07:42:48 [virtual-40] INFO  o.s.boot.SpringApplication - Started application in 23.401 seconds (process running for 27.081)
+2026-05-25 07:42:48 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - StatusBarController carregado com sucesso!
+2026-05-25 07:42:49 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicializando AjudaChatController...
+2026-05-25 07:42:49 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Recurso chat.html localizado. Carregando: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 07:42:49 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando carregamento de modelos. Usuário logado: false | API Key presente: false
+2026-05-25 07:42:49 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando busca assíncrona de modelos disponíveis. Token presente: false
+2026-05-25 07:42:49 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicialização concluída.
+2026-05-25 07:42:50 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] 5 modelo(s) carregado(s). Selecionado: 'gemini-3.5-flash'. Lista: [gemini-3.5-flash, gemini-3.1-pro, gemini-3.1-flash-lite, gemini-2.5-pro, gemini-2.5-flash]
+2026-05-25 07:42:51 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Página carregada com sucesso. Mensagens pendentes na fila: 0
+2026-05-25 07:57:06 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 07:57:06 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 07:57:06 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 19:18:26 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 19:18:26 [virtual-39] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 25172 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 19:18:26 [virtual-39] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 19:18:28 [virtual-39] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 19:18:28 [virtual-39] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 166 ms. Found 11 JPA repository interfaces.
+2026-05-25 19:18:30 [virtual-39] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 19:18:30 [virtual-39] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 19:18:31 [virtual-39] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 19:18:31 [virtual-39] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 19:18:31 [virtual-39] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2bbcdb19
+2026-05-25 19:18:31 [virtual-39] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 19:18:31 [virtual-39] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 19:18:31 [virtual-39] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 19:18:34 [virtual-39] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 19:18:34 [virtual-39] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 19:18:34 [virtual-39] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 19:18:37 [virtual-39] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 19:18:38 [virtual-39] INFO  o.s.boot.SpringApplication - Started application in 13.198 seconds (process running for 17.51)
+2026-05-25 19:18:39 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - [STATUS_BAR] StatusBarController carregado com sucesso!
+2026-05-25 19:18:39 [JavaFX Application Thread] WARN  b.c.p.a.c.StatusBarController - [STATUS_BAR] Usuário não logado ou não identificado. lblUsuario disponível? true
+2026-05-25 19:18:39 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - [STATUS_BAR] initialize: Configuração concluída
+2026-05-25 19:18:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicializando AjudaChatController...
+2026-05-25 19:18:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Recurso chat.html localizado. Carregando: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 19:18:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando carregamento de modelos. Usuário logado: false | API Key presente: false
+2026-05-25 19:18:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando busca assíncrona de modelos disponíveis. Token presente: false
+2026-05-25 19:18:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicialização concluída.
+2026-05-25 19:18:40 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] initialize: Configuração concluída
+2026-05-25 19:18:41 [JavaFX Application Thread] INFO  b.c.p.app.controller.LoginController - [LOGIN] initialize: Configuração concluída
+2026-05-25 19:18:41 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] FXML '/fxml/login.fxml' carregado com sucesso, controller=br.com.poderfinanceiro.app.controller.LoginController@5240e27c
+2026-05-25 19:18:41 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] Navegação para '/fxml/login.fxml' concluída
+2026-05-25 19:18:41 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] 5 modelo(s) carregado(s). Selecionado: 'gemini-3.5-flash'. Lista: [gemini-3.5-flash, gemini-3.1-pro, gemini-3.1-flash-lite, gemini-2.5-pro, gemini-2.5-flash]
+2026-05-25 19:18:42 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Página carregada com sucesso. Mensagens pendentes na fila: 0
+2026-05-25 19:18:43 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 19:18:43 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 19:18:43 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 19:19:20 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 19:19:21 [virtual-40] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 25629 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 19:19:21 [virtual-40] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 19:19:23 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 19:19:24 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 202 ms. Found 11 JPA repository interfaces.
+2026-05-25 19:19:25 [virtual-40] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 19:19:25 [virtual-40] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 19:19:26 [virtual-40] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 19:19:26 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 19:19:26 [virtual-40] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@307a49a5
+2026-05-25 19:19:26 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 19:19:27 [virtual-40] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 19:19:27 [virtual-40] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 19:19:29 [virtual-40] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 19:19:30 [virtual-40] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 19:19:30 [virtual-40] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 19:19:33 [virtual-40] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 19:19:34 [virtual-40] INFO  o.s.boot.SpringApplication - Started application in 15.249 seconds (process running for 18.185)
+2026-05-25 19:19:35 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - [STATUS_BAR] StatusBarController carregado com sucesso!
+2026-05-25 19:19:35 [JavaFX Application Thread] WARN  b.c.p.a.c.StatusBarController - [STATUS_BAR] Usuário não logado ou não identificado. lblUsuario disponível? true
+2026-05-25 19:19:35 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - [STATUS_BAR] initialize: Configuração concluída
+2026-05-25 19:19:37 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicializando AjudaChatController...
+2026-05-25 19:19:37 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Recurso chat.html localizado. Carregando: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 19:19:37 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando carregamento de modelos. Usuário logado: false | API Key presente: false
+2026-05-25 19:19:37 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando busca assíncrona de modelos disponíveis. Token presente: false
+2026-05-25 19:19:37 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicialização concluída.
+2026-05-25 19:19:37 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] initialize: Configuração concluída
+2026-05-25 19:19:39 [JavaFX Application Thread] INFO  b.c.p.app.controller.LoginController - [LOGIN] initialize: Configuração concluída
+2026-05-25 19:19:39 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] FXML '/fxml/login.fxml' carregado com sucesso, controller=br.com.poderfinanceiro.app.controller.LoginController@261ddda5
+2026-05-25 19:19:39 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] Navegação para '/fxml/login.fxml' concluída
+2026-05-25 19:19:39 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] 5 modelo(s) carregado(s). Selecionado: 'gemini-3.5-flash'. Lista: [gemini-3.5-flash, gemini-3.1-pro, gemini-3.1-flash-lite, gemini-2.5-pro, gemini-2.5-flash]
+2026-05-25 19:19:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Página carregada com sucesso. Mensagens pendentes na fila: 0
+2026-05-25 19:19:46 [JavaFX Application Thread] INFO  b.c.p.app.controller.LoginController - [LOGIN] Usuário autenticado com sucesso: email='wtalvaro'
+2026-05-25 19:19:46 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - [STATUS_BAR] Usuário logado: 'Wagner Teles Alvaro'
+2026-05-25 19:19:46 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] initialize: Workspace configurado com sucesso
+2026-05-25 19:19:46 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] FXML '/fxml/workspace.fxml' carregado com sucesso, controller=br.com.poderfinanceiro.app.controller.WorkspaceController@36b421d8
+2026-05-25 19:19:46 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] Navegação para '/fxml/workspace.fxml' concluída
+2026-05-25 19:19:47 [JavaFX Application Thread] WARN  b.c.p.a.c.WorkspaceController - [WORKSPACE] Não foi possível localizar .tab-header-area para configurar scroll horizontal
+2026-05-25 19:19:58 [JavaFX Application Thread] INFO  b.c.p.a.controller.ToolbarController - [TOOLBAR] Usuário clicou em 'Abrir Copiloto'
+2026-05-25 19:19:58 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] configurarListViewRanking: ListView configurada
+2026-05-25 19:19:58 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] initialize: Configuração finalizada com sucesso
+2026-05-25 19:19:58 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] Nova aba '✨ Copiloto de Vendas' criada e selecionada (rota=COPILOTO)
+2026-05-25 19:19:58 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] carregarModelosGemini: 6 modelos carregados da API
+2026-05-25 19:20:13 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] handleSimular: Parâmetros - idade=39, renda=6799.00, convenio=CLT_CONSIGNADO, valor=100.00, prazo=6, margem=0.00
+2026-05-25 19:20:13 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] iniciarSimulacaoAssincrona: Simulação finalizada com 11 resultados
+2026-05-25 19:20:22 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] handlePedirConselhoIA: ranking possui 11 resultados
+2026-05-25 19:20:35 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] handlePedirConselhoIA: Ranking reordenado com 3 recomendações no topo
+2026-05-25 19:20:35 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] handlePedirConselhoIA: Conselho finalizado com sucesso
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoCardController - [COPILOTO_CARD] Usuário acionou 'Aproveitar'. Banco='Poder Financeiro' | Tabela='ATAQUE - QUALQUER' | Parcela=0,00
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] converterParaProposta: Gerando proposta para cliente Edimar da Fonseca com resultado banco=Poder Financeiro, parcela=0,00
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] iniciarConversaoCopiloto: Convertendo rascunho para proposta - cliente='Edimar da Fonseca', banco='Poder Financeiro'
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] abrirPropostaNoWorkspace: proposta ID=82 do cliente Edimar da Fonseca
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] abrirOuFocarAbaComProposta: proponente=Edimar da Fonseca, propostaId=82
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.EsteiraPropostasController - [ESTEIRA] recarregarDados: Iniciando recarga assíncrona dos dados
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.EsteiraPropostasController - [ESTEIRA] initialize: Configuração concluída e inscrição no evento realizada
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] Nova aba '📄 Esteira de Propostas' criada e selecionada (rota=PROPOSTAS)
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.EsteiraPropostasController - [ESTEIRA] selecionarPropostaPorId: Buscando e selecionando proposta ID=82
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] notificarSucesso: Proposta gerada com sucesso para Edimar da Fonseca
+Banco: Poder Financeiro
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.app.controller.MainController - [MAIN] Proposta ID=82 gerada com sucesso a partir do Copiloto
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.EsteiraPropostasController - [ESTEIRA] recarregarDados: 7 propostas carregadas
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.PropostaController - [PROPOSTA] initialize: Configuração concluída
+2026-05-25 19:20:41 [JavaFX Application Thread] INFO  b.c.p.a.c.EsteiraPropostasController - [ESTEIRA] Formulário de proposta carregado e injetado
+2026-05-25 19:20:42 [JavaFX Application Thread] INFO  b.c.p.a.c.EsteiraPropostasController - [ESTEIRA] Proposta ID=82 carregada com sucesso
+2026-05-25 19:20:42 [JavaFX Application Thread] INFO  b.c.p.a.c.PropostaController - [PROPOSTA] carregarProposta: Carregando proposta ID=82
+2026-05-25 19:20:42 [JavaFX Application Thread] INFO  b.c.p.a.c.PropostaController - [PROPOSTA] 6 modelos IA carregados
+2026-05-25 19:20:42 [JavaFX Application Thread] INFO  b.c.p.a.c.PropostaController - [PROPOSTA] 0 documentos carregados para proposta ID=82
+2026-05-25 19:22:23 [JavaFX Application Thread] INFO  b.c.p.a.c.EsteiraPropostasController - [ESTEIRA] dispose: Desinscrevendo do event hub e liberando recursos
+2026-05-25 19:22:27 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] dispose: Liberando recursos e desinscrevendo do event hub
+2026-05-25 19:22:37 [JavaFX Application Thread] INFO  b.c.p.app.controller.MenuController - [MENU] Usuário clicou em 'Abrir IA' (alternar painel)
+2026-05-25 19:23:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][ENVIO] Iniciando envio. Modelo='gemini-3.5-flash' | Tela focada='DASHBOARD' | Anexo presente=false | Tamanho da mensagem=54 chars | Turnos no histórico=0
+2026-05-25 19:23:10 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][IA] Resposta recebida com sucesso. Tempo total=5532ms | Tamanho da resposta=1482 chars | Histórico após atualização=2 turnos
+2026-05-25 19:24:30 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][ENVIO] Iniciando envio. Modelo='gemini-3.5-flash' | Tela focada='DASHBOARD' | Anexo presente=false | Tamanho da mensagem=34 chars | Turnos no histórico=2
+2026-05-25 19:24:39 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][IA] Resposta recebida com sucesso. Tempo total=9264ms | Tamanho da resposta=2152 chars | Histórico após atualização=4 turnos
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.controller.ToolbarController - [TOOLBAR] Usuário clicou em 'Tabela de Comissões'
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] abrirAbaComissoes: Solicitado
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.c.ComissoesController - [COMISSOES] Inicializando ComissoesController...
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.c.ComissoesController - [COMISSOES][DADOS] Iniciando recarga de comissões...
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.c.ComissoesController - [COMISSOES][RESUMO] Totais atualizados. Pendente=0,00 | Recebido=0,00
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.c.ComissoesController - [COMISSOES][DADOS] 0 comissão(ões) carregada(s) em 21ms. Pagas=0 | Pendentes=0 | Contestadas=0
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.c.ComissoesController - [COMISSOES] Inicialização concluída.
+2026-05-25 19:25:18 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] Nova aba '💰 Gestão de Repasses (RV)' criada e selecionada (rota=COMISSOES)
+2026-05-25 19:25:22 [JavaFX Application Thread] INFO  b.c.p.a.controller.ToolbarController - [TOOLBAR] Usuário clicou em 'Clientes'
+2026-05-25 19:25:22 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] abrirAbaClientes: Solicitado
+2026-05-25 19:25:22 [JavaFX Application Thread] INFO  b.c.p.a.c.ProponenteListController - [PROPONENTE_LIST] initialize: Configuração concluída e inscrita no event hub
+2026-05-25 19:25:22 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] Nova aba '👥 Clientes' criada e selecionada (rota=CLIENTES)
+2026-05-25 19:25:22 [JavaFX Application Thread] INFO  b.c.p.a.c.ProponenteListController - [PROPONENTE_LIST] Tarefa concluída: 7 registros retornados
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.ProponenteListController - [PROPONENTE_LIST] Usuário acionou 'Novo Proponente'
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] abrirOuFocarAba: Cliente 'novo' (ID=NOVO_7e3ae8a0-1f6f-44fd-b462-fbef07877b0d)
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.ProponenteController - [PROPONENTE] initialize: Configuração concluída
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.EnderecoController - [ENDERECO] initialize: Configuração concluída
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB] Inicializando AtendimentoHubController...
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB] Inicialização concluída. Bindings de validação ativos.
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Preparando formulário para novo atendimento (proponente em branco).
+2026-05-25 19:25:34 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] Nova aba de atendimento criada e selecionada para ID=NOVO_7e3ae8a0-1f6f-44fd-b462-fbef07877b0d
+2026-05-25 19:26:19 [JavaFX Application Thread] INFO  b.c.p.a.c.EnderecoController - Solicitando busca para o CEP: 21371220
+2026-05-25 19:26:19 [JavaFX Application Thread] INFO  b.c.p.a.c.EnderecoController - [ENDERECO] processarResultadoBusca: Endereço encontrado para CEP=21371-220
+2026-05-25 19:26:19 [JavaFX Application Thread] INFO  b.c.p.a.c.EnderecoController - [ENDERECO] preencherCamposEndereco: Endereço preenchido: logradouro='Rua Alice Freitas', bairro='Vaz Lobo', cidade='Rio de Janeiro', uf='RJ'
+2026-05-25 19:26:24 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Ação de salvar disparada. lead dirty=true | lead válido=true | endereço dirty=true
+2026-05-25 19:26:24 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Disparando task assíncrona. Proponente ID=N/A (INSERT)
+2026-05-25 19:26:24 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Salvo com sucesso em 76ms. ID gerado/confirmado=8
+2026-05-25 19:26:24 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Pós-salvamento: inicializando tela com dados persistidos. ID=8
+2026-05-25 19:26:24 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Inicializando atendimento. ID=8 | Novo=false | Tem endereço=true
+2026-05-25 19:26:24 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Atendimento ID=8 pronto para interação.
+2026-05-25 19:26:24 [JavaFX Application Thread] INFO  b.c.p.a.c.ProponenteListController - [PROPONENTE_LIST] Tarefa concluída: 8 registros retornados
+2026-05-25 19:26:44 [JavaFX Application Thread] INFO  b.c.p.a.controller.ToolbarController - [TOOLBAR] Usuário clicou em 'Abrir Copiloto'
+2026-05-25 19:26:44 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] configurarListViewRanking: ListView configurada
+2026-05-25 19:26:44 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] initialize: Configuração finalizada com sucesso
+2026-05-25 19:26:44 [JavaFX Application Thread] INFO  b.c.p.a.c.WorkspaceController - [WORKSPACE] Nova aba '✨ Copiloto de Vendas' criada e selecionada (rota=COPILOTO)
+2026-05-25 19:26:44 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] carregarModelosGemini: 6 modelos carregados da API
+2026-05-25 19:26:59 [JavaFX Application Thread] INFO  b.c.p.a.c.CopilotoController - [COPILOTO] dispose: Liberando recursos e desinscrevendo do event hub
+2026-05-25 19:27:06 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 19:27:06 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 19:27:06 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.

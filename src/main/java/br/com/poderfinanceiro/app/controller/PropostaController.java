@@ -177,10 +177,12 @@ public class PropostaController {
         this.authService = authService;
         this.geminiService = geminiService;
         this.hostServices = hostServices;
+        log.debug("[PROPOSTA] Construtor: Controller instanciado (escopo prototype)");
     }
 
     public void setEsteiraController(EsteiraPropostasController esteiraController) {
         this.esteiraController = esteiraController;
+        log.debug("[PROPOSTA] setEsteiraController: Esteira associada");
     }
 
     // =========================================================================
@@ -188,27 +190,31 @@ public class PropostaController {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.debug("[PROPOSTA] initialize: Iniciando configuração do formulário de proposta");
         carregarListasBase();
         configurarConversoresVisuais();
         configurarBindings();
-        configurarCalculosAutomaticos(); // Renomeado, pois não faz mais triagem
+        configurarCalculosAutomaticos();
         configurarTabelaDocumentos();
         configurarAutoSelecaoTextos();
         configurarIndicadoresDinamicos();
         configurarTravasEAlertas();
         inicializarComboBoxIA();
         configurarOverlayDocumentos();
+        log.info("[PROPOSTA] initialize: Configuração concluída");
     }
 
     private void carregarListasBase() {
+        log.debug("[PROPOSTA] carregarListasBase: Carregando listas de bancos e status");
         todasTabelasAtivas = tabelaJurosService.listarAtivas();
+        log.trace("[PROPOSTA] carregarListasBase: {} tabelas ativas carregadas", todasTabelasAtivas.size());
 
-        // Pega apenas os Bancos únicos que possuem tabelas ativas
         List<BancoModel> bancosAtivos = todasTabelasAtivas.stream()
                 .map(TabelaJurosModel::getBanco)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
+        log.debug("[PROPOSTA] carregarListasBase: {} bancos ativos encontrados", bancosAtivos.size());
 
         executarSemGatilhos(() -> {
             cbBanco.setItems(FXCollections.observableArrayList(bancosAtivos));
@@ -222,6 +228,7 @@ public class PropostaController {
     }
 
     private void configurarConversoresVisuais() {
+        log.debug("[PROPOSTA] configurarConversoresVisuais: Configurando conversores dos combos");
         if (cbConvenio != null)
             cbConvenio.setConverter(criarConversor(TipoConvenioModel::getLabel));
         cbBanco.setConverter(criarConversor(b -> b != null ? b.getNome() : "Selecione o Banco..."));
@@ -234,6 +241,7 @@ public class PropostaController {
     }
 
     private void configurarBindings() {
+        log.debug("[PROPOSTA] configurarBindings: Estabelecendo bindings bidirecionais");
         cbStatus.valueProperty().bindBidirectional(viewModel.statusProperty());
         txtObservacoes.textProperty().bindBidirectional(viewModel.observacoesProperty());
         bindComboSafely(cbConvenio, viewModel.convenioProperty());
@@ -254,8 +262,11 @@ public class PropostaController {
 
     private void bindCliente() {
         cbCliente.valueProperty().addListener((obs, old, val) -> {
-            if (!isUpdatingInterface)
+            if (!isUpdatingInterface) {
+                log.debug("[PROPOSTA] bindCliente: Cliente selecionado = {}",
+                        val != null ? val.getNomeCompleto() : "null");
                 viewModel.proponenteProperty().set(val);
+            }
         });
         viewModel.proponenteProperty().addListener((obs, old, val) -> {
             if (!isUpdatingInterface)
@@ -267,6 +278,7 @@ public class PropostaController {
     private void configurarOverlayDocumentos() {
         if (cbTipoDocumentoOverlay == null)
             return;
+        log.debug("[PROPOSTA] configurarOverlayDocumentos: Configurando overlay de documentos");
         cbTipoDocumentoOverlay.setItems(TIPOS_DOCUMENTO_PADRAO);
         cbTipoDocumentoOverlay.valueProperty().addListener((obs, old, val) -> validarFormularioDocumento());
         cbTipoDocumentoOverlay.getEditor().textProperty().addListener((obs, old, val) -> validarFormularioDocumento());
@@ -276,17 +288,22 @@ public class PropostaController {
     // CORE FLUXO DA PROPOSTA (CARREGAR, SALVAR, EXCLUIR)
     // =========================================================================
     public void carregarProposta(PropostaModel completa) {
+        log.info("[PROPOSTA] carregarProposta: Carregando proposta ID={}",
+                completa != null ? completa.getId() : "null");
         executarSemGatilhos(() -> {
-            viewModel.loadFromModel(completa);
+            // proteger contra NPE caso 'completa' seja null
+            if (completa != null) {
+                viewModel.loadFromModel(completa);
+            } else {
+                viewModel.loadFromModel(new PropostaModel());
+            }
             sincronizarComboBoxesComViewModel();
-            cbCliente.setDisable(completa.getId() != null);
+            cbCliente.setDisable(completa != null && completa.getId() != null);
 
-            if (completa.getId() != null) {
+            if (completa != null && completa.getId() != null) {
                 carregarDocumentosDaProposta(completa.getId());
             }
 
-            // 🚀 CORREÇÃO: Fora do 'if' para limpar o estado de desabilitação em novas
-            // propostas
             aplicarBloqueio();
         });
 
@@ -298,7 +315,9 @@ public class PropostaController {
 
     @FXML
     public void handleSalvar() {
+        log.debug("[PROPOSTA] handleSalvar: Iniciando salvamento da proposta");
         if (!viewModel.isValido()) {
+            log.warn("[PROPOSTA] handleSalvar: Proposta inválida (campos obrigatórios não preenchidos)");
             mostrarFeedback("⚠️", "Atenção", "Preencha o Cliente, Banco, Tabela e Convênio para salvar.", null);
             return;
         }
@@ -306,12 +325,14 @@ public class PropostaController {
         AsyncUtils.executarTaskAsync(
                 this::executarSalvamentoBackground,
                 salva -> {
+                    log.info("[PROPOSTA] handleSalvar: Proposta salva com sucesso, ID={}", salva.getId());
                     carregarProposta(salva);
-                    // Agora o callback no final é null, pois o EventBus do Spring já cuidou de
-                    // atualizar a tabela no fundo
                     mostrarFeedback("✅", "Sucesso!", "Proposta salva com sucesso.", null);
                 },
-                erro -> mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null));
+                erro -> {
+                    log.error("[PROPOSTA] handleSalvar: Erro ao salvar proposta", erro);
+                    mostrarFeedback("❌", "Erro", "Não foi possível salvar: " + erro.getMessage(), null);
+                });
     }
 
     private PropostaModel executarSalvamentoBackground() {
@@ -322,15 +343,19 @@ public class PropostaController {
                 base = new PropostaModel();
         }
         PropostaModel salva = propostaService.salvarProposta(viewModel.atualizarModel(base));
+        log.trace("[PROPOSTA] executarSalvamentoBackground: Proposta salva no banco, ID={}", salva.getId());
         return propostaService.carregarPropostaDetalhada(salva.getId());
     }
 
     @FXML
     public void handleRemover() {
         if (viewModel.idProperty().get() == null) {
+            log.debug("[PROPOSTA] handleRemover: Proposta sem ID, confirmando fechamento");
             confirmarFechar();
             return;
         }
+        log.info("[PROPOSTA] handleRemover: Solicitando confirmação para exclusão da proposta ID={}",
+                viewModel.idProperty().get());
         if (esteiraController != null) {
             esteiraController.solicitarConfirmacao("⚠️ Confirmar Exclusão",
                     "Tem certeza que deseja excluir permanentemente esta proposta?", "Sim, Excluir", "#c62828",
@@ -339,21 +364,21 @@ public class PropostaController {
     }
 
     private void confirmarRemover() {
+        log.info("[PROPOSTA] confirmarRemover: Excluindo proposta ID={}", viewModel.idProperty().get());
         AsyncUtils.executarTaskAsync(
                 () -> {
                     propostaService.excluirProposta(viewModel.idProperty().get());
                     return null;
                 },
-                sucesso -> {
-                    // A UI não faz nada aqui! O @EventListener da Esteira intercepta a exclusão e
-                    // limpa a tela automaticamente.
-                },
-                erro -> mostrarFeedback("❌", "Erro", "Não foi possível remover: " + erro.getMessage(), null));
+                sucesso -> log.debug("[PROPOSTA] Proposta excluída com sucesso"),
+                erro -> log.error("[PROPOSTA] Erro ao excluir proposta", erro));
     }
 
     @FXML
     public void handleFechar() {
+        log.debug("[PROPOSTA] handleFechar: Fechando formulário");
         if (viewModel.isDirty() && esteiraController != null) {
+            log.warn("[PROPOSTA] handleFechar: Alterações não salvas, solicitando confirmação");
             esteiraController.solicitarConfirmacao("⚠️ Descartar alterações?",
                     "Existem alterações não salvas. Deseja realmente fechar a proposta?", "Descartar", "#c62828",
                     this::confirmarFechar, null);
@@ -363,6 +388,7 @@ public class PropostaController {
     }
 
     private void confirmarFechar() {
+        log.debug("[PROPOSTA] confirmarFechar: Executando callback de fechamento");
         if (onPropostaFechada != null)
             onPropostaFechada.run();
     }
@@ -371,22 +397,17 @@ public class PropostaController {
     // LÓGICA DE NEGÓCIO E CÁLCULOS
     // =========================================================================
     private void configurarCalculosAutomaticos() {
-        // Ao alterar valor aprovado ou solicitado, refaz a conta de comissão
+        log.debug("[PROPOSTA] configurarCalculosAutomaticos: Configurando listeners para cálculos automáticos");
         viewModel.valorAprovadoProperty().addListener((obs, old, val) -> calcularComissao());
         viewModel.valorSolicitadoProperty().addListener((obs, old, val) -> calcularComissao());
-
-        // Quando o usuário escolhe um Banco, filtra as tabelas
         viewModel.bancoProperty().addListener((obs, old, banco) -> atualizarTabelasDoBanco((BancoModel) banco));
-
-        // Quando o usuário escolhe a Tabela, atualiza a propriedade ID e calcula
         cbTabela.valueProperty().addListener((obs, old, nova) -> {
             if (!isUpdatingInterface) {
+                log.trace("[PROPOSTA] Tabela selecionada: {}", nova != null ? nova.getNomeTabela() : "null");
                 viewModel.tabelaIdProperty().set(nova != null ? nova.getId() : null);
                 calcularComissao();
             }
         });
-
-        // Quando o ID muda via ViewModel, reflete visualmente
         viewModel.tabelaIdProperty().addListener((obs, old, id) -> {
             if (!isUpdatingInterface)
                 carregarDadosDaTabela(id);
@@ -407,6 +428,7 @@ public class PropostaController {
             lblComissaoEstimada.setText(String.format("%s (%s%%)", FinanceiroUtils.formatarParaExibicao(comissao),
                     tabela.getComissaoPercentual()));
             lblComissaoEstimada.setStyle("-fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-font-size: 14px;");
+            log.trace("[PROPOSTA] Comissão calculada: base={}, comissão={}", base, comissao);
         } else {
             viewModel.comissaoEstimadaProperty().set(BigDecimal.ZERO);
             lblComissaoEstimada.setText("R$ 0,00 (0%)");
@@ -417,14 +439,14 @@ public class PropostaController {
     private void atualizarTabelasDoBanco(BancoModel banco) {
         if (isUpdatingInterface)
             return;
-
+        log.debug("[PROPOSTA] atualizarTabelasDoBanco: Banco selecionado = {}",
+                banco != null ? banco.getNome() : "null");
         if (banco != null) {
-            // Filtra da lista mestra apenas as tabelas do banco selecionado
             List<TabelaJurosModel> tabelas = todasTabelasAtivas.stream()
                     .filter(t -> t.getBanco() != null && t.getBanco().getId().equals(banco.getId()))
                     .sorted(Comparator.comparing(TabelaJurosModel::getComissaoPercentual).reversed())
                     .toList();
-
+            log.trace("[PROPOSTA] {} tabelas disponíveis para o banco", tabelas.size());
             TabelaJurosModel atual = cbTabela.getValue();
             executarSemGatilhos(() -> {
                 cbTabela.setItems(FXCollections.observableArrayList(tabelas));
@@ -450,6 +472,7 @@ public class PropostaController {
     private void carregarDadosDaTabela(Long idTabela) {
         if (isUpdatingInterface)
             return;
+        log.debug("[PROPOSTA] carregarDadosDaTabela: Carregando tabela ID={}", idTabela);
         executarSemGatilhos(() -> {
             if (idTabela != null) {
                 TabelaJurosModel tab = todasTabelasAtivas.stream()
@@ -477,6 +500,7 @@ public class PropostaController {
     }
 
     private void sincronizarComboBoxesComViewModel() {
+        log.trace("[PROPOSTA] sincronizarComboBoxesComViewModel: Atualizando combos a partir do ViewModel");
         sincronizarComboModel(cbCliente, viewModel.proponenteProperty().get(), ProponenteModel::getId);
         cbStatus.setValue(viewModel.statusProperty().get());
         cbConvenio.setValue(viewModel.convenioProperty().get());
@@ -488,11 +512,8 @@ public class PropostaController {
         if (idTabela != null) {
             TabelaJurosModel tab = todasTabelasAtivas.stream().filter(t -> t.getId().equals(idTabela)).findFirst()
                     .orElse(null);
-
-            // Garante que a lista de tabelas está populada pro banco correto
             if (b != null)
                 atualizarTabelasDoBanco(b);
-
             sincronizarComboModel(cbTabela, tab, TabelaJurosModel::getId);
         } else {
             cbTabela.getSelectionModel().clearSelection();
@@ -504,6 +525,7 @@ public class PropostaController {
     // GESTÃO DE DOCUMENTOS (OVERLAY E TABELA)
     // =========================================================================
     private void configurarTabelaDocumentos() {
+        log.debug("[PROPOSTA] configurarTabelaDocumentos: Configurando tabela de documentos");
         tableDocumentos.setItems(listaDocumentos);
         colAcoes.setPrefWidth(240);
         colTipoDocumento.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoDocumento()));
@@ -515,20 +537,28 @@ public class PropostaController {
     private void carregarDocumentosDaProposta(Long propostaId) {
         if (propostaId == null) {
             listaDocumentos.clear();
+            log.debug("[PROPOSTA] carregarDocumentosDaProposta: propostaId nulo, limpando lista");
             return;
         }
+        log.debug("[PROPOSTA] carregarDocumentosDaProposta: Buscando documentos para proposta ID={}", propostaId);
         AsyncUtils.executarTaskAsync(
                 () -> documentoService.buscarPorProposta(propostaId),
                 docs -> {
                     listaDocumentos.setAll(docs);
                     tableDocumentos.refresh();
+                    log.info("[PROPOSTA] {} documentos carregados para proposta ID={}", docs.size(), propostaId);
                 },
-                erro -> mostrarFeedback("❌", "Erro", "Erro ao carregar documentos.", null));
+                erro -> {
+                    log.error("[PROPOSTA] Erro ao carregar documentos da proposta ID={}", propostaId, erro);
+                    mostrarFeedback("❌", "Erro", "Erro ao carregar documentos.", null);
+                });
     }
 
     @FXML
     private void handleAnexarDocumento() {
+        log.debug("[PROPOSTA] handleAnexarDocumento: Iniciando anexo de documento");
         if (viewModel.idProperty().get() == null) {
+            log.warn("[PROPOSTA] handleAnexarDocumento: Proposta sem ID, solicitar salvamento primeiro");
             mostrarFeedback("⚠️", "Atenção",
                     "Salve a proposta primeiro para gerar um código antes de anexar documentos.", null);
             return;
@@ -537,6 +567,7 @@ public class PropostaController {
     }
 
     private void abrirEdicaoDocumento(DocumentoProponenteModel doc) {
+        log.debug("[PROPOSTA] abrirEdicaoDocumento: Editando documento ID={}", doc.getId());
         prepararOverlayDocumento(doc, "✏️ Renomear Documento");
     }
 
@@ -555,6 +586,7 @@ public class PropostaController {
 
     @FXML
     private void handleProcurarArquivo() {
+        log.debug("[PROPOSTA] handleProcurarArquivo: Abrindo seletor de arquivo");
         FileChooser fc = new FileChooser();
         fc.setTitle("Selecionar Arquivo Físico");
         fc.getExtensionFilters()
@@ -565,6 +597,9 @@ public class PropostaController {
             arquivoSelecionadoParaUpload = arquivo;
             lblArquivoSelecionado.setText(arquivo.getName());
             validarFormularioDocumento();
+            log.info("[PROPOSTA] Arquivo selecionado: {}", arquivo.getAbsolutePath());
+        } else {
+            log.debug("[PROPOSTA] Nenhum arquivo selecionado ou arquivo inválido");
         }
     }
 
@@ -577,6 +612,7 @@ public class PropostaController {
 
     @FXML
     private void fecharOverlayDocumento() {
+        log.debug("[PROPOSTA] fecharOverlayDocumento: Fechando overlay de documentos");
         overlayDocumento.setVisible(false);
         documentoSendoEditado = null;
         arquivoSelecionadoParaUpload = null;
@@ -585,6 +621,7 @@ public class PropostaController {
     @FXML
     public void confirmarSalvarDocumento() {
         String nomePersonalizado = cbTipoDocumentoOverlay.getEditor().getText().trim();
+        log.info("[PROPOSTA] confirmarSalvarDocumento: Salvando documento com tipo '{}'", nomePersonalizado);
         btnSalvarDocumento.setDisable(true);
 
         AsyncUtils.executarTaskAsync(
@@ -599,17 +636,19 @@ public class PropostaController {
                     }
                 },
                 sucesso -> {
+                    log.debug("[PROPOSTA] Documento salvo/atualizado com sucesso");
                     fecharOverlayDocumento();
                     carregarDocumentosDaProposta(viewModel.idProperty().get());
                 },
                 erro -> {
+                    log.error("[PROPOSTA] Erro ao salvar/atualizar documento", erro);
                     btnSalvarDocumento.setDisable(false);
                     mostrarFeedback("❌", "Erro de Documento", erro.getMessage(), null);
                 });
     }
 
-    // 🚀 PATCH: Refatoração para usar o AsyncUtils centralizado
     private void exibirOverlayExclusao(DocumentoProponenteModel doc) {
+        log.info("[PROPOSTA] exibirOverlayExclusao: Solicitando exclusão do documento ID={}", doc.getId());
         if (esteiraController != null) {
             esteiraController.solicitarConfirmacao("🗑️ Excluir Documento",
                     "Deseja remover '" + doc.getTipoDocumento() + "'?", "Sim, Excluir", "#c62828",
@@ -619,21 +658,28 @@ public class PropostaController {
                                     documentoService.excluirDocumento(doc.getId());
                                     return null;
                                 },
-                                sucesso -> listaDocumentos.remove(doc),
+                                sucesso -> {
+                                    listaDocumentos.remove(doc);
+                                    log.info("[PROPOSTA] Documento ID={} excluído", doc.getId());
+                                },
                                 null);
                     }, null);
         }
     }
 
     private void abrirDocumentoFisico(DocumentoProponenteModel doc) {
-        if (doc == null || doc.getArquivoPath() == null)
+        if (doc == null || doc.getArquivoPath() == null) {
+            log.warn("[PROPOSTA] abrirDocumentoFisico: Documento ou caminho nulo");
             return;
+        }
         File f = new File(doc.getArquivoPath());
 
         if (f.exists()) {
+            log.info("[PROPOSTA] abrirDocumentoFisico: Abrindo arquivo {}", f.getAbsolutePath());
             Platform.runLater(
                     () -> hostServices.showDocument(f.getAbsoluteFile().toURI().toString()));
         } else {
+            log.warn("[PROPOSTA] abrirDocumentoFisico: Arquivo não encontrado: {}", f.getAbsolutePath());
             mostrarFeedback("⚠️", "Aviso", "Arquivo físico não encontrado no servidor.", null);
         }
     }
@@ -644,6 +690,7 @@ public class PropostaController {
     private void inicializarComboBoxIA() {
         if (cmbModeloIA == null)
             return;
+        log.debug("[PROPOSTA] inicializarComboBoxIA: Configurando combobox de modelos IA");
         cmbModeloIA.getItems().add(MODELO_IA_FALLBACK);
         cmbModeloIA.getSelectionModel().selectFirst();
 
@@ -661,19 +708,24 @@ public class PropostaController {
                         else
                             cmbModeloIA.getSelectionModel().selectFirst();
                         modelosCarregados = true;
+                        log.info("[PROPOSTA] {} modelos IA carregados", modelos.size());
                     },
-                    null);
+                    erro -> log.error("[PROPOSTA] Erro ao carregar modelos IA", erro));
         }
     }
 
     private void analisarDocumentoComIA(DocumentoProponenteModel doc) {
+        log.info("[PROPOSTA] analisarDocumentoComIA: Iniciando análise do documento ID={}, tipo={}", doc.getId(),
+                doc.getTipoDocumento());
         if (doc == null || doc.getArquivoPath() == null) {
+            log.warn("[PROPOSTA] Documento inválido para análise");
             mostrarFeedback("⚠️", "Erro", "Dados do documento inválidos.", null);
             return;
         }
 
         File arquivoFisico = new File(doc.getArquivoPath());
         if (!arquivoFisico.exists()) {
+            log.warn("[PROPOSTA] Arquivo físico não encontrado: {}", doc.getArquivoPath());
             mostrarFeedback("❌", "Arquivo Ausente", "Arquivo físico não encontrado.", null);
             return;
         }
@@ -695,18 +747,20 @@ public class PropostaController {
                 resultado -> {
                     if (navigator != null)
                         navigator.ocultarLoading();
+                    log.info("[PROPOSTA] Análise IA concluída para documento ID={}", doc.getId());
                     mostrarFeedback(config.icone(), config.titulo(), resultado, null);
                 },
                 erro -> {
                     if (navigator != null)
                         navigator.ocultarLoading();
-                    log.error("[CONTROLLER][PROPOSTA] Erro: {}", erro.getMessage(), erro);
+                    log.error("[PROPOSTA] Erro na análise IA do documento ID={}", doc.getId(), erro);
                     mostrarFeedback("❌", "Falha na Análise", "O motor de IA falhou: " + erro.getMessage(), null);
                 });
     }
 
     private ConfigIA determinarConfiguracaoIA(String tipo) {
         String upper = tipo != null ? tipo.toUpperCase() : "OUTROS";
+        log.trace("[PROPOSTA] determinarConfiguracaoIA: tipo='{}' -> categoria={}", tipo, upper);
         if (upper.contains("RG") || upper.contains("CPF") || upper.contains("CNH")) {
             return new ConfigIA("🔍", "Triagem Visual de Identificação", PROMPT_IDENTIFICACAO);
         } else if (upper.contains("CONTRACHEQUE") || upper.contains("EXTRATO BANCARIO") || upper.contains("HOLERITE")
@@ -719,28 +773,19 @@ public class PropostaController {
     // =========================================================================
     // UTILITÁRIOS E UI
     // =========================================================================
-    // 🚀 PATCH: PropostaController.java
     public void aplicarBloqueio() {
         boolean terminal = isPropostaTerminal();
-
-        // Identifica se a proposta nasceu da IA lendo a assinatura
         String obs = viewModel.observacoesProperty().get();
         boolean bloqueadaPeloCopiloto = obs != null && obs.contains("Copiloto de Vendas");
+        log.debug("[PROPOSTA] aplicarBloqueio: terminal={}, bloqueadaCopiloto={}", terminal, bloqueadaPeloCopiloto);
 
         cbStatus.setDisable(terminal);
-
-        // Se veio do Copiloto, trava a inteligência de negócio e a intenção original do
-        // cliente
         cbTabela.setDisable(terminal || bloqueadaPeloCopiloto);
         cbBanco.setDisable(terminal || bloqueadaPeloCopiloto);
         cbConvenio.setDisable(terminal || bloqueadaPeloCopiloto);
-
-        // 🚀 NOVO: Trava o Valor Solicitado e o Prazo Desejado para propostas da IA
         txtValorSolicitado.setDisable(terminal || bloqueadaPeloCopiloto);
-        spinPrazoDesejado.setDisable(terminal || bloqueadaPeloCopiloto);
-
-        // Campos que o consultor sempre pode editar (até a proposta ser
-        // liquidada/terminal)
+        if (spinPrazoDesejado != null)
+            spinPrazoDesejado.setDisable(terminal || bloqueadaPeloCopiloto);
         txtValorAprovado.setDisable(terminal);
         txtParcela.setDisable(terminal);
         spinPrazo.setDisable(terminal);
@@ -757,12 +802,15 @@ public class PropostaController {
 
     private boolean isPropostaTerminal() {
         StatusPropostaModel status = viewModel.statusProperty().get();
-        return viewModel.idProperty().get() != null &&
+        boolean terminal = viewModel.idProperty().get() != null &&
                 (status == StatusPropostaModel.PAGO || status == StatusPropostaModel.REPROVADA
                         || status == StatusPropostaModel.CANCELADO);
+        log.trace("[PROPOSTA] isPropostaTerminal: {}", terminal);
+        return terminal;
     }
 
     private void configurarIndicadoresDinamicos() {
+        log.debug("[PROPOSTA] configurarIndicadoresDinamicos: Configurando indicadores de comissão");
         lblTituloComissao.textProperty().bind(Bindings.createStringBinding(() -> {
             BigDecimal aprovado = viewModel.valorAprovadoProperty().get();
             return (aprovado != null && aprovado.compareTo(BigDecimal.ZERO) > 0) ? "Valor da Comissão"
@@ -781,6 +829,7 @@ public class PropostaController {
     }
 
     private void configurarTravasEAlertas() {
+        log.debug("[PROPOSTA] configurarTravasEAlertas: Configurando tooltips e estilos de campos obrigatórios");
         if (btnAnexarDocumento != null) {
             BooleanBinding isTerminal = Bindings.createBooleanBinding(this::isPropostaTerminal,
                     viewModel.statusProperty());
@@ -884,6 +933,7 @@ public class PropostaController {
     }
 
     public PropostaViewModel getViewModel() {
+        log.trace("[PROPOSTA] getViewModel: Retornando ViewModel atual");
         return viewModel;
     }
 
