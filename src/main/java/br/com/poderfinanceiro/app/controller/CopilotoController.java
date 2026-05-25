@@ -197,7 +197,7 @@ public class CopilotoController implements Disposable {
                     view = loader.load();
                     controller = loader.getController();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("[COPILOTO][RANKING] Erro: {}", e.getMessage(), e);
                 }
             }
 

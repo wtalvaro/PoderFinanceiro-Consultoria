@@ -18,9 +18,12 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class DocumentoController {
+    private static final Logger log = LoggerFactory.getLogger(DocumentoController.class);
 
     // =========================================================================
     // CONSTANTES (Clean Code & DRY)
@@ -224,11 +227,11 @@ public class DocumentoController {
             atualizarTabela();
             cancelarUploadInline();
 
-        } catch (IllegalArgumentException e) {
-            mostrarAviso(e.getMessage(), false);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException ex) {
+            mostrarAviso(ex.getMessage(), false);
+        } catch (Exception ex) {
             mostrarAviso("Erro ao processar arquivo.", false);
-            e.printStackTrace();
+            log.error("[DOCUMENTO] [UPLOAD] Erro: {}", ex.getMessage(), ex);
         }
     }
 

@@ -20,6 +20,8 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
 import org.controlsfx.control.MasterDetailPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -31,6 +33,8 @@ import java.util.List;
 @Component
 @Scope("prototype")
 public class AtendimentoHubController {
+
+    private static final Logger log = LoggerFactory.getLogger(AtendimentoHubController.class);
 
     // =========================================================================
     // CONSTANTES (Clean Code)
@@ -93,6 +97,7 @@ public class AtendimentoHubController {
         this.hostServices = hostServices;
         this.context = context;
         this.contextoService = contextoService;
+        log.debug("[HUB] Controller instanciado (prototype). hashCode={}", System.identityHashCode(this));
     }
 
     // =========================================================================
@@ -100,16 +105,32 @@ public class AtendimentoHubController {
     // =========================================================================
     @FXML
     public void initialize() {
+        log.info("[HUB] Inicializando AtendimentoHubController...");
         configurarBloqueioBotaoSalvar();
+        log.info("[HUB] Inicialização concluída. Bindings de validação ativos.");
     }
 
     private void configurarBloqueioBotaoSalvar() {
+        log.debug("[HUB][BINDING] Configurando binding do botão Salvar...");
+
         BooleanBinding atendimentoSujo = abaLeadController.getViewModel().dirtyProperty()
                 .or(abaEnderecoController.getViewModel().dirtyProperty());
 
         BooleanBinding dadosValidos = criarBindingValidacaoLead();
 
         btnSalvar.disableProperty().bind(atendimentoSujo.not().or(dadosValidos.not()));
+
+        // Listener de diagnóstico: loga quando o estado do botão muda,
+        // permitindo rastrear se o binding está disparando corretamente
+        btnSalvar.disableProperty()
+                .addListener((obs, eraDesabilitado, agoraDesabilitado) -> log.debug(
+                        "[HUB][BINDING] Botão Salvar alterado → {}. dirty(lead)={} | dirty(endereco)={} | valido={}",
+                        agoraDesabilitado ? "DESABILITADO" : "HABILITADO",
+                        abaLeadController.getViewModel().isDirty(),
+                        abaEnderecoController.getViewModel().isDirty(),
+                        dadosValidos.get()));
+
+        log.debug("[HUB][BINDING] Binding do botão Salvar configurado com sucesso.");
     }
 
     private BooleanBinding criarBindingValidacaoLead() {
@@ -121,6 +142,14 @@ public class AtendimentoHubController {
             String cpfLimpo = cpf != null ? cpf.replaceAll("[^0-9]", "") : "";
             boolean isCpfValido = cpfLimpo.isEmpty() || cpfLimpo.length() == 11;
 
+            log.debug("[HUB][VALIDAÇÃO] Revalidando formulário. nome='{}' (válido={}) | cpf={} dígitos (válido={})",
+                    (nome != null && !nome.trim().isEmpty())
+                            ? nome.trim().substring(0, Math.min(nome.trim().length(), 10)) + "..."
+                            : "vazio",
+                    isNomeValido,
+                    cpfLimpo.length(),
+                    isCpfValido);
+
             return isNomeValido && isCpfValido;
         }, abaLeadController.getViewModel().nomeProperty(), abaLeadController.getViewModel().cpfProperty());
     }
@@ -129,45 +158,81 @@ public class AtendimentoHubController {
     // GERENCIAMENTO DE ESTADO E CICLO DE VIDA DO ATENDIMENTO
     // =========================================================================
     public void inicializarAtendimento(ProponenteModel proponente) {
+        boolean isNovo = proponente == null || proponente.getId() == null;
+        boolean temEndereco = temEnderecoCadastrado(proponente);
+
+        log.info("[HUB][CICLO] Inicializando atendimento. ID={} | Novo={} | Tem endereço={}",
+                (proponente != null && proponente.getId() != null) ? proponente.getId() : "N/A",
+                isNovo,
+                temEndereco);
+
         this.proponenteAberto = proponente;
 
         abaLeadController.getViewModel().loadFromModel(proponente);
         contextoService.setLeadAtivo(proponente);
+        log.debug("[HUB][CICLO] ViewModel do lead populado e contexto de atendimento atualizado. ID={}",
+                proponente != null ? proponente.getId() : "null");
 
-        if (temEnderecoCadastrado(proponente)) {
-            abaEnderecoController.getViewModel().loadFromModel(proponente.getEnderecos().get(0));
+        if (proponente != null && temEndereco) {
+            EnderecoProponenteModel endereco = proponente.getEnderecos().get(0);
+            abaEnderecoController.getViewModel().loadFromModel(endereco);
+            log.debug("[HUB][CICLO] Endereço carregado no ViewModel.");
         } else {
             abaEnderecoController.getViewModel().reset();
+            log.debug("[HUB][CICLO] Nenhum endereço cadastrado. ViewModel de endereço resetado.");
         }
 
         if (abaLinksController != null) {
             abaLinksController.recarregarLinks();
+            log.debug("[HUB][CICLO] Links úteis recarregados.");
         }
+
+        log.info("[HUB][CICLO] Atendimento ID={} pronto para interação.",
+                proponente != null ? proponente.getId() : "NOVO");
     }
 
     public void prepararNovoAtendimento() {
+        log.info("[HUB][CICLO] Preparando formulário para novo atendimento (proponente em branco).");
         this.proponenteAberto = new ProponenteModel();
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         contextoService.setLeadAtivo(getProponenteComCamposDaTela());
+        log.debug("[HUB][CICLO] Novo atendimento pronto. ViewModels resetados e contexto limpo.");
     }
 
     public boolean temAlteracoesNaoSalvas() {
-        return abaLeadController.getViewModel().isDirty() || abaEnderecoController.getViewModel().isDirty();
+        boolean dirty = abaLeadController.getViewModel().isDirty()
+                || abaEnderecoController.getViewModel().isDirty();
+        log.debug(
+                "[HUB][ESTADO] Verificação de alterações não salvas: dirty(lead)={} | dirty(endereço)={} → resultado={}",
+                abaLeadController.getViewModel().isDirty(),
+                abaEnderecoController.getViewModel().isDirty(),
+                dirty);
+        return dirty;
     }
 
     public void limparRecursos() {
+        Long idFechado = (proponenteAberto != null) ? proponenteAberto.getId() : null;
+        log.info("[HUB][CICLO] Liberando recursos do atendimento. ID={}", idFechado != null ? idFechado : "NOVO");
+
         abaLeadController.getViewModel().reset();
         abaEnderecoController.getViewModel().reset();
         proponenteAberto = null;
         contextoService.limparContexto();
+
+        log.debug("[HUB][CICLO] Recursos liberados. ViewModels resetados, contexto limpo.");
     }
 
     public void solicitarFechamento(Runnable acaoFecharAba) {
-        if (temAlteracoesNaoSalvas()) {
+        boolean dirty = temAlteracoesNaoSalvas();
+        log.info("[HUB][NAVEGAÇÃO] Solicitação de fechamento de aba. Alterações pendentes: {}", dirty);
+
+        if (dirty) {
             this.acaoNavegacaoPendente = acaoFecharAba;
             overlayConfirmacaoSaida.setVisible(true);
+            log.info("[HUB][NAVEGAÇÃO] Overlay de confirmação exibido. Fechamento aguardando decisão do usuário.");
         } else {
+            log.debug("[HUB][NAVEGAÇÃO] Sem alterações pendentes. Fechando aba diretamente.");
             acaoFecharAba.run();
         }
     }
@@ -177,53 +242,102 @@ public class AtendimentoHubController {
     // =========================================================================
     @FXML
     public void handleSalvar() {
-        if (abaLeadController.getViewModel().isDirty() && !abaLeadController.getViewModel().isValido()) {
+        boolean leadDirty = abaLeadController.getViewModel().isDirty();
+        boolean leadValido = abaLeadController.getViewModel().isValido();
+
+        log.info("[HUB][SALVAR] Ação de salvar disparada. lead dirty={} | lead válido={} | endereço dirty={}",
+                leadDirty,
+                leadValido,
+                abaEnderecoController.getViewModel().isDirty());
+
+        if (leadDirty && !leadValido) {
+            log.warn("[HUB][SALVAR] Salvamento bloqueado por validação. Redirecionando para aba do cliente.");
             subTabPane.getSelectionModel().select(0);
             exibirMensagem(MSG_ERRO_VALIDACAO, false);
             return;
         }
 
+        log.debug("[HUB][SALVAR] Validação aprovada. Iniciando fluxo de salvamento assíncrono...");
         executarSalvamento(null);
     }
 
-    // 🚀 PATCH: Delegação do salvamento para o AsyncUtils (Pool de Threads)
     private void executarSalvamento(Runnable onSucesso) {
+        Long idAtual = (proponenteAberto != null) ? proponenteAberto.getId() : null;
+        log.info("[HUB][SALVAR] Disparando task assíncrona. Proponente ID={} ({})",
+                idAtual != null ? idAtual : "N/A",
+                idAtual == null ? "INSERT" : "UPDATE");
+
+        long inicioSalvamento = System.currentTimeMillis();
+
         AsyncUtils.executarTaskAsync(
                 this::mapearESalvarProponente,
-                proponenteSalvo -> processarSucessoSalvamento(proponenteSalvo, onSucesso),
-                this::processarErroSalvamento);
+                proponenteSalvo -> {
+                    long tempo = System.currentTimeMillis() - inicioSalvamento;
+                    log.info("[HUB][SALVAR] Salvo com sucesso em {}ms. ID gerado/confirmado={}",
+                            tempo, proponenteSalvo.getId());
+                    processarSucessoSalvamento(proponenteSalvo, onSucesso);
+                },
+                erro -> {
+                    long tempo = System.currentTimeMillis() - inicioSalvamento;
+                    log.error("[HUB][SALVAR] Falha no salvamento após {}ms. Tipo de erro: {}",
+                            tempo, erro.getClass().getSimpleName());
+                    processarErroSalvamento(erro);
+                });
     }
 
     private ProponenteModel mapearESalvarProponente() {
-        ProponenteModel lead = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
-        EnderecoProponenteModel enderecoAtual = temEnderecoCadastrado(lead) ? lead.getEnderecos().get(0) : null;
+        log.debug("[HUB][SALVAR] Mapeando ViewModel → Model para persistência...");
 
+        ProponenteModel lead = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
+
+        EnderecoProponenteModel enderecoAtual = temEnderecoCadastrado(lead)
+                ? lead.getEnderecos().get(0)
+                : null;
+
+        boolean isNovoEndereco = enderecoAtual == null;
         EnderecoProponenteModel enderecoEditado = abaEnderecoController.getViewModel().atualizarModel(enderecoAtual);
         enderecoEditado.setProponente(lead);
         lead.setEnderecos(new ArrayList<>(List.of(enderecoEditado)));
+
+        log.debug("[HUB][SALVAR] Mapeamento concluído. lead.id={} | endereço: {} | thread='{}'",
+                lead.getId() != null ? lead.getId() : "NOVO",
+                isNovoEndereco ? "NOVO (INSERT)" : "EXISTENTE (UPDATE)",
+                Thread.currentThread().getName());
 
         return atendimentoService.salvarProponente(lead);
     }
 
     private void processarSucessoSalvamento(ProponenteModel proponenteSalvo, Runnable onSucesso) {
+        log.info("[HUB][SALVAR] Pós-salvamento: inicializando tela com dados persistidos. ID={}",
+                proponenteSalvo.getId());
+
         inicializarAtendimento(proponenteSalvo);
 
         if (tabPertencente != null && proponenteSalvo.getId() != null) {
-            tabPertencente.setUserData(String.valueOf(proponenteSalvo.getId()));
+            String novoUserData = String.valueOf(proponenteSalvo.getId());
+            tabPertencente.setUserData(novoUserData);
+            log.debug("[HUB][SALVAR] UserData da aba atualizado para '{}'.", novoUserData);
         }
 
         exibirMensagem(MSG_SUCESSO_SALVAR, true);
 
         if (onSucesso != null) {
+            log.debug("[HUB][SALVAR] Executando callback onSucesso pós-salvamento.");
             onSucesso.run();
         }
     }
 
     private void processarErroSalvamento(Throwable erro) {
         if (erro instanceof IllegalArgumentException || erro instanceof IllegalStateException) {
+            // Erros de validação de negócio: exibidos para o usuário, sem stack trace
+            log.warn("[HUB][SALVAR] Erro de negócio ao salvar: {}", erro.getMessage());
             exibirMensagem(erro.getMessage(), false);
         } else {
-            erro.printStackTrace();
+            // Erros inesperados (BD, mapeamento, etc.): loga com stack trace para
+            // diagnóstico
+            log.error("[HUB][SALVAR] Erro inesperado ao persistir proponente ID={}: {}",
+                    (proponenteAberto != null ? proponenteAberto.getId() : "N/A"),
+                    erro.getMessage(), erro);
             exibirMensagem("Erro ao salvar: " + erro.getMessage(), false);
         }
     }
@@ -236,17 +350,27 @@ public class AtendimentoHubController {
         String telefone = abaLeadController.getViewModel().telefoneProperty().get();
 
         if (telefone == null || telefone.trim().isEmpty()) {
+            log.warn("[HUB][WHATSAPP] Abertura bloqueada: nenhum telefone preenchido. Proponente ID={}",
+                    proponenteAberto != null ? proponenteAberto.getId() : "N/A");
             exibirMensagem(MSG_ERRO_WHATSAPP, false);
             return;
         }
 
         String numeroLimpo = telefone.replaceAll("[^0-9]", "");
-        String linkFinal = numeroLimpo.startsWith(PREFIXO_BRASIL_WHATSAPP) ? numeroLimpo
-                : PREFIXO_BRASIL_WHATSAPP + numeroLimpo;
+        boolean jaTemPrefixo = numeroLimpo.startsWith(PREFIXO_BRASIL_WHATSAPP);
+        String linkFinal = jaTemPrefixo ? numeroLimpo : PREFIXO_BRASIL_WHATSAPP + numeroLimpo;
+
+        // Loga o número mascarado (últimos 4 dígitos) para rastrear sem expor dados
+        // pessoais
+        String numeroMascarado = "55****" + linkFinal.substring(Math.max(0, linkFinal.length() - 4));
+        log.info("[HUB][WHATSAPP] Abrindo WhatsApp. Número mascarado: {} | Prefixo já presente: {}",
+                numeroMascarado, jaTemPrefixo);
 
         try {
             hostServices.showDocument(URL_WHATSAPP_BASE + linkFinal);
+            log.debug("[HUB][WHATSAPP] Browser aberto com sucesso.");
         } catch (Exception e) {
+            log.error("[HUB][WHATSAPP] Falha ao abrir browser para WhatsApp: {}", e.getMessage(), e);
             exibirMensagem("Erro ao tentar abrir o navegador para o WhatsApp.", false);
         }
     }
@@ -256,8 +380,13 @@ public class AtendimentoHubController {
         BigDecimal renda = abaLeadController.getViewModel().rendaProperty().get();
         String rendaStr = (renda != null) ? String.format("%,.2f", renda) : "0,00";
 
+        log.info("[HUB][RESUMO] Gerando resumo do lead para cópia. Proponente ID={} | Renda={}",
+                proponenteAberto != null ? proponenteAberto.getId() : "N/A",
+                rendaStr);
+
         this.resumoGeradoParaCopia = SummaryGeneratorUtils.gerar(abaLeadController.getViewModel(), rendaStr);
 
+        log.debug("[HUB][RESUMO] Resumo gerado. Tamanho: {} chars.", resumoGeradoParaCopia.length());
         lblResumoPreview.setText(this.resumoGeradoParaCopia);
         overlayResumo.setVisible(true);
     }
@@ -265,9 +394,15 @@ public class AtendimentoHubController {
     @FXML
     public void confirmarCopiaResumo() {
         if (this.resumoGeradoParaCopia != null) {
+            log.info("[HUB][RESUMO] Usuário confirmou cópia. Enviando para área de transferência ({} chars).",
+                    resumoGeradoParaCopia.length());
             enviarParaAreaDeTransferencia(this.resumoGeradoParaCopia);
             fecharOverlayResumo();
             exibirMensagem(MSG_SUCESSO_COPIA, true);
+        } else {
+            // Não deveria ocorrer em fluxo normal — útil para detectar bug de estado
+            log.warn("[HUB][RESUMO] confirmarCopiaResumo chamado mas resumoGeradoParaCopia é null. " +
+                    "Possível inconsistência de estado.");
         }
     }
 
@@ -275,6 +410,7 @@ public class AtendimentoHubController {
         ClipboardContent content = new ClipboardContent();
         content.putString(texto);
         Clipboard.getSystemClipboard().setContent(content);
+        log.debug("[HUB][RESUMO] Conteúdo enviado para o clipboard do sistema.");
     }
 
     // =========================================================================
@@ -282,13 +418,17 @@ public class AtendimentoHubController {
     // =========================================================================
     @FXML
     private void alternarPainelLinks() {
-        boolean isAberto = masterDetailPane.isShowDetailNode();
+        boolean estaAberto = masterDetailPane.isShowDetailNode();
+        log.info("[HUB][LINKS] Alternando painel de links. Estado atual: {} → {}",
+                estaAberto ? "ABERTO" : "FECHADO",
+                estaAberto ? "FECHADO" : "ABERTO");
 
-        if (!isAberto && !slaveJaCarregado) {
+        if (!estaAberto && !slaveJaCarregado) {
+            log.debug("[HUB][LINKS] Primeira abertura detectada. Carregando FXML do painel de links...");
             carregarTelaDeLinks();
         }
 
-        masterDetailPane.setShowDetailNode(!isAberto);
+        masterDetailPane.setShowDetailNode(!estaAberto);
     }
 
     private void carregarTelaDeLinks() {
@@ -299,8 +439,12 @@ public class AtendimentoHubController {
 
             masterDetailPane.setDetailNode(viewLinks);
             slaveJaCarregado = true;
+            log.info("[HUB][LINKS] Painel de links carregado com sucesso (lazy load concluído).");
         } catch (Exception e) {
-            e.printStackTrace();
+            // Falha de carregamento de FXML é crítica — o painel ficará em branco sem este
+            // log
+            log.error("[HUB][LINKS] FALHA ao carregar '/fxml/links_uteis.fxml'. " +
+                    "Verifique se o arquivo existe no classpath. Erro: {}", e.getMessage(), e);
             exibirMensagem("Falha ao carregar o painel de links úteis.", false);
         }
     }
@@ -309,6 +453,8 @@ public class AtendimentoHubController {
     // CONTROLE DE OVERLAYS E MENSAGENS UI
     // =========================================================================
     public void exibirMensagem(String texto, boolean sucesso) {
+        log.debug("[HUB][UI] Exibindo overlay de mensagem. Tipo={} | Texto='{}'",
+                sucesso ? "SUCESSO" : "ATENÇÃO", texto);
         lblMensagemTexto.setText(texto);
         lblMensagemTitulo.setText(sucesso ? "✅ Sucesso" : "⚠️ Atenção");
         overlayMensagem.setVisible(true);
@@ -316,23 +462,29 @@ public class AtendimentoHubController {
 
     @FXML
     public void esconderMensagem() {
+        log.debug("[HUB][UI] Overlay de mensagem fechado pelo usuário.");
         overlayMensagem.setVisible(false);
     }
 
     @FXML
     public void fecharOverlayResumo() {
+        log.debug("[HUB][UI] Overlay de resumo fechado. Resumo gerado descartado da memória.");
         overlayResumo.setVisible(false);
         this.resumoGeradoParaCopia = null;
     }
 
     @FXML
     public void cancelarSaida() {
+        log.info("[HUB][NAVEGAÇÃO] Usuário cancelou saída. Permanecendo na aba. Proponente ID={}",
+                proponenteAberto != null ? proponenteAberto.getId() : "NOVO");
         overlayConfirmacaoSaida.setVisible(false);
         this.acaoNavegacaoPendente = null;
     }
 
     @FXML
     public void descartarESair() {
+        log.warn("[HUB][NAVEGAÇÃO] Usuário descartou alterações não salvas e saiu. Proponente ID={}",
+                proponenteAberto != null ? proponenteAberto.getId() : "NOVO");
         overlayConfirmacaoSaida.setVisible(false);
         if (acaoNavegacaoPendente != null) {
             acaoNavegacaoPendente.run();
@@ -347,20 +499,26 @@ public class AtendimentoHubController {
     }
 
     public void setTabPertencente(Tab tab) {
+        log.debug("[HUB] Tab associada ao controller definida: '{}'",
+                tab != null ? tab.getText() : "null");
         this.tabPertencente = tab;
     }
 
     public ProponenteModel getProponenteComCamposDaTela() {
+        log.debug("[HUB] Montando ProponenteModel a partir dos campos atuais da tela...");
         ProponenteModel proponente = abaLeadController.getViewModel().atualizarModel(this.proponenteAberto);
 
         if (proponente.getPropostas() == null) {
             proponente.setPropostas(new ArrayList<>());
+            log.debug("[HUB] Lista de propostas inicializada (era null).");
         }
 
         return proponente;
     }
 
     private boolean temEnderecoCadastrado(ProponenteModel proponente) {
-        return proponente != null && proponente.getEnderecos() != null && !proponente.getEnderecos().isEmpty();
+        return proponente != null
+                && proponente.getEnderecos() != null
+                && !proponente.getEnderecos().isEmpty();
     }
 }

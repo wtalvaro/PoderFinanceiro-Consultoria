@@ -31,3 +31,225 @@
 2026-05-25 01:58:09 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
 2026-05-25 01:58:09 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
 2026-05-25 01:58:09 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 05:55:45 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 05:55:45 [virtual-40] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 9271 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 05:55:45 [virtual-40] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 05:55:48 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 05:55:48 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 204 ms. Found 11 JPA repository interfaces.
+2026-05-25 05:55:49 [virtual-40] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 05:55:49 [virtual-40] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 05:55:51 [virtual-40] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 05:55:51 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 05:55:51 [virtual-40] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@4bdedf1c
+2026-05-25 05:55:51 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 05:55:51 [virtual-40] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 05:55:51 [virtual-40] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 05:55:54 [virtual-40] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 05:55:54 [virtual-40] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 05:55:54 [virtual-40] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 05:55:58 [virtual-40] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 05:55:59 [virtual-40] INFO  o.s.boot.SpringApplication - Started application in 15.255 seconds (process running for 18.03)
+2026-05-25 05:56:00 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - StatusBarController carregado com sucesso!
+2026-05-25 05:56:02 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - Inicializando AjudaChatController...
+2026-05-25 05:56:02 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - WebView carregada com sucesso: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 05:56:03 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - WebView carregada e pronta para interação.
+2026-05-25 05:57:03 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - Processando envio de mensagem. Anexo presente: false
+2026-05-25 05:57:14 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - Resposta da IA recebida com sucesso.
+2026-05-25 06:01:21 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:01:21 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 06:01:21 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 06:06:59 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 06:06:59 [virtual-40] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 12379 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 06:06:59 [virtual-40] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 06:07:02 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 06:07:02 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 320 ms. Found 11 JPA repository interfaces.
+2026-05-25 06:07:04 [virtual-40] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 06:07:04 [virtual-40] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 06:07:05 [virtual-40] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 06:07:05 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 06:07:05 [virtual-40] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@3a24bb8e
+2026-05-25 06:07:05 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 06:07:06 [virtual-40] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 06:07:06 [virtual-40] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 06:07:08 [virtual-40] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 06:07:09 [virtual-40] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:07:09 [virtual-40] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 06:07:12 [virtual-40] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 06:07:13 [virtual-40] INFO  o.s.boot.SpringApplication - Started application in 15.797 seconds (process running for 19.285)
+2026-05-25 06:07:14 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - StatusBarController carregado com sucesso!
+2026-05-25 06:07:16 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicializando AjudaChatController...
+2026-05-25 06:07:16 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Recurso chat.html localizado. Carregando: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 06:07:16 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando carregamento de modelos. Usuário logado: false | API Key presente: false
+2026-05-25 06:07:16 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando busca assíncrona de modelos disponíveis. Token presente: false
+2026-05-25 06:07:16 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicialização concluída.
+2026-05-25 06:07:18 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] 5 modelo(s) carregado(s). Selecionado: 'gemini-3.5-flash'. Lista: [gemini-3.5-flash, gemini-3.1-pro, gemini-3.1-flash-lite, gemini-2.5-pro, gemini-2.5-flash]
+2026-05-25 06:07:26 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Página carregada com sucesso. Mensagens pendentes na fila: 0
+2026-05-25 06:07:42 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][ENVIO] Iniciando envio. Modelo='gemini-3.5-flash' | Tela focada='DASHBOARD' | Anexo presente=false | Tamanho da mensagem=42 chars | Turnos no histórico=0
+2026-05-25 06:07:43 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][IA] Resposta recebida com sucesso. Tempo total=301ms | Tamanho da resposta=167 chars | Histórico após atualização=2 turnos
+2026-05-25 06:08:01 [JavaFX Application Thread] WARN  b.c.p.a.c.AjudaChatController - [CHAT][ENVIO] Tentativa de envio bloqueada: mensagem vazia e sem anexo.
+2026-05-25 06:08:18 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][ENVIO] Iniciando envio. Modelo='gemini-3.5-flash' | Tela focada='DASHBOARD' | Anexo presente=false | Tamanho da mensagem=37 chars | Turnos no histórico=2
+2026-05-25 06:08:29 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][IA] Resposta recebida com sucesso. Tempo total=10514ms | Tamanho da resposta=2878 chars | Histórico após atualização=4 turnos
+2026-05-25 06:09:24 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:09:24 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 06:09:24 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 06:11:29 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 06:11:29 [virtual-39] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 13899 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 06:11:29 [virtual-39] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 06:11:31 [virtual-39] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 06:11:32 [virtual-39] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 195 ms. Found 11 JPA repository interfaces.
+2026-05-25 06:11:33 [virtual-39] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 06:11:33 [virtual-39] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 06:11:34 [virtual-39] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 06:11:34 [virtual-39] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 06:11:34 [virtual-39] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@3783d98f
+2026-05-25 06:11:34 [virtual-39] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 06:11:34 [virtual-39] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 06:11:34 [virtual-39] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 06:11:37 [virtual-39] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 06:11:37 [virtual-39] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:11:37 [virtual-39] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 06:11:40 [virtual-39] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 06:11:41 [virtual-39] INFO  o.s.boot.SpringApplication - Started application in 14.261 seconds (process running for 17.843)
+2026-05-25 06:11:42 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - StatusBarController carregado com sucesso!
+2026-05-25 06:11:43 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicializando AjudaChatController...
+2026-05-25 06:11:43 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Recurso chat.html localizado. Carregando: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 06:11:43 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando carregamento de modelos. Usuário logado: false | API Key presente: false
+2026-05-25 06:11:43 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando busca assíncrona de modelos disponíveis. Token presente: false
+2026-05-25 06:11:43 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicialização concluída.
+2026-05-25 06:11:45 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] 5 modelo(s) carregado(s). Selecionado: 'gemini-3.5-flash'. Lista: [gemini-3.5-flash, gemini-3.1-pro, gemini-3.1-flash-lite, gemini-2.5-pro, gemini-2.5-flash]
+2026-05-25 06:11:46 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Página carregada com sucesso. Mensagens pendentes na fila: 0
+2026-05-25 06:12:30 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][ENVIO] Iniciando envio. Modelo='gemini-3.5-flash' | Tela focada='DASHBOARD' | Anexo presente=false | Tamanho da mensagem=74 chars | Turnos no histórico=0
+2026-05-25 06:12:49 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][IA] Resposta recebida com sucesso. Tempo total=19119ms | Tamanho da resposta=2373 chars | Histórico após atualização=2 turnos
+2026-05-25 06:15:23 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:15:23 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 06:15:23 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 06:19:45 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 06:19:45 [virtual-39] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 16425 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 06:19:45 [virtual-39] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 06:19:49 [virtual-39] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 06:19:49 [virtual-39] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 302 ms. Found 11 JPA repository interfaces.
+2026-05-25 06:19:51 [virtual-39] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 06:19:51 [virtual-39] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 06:19:52 [virtual-39] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 06:19:52 [virtual-39] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 06:19:53 [virtual-39] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2438ec62
+2026-05-25 06:19:53 [virtual-39] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 06:19:53 [virtual-39] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 06:19:53 [virtual-39] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 06:19:56 [virtual-39] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 06:19:56 [virtual-39] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:19:56 [virtual-39] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 06:20:00 [virtual-39] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 06:20:02 [virtual-39] INFO  o.s.boot.SpringApplication - Started application in 18.521 seconds (process running for 22.066)
+2026-05-25 06:20:02 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - StatusBarController carregado com sucesso!
+2026-05-25 06:20:04 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicializando AjudaChatController...
+2026-05-25 06:20:04 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Recurso chat.html localizado. Carregando: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 06:20:04 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando carregamento de modelos. Usuário logado: false | API Key presente: false
+2026-05-25 06:20:04 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando busca assíncrona de modelos disponíveis. Token presente: false
+2026-05-25 06:20:04 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicialização concluída.
+2026-05-25 06:20:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] 5 modelo(s) carregado(s). Selecionado: 'gemini-3.5-flash'. Lista: [gemini-3.5-flash, gemini-3.1-pro, gemini-3.1-flash-lite, gemini-2.5-pro, gemini-2.5-flash]
+2026-05-25 06:20:06 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Página carregada com sucesso. Mensagens pendentes na fila: 0
+2026-05-25 06:20:08 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:20:08 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 06:20:08 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-25 06:21:41 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-05-25 06:21:42 [virtual-40] INFO  o.s.boot.SpringApplication - Starting application using Java 25.0.3 with PID 17138 (started by wtalvaro in /home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria)
+2026-05-25 06:21:42 [virtual-40] INFO  o.s.boot.SpringApplication - No active profile set, falling back to 1 default profile: "default"
+2026-05-25 06:21:44 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25 06:21:44 [virtual-40] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 215 ms. Found 11 JPA repository interfaces.
+2026-05-25 06:21:46 [virtual-40] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25 06:21:46 [virtual-40] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-25 06:21:47 [virtual-40] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25 06:21:47 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-25 06:21:47 [virtual-40] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@595677bb
+2026-05-25 06:21:47 [virtual-40] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-25 06:21:47 [virtual-40] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25 06:21:47 [virtual-40] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5432/poder_financeiro_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.3
+	Default catalog/schema: poder_financeiro_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-25 06:21:50 [virtual-40] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25 06:21:50 [virtual-40] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:21:50 [virtual-40] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25 06:21:54 [virtual-40] INFO  b.c.p.a.d.service.PlaybookService - Sinais vitais do Playbook carregados com sucesso a partir de: /home/wtalvaro/Downloads/Container/dev-fedora/.local/share/PoderFinanceiro/playbook_scripts.json
+2026-05-25 06:21:55 [virtual-40] INFO  o.s.boot.SpringApplication - Started application in 14.738 seconds (process running for 17.893)
+2026-05-25 06:21:55 [JavaFX Application Thread] INFO  b.c.p.a.c.StatusBarController - StatusBarController carregado com sucesso!
+2026-05-25 06:21:57 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicializando AjudaChatController...
+2026-05-25 06:21:57 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Recurso chat.html localizado. Carregando: file:/home/wtalvaro/Downloads/Container/dev-fedora/Projetos/Code/Git/PoderFinanceiro-Consultoria/target/classes/html/chat.html
+2026-05-25 06:21:57 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando carregamento de modelos. Usuário logado: false | API Key presente: false
+2026-05-25 06:21:57 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] Iniciando busca assíncrona de modelos disponíveis. Token presente: false
+2026-05-25 06:21:57 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT] Inicialização concluída.
+2026-05-25 06:21:58 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][MODELOS] 5 modelo(s) carregado(s). Selecionado: 'gemini-3.5-flash'. Lista: [gemini-3.5-flash, gemini-3.1-pro, gemini-3.1-flash-lite, gemini-2.5-pro, gemini-2.5-flash]
+2026-05-25 06:21:59 [JavaFX Application Thread] INFO  b.c.p.a.c.AjudaChatController - [CHAT][WEBVIEW] Página carregada com sucesso. Mensagens pendentes na fila: 0
+2026-05-25 06:22:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB] Inicializando AtendimentoHubController...
+2026-05-25 06:22:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB] Inicialização concluída. Bindings de validação ativos.
+2026-05-25 06:22:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Inicializando atendimento. ID=1 | Novo=false | Tem endereço=true
+2026-05-25 06:22:40 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Atendimento ID=1 pronto para interação.
+2026-05-25 06:23:35 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Ação de salvar disparada. lead dirty=true | lead válido=true | endereço dirty=false
+2026-05-25 06:23:35 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Disparando task assíncrona. Proponente ID=1 (UPDATE)
+2026-05-25 06:23:35 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Salvo com sucesso em 65ms. ID gerado/confirmado=1
+2026-05-25 06:23:35 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Pós-salvamento: inicializando tela com dados persistidos. ID=1
+2026-05-25 06:23:35 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Inicializando atendimento. ID=1 | Novo=false | Tem endereço=true
+2026-05-25 06:23:35 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Atendimento ID=1 pronto para interação.
+2026-05-25 06:24:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Ação de salvar disparada. lead dirty=true | lead válido=true | endereço dirty=false
+2026-05-25 06:24:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Disparando task assíncrona. Proponente ID=1 (UPDATE)
+2026-05-25 06:24:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Salvo com sucesso em 32ms. ID gerado/confirmado=1
+2026-05-25 06:24:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][SALVAR] Pós-salvamento: inicializando tela com dados persistidos. ID=1
+2026-05-25 06:24:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Inicializando atendimento. ID=1 | Novo=false | Tem endereço=true
+2026-05-25 06:24:05 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Atendimento ID=1 pronto para interação.
+2026-05-25 06:24:33 [JavaFX Application Thread] INFO  b.c.p.a.c.AtendimentoHubController - [HUB][CICLO] Liberando recursos do atendimento. ID=1
+2026-05-25 06:24:40 [JavaFX Application Thread] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25 06:24:40 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-25 06:24:40 [JavaFX Application Thread] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.

@@ -10,12 +10,16 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
 public class BancosConveniosController {
+
+    private static final Logger log = LoggerFactory.getLogger(BancosConveniosController.class);
 
     // =========================================================================
     // CONSTANTES DE ESTILIZAÇÃO E MENSAGENS (Clean Code & DRY)
@@ -46,7 +50,6 @@ public class BancosConveniosController {
     private FlowPane muralBancos;
     @FXML
     private TextField txtBusca;
-
     @FXML
     private VBox overlayFormulario;
     @FXML
@@ -61,7 +64,6 @@ public class BancosConveniosController {
     private TextField txtLink;
     @FXML
     private TextField txtTelefone;
-
     @FXML
     private VBox overlayConfirmacaoExclusao;
     @FXML
@@ -82,30 +84,54 @@ public class BancosConveniosController {
 
     @FXML
     public void initialize() {
+        log.info("[BANCOS] Inicializando BancosConveniosController...");
         carregarBancos();
         configurarFiltroReativo();
         txtTelefone.setTextFormatter(ContatoUtils.criarFormatadorTelefone());
+        log.info("[BANCOS] Inicialização concluída. {} banco(s) carregado(s).",
+                todosBancos != null ? todosBancos.size() : 0);
     }
 
     // =========================================================================
     // LÓGICA DE LISTAGEM E FILTRO
     // =========================================================================
     private void carregarBancos() {
+        log.debug("[BANCOS][LISTA] Consultando banco de dados...");
+        long inicio = System.currentTimeMillis();
+
         todosBancos = bancoRepository.findAll();
-        filtrarMural(txtBusca.getText());
+
+        long tempo = System.currentTimeMillis() - inicio;
+        log.info("[BANCOS][LISTA] {} banco(s) carregado(s) em {}ms.", todosBancos.size(), tempo);
+
+        filtrarMural(txtBusca != null ? txtBusca.getText() : "");
     }
 
     private void configurarFiltroReativo() {
-        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> filtrarMural(newVal));
+        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> {
+            log.debug("[BANCOS][FILTRO] Termo de busca alterado: '{}' → '{}'", oldVal, newVal);
+            filtrarMural(newVal);
+        });
+        log.debug("[BANCOS][FILTRO] Listener de filtro reativo registrado no campo de busca.");
     }
 
     private void filtrarMural(String termo) {
         muralBancos.getChildren().clear();
 
-        todosBancos.stream()
+        boolean temFiltro = termo != null && !termo.isBlank();
+
+        long count = todosBancos.stream()
                 .filter(banco -> atendeCriterioDeBusca(banco, termo))
-                .map(this::criarCardBanco)
-                .forEach(muralBancos.getChildren()::add);
+                .peek(banco -> muralBancos.getChildren().add(criarCardBanco(banco)))
+                .count();
+
+        // Log de filtro: permite saber se a busca está retornando resultados esperados
+        if (temFiltro) {
+            log.debug("[BANCOS][FILTRO] Filtro '{}': {}/{} banco(s) exibido(s).",
+                    termo, count, todosBancos.size());
+        } else {
+            log.debug("[BANCOS][FILTRO] Sem filtro ativo: exibindo todos os {} banco(s).", count);
+        }
     }
 
     private boolean atendeCriterioDeBusca(BancoModel banco, String termo) {
@@ -131,7 +157,7 @@ public class BancosConveniosController {
         card.getChildren().addAll(
                 criarHeaderCard(banco),
                 criarContatoCard(banco),
-                new Region(), // Espaçador dinâmico
+                new Region(),
                 criarBotaoPortal(banco),
                 criarRodapeCard(banco));
 
@@ -142,7 +168,8 @@ public class BancosConveniosController {
         Label lblNome = new Label(banco.getNome());
         lblNome.setStyle(STYLE_LBL_NOME);
 
-        String textoCodigo = banco.getCodigo() != null && !banco.getCodigo().isBlank() ? "Cód: " + banco.getCodigo()
+        String textoCodigo = banco.getCodigo() != null && !banco.getCodigo().isBlank()
+                ? "Cód: " + banco.getCodigo()
                 : "Sem Código";
         Label lblCodigo = new Label(textoCodigo);
         lblCodigo.setStyle(STYLE_LBL_CODIGO);
@@ -191,6 +218,11 @@ public class BancosConveniosController {
         btnRemover.setDisable(temTabelas);
 
         if (temTabelas) {
+            // Log de diagnóstico: permite auditar quais bancos têm exclusão bloqueada e por
+            // quê
+            log.debug("[BANCOS][CARD] Exclusão do banco '{}' (ID={}) bloqueada: possui {} tabela(s) ativa(s).",
+                    banco.getNome(), banco.getId(),
+                    banco.getTabelas().size());
             Tooltip.install(btnRemover, new Tooltip("Exclusão bloqueada: Este banco possui tabelas ativas."));
         } else {
             btnRemover.setOnAction(e -> solicitarExclusaoBanco(banco));
@@ -205,6 +237,8 @@ public class BancosConveniosController {
     // EXCLUSÃO DE BANCO
     // =========================================================================
     private void solicitarExclusaoBanco(BancoModel banco) {
+        log.info("[BANCOS][EXCLUSÃO] Usuário solicitou exclusão do banco '{}' (ID={}).",
+                banco.getNome(), banco.getId());
         this.bancoParaExcluir = banco;
         lblConfirmacaoBanco.setText("Você está prestes a excluir o banco:\n\n👉 " + banco.getNome());
         overlayConfirmacaoExclusao.setVisible(true);
@@ -212,20 +246,36 @@ public class BancosConveniosController {
 
     @FXML
     private void confirmarExclusaoBanco() {
-        if (this.bancoParaExcluir != null) {
-            try {
-                bancoRepository.delete(this.bancoParaExcluir);
-                carregarBancos();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            } finally {
-                cancelarExclusaoBanco();
-            }
+        if (this.bancoParaExcluir == null) {
+            // Não deveria ocorrer — indica bug de estado se aparecer
+            log.warn("[BANCOS][EXCLUSÃO] confirmarExclusaoBanco chamado com bancoParaExcluir null. " +
+                    "Possível inconsistência de estado no overlay.");
+            return;
+        }
+
+        String nomeBanco = bancoParaExcluir.getNome();
+        Long idBanco = bancoParaExcluir.getId();
+        log.info("[BANCOS][EXCLUSÃO] Confirmando exclusão do banco '{}' (ID={}).", nomeBanco, idBanco);
+
+        try {
+            bancoRepository.delete(this.bancoParaExcluir);
+            log.info("[BANCOS][EXCLUSÃO] Banco '{}' (ID={}) excluído com sucesso.", nomeBanco, idBanco);
+            carregarBancos();
+        } catch (Exception ex) {
+            // Substituído o ex.printStackTrace() por log estruturado com contexto
+            log.error("[BANCOS][EXCLUSÃO] FALHA ao excluir banco '{}' (ID={}). Erro: {}",
+                    nomeBanco, idBanco, ex.getMessage(), ex);
+        } finally {
+            cancelarExclusaoBanco();
         }
     }
 
     @FXML
     private void cancelarExclusaoBanco() {
+        if (bancoParaExcluir != null) {
+            log.info("[BANCOS][EXCLUSÃO] Exclusão do banco '{}' (ID={}) cancelada pelo usuário.",
+                    bancoParaExcluir.getNome(), bancoParaExcluir.getId());
+        }
         this.bancoParaExcluir = null;
         overlayConfirmacaoExclusao.setVisible(false);
     }
@@ -235,10 +285,13 @@ public class BancosConveniosController {
     // =========================================================================
     @FXML
     private void abrirModalNovo() {
+        log.info("[BANCOS][MODAL] Abrindo formulário para novo banco.");
         prepararModal(new BancoModel(), "➕ Novo Parceiro");
     }
 
     private void abrirModalEdicao(BancoModel banco) {
+        log.info("[BANCOS][MODAL] Abrindo formulário de edição para banco '{}' (ID={}).",
+                banco.getNome(), banco.getId());
         prepararModal(banco, "✏️ Editando: " + banco.getNome());
     }
 
@@ -253,31 +306,55 @@ public class BancosConveniosController {
 
         lblAviso.setVisible(false);
         overlayFormulario.setVisible(true);
+
+        log.debug("[BANCOS][MODAL] Formulário populado. Campos: codigo='{}' | nome='{}' | temLink={} | temTel={}",
+                banco.getCodigo(),
+                banco.getNome(),
+                banco.getSitePortal() != null && !banco.getSitePortal().isBlank(),
+                banco.getTelefoneSuporte() != null && !banco.getTelefoneSuporte().isBlank());
     }
 
     @FXML
     private void fecharModal() {
+        log.debug("[BANCOS][MODAL] Modal fechado pelo usuário. bancoEmEdicao='{}'",
+                bancoEmEdicao != null ? bancoEmEdicao.getNome() : "null");
         overlayFormulario.setVisible(false);
     }
 
     @FXML
     private void salvarBanco() {
-        if (txtNome.getText() == null || txtNome.getText().trim().isEmpty()) {
+        String nome = txtNome.getText();
+        boolean isNovo = bancoEmEdicao == null || bancoEmEdicao.getId() == null;
+
+        log.info("[BANCOS][SALVAR] Tentativa de salvar banco. Operação={} | Nome informado='{}'",
+                isNovo ? "INSERT" : "UPDATE (ID=" + bancoEmEdicao.getId() + ")",
+                nome);
+
+        if (nome == null || nome.trim().isEmpty()) {
+            log.warn("[BANCOS][SALVAR] Salvamento bloqueado: nome obrigatório não preenchido.");
             exibirAviso(MSG_NOME_OBRIGATORIO);
             return;
         }
 
         bancoEmEdicao.setCodigo(txtCodigo.getText());
-        bancoEmEdicao.setNome(txtNome.getText());
+        bancoEmEdicao.setNome(nome.trim());
         bancoEmEdicao.setSitePortal(txtLink.getText());
         bancoEmEdicao.setTelefoneSuporte(txtTelefone.getText());
 
-        bancoRepository.save(bancoEmEdicao);
-        fecharModal();
-        carregarBancos();
+        try {
+            BancoModel salvo = bancoRepository.save(bancoEmEdicao);
+            log.info("[BANCOS][SALVAR] Banco '{}' salvo com sucesso. ID={} | Operação={}",
+                    salvo.getNome(), salvo.getId(), isNovo ? "INSERT" : "UPDATE");
+            fecharModal();
+            carregarBancos();
+        } catch (Exception ex) {
+            log.error("[BANCOS][SALVAR] FALHA ao persistir banco '{}'. Erro: {}", nome, ex.getMessage(), ex);
+            exibirAviso("Erro ao salvar: " + ex.getMessage());
+        }
     }
 
     private void exibirAviso(String mensagem) {
+        log.debug("[BANCOS][UI] Aviso exibido no formulário: '{}'", mensagem);
         lblAviso.setText(mensagem);
         lblAviso.setVisible(true);
         lblAviso.setManaged(true);
@@ -287,26 +364,39 @@ public class BancosConveniosController {
     // INTEGRAÇÕES EXTERNAS (Navegador e WhatsApp)
     // =========================================================================
     private void abrirLinkNoNavegador(String url) {
-        if (url == null || url.trim().isEmpty())
+        if (url == null || url.trim().isEmpty()) {
+            log.warn("[BANCOS][PORTAL] Tentativa de abrir portal com URL vazia ou null. Ignorado.");
             return;
+        }
 
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        boolean normalizou = !url.startsWith("http://") && !url.startsWith("https://");
+        if (normalizou) {
             url = "https://" + url;
         }
+
+        log.info("[BANCOS][PORTAL] Abrindo portal no browser. URL='{}' | Prefixo normalizado={}",
+                url, normalizou);
         hostServices.showDocument(url);
     }
 
     private void abrirWhatsApp(String telefone) {
         if (telefone == null || telefone.trim().isEmpty()) {
+            log.warn("[BANCOS][WHATSAPP] Tentativa de abrir WhatsApp sem telefone cadastrado.");
             navigator.notificarAviso("Este banco não possui um telefone cadastrado.");
             return;
         }
 
         String numeroLimpo = telefone.replaceAll("[^0-9]", "");
+        boolean adicionouPrefixo = numeroLimpo.length() <= 11;
 
-        if (numeroLimpo.length() <= 11) {
+        if (adicionouPrefixo) {
             numeroLimpo = "55" + numeroLimpo;
         }
+
+        // Número mascarado: preserva diagnóstico sem expor dado pessoal completo
+        String numeroMascarado = "55****" + numeroLimpo.substring(Math.max(0, numeroLimpo.length() - 4));
+        log.info("[BANCOS][WHATSAPP] Abrindo WhatsApp. Número mascarado={} | Prefixo adicionado={}",
+                numeroMascarado, adicionouPrefixo);
 
         hostServices.showDocument(URL_WHATSAPP_BASE + numeroLimpo);
     }

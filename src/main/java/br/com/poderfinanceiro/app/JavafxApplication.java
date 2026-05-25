@@ -1,6 +1,7 @@
 package br.com.poderfinanceiro.app;
 
 import atlantafx.base.theme.PrimerLight;
+import br.com.poderfinanceiro.app.controller.AjudaChatController;
 import br.com.poderfinanceiro.app.ui.component.SplashScreenStage;
 import br.com.poderfinanceiro.app.ui.stage.StageInitializer;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
@@ -11,11 +12,16 @@ import javafx.stage.Stage;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Ponto de entrada JavaFX centralizado.
  * Gerencia o ciclo de vida da Splash Screen e do contexto Spring Boot v4.0.6.
  */
 public class JavafxApplication extends Application {
+
+    private static final Logger log = LoggerFactory.getLogger(JavafxApplication.class);
 
     private ConfigurableApplicationContext springContext;
     private SplashScreenStage splashStage;
@@ -98,14 +104,14 @@ public class JavafxApplication extends Application {
                         initializer.loadMainView();
                         splashStage.hide();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("[JAVAFXAPPLICATION][START] Erro: {}", e.getMessage(), e);
                         splashStage.atualizarProgresso(-1, "Erro ao montar o layout principal.");
                     }
                 },
                 ex -> {
                     // Falha crítica no boot
                     progressTask.cancel();
-                    ex.printStackTrace();
+                    log.error("[JAVAFXAPPLICATION][START] Erro crítico no boot: {}", ex.getMessage(), ex);
                     splashStage.atualizarProgresso(-1, "Falha Crítica no Boot.");
                 });
     }

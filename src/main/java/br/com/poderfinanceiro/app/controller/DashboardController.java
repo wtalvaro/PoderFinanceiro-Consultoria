@@ -28,8 +28,13 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class DashboardController {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
 
     // =========================================================================
     // CONSTANTES (Clean Code)
@@ -217,7 +222,7 @@ public class DashboardController {
                 this::atualizarInterfaceDoDashboard, // onSuccess
                 erro -> { // onFailed
                     navigator.ocultarLoading();
-                    erro.printStackTrace();
+                    log.error("[DASHBOARD][DADOS] Erro: {}", erro.getMessage(), erro);
                 });
     }
 
