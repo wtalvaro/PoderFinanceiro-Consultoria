@@ -7,6 +7,8 @@ import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,26 +20,36 @@ import java.io.File;
 @Service
 public class SimulacaoCopilotoService {
 
+    private static final Logger log = LoggerFactory.getLogger(SimulacaoCopilotoService.class);
+
     private final TabelaJurosRepository tabelaJurosRepository;
     private final GeminiService geminiService;
     private final AuthService authService;
 
-    // Construtor limpo, sem injeção de dependências inúteis
     public SimulacaoCopilotoService(TabelaJurosRepository tabelaJurosRepository,
             GeminiService geminiService,
             AuthService authService) {
         this.tabelaJurosRepository = tabelaJurosRepository;
         this.geminiService = geminiService;
         this.authService = authService;
+        log.debug("[SIMULACAO_COPILOTO] Construtor: Serviço instanciado");
     }
 
     @Transactional(readOnly = true)
     public List<ResultadoSimulacaoDTO> processarSimulacaoRapida(SimulacaoRascunhoDTO rascunho) {
+        log.debug("[SIMULACAO_COPILOTO] processarSimulacaoRapida: Iniciando simulação para rascunho={}", rascunho);
+        if (rascunho == null) {
+            log.warn("[SIMULACAO_COPILOTO] Rascunho nulo, retornando lista vazia");
+            return List.of();
+        }
 
         TipoConvenioModel convenioEnum;
         try {
             convenioEnum = TipoConvenioModel.valueOf(rascunho.tipoConvenio());
+            log.trace("[SIMULACAO_COPILOTO] Convênio identificado: {}", convenioEnum);
         } catch (IllegalArgumentException e) {
+            log.warn("[SIMULACAO_COPILOTO] Tipo de convênio inválido: '{}', retornando lista vazia",
+                    rascunho.tipoConvenio());
             return List.of();
         }
 
@@ -46,20 +58,31 @@ public class SimulacaoCopilotoService {
                 rascunho.idade(),
                 rascunho.valorDesejado(),
                 rascunho.prazoDesejado());
+        log.debug("[SIMULACAO_COPILOTO] {} tabelas elegíveis encontradas", tabelasValidas.size());
 
-        return tabelasValidas.stream().map(tabela -> {
+        List<ResultadoSimulacaoDTO> resultados = tabelasValidas.stream().map(tabela -> {
             BigDecimal parcela = calcularParcelaEstimada(rascunho.valorDesejado(), tabela.getTaxaMensal(),
                     rascunho.prazoDesejado());
             BigDecimal comissao = calcularComissao(rascunho.valorDesejado(), tabela.getComissaoPercentual());
-
-            // Cria o DTO de forma limpa, apenas com o que importa
+            log.trace("[SIMULACAO_COPILOTO] Tabela ID={}, parcela={}, comissão={}", tabela.getId(), parcela, comissao);
             return new ResultadoSimulacaoDTO(tabela, comissao, parcela);
         })
                 .sorted(Comparator.comparing(ResultadoSimulacaoDTO::comissaoEstimada).reversed())
                 .collect(Collectors.toList());
+
+        log.info("[SIMULACAO_COPILOTO] Simulação finalizada com {} resultados ordenados por comissão",
+                resultados.size());
+        return resultados;
     }
 
     public String extrairMargemDocumento(File arquivo) {
+        log.debug("[SIMULACAO_COPILOTO] extrairMargemDocumento: Iniciando extração para arquivo '{}'",
+                arquivo != null ? arquivo.getName() : "null");
+        if (arquivo == null || !arquivo.exists()) {
+            log.error("[SIMULACAO_COPILOTO] Arquivo inválido ou inexistente");
+            return "Erro: Arquivo não fornecido ou não encontrado.";
+        }
+
         String prompt = """
                 Você é um Analista de Crédito Consignado Sênior. Sua missão principal é extrair a Margem Consignável Livre (Disponível) do documento financeiro em anexo.
 
@@ -75,37 +98,60 @@ public class SimulacaoCopilotoService {
                 """;
 
         String apiKey = authService.getUsuarioLogado().getGeminiApiKey();
-        return geminiService.perguntarAoAssistente(prompt, apiKey, "gemini-3.5-flash", arquivo, "{}", "[]", "[]", "[]",
+        log.info("[SIMULACAO_COPILOTO] Solicitando análise ao GeminiService para arquivo '{}'", arquivo.getName());
+        String resposta = geminiService.perguntarAoAssistente(prompt, apiKey, "gemini-3.5-flash", arquivo, "{}", "[]",
+                "[]", "[]",
                 List.of());
+        log.debug("[SIMULACAO_COPILOTO] Resposta recebida da IA (tamanho={})",
+                resposta != null ? resposta.length() : 0);
+        return resposta;
     }
 
     private BigDecimal calcularComissao(BigDecimal valorOperacao, BigDecimal percentualComissao) {
-        if (valorOperacao == null || percentualComissao == null)
+        if (valorOperacao == null || percentualComissao == null) {
+            log.trace("[SIMULACAO_COPILOTO] calcularComissao: Parâmetros inválidos, retornando ZERO");
             return BigDecimal.ZERO;
-        return valorOperacao.multiply(percentualComissao).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        }
+        BigDecimal comissao = valorOperacao.multiply(percentualComissao).divide(new BigDecimal("100"), 2,
+                RoundingMode.HALF_UP);
+        log.trace("[SIMULACAO_COPILOTO] Comissão calculada: {} (base={}, percentual={})", comissao, valorOperacao,
+                percentualComissao);
+        return comissao;
     }
 
     private BigDecimal calcularParcelaEstimada(BigDecimal valor, BigDecimal taxa, Integer prazo) {
-        if (valor == null || taxa == null || prazo == null || prazo == 0)
+        if (valor == null || taxa == null || prazo == null || prazo == 0) {
+            log.trace("[SIMULACAO_COPILOTO] calcularParcelaEstimada: Parâmetros inválidos, retornando ZERO");
             return BigDecimal.ZERO;
+        }
         BigDecimal taxaDecimal = taxa.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-        return valor.multiply(taxaDecimal).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal parcela = valor.multiply(taxaDecimal).setScale(2, RoundingMode.HALF_UP);
+        log.trace("[SIMULACAO_COPILOTO] Parcela estimada: {} (valor={}, taxa={}, prazo={})", parcela, valor, taxa,
+                prazo);
+        return parcela;
     }
 
-    // 🚀 Atualizado para receber o modeloEscolhido
     public String gerarRecomendacaoInteligenteIA(SimulacaoRascunhoDTO perfil, List<ResultadoSimulacaoDTO> ranking,
             String modeloEscolhido) {
-        if (ranking.isEmpty())
+        log.info("[SIMULACAO_COPILOTO] gerarRecomendacaoInteligenteIA: modelo='{}', ranking size={}", modeloEscolhido,
+                ranking != null ? ranking.size() : 0);
+        if (ranking == null || ranking.isEmpty()) {
+            log.warn("[SIMULACAO_COPILOTO] Ranking vazio, retornando mensagem padrão");
             return "Nenhuma tabela encontrada para este perfil.";
+        }
 
         String prompt = montarPromptEstrategico(perfil, ranking);
         String apiKey = authService.getUsuarioLogado().getGeminiApiKey();
-
-        // Passa o modelo dinâmico para o GeminiService
-        return geminiService.perguntarTexto(prompt, apiKey, modeloEscolhido);
+        log.debug("[SIMULACAO_COPILOTO] Prompt montado (tamanho={}), chamando GeminiService", prompt.length());
+        String resposta = geminiService.perguntarTexto(prompt, apiKey, modeloEscolhido);
+        log.info("[SIMULACAO_COPILOTO] Recomendação gerada com sucesso (tamanho={})",
+                resposta != null ? resposta.length() : 0);
+        return resposta;
     }
 
     private String montarPromptEstrategico(SimulacaoRascunhoDTO perfil, List<ResultadoSimulacaoDTO> opcoes) {
+        log.debug("[SIMULACAO_COPILOTO] montarPromptEstrategico: Construindo prompt estratégico com {} opções",
+                opcoes.size());
         StringBuilder sb = new StringBuilder();
 
         sb.append(
@@ -118,7 +164,6 @@ public class SimulacaoCopilotoService {
             sb.append("- Idade: ").append(perfil.idade()).append(" anos\n");
         }
 
-        // 🚀 LÓGICA DE RENDA: Salário Mínimo de 2026 como fallback
         BigDecimal renda = perfil.rendaMensal();
         if (renda == null || renda.compareTo(BigDecimal.ZERO) <= 0) {
             sb.append(
@@ -131,7 +176,6 @@ public class SimulacaoCopilotoService {
         sb.append("Opções de Crédito Disponíveis (já ordenadas pela maior remuneração):\n");
         for (int i = 0; i < opcoes.size(); i++) {
             ResultadoSimulacaoDTO op = opcoes.get(i);
-            // Injetamos a taxa e o percentual para o Gemini fazer a matemática exata
             sb.append(i + 1).append(". Banco: ").append(op.tabela().getBanco().getNome())
                     .append(" | Tabela: ").append(op.tabela().getNomeTabela())
                     .append(" | Taxa de Juros Mensal: ").append(op.tabela().getTaxaMensal()).append("%")
@@ -141,28 +185,22 @@ public class SimulacaoCopilotoService {
         }
 
         sb.append("\nInstruções Estratégicas OBRIGATÓRIAS:\n");
-
         sb.append(
                 "1. INTELIGÊNCIA DE MERCADO E CÁLCULO: Busque ativamente na sua base de dados do Google informações sobre o mercado financeiro brasileiro. ");
         sb.append("Analise o *Nome da Tabela* (ex: Portabilidade, Refinanciamento, Cartão). ");
         sb.append(
                 "Identifique a taxa de juros mensal associada e valide a comissão financeira do consultor com base no percentual definido para cada opção.\n\n");
-
         sb.append(
                 "2. PROBABILIDADE DE APROVAÇÃO (BANCO): Avalie o risco de crédito. Baseie-se na relação entre a renda (real ou mínima assumida de 2026) e o comprometimento da margem (valor da parcela estimada). Leve em conta a burocracia de averbação do banco para o tipo da tabela.\n\n");
-
         sb.append(
                 "3. PROBABILIDADE DE ACEITAÇÃO (CLIENTE): Avalie o esforço de vendas. Baseie-se no impacto do valor da parcela no orçamento mensal do cliente e no benefício imediato liberado.\n\n");
-
-        // 🚀 NOVO: Instrução para retornar as 3 melhores opções ranqueadas
         sb.append(
                 "4. FORMATO DA RESPOSTA: Você DEVE iniciar a sua resposta exata e unicamente com a tag [TOP: X, Y, Z], onde X, Y e Z representam os números das 3 melhores opções (em ordem de prioridade do 1º ao 3º lugar). Exemplo: se as melhores forem a 4, depois a 1 e depois a 2, escreva [TOP: 4, 1, 2]. Se houver menos opções disponíveis, liste as que existirem (ex: [TOP: 1, 2]).\n\n");
-
-        // 🚀 PATCH: Refinamento do prompt para exigir respostas ultra-concisas (estilo
-        // executivo)
         sb.append(
                 "5. JUSTIFICATIVA EXECUTIVA (MÁXIMA CONCISÃO): Logo após a tag [TOP], redija uma justificativa EXTREMAMENTE CURTA e direta. Use 'bullet points' (marcadores 🔹). Vá direto ao ponto: diga por que a opção 1 é a melhor (focando em aprovação/lucro) e por que as outras são boas alternativas secundárias. Não use parágrafos longos, faça uma introdução educadaa breve antes de apresentar as tabelas. O consultor está com pressa. Limite-se a no máximo 4 linhas de texto no total.");
-
-        return sb.toString();
+        String prompt = sb.toString();
+        log.trace("[SIMULACAO_COPILOTO] Prompt final (primeiros 200 caracteres): {}",
+                prompt.substring(0, Math.min(200, prompt.length())));
+        return prompt;
     }
 }

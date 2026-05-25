@@ -27,27 +27,30 @@ public class JavafxApplication extends Application {
 
     @Override
     public void init() throws Exception {
-        // O init fica vazio. O JavaFX já inicializou o toolkit neste ponto.
-        // O carregamento pesado do Spring foi movido para o start() de forma
-        // assíncrona.
+        log.debug("[JAVAFX_APP] init() chamado - preparando inicialização");
+        super.init();
     }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Aplica o tema AtlantaFX ANTES de exibir qualquer interface
-        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+        log.info("[JAVAFX_APP] start() iniciando - aplicando tema e exibindo splash screen");
 
-        // 1. Mostra a Splash Screen IMEDIATAMENTE
+        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+        log.debug("[JAVAFX_APP] Tema PrimerLight aplicado");
+
         splashStage = new SplashScreenStage();
         splashStage.show();
+        log.info("[JAVAFX_APP] SplashScreenStage exibida");
 
-        // 2. Animação de progresso (marco passo) usando AsyncUtils
         Task<Void> progressTask = new Task<>() {
             @Override
             protected Void call() throws Exception {
+                log.trace("[JAVAFX_APP] Task de progresso iniciada");
                 for (int i = 0; i <= 90; i++) {
-                    if (isCancelled())
+                    if (isCancelled()) {
+                        log.trace("[JAVAFX_APP] Task de progresso cancelada");
                         break;
+                    }
 
                     String msg = "Carregando módulos internos...";
                     if (i < 20)
@@ -64,18 +67,17 @@ public class JavafxApplication extends Application {
 
                     Thread.sleep(120);
                 }
+                log.debug("[JAVAFX_APP] Task de progresso concluída (loop finalizado)");
                 return null;
             }
         };
 
-        // Dispara a animação em background (sem callbacks de sucesso/falha, pois não
-        // precisa)
         AsyncUtils.executarTask(progressTask, null, null);
+        log.debug("[JAVAFX_APP] Task de progresso submetida ao AsyncUtils");
 
-        // 3. Lança o Spring Boot em background com AsyncUtils
         AsyncUtils.executarTaskAsync(
                 () -> {
-                    // Injeta o ClassLoader do Spring Boot na thread de background
+                    log.debug("[JAVAFX_APP] Iniciando carregamento do Spring Boot em background");
                     Thread.currentThread().setContextClassLoader(JavafxApplication.class.getClassLoader());
                     return new SpringApplicationBuilder()
                             .sources(AppApplication.class)
@@ -84,17 +86,18 @@ public class JavafxApplication extends Application {
                             .run(getParameters().getRaw().toArray(new String[0]));
                 },
                 context -> {
-                    // Sucesso: Spring carregado → cancela a animação e crava 100%
+                    log.info("[JAVAFX_APP] Spring Boot carregado com sucesso");
                     progressTask.cancel();
                     this.springContext = context;
 
                     splashStage.atualizarProgresso(1.0, "Sinais Vitais Ok. Preparando Mesa Cirúrgica...");
+                    log.debug("[JAVAFX_APP] Splash screen atualizada para 100%");
 
-                    // Pequena pausa para o usuário ver o 100% (ATENÇÃO: bloqueia a UI thread)
                     try {
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                        log.warn("[JAVAFX_APP] Pausa interrompida antes de carregar view principal");
                     }
 
                     try {
@@ -102,26 +105,28 @@ public class JavafxApplication extends Application {
                         initializer.setPrimaryStage(primaryStage);
                         initializer.loadMainView();
                         splashStage.hide();
+                        log.info("[JAVAFX_APP] View principal carregada e splash screen ocultada");
                     } catch (Exception e) {
-                        log.error("[JAVAFXAPPLICATION][START] Erro: {}", e.getMessage(), e);
+                        log.error("[JAVAFX_APP] Erro ao montar o layout principal: {}", e.getMessage(), e);
                         splashStage.atualizarProgresso(-1, "Erro ao montar o layout principal.");
                     }
                 },
                 ex -> {
-                    // Falha crítica no boot
+                    log.error("[JAVAFX_APP] Erro crítico no boot do Spring: {}", ex.getMessage(), ex);
                     progressTask.cancel();
-                    log.error("[JAVAFXAPPLICATION][START] Erro crítico no boot: {}", ex.getMessage(), ex);
                     splashStage.atualizarProgresso(-1, "Falha Crítica no Boot.");
                 });
     }
 
     @Override
     public void stop() throws Exception {
-        // Encerra o Spring e libera as conexões JPA com o PostgreSQL
+        log.info("[JAVAFX_APP] stop() chamado - encerrando aplicação");
         if (springContext != null) {
+            log.debug("[JAVAFX_APP] Fechando contexto Spring");
             springContext.close();
         }
         Platform.exit();
         System.exit(0);
+        log.trace("[JAVAFX_APP] Platform.exit() e System.exit(0) executados");
     }
 }

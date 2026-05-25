@@ -4,6 +4,8 @@ import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
@@ -17,6 +19,8 @@ import java.util.Objects;
 @Component
 @Scope("prototype")
 public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
+
+    private static final Logger log = LoggerFactory.getLogger(ComissaoViewModel.class);
 
     // --- 1. PROPERTIES ESPECÍFICAS (Monitoramento Atual) ---
     private final ObjectProperty<PropostaModel> proposta = new SimpleObjectProperty<>();
@@ -58,13 +62,29 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
     private final ReadOnlyObjectWrapper<LocalDateTime> limiteOriginal = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyStringWrapper observacaoOriginal = new ReadOnlyStringWrapper("");
 
+    // Construtor para log (não quebra contrato, pois era implícito)
+    public ComissaoViewModel() {
+        log.debug("[COMISSAO_VM] Instância criada (prototype)");
+    }
+
     @Override
     protected void extrairId(ComissaoModel model) {
+        log.debug("[COMISSAO_VM] extrairId: model ID={}", model != null ? model.getId() : "null");
+        if (model == null) {
+            this.id.set(null);
+            return;
+        }
         this.id.set(model.getId());
     }
 
     @Override
     protected void preencherCampos(ComissaoModel model) {
+        log.debug("[COMISSAO_VM] preencherCampos: populando campos a partir do model ID={}",
+                model != null ? model.getId() : "null");
+        if (model == null) {
+            limparCampos();
+            return;
+        }
         proposta.set(model.getProposta());
         usuario.set(model.getUsuario());
         valorBrutoComissao.set(model.getValorBrutoComissao());
@@ -80,14 +100,16 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         previsaoPagamento.set(model.getPrevisaoPagamento());
         dataPagamentoConsultor.set(model.getDataPagamentoConsultor());
 
-        // CIRURGIA: Preenchimento
         cicloReferencia.set(model.getCicloReferencia() != null ? model.getCicloReferencia() : "");
         dataLimiteContestacao.set(model.getDataLimiteContestacao());
         observacaoAjuste.set(model.getObservacaoAjuste() != null ? model.getObservacaoAjuste() : "");
+        log.trace("[COMISSAO_VM] Campos preenchidos: status='{}', ciclo='{}', contestada={}", statusPagamento.get(),
+                cicloReferencia.get(), contestada.get());
     }
 
     @Override
     protected void limparCampos() {
+        log.debug("[COMISSAO_VM] limparCampos: resetando todos os campos");
         proposta.set(null);
         usuario.set(null);
         valorBrutoComissao.set(BigDecimal.ZERO);
@@ -102,14 +124,15 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         previsaoPagamento.set(null);
         dataPagamentoConsultor.set(null);
 
-        // CIRURGIA: Limpeza
         cicloReferencia.set("");
         dataLimiteContestacao.set(null);
         observacaoAjuste.set("");
+        log.trace("[COMISSAO_VM] Campos limpos");
     }
 
     @Override
     protected void sincronizarEstadoOriginal() {
+        log.debug("[COMISSAO_VM] sincronizarEstadoOriginal: salvando estado atual como original");
         propostaOriginal.set(proposta.get());
         usuarioOriginal.set(usuario.get());
         valorBrutoOriginal.set(valorBrutoComissao.get());
@@ -121,15 +144,16 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         verificadoOriginal.set(verificadoConsultor.get());
         previsaoOriginal.set(previsaoPagamento.get());
 
-        // CIRURGIA: Sincronização
         cicloOriginal.set(cicloReferencia.get());
         limiteOriginal.set(dataLimiteContestacao.get());
         observacaoOriginal.set(observacaoAjuste.get());
+        log.trace("[COMISSAO_VM] Estado original salvo: status='{}', ciclo='{}'", statusOriginal.get(),
+                cicloOriginal.get());
     }
 
     @Override
     protected boolean temAlteracoesPendentes() {
-        return !Objects.equals(proposta.get(), propostaOriginal.get()) ||
+        boolean alterado = !Objects.equals(proposta.get(), propostaOriginal.get()) ||
                 compareBigDecimal(valorBrutoComissao.get(), valorBrutoOriginal.get()) ||
                 compareBigDecimal(valorPagoPelaPoder.get(), valorPagoOriginal.get()) ||
                 !Objects.equals(statusPagamento.get(), statusOriginal.get()) ||
@@ -137,16 +161,20 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
                 verificadoConsultor.get() != verificadoOriginal.get() ||
                 !Objects.equals(previsaoPagamento.get(), previsaoOriginal.get()) ||
                 contestada.get() != contestadaOriginal.get() ||
-                // CIRURGIA: Validação de Dirty State
                 !Objects.equals(cicloReferencia.get(), cicloOriginal.get()) ||
                 !Objects.equals(dataLimiteContestacao.get(), limiteOriginal.get()) ||
                 !Objects.equals(observacaoAjuste.get(), observacaoOriginal.get());
+        log.trace("[COMISSAO_VM] temAlteracoesPendentes: {}", alterado);
+        return alterado;
     }
 
     @Override
     public ComissaoModel atualizarModel(ComissaoModel model) {
-        if (model == null)
+        log.debug("[COMISSAO_VM] atualizarModel: model fornecido = {}", model != null ? "presente" : "null");
+        if (model == null) {
+            log.trace("[COMISSAO_VM] Criando novo model (null -> novo)");
             model = new ComissaoModel();
+        }
 
         model.setId(this.id.get());
         model.setProposta(this.proposta.get());
@@ -164,11 +192,12 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
         model.setPrevisaoPagamento(this.previsaoPagamento.get());
         model.setDataPagamentoConsultor(this.dataPagamentoConsultor.get());
 
-        // CIRURGIA: Injeção no Model
         model.setCicloReferencia(this.cicloReferencia.get());
         model.setDataLimiteContestacao(this.dataLimiteContestacao.get());
         model.setObservacaoAjuste(this.observacaoAjuste.get());
 
+        log.info("[COMISSAO_VM] Model atualizado: ID={}, status='{}', ciclo='{}'", model.getId(),
+                model.getStatusPagamento(), model.getCicloReferencia());
         return model;
     }
 
@@ -182,10 +211,10 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
 
     @Override
     protected Observable[] getObservaveisParaDirty() {
-        return new Observable[] {
+        Observable[] observaveis = new Observable[] {
                 proposta, valorBrutoComissao, statusPagamento, dataRecebimentoBanco,
                 verificadoConsultor, previsaoPagamento, contestada,
-                cicloReferencia, dataLimiteContestacao, observacaoAjuste, // CIRURGIA: Inseridos
+                cicloReferencia, dataLimiteContestacao, observacaoAjuste,
                 propostaOriginal.getReadOnlyProperty(),
                 valorBrutoOriginal.getReadOnlyProperty(),
                 statusOriginal.getReadOnlyProperty(),
@@ -193,66 +222,78 @@ public class ComissaoViewModel extends BaseViewModel<ComissaoModel> {
                 verificadoOriginal.getReadOnlyProperty(),
                 previsaoOriginal.getReadOnlyProperty(),
                 contestadaOriginal.getReadOnlyProperty(),
-                cicloOriginal.getReadOnlyProperty(), // CIRURGIA: Inseridos
+                cicloOriginal.getReadOnlyProperty(),
                 limiteOriginal.getReadOnlyProperty(),
                 observacaoOriginal.getReadOnlyProperty()
         };
+        log.trace("[COMISSAO_VM] getObservaveisParaDirty: {} observáveis registrados", observaveis.length);
+        return observaveis;
     }
 
     @Override
     public boolean isValido() {
-        // Por padrão, se não tiver regras específicas, retorna verdadeiro
+        log.trace("[COMISSAO_VM] isValido: sempre verdadeiro (sem regras específicas)");
         return true;
     }
 
     // --- Getters das Properties (Binding) ---
     public ObjectProperty<PropostaModel> propostaProperty() {
+        log.trace("[COMISSAO_VM] propostaProperty acessado");
         return proposta;
     }
 
     public ObjectProperty<UsuarioModel> usuarioProperty() {
+        log.trace("[COMISSAO_VM] usuarioProperty acessado");
         return usuario;
     }
 
     public ObjectProperty<BigDecimal> valorBrutoComissaoProperty() {
+        log.trace("[COMISSAO_VM] valorBrutoComissaoProperty acessado");
         return valorBrutoComissao;
     }
 
     public StringProperty statusPagamentoProperty() {
+        log.trace("[COMISSAO_VM] statusPagamentoProperty acessado");
         return statusPagamento;
     }
 
     public BooleanProperty verificadoConsultorProperty() {
+        log.trace("[COMISSAO_VM] verificadoConsultorProperty acessado");
         return verificadoConsultor;
     }
 
     public ObjectProperty<LocalDateTime> dataRecebimentoBancoProperty() {
+        log.trace("[COMISSAO_VM] dataRecebimentoBancoProperty acessado");
         return dataRecebimentoBanco;
     }
 
     public ObjectProperty<LocalDate> previsaoPagamentoProperty() {
+        log.trace("[COMISSAO_VM] previsaoPagamentoProperty acessado");
         return previsaoPagamento;
     }
 
     public BooleanProperty contestadaProperty() {
+        log.trace("[COMISSAO_VM] contestadaProperty acessado");
         return contestada;
     }
 
     public ObjectProperty<BigDecimal> valorPagoPelaPoderProperty() {
+        log.trace("[COMISSAO_VM] valorPagoPelaPoderProperty acessado");
         return valorPagoPelaPoder;
     }
 
-    // CIRURGIA: Getters das novas Properties
     public StringProperty cicloReferenciaProperty() {
+        log.trace("[COMISSAO_VM] cicloReferenciaProperty acessado");
         return cicloReferencia;
     }
 
     public ObjectProperty<LocalDateTime> dataLimiteContestacaoProperty() {
+        log.trace("[COMISSAO_VM] dataLimiteContestacaoProperty acessado");
         return dataLimiteContestacao;
     }
 
     public StringProperty observacaoAjusteProperty() {
+        log.trace("[COMISSAO_VM] observacaoAjusteProperty acessado");
         return observacaoAjuste;
     }
-
 }

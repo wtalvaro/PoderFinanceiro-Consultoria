@@ -4,6 +4,8 @@ import javafx.beans.Observable;
 import javafx.beans.property.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
@@ -19,6 +21,8 @@ import java.util.Objects;
 @Component
 @Scope("prototype")
 public class PropostaViewModel extends BaseViewModel<PropostaModel> {
+
+    private static final Logger log = LoggerFactory.getLogger(PropostaViewModel.class);
 
     // --- 1. PROPERTIES ESPECÍFICAS DA PROPOSTA ---
     private final ObjectProperty<ProponenteModel> proponente = new SimpleObjectProperty<>();
@@ -60,17 +64,30 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     private final ReadOnlyObjectWrapper<BigDecimal> valorParcelaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
     private final ReadOnlyObjectWrapper<BigDecimal> taxaAplicadaOriginal = new ReadOnlyObjectWrapper<>(BigDecimal.ZERO);
 
+    // Construtor adicionado para log (não quebra contrato, pois era implícito)
+    public PropostaViewModel() {
+        log.debug("[PROPOSTA_VM] Instância criada (prototype)");
+    }
+
     // ==========================================================
     // IMPLEMENTAÇÃO DO CONTRATO
     // ==========================================================
 
     @Override
     protected void extrairId(PropostaModel model) {
-        this.id.set(model.getId());
+        log.debug("[PROPOSTA_VM] extrairId: model ID={}", model != null ? model.getId() : "null");
+        this.id.set(model != null ? model.getId() : null);
     }
 
     @Override
     protected void preencherCampos(PropostaModel model) {
+        log.debug("[PROPOSTA_VM] preencherCampos: populando campos a partir do model ID={}",
+                model != null ? model.getId() : "null");
+        if (model == null) {
+            log.warn("[PROPOSTA_VM] preencherCampos: modelo nulo recebido, limpando campos");
+            limparCampos();
+            return;
+        }
         proponente.set(model.getProponente());
         banco.set(model.getBanco());
         usuario.set(model.getUsuario());
@@ -85,13 +102,14 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         comissaoEstimada.set(model.getComissaoEstimada() != null ? model.getComissaoEstimada() : BigDecimal.ZERO);
         observacoes.set(model.getObservacoes() != null ? model.getObservacoes() : "");
         dataSolicitacao.set(model.getDataSolicitacao());
-
-        // 🚀 AQUI: Carrega o prazo desejado do banco
         prazoDesejado.set(model.getPrazoDesejado());
+        log.trace("[PROPOSTA_VM] Campos preenchidos: status='{}', convenio='{}', valorSolicitado={}", status.get(),
+                convenio.get(), valorSolicitado.get());
     }
 
     @Override
     protected void limparCampos() {
+        log.debug("[PROPOSTA_VM] limparCampos: resetando todos os campos");
         proponente.set(null);
         banco.set(null);
         usuario.set(null);
@@ -106,13 +124,13 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         comissaoEstimada.set(BigDecimal.ZERO);
         observacoes.set("");
         dataSolicitacao.set(null);
-
-        // 🚀 AQUI: Limpa o prazo desejado
         prazoDesejado.set(null);
+        log.trace("[PROPOSTA_VM] Campos limpos");
     }
 
     @Override
     protected void sincronizarEstadoOriginal() {
+        log.debug("[PROPOSTA_VM] sincronizarEstadoOriginal: salvando estado atual como original");
         this.proponenteOriginal.set(proponente.get());
         this.bancoOriginal.set(banco.get());
         this.convenioOriginal.set(convenio.get());
@@ -124,14 +142,14 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         this.quantidadeParcelasOriginal.set(quantidadeParcelas.get());
         this.valorParcelaOriginal.set(valorParcela.get());
         this.taxaAplicadaOriginal.set(taxaAplicada.get());
-
-        // 🚀 AQUI: Sincroniza o prazo desejado original
         this.prazoDesejadoOriginal.set(prazoDesejado.get());
+        log.trace("[PROPOSTA_VM] Estado original salvo: status='{}', convenio='{}', prazoDesejado={}",
+                statusOriginal.get(), convenioOriginal.get(), prazoDesejadoOriginal.get());
     }
 
     @Override
     protected boolean temAlteracoesPendentes() {
-        return !isProponenteIgual(proponente.get(), proponenteOriginal.get()) ||
+        boolean alterado = !isProponenteIgual(proponente.get(), proponenteOriginal.get()) ||
                 !isBancoIgual(banco.get(), bancoOriginal.get()) ||
                 !Objects.equals(convenio.get(), convenioOriginal.get()) ||
                 compareBigDecimal(valorSolicitado.get(), valorSolicitadoOriginal.get()) ||
@@ -142,13 +160,16 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
                 !Objects.equals(quantidadeParcelas.get(), quantidadeParcelasOriginal.get()) ||
                 compareBigDecimal(valorParcela.get(), valorParcelaOriginal.get()) ||
                 compareBigDecimal(taxaAplicada.get(), taxaAplicadaOriginal.get()) ||
-                // 🚀 AQUI: Compara se o prazo desejado foi alterado na tela
                 !Objects.equals(prazoDesejado.get(), prazoDesejadoOriginal.get());
+        log.trace("[PROPOSTA_VM] temAlteracoesPendentes: {}", alterado);
+        return alterado;
     }
 
     @Override
     public PropostaModel atualizarModel(PropostaModel model) {
+        log.debug("[PROPOSTA_VM] atualizarModel: model fornecido = {}", model != null ? "presente" : "null");
         if (model == null) {
+            log.trace("[PROPOSTA_VM] Criando novo model (null -> novo)");
             model = new PropostaModel();
         }
         model.setId(this.id.get());
@@ -166,20 +187,21 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
         model.setComissaoEstimada(this.comissaoEstimada.get());
         model.setObservacoes(this.observacoes.get());
         model.setDataSolicitacao(this.dataSolicitacao.get());
-
-        // 🚀 AQUI: Salva o dado da UI no model para ir pro banco
         model.setPrazoDesejado(this.prazoDesejado.get());
 
+        log.info(
+                "[PROPOSTA_VM] Model atualizado: ID={}, status='{}', convenio='{}', valorSolicitado={}, prazoDesejado={}",
+                model.getId(), model.getStatus(), model.getConvenioOrgao(), model.getValorSolicitado(),
+                model.getPrazoDesejado());
         return model;
     }
 
     @Override
     protected Observable[] getObservaveisParaDirty() {
-        return new Observable[] {
+        Observable[] observaveis = new Observable[] {
                 proponente, banco, convenio, valorSolicitado, valorAprovado, status, tabelaId, observacoes,
                 quantidadeParcelas, valorParcela, taxaAplicada,
-                prazoDesejado, // 🚀 Adicionado
-
+                prazoDesejado,
                 proponenteOriginal.getReadOnlyProperty(),
                 bancoOriginal.getReadOnlyProperty(),
                 convenioOriginal.getReadOnlyProperty(),
@@ -191,8 +213,10 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
                 quantidadeParcelasOriginal.getReadOnlyProperty(),
                 valorParcelaOriginal.getReadOnlyProperty(),
                 taxaAplicadaOriginal.getReadOnlyProperty(),
-                prazoDesejadoOriginal.getReadOnlyProperty() // 🚀 Adicionado
+                prazoDesejadoOriginal.getReadOnlyProperty()
         };
+        log.trace("[PROPOSTA_VM] getObservaveisParaDirty: {} observáveis registrados", observaveis.length);
+        return observaveis;
     }
 
     // ==========================================================
@@ -201,11 +225,12 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
 
     @Override
     public boolean isValido() {
-        // Validação estrita: Se qualquer um destes for nulo, o botão deve ficar
-        // desabilitado.
-        return this.banco.get() != null
+        boolean valido = this.banco.get() != null
                 && this.tabelaId.get() != null
                 && this.convenio.get() != null;
+        log.trace("[PROPOSTA_VM] isValido: banco={}, tabelaId={}, convenio={} -> {}",
+                this.banco.get() != null, this.tabelaId.get() != null, this.convenio.get() != null, valido);
+        return valido;
     }
 
     // ==========================================================
@@ -217,9 +242,9 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
             return true;
         if (b1 == null || b2 == null)
             return false;
-        // Compara apenas pelos IDs! O Proxy do Hibernate permite chamar getId() sem
-        // estourar erro.
-        return Objects.equals(b1.getId(), b2.getId());
+        boolean igual = Objects.equals(b1.getId(), b2.getId());
+        log.trace("[PROPOSTA_VM] isBancoIgual: IDs {} e {} -> {}", b1.getId(), b2.getId(), igual);
+        return igual;
     }
 
     private boolean isProponenteIgual(ProponenteModel p1, ProponenteModel p2) {
@@ -227,7 +252,9 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
             return true;
         if (p1 == null || p2 == null)
             return false;
-        return Objects.equals(p1.getId(), p2.getId());
+        boolean igual = Objects.equals(p1.getId(), p2.getId());
+        log.trace("[PROPOSTA_VM] isProponenteIgual: IDs {} e {} -> {}", p1.getId(), p2.getId(), igual);
+        return igual;
     }
 
     private boolean compareBigDecimal(BigDecimal val1, BigDecimal val2) {
@@ -235,7 +262,10 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
             return false;
         if (val1 == null || val2 == null)
             return true;
-        return val1.compareTo(val2) != 0;
+        boolean diferente = val1.compareTo(val2) != 0;
+        if (diferente)
+            log.trace("[PROPOSTA_VM] compareBigDecimal: {} != {}", val1, val2);
+        return diferente;
     }
 
     // ==========================================================
@@ -243,63 +273,77 @@ public class PropostaViewModel extends BaseViewModel<PropostaModel> {
     // ==========================================================
 
     public ObjectProperty<ProponenteModel> proponenteProperty() {
+        log.trace("[PROPOSTA_VM] proponenteProperty acessado");
         return proponente;
     }
 
     public ObjectProperty<BancoModel> bancoProperty() {
+        log.trace("[PROPOSTA_VM] bancoProperty acessado");
         return banco;
     }
 
     public ObjectProperty<TipoConvenioModel> convenioProperty() {
+        log.trace("[PROPOSTA_VM] convenioProperty acessado");
         return convenio;
     }
 
     public ObjectProperty<UsuarioModel> usuarioProperty() {
+        log.trace("[PROPOSTA_VM] usuarioProperty acessado");
         return usuario;
     }
 
     public ObjectProperty<BigDecimal> valorSolicitadoProperty() {
+        log.trace("[PROPOSTA_VM] valorSolicitadoProperty acessado");
         return valorSolicitado;
     }
 
     public ObjectProperty<BigDecimal> valorAprovadoProperty() {
+        log.trace("[PROPOSTA_VM] valorAprovadoProperty acessado");
         return valorAprovado;
     }
 
     public ObjectProperty<BigDecimal> taxaAplicadaProperty() {
+        log.trace("[PROPOSTA_VM] taxaAplicadaProperty acessado");
         return taxaAplicada;
     }
 
     public ObjectProperty<Integer> quantidadeParcelasProperty() {
+        log.trace("[PROPOSTA_VM] quantidadeParcelasProperty acessado");
         return quantidadeParcelas;
     }
 
     public ObjectProperty<StatusPropostaModel> statusProperty() {
+        log.trace("[PROPOSTA_VM] statusProperty acessado");
         return status;
     }
 
     public ObjectProperty<BigDecimal> valorParcelaProperty() {
+        log.trace("[PROPOSTA_VM] valorParcelaProperty acessado");
         return valorParcela;
     }
 
     public ObjectProperty<Long> tabelaIdProperty() {
+        log.trace("[PROPOSTA_VM] tabelaIdProperty acessado");
         return tabelaId;
     }
 
     public ObjectProperty<BigDecimal> comissaoEstimadaProperty() {
+        log.trace("[PROPOSTA_VM] comissaoEstimadaProperty acessado");
         return comissaoEstimada;
     }
 
     public StringProperty observacoesProperty() {
+        log.trace("[PROPOSTA_VM] observacoesProperty acessado");
         return observacoes;
     }
 
     public ObjectProperty<LocalDate> dataSolicitacaoProperty() {
+        log.trace("[PROPOSTA_VM] dataSolicitacaoProperty acessado");
         return dataSolicitacao;
     }
 
     public ObjectProperty<Integer> prazoDesejadoProperty() {
+        log.trace("[PROPOSTA_VM] prazoDesejadoProperty acessado");
         return prazoDesejado;
     }
-
 }

@@ -14,33 +14,46 @@ public class ViaCepService {
     private final RestClient restClient;
 
     public ViaCepService() {
-        // Inicializa o cliente HTTP apontando para o servidor do ViaCEP
+        log.debug("[VIA_CEP] Construtor: Inicializando cliente RestClient com base URL https://viacep.com.br/ws/");
         this.restClient = RestClient.builder().baseUrl("https://viacep.com.br/ws/").build();
+        log.info("[VIA_CEP] Construtor: ViaCepService instanciado");
     }
 
     public ViaCepResponse buscarEnderecoPorCep(String cep) {
-        // Limpa a string (tira hífen, pontos, espaços) para garantir
+        log.debug("[VIA_CEP] buscarEnderecoPorCep: Iniciando busca para CEP='{}'", cep);
+
         String cepLimpo = cep.replaceAll("\\D", "");
+        log.trace("[VIA_CEP] CEP limpo: '{}' -> '{}'", cep, cepLimpo);
 
         if (cepLimpo.length() != 8) {
-            return null; // Ignora se não tiver o tamanho exato de um CEP
+            log.warn("[VIA_CEP] buscarEnderecoPorCep: CEP '{}' possui tamanho inválido ({}), retornando null", cep,
+                    cepLimpo.length());
+            return null;
         }
 
         try {
+            log.debug("[VIA_CEP] Chamando API ViaCEP para CEP={}", cepLimpo);
             ViaCepResponse response = restClient.get()
                     .uri(cepLimpo + "/json/")
                     .retrieve()
                     .body(ViaCepResponse.class);
 
-            // Se o ViaCEP não encontrar a rua, ele devolve um JSON com { "erro": true }
             if (response != null && Boolean.TRUE.equals(response.erro())) {
+                log.warn("[VIA_CEP] ViaCEP retornou erro para CEP={}, endereço não encontrado", cepLimpo);
                 return null;
+            }
+
+            if (response != null) {
+                log.info("[VIA_CEP] Endereço encontrado para CEP={}: logradouro='{}', localidade='{}', uf='{}'",
+                        cepLimpo, response.logradouro(), response.localidade(), response.uf());
+            } else {
+                log.warn("[VIA_CEP] Resposta nula do ViaCEP para CEP={}", cepLimpo);
             }
 
             return response;
 
         } catch (Exception e) {
-            log.error(("⚠️ Falha ao comunicar com o ViaCEP: " + e.getMessage()));
+            log.error("[VIA_CEP] Falha ao comunicar com o ViaCEP para CEP={}: {}", cepLimpo, e.getMessage(), e);
             return null;
         }
     }

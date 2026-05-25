@@ -27,71 +27,59 @@ public class SplashScreenStage extends Stage {
     private final Label lblStatus;
 
     public SplashScreenStage() {
-        // 1. O Segredo da Transparência: Remove até o fundo branco da janela do Fedora
+        log.debug("[SPLASH_SCREEN] Construtor: Inicializando SplashScreenStage");
         initStyle(StageStyle.TRANSPARENT);
 
-        // 2. Carrega a Imagem
         ImageView imageView = new ImageView();
         try {
             var imageStream = getClass().getResourceAsStream("/images/splash.png");
             if (imageStream != null) {
                 imageView.setImage(new Image(imageStream));
+                log.debug("[SPLASH_SCREEN] Imagem /images/splash.png carregada com sucesso");
             } else {
-                log.error(("🚨 AVISO: /images/splash.png não encontrada!"));
+                log.error("[SPLASH_SCREEN] 🚨 AVISO: /images/splash.png não encontrada!");
             }
         } catch (Exception e) {
-            log.error(("🚨 ERRO ao ler a imagem: " + e.getMessage()));
+            log.error("[SPLASH_SCREEN] 🚨 ERRO ao ler a imagem: {}", e.getMessage(), e);
         }
 
         imageView.setFitWidth(600);
         imageView.setPreserveRatio(true);
 
-        // 3. Barra de Progresso Customizada (Verde, Estreita e Fina)
         progressBar = new ProgressBar(0);
-        progressBar.setPrefWidth(350); // Menor na largura
-        progressBar.setPrefHeight(4); // Bem fina
-
-        // CSS para deixar verde e remover o fundo grosso padrão do JavaFX
+        progressBar.setPrefWidth(350);
+        progressBar.setPrefHeight(4);
         progressBar.setStyle(
-                "-fx-accent: #28a745; " + // Verde elegante (padrão de sucesso)
-                        "-fx-control-inner-background: rgba(255, 255, 255, 0.2); " + // Fundo do trilho translúcido
-                        "-fx-background-color: transparent;" // Sem bordas
-        );
+                "-fx-accent: #28a745; " +
+                        "-fx-control-inner-background: rgba(255, 255, 255, 0.2); " +
+                        "-fx-background-color: transparent;");
 
-        // 4. Texto menor com sombreamento
         lblStatus = new Label("Iniciando Sinais Vitais...");
         lblStatus.setTextFill(Color.WHITE);
-        // Letra menor e um "drop shadow" preto para garantir que dê para ler
-        // mesmo se o fundo da sua imagem for claro nessa área
         lblStatus.setStyle(
                 "-fx-font-size: 10px; " +
                         "-fx-font-weight: bold; " +
                         "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 3, 0, 0, 1);");
 
-        // 5. Agrupamento e Posicionamento
-        VBox progressContainer = new VBox(5, progressBar, lblStatus); // 5px de espaço entre barra e texto
+        VBox progressContainer = new VBox(5, progressBar, lblStatus);
         progressContainer.setAlignment(Pos.CENTER);
-        // O layout não deve capturar cliques
         progressContainer.setMouseTransparent(true);
 
         StackPane root = new StackPane(imageView, progressContainer);
-        // Garante que o painel raiz não tenha nenhuma cor ou borda
         root.setStyle("-fx-background-color: transparent;");
-
-        // Crava a barra na parte inferior, centro...
         StackPane.setAlignment(progressContainer, Pos.BOTTOM_CENTER);
-        // ... e empurra exatos 60px para cima!
         StackPane.setMargin(progressContainer, new Insets(275, 0, 0, 0));
 
-        // 6. Configuração da Cena Invisível
         Scene scene = new Scene(root);
-        scene.setFill(Color.TRANSPARENT); // Torna a cena "fantasma"
+        scene.setFill(Color.TRANSPARENT);
         setScene(scene);
 
         centerOnScreen();
+        log.info("[SPLASH_SCREEN] SplashScreenStage configurada e centralizada");
     }
 
     public void atualizarProgresso(double progresso, String mensagem) {
+        log.debug("[SPLASH_SCREEN] atualizarProgresso: progresso={}, mensagem='{}'", progresso, mensagem);
         progressBar.setProgress(progresso);
         lblStatus.setText(mensagem);
     }

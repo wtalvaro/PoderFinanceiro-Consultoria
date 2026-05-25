@@ -21,6 +21,8 @@ import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.ApplicationEventPublisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -29,6 +31,8 @@ import java.util.List;
 
 @Service
 public class PropostaService {
+
+    private static final Logger log = LoggerFactory.getLogger(PropostaService.class);
 
     private final PropostaRepository propostaRepository;
     private final TabelaJurosRepository tabelaJurosRepository;
@@ -49,13 +53,16 @@ public class PropostaService {
         this.documentoRepository = documentoRepository;
         this.eventPublisher = eventPublisher;
         this.authService = authService;
+        log.debug("[PROPOSTA_SERVICE] Construtor: Serviço instanciado");
     }
 
     /**
      * Calcula o repasse baseado na tabela de juros selecionada.
      */
     public BigDecimal calcularComissaoEstimada(BigDecimal valorAprovado, Long tabelaId) {
+        log.debug("[PROPOSTA_SERVICE] calcularComissaoEstimada: valor={}, tabelaId={}", valorAprovado, tabelaId);
         if (valorAprovado == null || valorAprovado.compareTo(BigDecimal.ZERO) <= 0 || tabelaId == null) {
+            log.warn("[PROPOSTA_SERVICE] calcularComissaoEstimada: Parâmetros inválidos, retornando ZERO");
             return BigDecimal.ZERO;
         }
 
@@ -63,36 +70,51 @@ public class PropostaService {
                 .map(tabela -> {
                     BigDecimal percentual = tabela.getComissaoPercentual()
                             .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-                    return valorAprovado.multiply(percentual).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal comissao = valorAprovado.multiply(percentual).setScale(2, RoundingMode.HALF_UP);
+                    log.info("[PROPOSTA_SERVICE] calcularComissaoEstimada: Comissão calculada = {}", comissao);
+                    return comissao;
                 })
-                .orElse(BigDecimal.ZERO);
+                .orElseGet(() -> {
+                    log.warn(
+                            "[PROPOSTA_SERVICE] calcularComissaoEstimada: Tabela ID={} não encontrada, retornando ZERO",
+                            tabelaId);
+                    return BigDecimal.ZERO;
+                });
     }
 
     @Transactional
     public PropostaModel salvarProposta(PropostaModel proposta) {
-        // 🚀 Descobre se é um insert ou update antes de salvar
-        boolean isNovo = proposta.getId() == null;
-
-        // 🚀 Garantia de integridade: se não tem usuário, define o logado
-        if (proposta.getUsuario() == null) {
-            proposta.setUsuario(authService.getUsuarioLogado());
+        log.debug("[PROPOSTA_SERVICE] salvarProposta: Salvando proposta ID={}",
+                proposta != null ? proposta.getId() : "null");
+        if (proposta == null) {
+            log.warn("[PROPOSTA_SERVICE] salvarProposta: Proposta nula recebida");
+            throw new IllegalArgumentException("Proposta não pode ser nula");
         }
 
-        // 1. Sincronização de metadados da Tabela de Juros
+        boolean isNovo = proposta.getId() == null;
+        log.trace("[PROPOSTA_SERVICE] Proposta é nova? {}", isNovo);
+
+        if (proposta.getUsuario() == null) {
+            proposta.setUsuario(authService.getUsuarioLogado());
+            log.debug("[PROPOSTA_SERVICE] Usuário logado associado à proposta");
+        }
+
         sincronizarDadosTabela(proposta);
-
-        // 2. Persistência da Proposta
         PropostaModel propostaSalva = propostaRepository.save(proposta);
+        log.info("[PROPOSTA_SERVICE] Proposta salva com ID={}, status={}", propostaSalva.getId(),
+                propostaSalva.getStatus());
 
-        // 3. Gatilho de Ciclo Financeiro (Liquidação)
         if (propostaSalva.getStatus() == StatusPropostaModel.PAGO) {
+            log.info("[PROPOSTA_SERVICE] Proposta ID={} está com status PAGO, processando ciclo de pagamento",
+                    propostaSalva.getId());
             processarCicloPagamento(propostaSalva);
         }
 
-        // 🚀 DISPARO DOS EVENTOS
         if (isNovo) {
+            log.debug("[PROPOSTA_SERVICE] Publicando evento PropostaCriadaEvent para ID={}", propostaSalva.getId());
             eventPublisher.publishEvent(new PropostaCriadaEvent(propostaSalva.getId()));
         } else {
+            log.debug("[PROPOSTA_SERVICE] Publicando evento PropostaAtualizadaEvent para ID={}", propostaSalva.getId());
             eventPublisher.publishEvent(new PropostaAtualizadaEvent(propostaSalva.getId()));
         }
 
@@ -101,13 +123,19 @@ public class PropostaService {
 
     @Transactional
     public PropostaModel salvarProposta(PropostaModel proposta, List<DocumentoProponenteModel> documentos) {
+        log.debug("[PROPOSTA_SERVICE] salvarProposta (com documentos): Proposta ID={}, documentos size={}",
+                proposta != null ? proposta.getId() : "null", documentos != null ? documentos.size() : 0);
         PropostaModel propostaSalva = this.salvarProposta(proposta);
 
         if (documentos != null && !documentos.isEmpty()) {
             documentos.forEach(doc -> {
                 doc.setProposta(propostaSalva);
                 documentoRepository.save(doc);
+                log.trace("[PROPOSTA_SERVICE] Documento ID={} associado à proposta ID={}", doc.getId(),
+                        propostaSalva.getId());
             });
+            log.info("[PROPOSTA_SERVICE] {} documentos associados à proposta ID={}", documentos.size(),
+                    propostaSalva.getId());
         }
         return propostaSalva;
     }
@@ -116,16 +144,21 @@ public class PropostaService {
      * SRP: Isola a lógica de sincronização entre Proposta e Tabela de Juros.
      */
     private void sincronizarDadosTabela(PropostaModel proposta) {
+        log.trace("[PROPOSTA_SERVICE] sincronizarDadosTabela: Proposta ID={}, tabelaId={}", proposta.getId(),
+                proposta.getTabelaId());
         if (proposta.getTabelaId() != null) {
             TabelaJurosModel tabela = tabelaJurosRepository.findById(proposta.getTabelaId()).orElse(null);
             if (tabela != null) {
-                // Herda o convênio da tabela para a proposta
                 proposta.setConvenioOrgao(tabela.getTipoConvenio());
+                log.trace("[PROPOSTA_SERVICE] Convênio definido como {} a partir da tabela", tabela.getTipoConvenio());
 
                 BigDecimal baseCalculo = proposta.getValorAprovado() != null ? proposta.getValorAprovado()
                         : proposta.getValorSolicitado();
-
-                proposta.setComissaoEstimada(calcularComissaoEstimada(baseCalculo, tabela.getId()));
+                BigDecimal comissao = calcularComissaoEstimada(baseCalculo, tabela.getId());
+                proposta.setComissaoEstimada(comissao);
+                log.trace("[PROPOSTA_SERVICE] Comissão estimada definida como {}", comissao);
+            } else {
+                log.warn("[PROPOSTA_SERVICE] Tabela ID={} não encontrada para sincronização", proposta.getTabelaId());
             }
         }
     }
@@ -133,80 +166,99 @@ public class PropostaService {
     /**
      * SRP: Gerencia o Ciclo de Pagamento (Quarta/Quinta/Sexta).
      */
-    /**
-     * SRP: Gerencia o Ciclo de Pagamento (Quarta/Quinta/Sexta).
-     */
     private void processarCicloPagamento(PropostaModel proposta) {
+        log.debug("[PROPOSTA_SERVICE] processarCicloPagamento: Iniciando para proposta ID={}", proposta.getId());
         ComissaoModel comissao = comissaoRepository.findByPropostaId(proposta.getId())
                 .stream().findFirst().orElse(new ComissaoModel());
 
         if (proposta.getComissaoEstimada() != null && proposta.getComissaoEstimada().compareTo(BigDecimal.ZERO) > 0) {
-            LocalDateTime agora = LocalDateTime.now(); // Ponto de referência único
+            LocalDateTime agora = LocalDateTime.now();
+            log.trace("[PROPOSTA_SERVICE] Referência temporal: {}", agora);
 
             comissao.setProposta(proposta);
             comissao.setUsuario(proposta.getUsuario());
             comissao.setValorBrutoComissao(proposta.getComissaoEstimada());
             comissao.setValorLiquidoConsultor(proposta.getComissaoEstimada());
 
-            // --- CALIBRAÇÃO DO CICLO ---
-
-            // ✅ CORREÇÃO: Em vez de .now(), pegamos a Quarta de Fechamento do Ciclo
             comissao.setDataRecebimentoBanco(CicloFinanceiroUtils.obterQuartaDeFechamento(agora));
-
-            // Marco 3: Previsão de Pagamento (Sexta-feira seguinte à quarta de fechamento)
-            comissao.setPrevisaoPagamento(
-                    CicloFinanceiroUtils.calcularSextaDePagamento(agora).toLocalDate());
-
+            comissao.setPrevisaoPagamento(CicloFinanceiroUtils.calcularSextaDePagamento(agora).toLocalDate());
             comissao.setCicloReferencia(CicloFinanceiroUtils.identificarCiclo(agora));
             comissao.setDataLimiteContestacao(CicloFinanceiroUtils.calcularLimiteContestacao(agora));
-
-            // ✅ A CORREÇÃO: A comissão nasce "Pendente" aguardando o ciclo correr
             comissao.setStatusPagamento("Pendente");
             proposta.setValorFinalCliente(proposta.getValorAprovado());
 
             comissaoRepository.save(comissao);
+            log.info(
+                    "[PROPOSTA_SERVICE] Ciclo de pagamento processado para proposta ID={}, comissão ID={}, cicloReferencia={}",
+                    proposta.getId(), comissao.getId(), comissao.getCicloReferencia());
+        } else {
+            log.warn("[PROPOSTA_SERVICE] Comissão estimada para proposta ID={} é zero ou nula, ciclo não processado",
+                    proposta.getId());
         }
     }
 
-    // Adicione dentro de PropostaService.java
     public PropostaModel buscarPorId(Long id) {
-        return propostaRepository.findById(id).orElse(null);
+        log.debug("[PROPOSTA_SERVICE] buscarPorId: Buscando proposta ID={}", id);
+        PropostaModel proposta = propostaRepository.findById(id).orElse(null);
+        if (proposta == null) {
+            log.warn("[PROPOSTA_SERVICE] Proposta ID={} não encontrada", id);
+        } else {
+            log.trace("[PROPOSTA_SERVICE] Proposta ID={} encontrada", id);
+        }
+        return proposta;
     }
 
     @Transactional
     public void excluirProposta(Long id) {
+        log.info("[PROPOSTA_SERVICE] excluirProposta: Excluindo proposta ID={}", id);
         propostaRepository.deleteById(id);
-
-        // 🚀 DISPARO DO EVENTO DE EXCLUSÃO
+        log.debug("[PROPOSTA_SERVICE] Publicando evento PropostaExcluidaEvent para ID={}", id);
         eventPublisher.publishEvent(new PropostaExcluidaEvent(id));
     }
 
-    // PropostaService.java
     @Transactional(readOnly = true)
     public PropostaModel carregarPropostaDetalhada(Long id) {
-        return propostaRepository.findByIdWithDetails(id).orElse(null);
+        log.debug("[PROPOSTA_SERVICE] carregarPropostaDetalhada: Carregando proposta ID={} com detalhes", id);
+        PropostaModel proposta = propostaRepository.findByIdWithDetails(id).orElse(null);
+        if (proposta == null) {
+            log.warn("[PROPOSTA_SERVICE] Proposta detalhada ID={} não encontrada", id);
+        } else {
+            log.info("[PROPOSTA_SERVICE] Proposta detalhada ID={} carregada com sucesso", id);
+        }
+        return proposta;
     }
 
     public PropostaModel converterRascunhoParaProposta(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado,
             ProponenteModel cliente) {
-        // Criação da Nova Proposta
-        PropostaModel novaProposta = new PropostaModel();
+        if (resultado == null || resultado.tabela() == null || resultado.tabela().getBanco() == null) {
+            log.error(
+                    "[PROPOSTA_SERVICE] converterRascunhoParaProposta: Resultado ou tabela de simulação inválido para conversão de rascunho");
+            throw new IllegalArgumentException("Resultado de simulação inválido para conversão de rascunho em proposta.");
+        }
 
-        // Vinculação Obrigatória
+        if (cliente == null) {
+            log.error("[PROPOSTA_SERVICE] converterRascunhoParaProposta: Cliente nulo para conversão de rascunho em proposta");
+            throw new IllegalArgumentException("Cliente inválido para conversão de rascunho em proposta.");
+        }
+
+        log.info(
+                "[PROPOSTA_SERVICE] converterRascunhoParaProposta: Convertendo rascunho para proposta - cliente ID={}, banco='{}'",
+                cliente.getId(), resultado.tabela().getBanco().getNome());
+
+        PropostaModel novaProposta = new PropostaModel();
         novaProposta.setProponente(cliente);
         novaProposta.setBanco(resultado.tabela().getBanco());
         novaProposta.setTabelaId(resultado.tabela().getId());
 
-        // Dados da Simulação
         novaProposta.setValorSolicitado(rascunho.valorDesejado());
         novaProposta.setPrazoDesejado(rascunho.prazoDesejado());
         novaProposta.setConvenioOrgao(TipoConvenioModel.valueOf(rascunho.tipoConvenio()));
 
-        // Status Inicial
         novaProposta.setStatus(StatusPropostaModel.DIGITADA);
         novaProposta.setObservacoes("✨ Proposta originada automaticamente via Copiloto de Vendas.");
 
-        // Persistência usando o método que já existe nesta classe
-        return salvarProposta(novaProposta);
+        PropostaModel salva = salvarProposta(novaProposta);
+        log.info("[PROPOSTA_SERVICE] Proposta ID={} criada a partir do Copiloto", salva.getId());
+        return salva;
     }
 }

@@ -33,29 +33,23 @@ public class PlaybookService {
     private final List<DocumentStrategy> documentStrategies;
     private final ObjectMapper objectMapper;
 
-    // Armazena em memória os itens estáticos carregados do JSON (O Prontuário
-    // Ativo)
     private final List<PlaybookItemModel> itensEstaticos = new ArrayList<>();
-
-    // O prontuário agora tem um endereço dinâmico (resolve o problema de salvar
-    // dentro do JAR/EXE)
     private String caminhoArquivoFinal;
 
     public PlaybookService(List<DocumentStrategy> documentStrategies) {
         this.documentStrategies = documentStrategies;
         this.objectMapper = new ObjectMapper();
+        log.debug("[PLAYBOOK_SERVICE] Construtor: Serviço instanciado com {} estratégias de documento",
+                documentStrategies != null ? documentStrategies.size() : 0);
     }
 
     @PostConstruct
     public void init() {
-        // 1. Define o endereço da ala hospitalar baseada no SO (Windows/Linux/Mac)
+        log.debug("[PLAYBOOK_SERVICE] init: Inicializando playbook");
         this.caminhoArquivoFinal = obterCaminhoDoProntuario();
-
-        // 2. Garante que o arquivo existe (ou clona o protocolo padrão do JAR)
         garantirArquivoExiste();
-
-        // 3. Carrega os dados para a memória da UTI
         carregarPlaybook();
+        log.info("[PLAYBOOK_SERVICE] init: Playbook inicializado com sucesso - arquivo em '{}'", caminhoArquivoFinal);
     }
 
     private String obterCaminhoDoProntuario() {
@@ -64,47 +58,60 @@ public class PlaybookService {
         String caminhoBase;
 
         if (os.contains("win")) {
-            // Windows: O Arquivo Central (Roaming)
             caminhoBase = System.getenv("APPDATA") + File.separator + "PoderFinanceiro";
+            log.trace("[PLAYBOOK_SERVICE] obterCaminhoDoProntuario: SO Windows, APPDATA={}", System.getenv("APPDATA"));
         } else if (os.contains("mac")) {
-            // macOS: O Suporte de Aplicação
             caminhoBase = home + "/Library/Application Support/PoderFinanceiro";
+            log.trace("[PLAYBOOK_SERVICE] obterCaminhoDoProntuario: SO macOS, home={}", home);
         } else {
-            // Linux e outros Unix: Seguindo o protocolo XDG
             String xdgData = System.getenv("XDG_DATA_HOME");
             caminhoBase = (xdgData != null && !xdgData.isEmpty())
                     ? xdgData + File.separator + "PoderFinanceiro"
                     : home + File.separator + ".local" + File.separator + "share" + File.separator + "PoderFinanceiro";
+            log.trace("[PLAYBOOK_SERVICE] obterCaminhoDoProntuario: SO Linux/Unix, XDG_DATA_HOME={}", xdgData);
         }
 
-        // Garante que a "ala" do hospital existe
         File pasta = new File(caminhoBase);
         if (!pasta.exists()) {
-            pasta.mkdirs();
+            boolean criada = pasta.mkdirs();
+            if (criada) {
+                log.debug("[PLAYBOOK_SERVICE] obterCaminhoDoProntuario: Pasta base criada: {}", caminhoBase);
+            } else {
+                log.warn("[PLAYBOOK_SERVICE] obterCaminhoDoProntuario: Não foi possível criar a pasta base: {}",
+                        caminhoBase);
+            }
         }
 
-        return caminhoBase + File.separator + "playbook_scripts.json";
+        String caminhoCompleto = caminhoBase + File.separator + "playbook_scripts.json";
+        log.trace("[PLAYBOOK_SERVICE] obterCaminhoDoProntuario: caminho final = {}", caminhoCompleto);
+        return caminhoCompleto;
     }
 
     private void garantirArquivoExiste() {
         File arquivo = new File(caminhoArquivoFinal);
-        
-        // Se o arquivo externo não existe, clonamos o padrão do JAR para fora
+        log.debug("[PLAYBOOK_SERVICE] garantirArquivoExiste: Verificando existência em '{}'", caminhoArquivoFinal);
+
         if (!arquivo.exists()) {
+            log.info("[PLAYBOOK_SERVICE] garantirArquivoExiste: Arquivo não encontrado. Copiando template interno.");
             try (InputStream is = new ClassPathResource("playbooks/playbook_scripts.json").getInputStream()) {
                 Files.copy(is, arquivo.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                log.info("Protocolo inicial clonado para a pasta de usuário: " + caminhoArquivoFinal);
+                log.info("[PLAYBOOK_SERVICE] garantirArquivoExiste: Protocolo inicial clonado para: {}",
+                        caminhoArquivoFinal);
             } catch (IOException e) {
-                log.error(("Erro crítico: Não foi possível criar o prontuário inicial."));
+                log.error("[PLAYBOOK_SERVICE] garantirArquivoExiste: Erro crítico ao criar o prontuário inicial.", e);
             }
+        } else {
+            log.trace("[PLAYBOOK_SERVICE] garantirArquivoExiste: Arquivo já existe.");
         }
     }
 
     private void carregarPlaybook() {
+        log.debug("[PLAYBOOK_SERVICE] carregarPlaybook: Carregando conteúdo do arquivo '{}'", caminhoArquivoFinal);
         try {
             File arquivo = new File(caminhoArquivoFinal);
-            List<PlaybookItemDTO> dtos = objectMapper.readValue(arquivo, new TypeReference<List<PlaybookItemDTO>>() {});
-            
+            List<PlaybookItemDTO> dtos = objectMapper.readValue(arquivo, new TypeReference<List<PlaybookItemDTO>>() {
+            });
+
             itensEstaticos.clear();
             for (PlaybookItemDTO dto : dtos) {
                 itensEstaticos.add(new PlaybookItemModel(
@@ -113,52 +120,59 @@ public class PlaybookService {
                         dto.conteudo(),
                         dto.dica()));
             }
-            
-            log.info("Sinais vitais do Playbook carregados com sucesso a partir de: " + caminhoArquivoFinal);
+
+            log.info("[PLAYBOOK_SERVICE] carregarPlaybook: {} itens carregados com sucesso de: {}",
+                    itensEstaticos.size(), caminhoArquivoFinal);
         } catch (IOException e) {
-            log.error(("Erro ao ler o prontuário: " + e.getMessage()));
+            log.error("[PLAYBOOK_SERVICE] carregarPlaybook: Erro ao ler o prontuário: {}", e.getMessage(), e);
         }
     }
 
     public List<PlaybookItemModel> listarTudoParaOPlaybook() {
+        log.debug("[PLAYBOOK_SERVICE] listarTudoParaOPlaybook: Montando lista completa (estáticos + checklists)");
         List<PlaybookItemModel> itens = new ArrayList<>(itensEstaticos);
-        // Injeta as prescrições dinâmicas (checklists) que não devem ser salvas no JSON
+        int checklistsSize = gerarChecklistsDeDocumentos().size();
         itens.addAll(gerarChecklistsDeDocumentos());
+        log.info(
+                "[PLAYBOOK_SERVICE] listarTudoParaOPlaybook: Total de {} itens retornados ({} estáticos + {} checklists)",
+                itens.size(), itensEstaticos.size(), checklistsSize);
         return itens;
     }
 
-    // ==========================================
-    // NOVO MÉTODO DE SALVAMENTO (CRUD)
-    // ==========================================
-
     public void salvarTodos(List<PlaybookItemModel> todosOsItens) {
-        // 1. Filtramos as checklists dinâmicas para não gravá-las no JSON
+        log.debug("[PLAYBOOK_SERVICE] salvarTodos: Iniciando persistência de {} itens", todosOsItens.size());
         List<PlaybookItemDTO> dtosParaSalvar = todosOsItens.stream()
-                .filter(item -> item.getCategoria() != null && !item.getCategoria().contains("Checklists de Documentos"))
+                .filter(item -> item.getCategoria() != null
+                        && !item.getCategoria().contains("Checklists de Documentos"))
                 .map(item -> new PlaybookItemDTO(
-                        item.getCategoria(), 
-                        item.getTitulo(), 
-                        item.getConteudo(), 
+                        item.getCategoria(),
+                        item.getTitulo(),
+                        item.getConteudo(),
                         item.getDica()))
                 .collect(Collectors.toList());
+        log.trace("[PLAYBOOK_SERVICE] salvarTodos: {} itens serão persistidos (excluindo checklists dinâmicos)",
+                dtosParaSalvar.size());
 
         try {
-            // 2. Grava o JSON de forma indentada e bonita (Pretty Printer) sempre no arquivo externo dinâmico
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(caminhoArquivoFinal), dtosParaSalvar);
-            
-            // 3. Atualiza a memória estática de curto prazo
+
             itensEstaticos.clear();
             todosOsItens.stream()
-                    .filter(item -> item.getCategoria() != null && !item.getCategoria().contains("Checklists de Documentos"))
+                    .filter(item -> item.getCategoria() != null
+                            && !item.getCategoria().contains("Checklists de Documentos"))
                     .forEach(itensEstaticos::add);
-            
-            log.info("Prontuário atualizado e persistido com segurança no disco.");
+
+            log.info(
+                    "[PLAYBOOK_SERVICE] salvarTodos: Prontuário atualizado e persistido com segurança no disco ({} itens salvos).",
+                    itensEstaticos.size());
         } catch (IOException e) {
-            log.error(("Erro na 'cirurgia' de salvamento do playbook: " + e.getMessage()));
+            log.error("[PLAYBOOK_SERVICE] salvarTodos: Erro na 'cirurgia' de salvamento do playbook: {}",
+                    e.getMessage(), e);
         }
     }
 
     private List<PlaybookItemModel> gerarChecklistsDeDocumentos() {
+        log.trace("[PLAYBOOK_SERVICE] gerarChecklistsDeDocumentos: Gerando checklists dinâmicas para convênios");
         List<PlaybookItemModel> checklists = new ArrayList<>();
 
         for (TipoConvenioModel convenio : TipoConvenioModel.values()) {
@@ -173,8 +187,12 @@ public class PlaybookService {
                                 strategy.getChecklist(),
                                 "Fotos nítidas, sem cortes e sem reflexos para o convênio " + convenio.getLabel()
                                         + "."));
+                        log.trace(
+                                "[PLAYBOOK_SERVICE] gerarChecklistsDeDocumentos: Checklist adicionada para convênio '{}'",
+                                convenio.getLabel());
                     });
         }
+        log.debug("[PLAYBOOK_SERVICE] gerarChecklistsDeDocumentos: {} checklists geradas", checklists.size());
         return checklists;
     }
 }
