@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class ProponenteListController implements Disposable {
 
@@ -32,7 +35,8 @@ public class ProponenteListController implements Disposable {
     private static final String MSG_CARREGANDO_BASE = "Carregando base de clientes...";
     private static final String MSG_TRIAGEM_BUSCA = "Realizando triagem da busca...";
     private static final String MSG_TOTAL_REGISTROS = "Total: %d contato(s)";
-
+    private static final Logger log = LoggerFactory.getLogger(ProponenteListController.class);
+    
     // =========================================================================
     // DEPENDÊNCIAS DE UI E FXML
     // =========================================================================
@@ -167,7 +171,7 @@ public class ProponenteListController implements Disposable {
                 erro -> {
                     navigator.ocultarLoading();
                     if (erro != null) {
-                        erro.printStackTrace();
+                        log.error("[CONTROLLER][PROPONENTE] Erro: {}", erro.getMessage(), erro);
                     }
                 });
     }

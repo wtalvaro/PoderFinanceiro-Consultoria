@@ -342,7 +342,7 @@ public class TabelaJurosController {
             carregarDados();
         } catch (Exception e) {
             mostrarMensagem("Erro ao salvar: " + e.getMessage(), false);
-            e.printStackTrace();
+            log.error("[CONTROLLER][TABELAJUROS] Erro: {}", e.getMessage(), e);
         }
     }
 

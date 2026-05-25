@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 @Scope("prototype")
 public class PropostaController {
@@ -78,6 +81,8 @@ public class PropostaController {
             Você é um Assistente Analítico do Poder Financeiro.
             Analise o documento em anexo, identifique o seu propósito principal (ex: se for comprovante de residência, verifique a data de emissão recente e se está no nome do cliente ativo) e valide se a foto está nítida e elegível para ser submetida a uma esteira de crédito bancário tradicional.
             """;
+
+    private static final Logger log = LoggerFactory.getLogger(PropostaController.class);
 
     // =========================================================================
     // DEPENDÊNCIAS
@@ -695,7 +700,7 @@ public class PropostaController {
                 erro -> {
                     if (navigator != null)
                         navigator.ocultarLoading();
-                    erro.printStackTrace();
+                    log.error("[CONTROLLER][PROPOSTA] Erro: {}", erro.getMessage(), erro);
                     mostrarFeedback("❌", "Falha na Análise", "O motor de IA falhou: " + erro.getMessage(), null);
                 });
     }

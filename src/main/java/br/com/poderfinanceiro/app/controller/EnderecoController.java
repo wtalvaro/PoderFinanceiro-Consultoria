@@ -131,7 +131,7 @@ public class EnderecoController {
     private void processarErroBusca(Throwable excecao) {
         log.info("Erro ao comunicar com a API do ViaCEP.");
         if (excecao != null)
-            excecao.printStackTrace();
+            log.error("[ENDERECO][ERROBUSCA] Erro: {}", excecao.getMessage(), excecao);
     }
 
     private void preencherCamposEndereco(ViaCepResponse endereco) {

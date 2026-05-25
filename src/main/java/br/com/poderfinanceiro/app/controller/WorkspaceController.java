@@ -19,6 +19,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class WorkspaceController {
 
@@ -27,6 +30,8 @@ public class WorkspaceController {
 
     private final ApplicationContext context;
     private final AtendimentoContextService contextoService;
+
+    private static final Logger log = LoggerFactory.getLogger(WorkspaceController.class);
 
     public WorkspaceController(ApplicationContext context, AtendimentoContextService contextoService) {
         this.context = context;
@@ -110,7 +115,7 @@ public class WorkspaceController {
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("[CONTROLLER][WORKSAPCE] Erro: {}", e.getMessage(), e);
         }
     }
 
@@ -209,7 +214,7 @@ public class WorkspaceController {
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("[CONTROLLER][WORKSPACE] Erro: {}", e.getMessage(), e);
         }
     }
 

@@ -152,7 +152,7 @@ public class GeminiService {
             Thread.currentThread().interrupt();
             return "⚠️ Consulta cancelada.";
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("[SERVICE][GEMINI] Erro: {}", e.getMessage(), e);
             return "⚠️ Falha crítica ao montar a requisição: " + e.getMessage();
         }
 

@@ -29,6 +29,9 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Controller
 public class PlaybookController implements Initializable {
 
@@ -62,6 +65,8 @@ public class PlaybookController implements Initializable {
                 Texto bruto real recebido do grupo para processar agora:
                 """;
 
+                private static final Logger log = LoggerFactory.getLogger(PlaybookController.class);
+                
     // =========================================================================
     // COMPONENTES FXML
     // =========================================================================
@@ -414,7 +419,7 @@ public class PlaybookController implements Initializable {
     }
 
     private void aplicarErroIA(Throwable erro, String textoBruto) {
-        erro.printStackTrace();
+        log.error("[PLAYBOOK][ERROIA] Erro: {}", erro.getMessage(), erro);
         txtInputIA.setText("⚠️ Falha ao estruturar dados ou servidores ocupados. Tente outro modelo.\n\n" + textoBruto);
         btnProcessarIA.setDisable(false);
         btnProcessarIA.setText("✨ Estruturar com Gemini");

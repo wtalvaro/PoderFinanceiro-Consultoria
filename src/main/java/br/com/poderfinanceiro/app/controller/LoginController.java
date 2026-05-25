@@ -8,6 +8,9 @@ import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Component
 public class LoginController {
@@ -21,6 +24,8 @@ public class LoginController {
 
     private static final String ROTA_WORKSPACE = "/fxml/workspace.fxml";
     private static final String ROTA_CADASTRO = "/fxml/cadastro.fxml";
+
+    private static final Logger log = LoggerFactory.getLogger(LoginController.class);
 
     // =========================================================================
     // DEPENDÊNCIAS DE UI E FXML
@@ -104,7 +109,7 @@ public class LoginController {
         exibirErro(MSG_ERRO_CONEXAO);
 
         if (excecao != null) {
-            excecao.printStackTrace();
+            log.error("[LOGIN][ERRO] Erro: {}", excecao.getMessage(), excecao);
         }
     }
 

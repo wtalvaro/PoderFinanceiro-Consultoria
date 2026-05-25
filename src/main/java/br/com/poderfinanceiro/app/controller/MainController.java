@@ -25,6 +25,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class MainController implements Navigator {
 
@@ -38,6 +41,8 @@ public class MainController implements Navigator {
     private static final double CHAT_LARGURA_MAXIMA = 750.0;
     private static final String STYLE_DRAG_HOVER = "-fx-cursor: h-resize; -fx-background-color: rgba(30, 64, 175, 0.15);";
     private static final String STYLE_DRAG_DEFAULT = "-fx-cursor: default; -fx-background-color: rgba(0, 0, 0, 0.03);";
+
+    private static final Logger log = LoggerFactory.getLogger(MainController.class);
 
     // =========================================================================
     // DEPENDÊNCIAS DE UI E FXML
@@ -157,7 +162,7 @@ public class MainController implements Navigator {
 
         } catch (Exception e) {
             notificarAviso("Erro ao gerar proposta: " + e.getMessage());
-            e.printStackTrace();
+            log.error("[MAIN][CONVERSACOPILOtO] Erro: {}", e.getMessage(), e);
         }
     }
 
@@ -206,7 +211,7 @@ public class MainController implements Navigator {
                 acao.accept(wsController);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("[MAIN][EXECUTAWS] Erro: {}", e.getMessage(), e);
         }
     }
 

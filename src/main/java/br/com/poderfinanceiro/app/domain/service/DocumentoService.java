@@ -37,7 +37,7 @@ public class DocumentoService {
             if (!Files.exists(ROOT_DIR))
                 Files.createDirectories(ROOT_DIR);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("[SERVICE][DOcUMENTO] Erro: {}", e.getMessage(), e);
         }
     }
 
