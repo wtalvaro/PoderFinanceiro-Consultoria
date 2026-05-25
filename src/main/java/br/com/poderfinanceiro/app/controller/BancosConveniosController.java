@@ -1,9 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.domain.event.BancoUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
-import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+import br.com.poderfinanceiro.app.domain.service.BancoService;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.ContatoUtils;
+import br.com.poderfinanceiro.app.util.Disposable;
 import javafx.application.HostServices;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -17,7 +19,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class BancosConveniosController {
+public class BancosConveniosController implements Disposable {
 
     private static final Logger log = LoggerFactory.getLogger(BancosConveniosController.class);
 
@@ -39,9 +41,10 @@ public class BancosConveniosController {
     // =========================================================================
     // DEPENDÊNCIAS
     // =========================================================================
-    private final BancoRepository bancoRepository;
     private final Navigator navigator;
     private final HostServices hostServices;
+    private final BancoService bancoService;
+    private final BancoUIEventHub bancoEventHub;
 
     // =========================================================================
     // COMPONENTES DE UI (FXML)
@@ -76,16 +79,18 @@ public class BancosConveniosController {
     private BancoModel bancoEmEdicao = null;
     private List<BancoModel> todosBancos;
 
-    public BancosConveniosController(BancoRepository bancoRepository, Navigator navigator, HostServices hostServices) {
-        this.bancoRepository = bancoRepository;
+    public BancosConveniosController(Navigator navigator, HostServices hostServices, BancoService bancoService, BancoUIEventHub bancoEventHub) {
         this.navigator = navigator;
         this.hostServices = hostServices;
+        this.bancoService = bancoService;
+        this.bancoEventHub = bancoEventHub;
     }
 
     @FXML
     public void initialize() {
         log.info("[BANCOS] Inicializando BancosConveniosController...");
-        carregarBancos();
+        bancoEventHub.inscrever(this::recarregarBancos);
+        recarregarBancos();
         configurarFiltroReativo();
         txtTelefone.setTextFormatter(ContatoUtils.criarFormatadorTelefone());
         log.info("[BANCOS] Inicialização concluída. {} banco(s) carregado(s).",
@@ -95,16 +100,9 @@ public class BancosConveniosController {
     // =========================================================================
     // LÓGICA DE LISTAGEM E FILTRO
     // =========================================================================
-    private void carregarBancos() {
-        log.debug("[BANCOS][LISTA] Consultando banco de dados...");
-        long inicio = System.currentTimeMillis();
-
-        todosBancos = bancoRepository.findAll();
-
-        long tempo = System.currentTimeMillis() - inicio;
-        log.info("[BANCOS][LISTA] {} banco(s) carregado(s) em {}ms.", todosBancos.size(), tempo);
-
-        filtrarMural(txtBusca != null ? txtBusca.getText() : "");
+    public void recarregarBancos() {
+        todosBancos = bancoService.listarTodos();
+        filtrarMural(txtBusca.getText());
     }
 
     private void configurarFiltroReativo() {
@@ -258,9 +256,9 @@ public class BancosConveniosController {
         log.info("[BANCOS][EXCLUSÃO] Confirmando exclusão do banco '{}' (ID={}).", nomeBanco, idBanco);
 
         try {
-            bancoRepository.delete(this.bancoParaExcluir);
+            bancoService.excluir(bancoParaExcluir.getId());
             log.info("[BANCOS][EXCLUSÃO] Banco '{}' (ID={}) excluído com sucesso.", nomeBanco, idBanco);
-            carregarBancos();
+            recarregarBancos();
         } catch (Exception ex) {
             // Substituído o ex.printStackTrace() por log estruturado com contexto
             log.error("[BANCOS][EXCLUSÃO] FALHA ao excluir banco '{}' (ID={}). Erro: {}",
@@ -342,11 +340,11 @@ public class BancosConveniosController {
         bancoEmEdicao.setTelefoneSuporte(txtTelefone.getText());
 
         try {
-            BancoModel salvo = bancoRepository.save(bancoEmEdicao);
+            BancoModel salvo = bancoService.salvar(bancoEmEdicao);
             log.info("[BANCOS][SALVAR] Banco '{}' salvo com sucesso. ID={} | Operação={}",
                     salvo.getNome(), salvo.getId(), isNovo ? "INSERT" : "UPDATE");
             fecharModal();
-            carregarBancos();
+            recarregarBancos();
         } catch (Exception ex) {
             log.error("[BANCOS][SALVAR] FALHA ao persistir banco '{}'. Erro: {}", nome, ex.getMessage(), ex);
             exibirAviso("Erro ao salvar: " + ex.getMessage());
@@ -399,5 +397,11 @@ public class BancosConveniosController {
                 numeroMascarado, adicionouPrefixo);
 
         hostServices.showDocument(URL_WHATSAPP_BASE + numeroLimpo);
+    }
+
+    @Override
+    public void dispose() {
+        log.info("[BANCOS] dispose: Desinscrevendo dos hubs.");
+        bancoEventHub.desinscrever(this::recarregarBancos);
     }
 }

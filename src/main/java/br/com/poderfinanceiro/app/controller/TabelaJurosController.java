@@ -1,10 +1,13 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.domain.event.BancoUIEventHub;
+import br.com.poderfinanceiro.app.domain.event.TabelaJurosUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.TabelaJurosViewModel;
 import javafx.beans.property.SimpleStringProperty;
@@ -27,13 +30,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component
-public class TabelaJurosController {
+public class TabelaJurosController implements Disposable {
 
     private static final Logger log = LoggerFactory.getLogger(TabelaJurosController.class);
 
     private final TabelaJurosService service;
     private final TabelaJurosViewModel viewModel;
     private final BancoRepository bancoRepository;
+    private final BancoUIEventHub bancoEventHub;
+    private final TabelaJurosUIEventHub tabelaEventHub;
 
     @FXML
     private MasterDetailPane paneFormulario; // Trocado de TitledPane para MasterDetailPane
@@ -101,10 +106,13 @@ public class TabelaJurosController {
     private TabelaJurosModel tabelaSelecionadaParaArquivar;
 
     public TabelaJurosController(TabelaJurosService service, TabelaJurosViewModel viewModel,
-            BancoRepository bancoRepository) {
+            BancoRepository bancoRepository, BancoUIEventHub bancoEventHub,
+            TabelaJurosUIEventHub tabelaEventHub) {
         this.service = service;
         this.viewModel = viewModel;
         this.bancoRepository = bancoRepository;
+        this.bancoEventHub = bancoEventHub;
+        this.tabelaEventHub = tabelaEventHub;
         log.debug("[TABELA_JUROS] Construtor: Controller instanciado");
     }
 
@@ -116,12 +124,19 @@ public class TabelaJurosController {
         carregarDados();
         configurarFiltroBusca();
 
+        // Inscrever-se para atualizações
+        bancoEventHub.inscrever(this::recarregarBancos);
+        tabelaEventHub.inscrever(this::carregarDados);
         log.info("[TABELA_JUROS] initialize: Centro Cirúrgico Pronto com Utils!");
     }
 
     // =========================================================
     // CONFIGURAÇÕES DE UI E BINDINGS
     // =========================================================
+    private void recarregarBancos() {
+        log.debug("[TABELA_JUROS] recarregarBancos: Atualizando combo de bancos.");
+        comboBanco.setItems(FXCollections.observableArrayList(bancoRepository.findByAtivoTrueOrderByNomeAsc()));
+    }
 
     private void configurarFormulario() {
         log.debug("[TABELA_JUROS] configurarFormulario: Configurando combos, bindings e formatadores");
@@ -354,7 +369,6 @@ public class TabelaJurosController {
             service.salvarComRegraDeOuro(tabelaAtualizada);
             mostrarMensagem("Tabela atualizada com sucesso! A vigência antiga foi arquivada.", true);
             limparFormulario();
-            carregarDados();
         } catch (Exception e) {
             log.error("[TABELA_JUROS] handleSalvar: Erro ao salvar tabela", e);
             mostrarMensagem("Erro ao salvar: " + e.getMessage(), false);
@@ -418,7 +432,6 @@ public class TabelaJurosController {
             log.info("[TABELA_JUROS] confirmarArquivamento: Arquivando tabela ID={}",
                     tabelaSelecionadaParaArquivar.getId());
             service.arquivarTabela(tabelaSelecionadaParaArquivar);
-            carregarDados();
             mostrarMensagem("Tabela arquivada! Ela não aparecerá mais para novas propostas.", true);
         } else {
             log.warn("[TABELA_JUROS] confirmarArquivamento: Nenhuma tabela selecionada para arquivar");
@@ -433,5 +446,12 @@ public class TabelaJurosController {
                 : "-fx-text-fill: red; -fx-font-weight: bold;");
         lblAviso.setVisible(true);
         lblAviso.setManaged(true);
+    }
+
+    @Override
+    public void dispose() {
+        log.info("[TABELA_JUROS] dispose: Desinscrevendo dos hubs.");
+        tabelaEventHub.desinscrever(this::carregarDados);
+        bancoEventHub.desinscrever(this::recarregarBancos);
     }
 }

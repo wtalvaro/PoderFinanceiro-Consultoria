@@ -1,5 +1,8 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.domain.event.TabelaJurosArquivadoEvent;
+import br.com.poderfinanceiro.app.domain.event.TabelaJurosAtualizadoEvent;
+import br.com.poderfinanceiro.app.domain.event.TabelaJurosCriadoEvent;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
@@ -7,6 +10,7 @@ import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
 import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
@@ -22,10 +26,13 @@ public class TabelaJurosService {
 
     private final TabelaJurosRepository tabelaJurosRepository;
     private final BancoRepository bancoRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public TabelaJurosService(TabelaJurosRepository tabelaJurosRepository, BancoRepository bancoRepository) {
+    public TabelaJurosService(TabelaJurosRepository tabelaJurosRepository, BancoRepository bancoRepository,
+            ApplicationEventPublisher eventPublisher) {
         this.tabelaJurosRepository = tabelaJurosRepository;
         this.bancoRepository = bancoRepository;
+        this.eventPublisher = eventPublisher;
         log.debug("[TABELA_JUROS_SERVICE] Construtor: Serviço instanciado");
     }
 
@@ -46,33 +53,48 @@ public class TabelaJurosService {
     @Transactional
     public TabelaJurosModel salvarComRegraDeOuro(TabelaJurosModel model) {
         log.debug("[TABELA_JUROS_SERVICE] salvarComRegraDeOuro: Salvando tabela com regra de ouro");
+
+        // ====================================================
+        // CASO 1: Criação de uma nova tabela (não existe no banco)
+        // ====================================================
         if (model.getId() == null) {
             log.info(
                     "[TABELA_JUROS_SERVICE] Nova tabela, ID nulo. Criando registro ativo com início de vigência hoje.");
             model.setInicioVigencia(LocalDate.now());
             model.setAtivo(true);
+
             TabelaJurosModel salva = tabelaJurosRepository.save(model);
             log.info("[TABELA_JUROS_SERVICE] Nova tabela criada com ID={}", salva.getId());
+
+            // Publica evento de CRIAÇÃO
+            eventPublisher.publishEvent(new TabelaJurosCriadoEvent(salva.getId()));
             return salva;
         }
 
+        // ====================================================
+        // CASO 2: Atualização de uma tabela existente
+        // ====================================================
         log.info(
                 "[TABELA_JUROS_SERVICE] Atualizando tabela existente ID={}. Aplicando regra de ouro (arquivar antiga, criar nova).",
                 model.getId());
+
+        // Busca a versão antiga
         TabelaJurosModel antiga = tabelaJurosRepository.findById(model.getId())
                 .orElseThrow(() -> {
                     log.error("[TABELA_JUROS_SERVICE] Tabela original ID={} não encontrada no sistema", model.getId());
                     return new IllegalArgumentException("Tabela original não encontrada no sistema.");
                 });
 
+        // Arquiva a tabela antiga
         antiga.setFimVigencia(LocalDate.now());
         antiga.setAtivo(false);
         tabelaJurosRepository.save(antiga);
         log.debug("[TABELA_JUROS_SERVICE] Tabela antiga ID={} arquivada (ativo=false, fimVigencia={})", antiga.getId(),
                 antiga.getFimVigencia());
 
+        // Cria nova versão com os dados atualizados (vindos do model)
         TabelaJurosModel novaVersao = new TabelaJurosModel();
-        novaVersao.setBanco(antiga.getBanco());
+        novaVersao.setBanco(antiga.getBanco()); // mantém o mesmo banco da antiga
         novaVersao.setNomeTabela(model.getNomeTabela());
         novaVersao.setTipoConvenio(model.getTipoConvenio());
         novaVersao.setTaxaMensal(model.getTaxaMensal());
@@ -85,12 +107,18 @@ public class TabelaJurosService {
         novaVersao.setIdadeMinima(model.getIdadeMinima());
         novaVersao.setIdadeMaxima(model.getIdadeMaxima());
 
+        // Data de início da nova versão é hoje
         novaVersao.setInicioVigencia(LocalDate.now());
         novaVersao.setAtivo(true);
 
+        // Salva a nova versão
         TabelaJurosModel salva = tabelaJurosRepository.save(novaVersao);
         log.info("[TABELA_JUROS_SERVICE] Nova versão da tabela criada com ID={}, inícioVigencia={}", salva.getId(),
                 salva.getInicioVigencia());
+
+        // Publica evento de ATUALIZAÇÃO (pois houve uma alteração na tabela ativa)
+        eventPublisher.publishEvent(new TabelaJurosAtualizadoEvent(salva.getId()));
+
         return salva;
     }
 
@@ -106,6 +134,7 @@ public class TabelaJurosService {
                 tabelaJurosRepository.save(managed);
                 log.info("[TABELA_JUROS_SERVICE] Tabela ID={} arquivada (ativo=false, fimVigencia={})", managed.getId(),
                         managed.getFimVigencia());
+                eventPublisher.publishEvent(new TabelaJurosArquivadoEvent(managed.getId()));
             } else {
                 log.warn("[TABELA_JUROS_SERVICE] Tabela ID={} não encontrada no banco para arquivamento",
                         tabela.getId());
