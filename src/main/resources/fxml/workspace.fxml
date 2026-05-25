@@ -6,6 +6,6 @@
 <TabPane fx:id="tabPanePrincipal" tabClosingPolicy="ALL_TABS" minHeight="0"
     xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="br.com.poderfinanceiro.app.controller.WorkspaceController"
-    styleClass="classic, workspace-container">
+    styleClass="classic, workspace-container" stylesheets="@/css/workspace.css">
 
 </TabPane>

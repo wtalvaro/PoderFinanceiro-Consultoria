@@ -5,7 +5,6 @@ import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
 import br.com.poderfinanceiro.app.util.Disposable;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -299,21 +298,39 @@ public class WorkspaceController {
 
     private void configurarScrollHorizontal() {
         log.debug("[WORKSPACE] configurarScrollHorizontal: Aplicando rolagem horizontal com scroll do mouse");
-        Platform.runLater(() -> {
-            Node header = tabPanePrincipal.lookup(".tab-header-area");
-            if (header != null) {
-                header.setOnScroll(event -> {
-                    if (event.getDeltaY() < 0 || event.getDeltaX() < 0)
-                        tabPanePrincipal.getSelectionModel().selectNext();
-                    else
-                        tabPanePrincipal.getSelectionModel().selectPrevious();
-                    event.consume();
-                });
-                log.trace("[WORKSPACE] Scroll horizontal configurado");
-            } else {
-                log.warn("[WORKSPACE] Não foi possível localizar .tab-header-area para configurar scroll horizontal");
+
+        // 1. Aguarda o skin do TabPane ser carregado (necessário para o lookup)
+        tabPanePrincipal.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+            if (newSkin != null) {
+                aplicarScrollNoHeader();
             }
         });
+
+        // 2. Se o skin já estiver pronto, aplica imediatamente
+        if (tabPanePrincipal.getSkin() != null) {
+            aplicarScrollNoHeader();
+        }
+    }
+
+    private void aplicarScrollNoHeader() {
+        // Força a aplicação de CSS e layout para garantir que os nós estejam prontos
+        tabPanePrincipal.applyCss();
+        tabPanePrincipal.layout();
+
+        Node header = tabPanePrincipal.lookup(".tab-header-area");
+        if (header != null) {
+            header.setOnScroll(event -> {
+                if (event.getDeltaY() < 0 || event.getDeltaX() < 0)
+                    tabPanePrincipal.getSelectionModel().selectNext();
+                else
+                    tabPanePrincipal.getSelectionModel().selectPrevious();
+                event.consume();
+            });
+            log.debug("[WORKSPACE] Scroll horizontal configurado com sucesso.");
+        } else {
+            log.warn(
+                    "[WORKSPACE] .tab-header-area não encontrado mesmo após aplicar CSS. Verifique se o arquivo de estilos está carregado.");
+        }
     }
 
     private void tentarDisposar(Object controller) {
