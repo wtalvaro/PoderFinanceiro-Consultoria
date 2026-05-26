@@ -1,9 +1,16 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.domain.event.PropostaPagaEvent;
 import br.com.poderfinanceiro.app.domain.model.*;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.domain.service.*;
+import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.domain.service.DocumentoService;
+import br.com.poderfinanceiro.app.domain.service.GeminiService;
+import br.com.poderfinanceiro.app.domain.service.ProponenteService;
+import br.com.poderfinanceiro.app.domain.service.PropostaService;
+import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
@@ -22,6 +29,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -97,6 +106,7 @@ public class PropostaController {
     private final AtendimentoContextService contextoService;
     private final AuthService authService;
     private final GeminiService geminiService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // =========================================================================
     // COMPONENTES DE UI (FXML)
@@ -166,7 +176,7 @@ public class PropostaController {
             PropostaService propostaService, TabelaJurosService tabelaJurosService,
             Navigator navigator, ProponenteService proponenteService,
             AtendimentoContextService contextoService, AuthService authService, GeminiService geminiService,
-            HostServices hostServices) {
+            HostServices hostServices, ApplicationEventPublisher eventPublisher) {
         this.viewModel = viewModel;
         this.documentoService = documentoService;
         this.propostaService = propostaService;
@@ -177,6 +187,7 @@ public class PropostaController {
         this.authService = authService;
         this.geminiService = geminiService;
         this.hostServices = hostServices;
+        this.eventPublisher = eventPublisher;
         log.debug("[PROPOSTA] Construtor: Controller instanciado (escopo prototype)");
     }
 
@@ -340,6 +351,14 @@ public class PropostaController {
                 salva -> {
                     log.info("[PROPOSTA] handleSalvar: Proposta salva com sucesso, ID={}", salva.getId());
                     carregarProposta(salva);
+
+                    // ===== NOVO: Disparo de Evento de Domínio =====
+                    if (StatusPropostaModel.PAGO.equals(salva.getStatus())) {
+                        log.info("[PROPOSTA] Status PAGO detectado. Disparando PropostaPagaEvent...");
+                        eventPublisher
+                                .publishEvent(new PropostaPagaEvent(salva));
+                    }
+
                     mostrarFeedback("✅", "Sucesso!", "Proposta salva com sucesso.", null);
                 },
                 erro -> {

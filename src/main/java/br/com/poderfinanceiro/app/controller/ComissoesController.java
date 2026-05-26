@@ -1,12 +1,14 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.domain.event.ComissaoUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
-import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.domain.service.ComissaoService;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.ComissaoViewModel;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -90,20 +92,22 @@ public class ComissoesController {
     // =========================================================================
     // ESTADO DA CLASSE E INJEÇÕES
     // =========================================================================
-    private final ComissaoRepository repository;
+    private final ComissaoService service;
     private final ComissaoViewModel viewModel;
     private final Navigator navigator;
     private final AtendimentoContextService contextoService;
+    private final ComissaoUIEventHub eventHub;
 
     private final ObservableList<ComissaoModel> masterData = FXCollections.observableArrayList();
     private PopOver popOverAjuste;
 
-    public ComissoesController(ComissaoRepository repository, ComissaoViewModel viewModel,
-            Navigator navigator, AtendimentoContextService contextoService) {
-        this.repository = repository;
+    public ComissoesController(ComissaoService service, ComissaoViewModel viewModel,
+            Navigator navigator, AtendimentoContextService contextoService, ComissaoUIEventHub eventHub) {
+        this.service = service;
         this.viewModel = viewModel;
         this.navigator = navigator;
         this.contextoService = contextoService;
+        this.eventHub = eventHub;
     }
 
     // =========================================================================
@@ -112,6 +116,7 @@ public class ComissoesController {
     @FXML
     public void initialize() {
         log.info("[COMISSOES] Inicializando ComissoesController...");
+        eventHub.inscrever(this::recarregarDados);
         configurarPopOver();
         configurarBloqueiosFinanceiros();
         configurarTabela();
@@ -334,7 +339,7 @@ public class ComissoesController {
         long inicio = System.currentTimeMillis();
         navigator.mostrarLoading(MSG_SYNC_CAIXA);
 
-        List<ComissaoModel> dados = repository.findAllComDetalhes();
+        List<ComissaoModel> dados = service.listarTodasComDetalhes();
         masterData.setAll(dados);
         atualizarCardsResumo(dados);
         contextoService.setComissoesAtivas(dados);
@@ -347,6 +352,11 @@ public class ComissoesController {
         long qtdPendentes = dados.stream().filter(c -> STATUS_PENDENTE.equalsIgnoreCase(c.getStatusPagamento()))
                 .count();
         long qtdContestadas = dados.stream().filter(ComissaoModel::isContestada).count();
+
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(this::recarregarDados);
+            return;
+        }
 
         log.info("[COMISSOES][DADOS] {} comissão(ões) carregada(s) em {}ms. " +
                 "Pagas={} | Pendentes={} | Contestadas={}",
@@ -536,24 +546,27 @@ public class ComissoesController {
             return;
         }
 
-        repository.findById(idComissao).ifPresentOrElse(
-                comissaoDoBanco -> {
-                    ComissaoModel paraSalvar = viewModel.atualizarModel(comissaoDoBanco);
-                    try {
-                        repository.save(paraSalvar);
-                        log.info("[COMISSOES][SALVAR] Comissão ID={} salva com sucesso. " +
-                                "Novo status='{}' | Valor pago={}",
-                                paraSalvar.getId(),
-                                paraSalvar.getStatusPagamento(),
-                                FinanceiroUtils.formatarParaExibicao(paraSalvar.getValorPagoPelaPoder()));
-                        recarregarDados();
-                    } catch (Exception ex) {
-                        log.error("[COMISSOES][SALVAR] FALHA ao persistir comissão ID={}. Erro: {}",
-                                idComissao, ex.getMessage(), ex);
-                    }
-                },
-                () -> log.error("[COMISSOES][SALVAR] CRÍTICO: Comissão ID={} não encontrada no banco " +
-                        "para atualização. Dado pode ter sido removido externamente.", idComissao));
+        ComissaoModel comissaoDoBanco = service.buscarPorId(idComissao);
+        if (comissaoDoBanco == null) {
+            log.error("[COMISSOES][SALVAR] CRÍTICO: Comissão ID={} não encontrada no banco " +
+                    "para atualização. Dado pode ter sido removido externamente.", idComissao);
+            fecharModal();
+            return;
+        }
+
+        ComissaoModel paraSalvar = viewModel.atualizarModel(comissaoDoBanco);
+        try {
+            ComissaoModel salva = service.salvarConciliacao(paraSalvar);
+            log.info("[COMISSOES][SALVAR] Comissão ID={} salva com sucesso. " +
+                    "Novo status='{}' | Valor pago={}",
+                    salva.getId(),
+                    salva.getStatusPagamento(),
+                    FinanceiroUtils.formatarParaExibicao(salva.getValorPagoPelaPoder()));
+            recarregarDados();
+        } catch (Exception ex) {
+            log.error("[COMISSOES][SALVAR] FALHA ao persistir comissão ID={}. Erro: {}",
+                    idComissao, ex.getMessage(), ex);
+        }
 
         fecharModal();
     }
