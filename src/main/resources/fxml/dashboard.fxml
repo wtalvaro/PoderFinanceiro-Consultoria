@@ -102,6 +102,11 @@
                     </placeholder>
                 </TableView>
 
+                <HBox alignment="CENTER_RIGHT" style="-fx-padding: 5 15 10 15;">
+                    <Label fx:id="lblTotalRegistros"
+                        style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                </HBox>
+
                 <HBox spacing="20"
                     style="-fx-padding: 10 15; -fx-background-color: -color-bg-subtle;">
                     <HBox alignment="CENTER" spacing="5">

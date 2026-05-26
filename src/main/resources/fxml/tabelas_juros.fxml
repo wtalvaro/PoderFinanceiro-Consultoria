@@ -225,6 +225,11 @@
                                         text="Nenhuma tabela de juros ativa encontrada no sistema." />
                                 </placeholder>
                             </TableView>
+
+                            <HBox alignment="CENTER_RIGHT" style="-fx-padding: 5 0 0 0;">
+                                <Label fx:id="lblTotalRegistros"
+                                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+                            </HBox>
                         </children>
                     </VBox>
                 </masterNode>

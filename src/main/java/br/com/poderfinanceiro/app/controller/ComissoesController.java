@@ -36,6 +36,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import javafx.beans.binding.Bindings;
 
 @Component
 public class ComissoesController {
@@ -88,6 +89,8 @@ public class ComissoesController {
     private VBox bannerStatusCiclo;
     @FXML
     private TextArea txtObservacao;
+    @FXML
+    private Label lblTotalRegistros;
 
     // =========================================================================
     // ESTADO DA CLASSE E INJEÇÕES
@@ -123,6 +126,8 @@ public class ComissoesController {
         configurarFiltroReativo();
         configurarBindingsCicloFinanceiro();
         recarregarDados();
+        lblTotalRegistros.textProperty().bind(
+                Bindings.format("Total: %d repasse(s)", Bindings.size(tableComissoes.getItems())));
         log.info("[COMISSOES] Inicialização concluída.");
     }
 

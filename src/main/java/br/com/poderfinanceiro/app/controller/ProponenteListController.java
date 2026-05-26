@@ -26,6 +26,8 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javafx.beans.binding.Bindings;
+
 @Component
 public class ProponenteListController implements Disposable {
 
@@ -34,7 +36,6 @@ public class ProponenteListController implements Disposable {
     // =========================================================================
     private static final String MSG_CARREGANDO_BASE = "Carregando base de clientes...";
     private static final String MSG_TRIAGEM_BUSCA = "Realizando triagem da busca...";
-    private static final String MSG_TOTAL_REGISTROS = "Total: %d contato(s)";
     private static final Logger log = LoggerFactory.getLogger(ProponenteListController.class);
 
     // =========================================================================
@@ -84,6 +85,8 @@ public class ProponenteListController implements Disposable {
         configurarInteracaoTabela();
         carregarDados();
         eventHub.inscrever(this::carregarDados);
+        lblTotalRegistros.textProperty().bind(
+                Bindings.format("Total: %d contato(s)", Bindings.size(tabelaClientes.getItems())));
         log.info("[PROPONENTE_LIST] initialize: Configuração concluída e inscrita no event hub");
     }
 
@@ -144,15 +147,6 @@ public class ProponenteListController implements Disposable {
     // =========================================================================
     // UTILITÁRIOS INTERNOS E FORMATAÇÃO (DRY & SRP)
     // =========================================================================
-    private void atualizarContador() {
-        int total = listaContatos.size();
-        lblTotalRegistros.setText(String.format(MSG_TOTAL_REGISTROS, total));
-        log.trace("[PROPONENTE_LIST] Contador atualizado: {} contato(s)", total);
-    }
-
-    /**
-     * Aplica formatação visual em células de tabela de forma reutilizável.
-     */
     private <T> void aplicarFormatadorColuna(TableColumn<ProponenteModel, T> coluna, Function<T, String> formatador) {
         coluna.setCellFactory(tc -> new TableCell<>() {
             @Override
@@ -181,7 +175,6 @@ public class ProponenteListController implements Disposable {
                 resultado -> {
                     log.info("[PROPONENTE_LIST] Tarefa concluída: {} registros retornados", resultado.size());
                     listaContatos.setAll(resultado);
-                    atualizarContador();
                     navigator.ocultarLoading();
                 },
                 erro -> {

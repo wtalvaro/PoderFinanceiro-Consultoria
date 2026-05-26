@@ -33,6 +33,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import javafx.beans.binding.Bindings;
 
 @Component
 @Scope("prototype")
@@ -111,6 +112,8 @@ public class EsteiraPropostasController implements Disposable {
     private Label lblAlertaIcone, lblAlertaTitulo, lblAlertaMensagem;
     @FXML
     private Button btnAlertaAcao;
+    @FXML
+    private Label lblTotalRegistros;
 
     // =========================================================================
     // ESTADO DA CLASSE
@@ -144,6 +147,8 @@ public class EsteiraPropostasController implements Disposable {
         configurarTabela();
         configurarFiltroReativo();
         recarregarDados();
+        lblTotalRegistros.textProperty().bind(
+                Bindings.format("Total: %d proposta(s)", Bindings.size(tablePropostas.getItems())));
         log.info("[ESTEIRA] initialize: Configuração concluída e inscrição no evento realizada");
     }
 

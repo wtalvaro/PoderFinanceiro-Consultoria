@@ -34,6 +34,8 @@ import java.util.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javafx.beans.binding.Bindings;
+
 @Component
 public class DashboardController implements Disposable {
 
@@ -101,6 +103,8 @@ public class DashboardController implements Disposable {
     private TableColumn<PropostaModel, StatusPropostaModel> colStatus;
     @FXML
     private TableColumn<PropostaModel, Void> colAcoes;
+    @FXML
+    private Label lblTotalRegistros;
 
     private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
     private final Random randomGenerator = new Random();
@@ -131,6 +135,8 @@ public class DashboardController implements Disposable {
         configurarTabela();
         configurarBuscaReativa();
         carregarDadosReais();
+        lblTotalRegistros.textProperty().bind(
+                Bindings.format("Total: %d registro(s)", Bindings.size(tabelaPropostas.getItems())));
         log.info("[DASHBOARD] initialize: Dashboard configurado com sucesso");
     }
 

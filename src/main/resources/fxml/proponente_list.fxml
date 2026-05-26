@@ -103,7 +103,7 @@
 
                         <!-- Rodapé com contagem -->
                         <HBox alignment="CENTER_RIGHT">
-                            <Label fx:id="lblTotalRegistros" text="Total: 0 contatos"
+                            <Label fx:id="lblTotalRegistros"
                                 style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
                         </HBox>
 

@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import javafx.beans.binding.Bindings;
 
 @Component
 public class BancoController implements Disposable {
@@ -71,6 +72,8 @@ public class BancoController implements Disposable {
     private VBox overlayConfirmacaoExclusao;
     @FXML
     private Label lblConfirmacaoBanco;
+    @FXML
+    private Label lblTotalRegistros;
 
     // =========================================================================
     // ESTADO DA CLASSE
@@ -93,6 +96,8 @@ public class BancoController implements Disposable {
         recarregarBancos();
         configurarFiltroReativo();
         txtTelefone.setTextFormatter(ContatoUtils.criarFormatadorTelefone());
+        lblTotalRegistros.textProperty().bind(
+                Bindings.format("Total: %d banco(s)", Bindings.size(muralBancos.getChildren())));
         log.info("[BANCOS] Inicialização concluída. {} banco(s) carregado(s).",
                 todosBancos != null ? todosBancos.size() : 0);
     }

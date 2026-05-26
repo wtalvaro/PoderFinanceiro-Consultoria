@@ -43,6 +43,11 @@
                         style="-fx-text-fill: -color-fg-muted;" />
                 </placeholder>
             </TableView>
+
+            <HBox alignment="CENTER_RIGHT" style="-fx-padding: 5 0 0 0;">
+                <Label fx:id="lblTotalRegistros"
+                    style="-fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
+            </HBox>
         </VBox>
 
         <StackPane fx:id="containerFormulario" style="-fx-background-color: -color-bg-default;">

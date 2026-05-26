@@ -22,6 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import org.springframework.stereotype.Component;
 import org.controlsfx.control.MasterDetailPane;
+import javafx.beans.binding.Bindings;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -98,6 +99,8 @@ public class TabelaJurosController implements Disposable {
     private ComboBox<BancoModel> comboBanco;
     @FXML
     private VBox overlayArquivar;
+    @FXML
+    private Label lblTotalRegistros;
 
     private SortedList<TabelaJurosModel> sortedData;
     private FilteredList<TabelaJurosModel> filteredData;
@@ -127,6 +130,8 @@ public class TabelaJurosController implements Disposable {
         // Inscrever-se para atualizações
         bancoEventHub.inscrever(this::recarregarBancos);
         tabelaEventHub.inscrever(this::carregarDados);
+        lblTotalRegistros.textProperty().bind(
+                Bindings.format("Total: %d tabela(s)", Bindings.size(tableTabelas.getItems())));
         log.info("[TABELA_JUROS] initialize: Centro Cirúrgico Pronto com Utils!");
     }
 
