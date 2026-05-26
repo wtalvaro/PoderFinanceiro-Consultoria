@@ -1,5 +1,7 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.domain.event.ComissaoUIEventHub;
+import br.com.poderfinanceiro.app.domain.event.PropostaUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
@@ -9,6 +11,7 @@ import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
+import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.SimpleStringProperty;
@@ -32,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component
-public class DashboardController {
+public class DashboardController implements Disposable {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
 
@@ -61,6 +64,8 @@ public class DashboardController {
     private final ComissaoRepository comissaoRepository;
     private final Navigator navigator;
     private final AuthService authService;
+    private final PropostaUIEventHub propostaEventHub;
+    private final ComissaoUIEventHub comissaoEventHub;
 
     // =========================================================================
     // COMPONENTES UI (FXML)
@@ -101,11 +106,14 @@ public class DashboardController {
     private final Random randomGenerator = new Random();
 
     public DashboardController(PropostaRepository propostaRepository, ComissaoRepository comissaoRepository,
-            Navigator navigator, AuthService authService) {
+            Navigator navigator, AuthService authService, PropostaUIEventHub propostaEventHub,
+            ComissaoUIEventHub comissaoEventHub) {
         this.propostaRepository = propostaRepository;
         this.comissaoRepository = comissaoRepository;
         this.navigator = navigator;
         this.authService = authService;
+        this.propostaEventHub = propostaEventHub;
+        this.comissaoEventHub = comissaoEventHub;
         log.debug("[DASHBOARD] Construtor: Controller instanciado com dependências injetadas");
     }
 
@@ -115,6 +123,8 @@ public class DashboardController {
     @FXML
     public void initialize() {
         log.debug("[DASHBOARD] initialize: Iniciando configuração do Dashboard");
+        propostaEventHub.inscrever(this::carregarDadosReais);
+        comissaoEventHub.inscrever(this::carregarDadosReais);
         carregarNomeConsultor();
         configurarTabela();
         configurarBuscaReativa();
@@ -347,5 +357,12 @@ public class DashboardController {
             BigDecimal volumeAprovado,
             BigDecimal comissaoPendente,
             BigDecimal comissaoPaga) {
+    }
+
+    @Override
+    public void dispose() {
+        log.info("[DASHBOARD] dispose: Desinscrevendo dos hubs.");
+        propostaEventHub.desinscrever(this::carregarDadosReais);
+        comissaoEventHub.desinscrever(this::carregarDadosReais);
     }
 }

@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.domain.service;
 
 import br.com.poderfinanceiro.app.domain.event.ProponenteAtualizadoEvent;
 import br.com.poderfinanceiro.app.domain.event.ProponenteCriadoEvent;
+import br.com.poderfinanceiro.app.domain.event.ProponenteExcluidoEvent;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
 import br.com.poderfinanceiro.app.domain.repository.ProponenteRepository;
@@ -142,5 +143,19 @@ public class ProponenteService {
             return null;
         }
         return proponenteRepository.findById(id).orElse(null);
+    }
+
+    @Transactional
+    public void excluirProponente(Long id) {
+        log.info("[PROPONENTE_SERVICE] excluirProponente: Solicitada exclusão do proponente ID={}", id);
+        if (id == null) return;
+        
+        // Aqui você pode adicionar lógica de soft-delete ou delete real, dependendo da sua regra.
+        // Exemplo para delete real:
+        proponenteRepository.deleteById(id);
+        
+        // Publica o evento de exclusão
+        log.debug("[PROPONENTE_SERVICE] Disparando evento ProponenteExcluidoEvent para ID={}", id);
+        eventPublisher.publishEvent(new ProponenteExcluidoEvent(id));
     }
 }

@@ -76,6 +76,7 @@ public class EsteiraPropostasController implements Disposable {
     private final PropostaService propostaService;
     private final ApplicationContext context;
     private final PropostaUIEventHub eventHub;
+    private final ProponenteUIEventHub proponenteEventHub;
 
     // =========================================================================
     // COMPONENTES UI (FXML)
@@ -123,11 +124,12 @@ public class EsteiraPropostasController implements Disposable {
     private Runnable onFeedbackClose;
 
     public EsteiraPropostasController(PropostaRepository repository, PropostaService propostaService,
-            ApplicationContext context, PropostaUIEventHub eventHub) {
+            ApplicationContext context, PropostaUIEventHub eventHub, ProponenteUIEventHub proponenteEventHub) {
         this.repository = repository;
         this.propostaService = propostaService;
         this.context = context;
         this.eventHub = eventHub;
+        this.proponenteEventHub = proponenteEventHub;
         log.debug("[ESTEIRA] Construtor: Controller instanciado (escopo prototype)");
     }
 
@@ -137,10 +139,11 @@ public class EsteiraPropostasController implements Disposable {
     @FXML
     public void initialize() {
         log.debug("[ESTEIRA] initialize: Iniciando configuração da esteira de propostas");
+        eventHub.inscrever(this::recarregarDados);
+        proponenteEventHub.inscrever(this::recarregarDados);
         configurarTabela();
         configurarFiltroReativo();
         recarregarDados();
-        eventHub.inscrever(this::recarregarDados);
         log.info("[ESTEIRA] initialize: Configuração concluída e inscrição no evento realizada");
     }
 
@@ -599,5 +602,6 @@ public class EsteiraPropostasController implements Disposable {
     public void dispose() {
         log.info("[ESTEIRA] dispose: Desinscrevendo do event hub e liberando recursos");
         eventHub.desinscrever(this::recarregarDados);
+        proponenteEventHub.desinscrever(this::recarregarDados);
     }
 }
