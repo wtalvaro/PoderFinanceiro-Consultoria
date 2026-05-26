@@ -19,9 +19,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class BancosConveniosController implements Disposable {
+public class BancoController implements Disposable {
 
-    private static final Logger log = LoggerFactory.getLogger(BancosConveniosController.class);
+    private static final Logger log = LoggerFactory.getLogger(BancoController.class);
 
     // =========================================================================
     // CONSTANTES DE ESTILIZAÇÃO E MENSAGENS (Clean Code & DRY)
@@ -79,7 +79,7 @@ public class BancosConveniosController implements Disposable {
     private BancoModel bancoEmEdicao = null;
     private List<BancoModel> todosBancos;
 
-    public BancosConveniosController(Navigator navigator, HostServices hostServices, BancoService bancoService, BancoUIEventHub bancoEventHub) {
+    public BancoController(Navigator navigator, HostServices hostServices, BancoService bancoService, BancoUIEventHub bancoEventHub) {
         this.navigator = navigator;
         this.hostServices = hostServices;
         this.bancoService = bancoService;

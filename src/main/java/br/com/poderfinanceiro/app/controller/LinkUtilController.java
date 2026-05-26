@@ -1,9 +1,11 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.domain.event.LinkUtilUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.LinkUtilModel;
 import br.com.poderfinanceiro.app.domain.model.enums.CategoriaLinkModel;
 import br.com.poderfinanceiro.app.domain.model.enums.LabeledModel;
-import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
+import br.com.poderfinanceiro.app.domain.service.LinkUtilService;
+import br.com.poderfinanceiro.app.util.Disposable;
 import javafx.application.HostServices;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -22,19 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component
-public class LinkUtilController {
+public class LinkUtilController implements Disposable {
 
-    // =========================================================================
-    // CONSTANTES (Clean Code & DRY)
-    // =========================================================================
     private static final String MSG_TITULO_PADRAO = "🔗 Gestão de Links e Atalhos";
     private static final String MSG_TITULO_EDICAO = "✏️ Editando: ";
 
     private static final Logger log = LoggerFactory.getLogger(LinkUtilController.class);
 
-    // =========================================================================
-    // DEPENDÊNCIAS DE UI E FXML
-    // =========================================================================
     @FXML
     private ComboBox<CategoriaLinkModel> comboCategoria;
     @FXML
@@ -52,33 +48,31 @@ public class LinkUtilController {
     @FXML
     private ScrollPane scrollPrincipal;
 
-    // =========================================================================
-    // ESTADO DA CLASSE E INJEÇÕES
-    // =========================================================================
-    private final LinkUtilRepository repository;
+    private final LinkUtilService service;
+    private final LinkUtilUIEventHub eventHub;
     private final HostServices hostServices;
 
     private final ObservableList<LinkUtilModel> masterData = FXCollections.observableArrayList();
-
     private LinkUtilModel linkEmEdicao;
 
-    public LinkUtilController(LinkUtilRepository repository, HostServices hostServices) {
-        this.repository = repository;
+    public LinkUtilController(LinkUtilService service, LinkUtilUIEventHub eventHub, HostServices hostServices) {
+        this.service = service;
+        this.eventHub = eventHub;
         this.hostServices = hostServices;
         log.debug("[LINK_UTIL] Construtor: Controller instanciado");
     }
 
-    // =========================================================================
-    // INICIALIZAÇÃO E CONFIGURAÇÃO
-    // =========================================================================
     @FXML
     public void initialize() {
         log.debug("[LINK_UTIL] initialize: Iniciando configuração da gestão de links");
         configurarComboCategoria();
         configurarTabela();
         configurarBuscaReativa();
+
+        eventHub.inscrever(this::recarregarLinks);
         recarregarLinks();
-        log.info("[LINK_UTIL] initialize: Configuração concluída");
+
+        log.info("[LINK_UTIL] initialize: Configuração concluída e inscrita no event hub");
     }
 
     private void configurarComboCategoria() {
@@ -116,9 +110,6 @@ public class LinkUtilController {
         log.trace("[LINK_UTIL] configurarCombo: Combo configurado com {} itens", values.length);
     }
 
-    // =========================================================================
-    // COLUNA DE AÇÕES DA TABELA (SRP & DRY Aplicados)
-    // =========================================================================
     private void configurarColunaAcoes() {
         log.debug("[LINK_UTIL] configurarColunaAcoes: Configurando coluna de ações (abrir, editar, excluir)");
         colAcao.setCellFactory(param -> new TableCell<>() {
@@ -165,9 +156,6 @@ public class LinkUtilController {
         return btn;
     }
 
-    // =========================================================================
-    // FILTRO E BUSCA REATIVA
-    // =========================================================================
     private void configurarBuscaReativa() {
         log.debug("[LINK_UTIL] configurarBuscaReativa: Configurando filtro de busca reativo");
         FilteredList<LinkUtilModel> filteredData = new FilteredList<>(masterData, p -> true);
@@ -203,9 +191,6 @@ public class LinkUtilController {
         return valor != null && valor.toLowerCase().contains(termo);
     }
 
-    // =========================================================================
-    // FLUXO DE FORMULÁRIO (SALVAR, EDITAR, LIMPAR, EXCLUIR)
-    // =========================================================================
     @FXML
     private void handleSalvar() {
         log.debug("[LINK_UTIL] handleSalvar: Iniciando salvamento de link");
@@ -217,9 +202,8 @@ public class LinkUtilController {
         LinkUtilModel link = (linkEmEdicao != null) ? linkEmEdicao : new LinkUtilModel();
         preencherModeloComFormulario(link);
         log.info("[LINK_UTIL] handleSalvar: Salvando link '{}' (edição={})", link.getTitulo(), linkEmEdicao != null);
-        repository.save(link);
+        service.salvar(link);
         limparFormulario();
-        recarregarLinks();
     }
 
     private boolean isFormularioInvalido() {
@@ -268,8 +252,7 @@ public class LinkUtilController {
         }
 
         log.info("[LINK_UTIL] handleExcluir: Excluindo link '{}' (ID={})", link.getTitulo(), link.getId());
-        repository.delete(link);
-        recarregarLinks();
+        service.excluir(link.getId());
     }
 
     @FXML
@@ -286,12 +269,9 @@ public class LinkUtilController {
         paneFormulario.setText(MSG_TITULO_PADRAO);
     }
 
-    // =========================================================================
-    // INTEGRAÇÕES EXTERNAS E COMUNICAÇÃO
-    // =========================================================================
     public void recarregarLinks() {
-        log.debug("[LINK_UTIL] recarregarLinks: Recarregando lista de links do repositório");
-        var links = repository.findAllByOrderByCategoriaAscTituloAsc();
+        log.debug("[LINK_UTIL] recarregarLinks: Recarregando lista de links do repositório via service");
+        var links = service.listarTodos();
         masterData.setAll(links);
         log.info("[LINK_UTIL] recarregarLinks: {} links carregados", links.size());
     }
@@ -305,5 +285,11 @@ public class LinkUtilController {
             log.warn("[LINK_UTIL] abrirUrlNoNavegador: Tentativa de abrir URL inválida para link {}",
                     link != null ? link.getTitulo() : "nulo");
         }
+    }
+
+    @Override
+    public void dispose() {
+        log.info("[LINK_UTIL] dispose: Desinscrevendo do event hub");
+        eventHub.desinscrever(this::recarregarLinks);
     }
 }
