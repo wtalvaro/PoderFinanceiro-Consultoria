@@ -322,6 +322,19 @@ public class PropostaController {
             return;
         }
 
+        // Validação exclusiva para status PAGO: valor aprovado deve ser maior que zero
+        if (StatusPropostaModel.PAGO.equals(viewModel.statusProperty().get())) {
+            BigDecimal valorAprovado = viewModel.valorAprovadoProperty().get();
+            if (valorAprovado == null || valorAprovado.compareTo(BigDecimal.ZERO) <= 0) {
+                log.warn("[PROPOSTA] handleSalvar: Tentativa de marcar proposta como PAGO sem valor aprovado");
+                if (navigator != null) {
+                    navigator.notificarAviso(
+                            "Para marcar a proposta como Paga, o campo Valor Aprovado deve ser preenchido com um valor maior que R$ 0,00.");
+                }
+                return;
+            }
+        }
+
         AsyncUtils.executarTaskAsync(
                 this::executarSalvamentoBackground,
                 salva -> {
