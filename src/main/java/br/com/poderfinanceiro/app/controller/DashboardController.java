@@ -105,6 +105,8 @@ public class DashboardController implements Disposable {
     private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
     private final Random randomGenerator = new Random();
 
+    private boolean isPrimeiraCarga = true;
+
     public DashboardController(PropostaRepository propostaRepository, ComissaoRepository comissaoRepository,
             Navigator navigator, AuthService authService, PropostaUIEventHub propostaEventHub,
             ComissaoUIEventHub comissaoEventHub) {
@@ -123,8 +125,8 @@ public class DashboardController implements Disposable {
     @FXML
     public void initialize() {
         log.debug("[DASHBOARD] initialize: Iniciando configuração do Dashboard");
-        propostaEventHub.inscrever(this::carregarDadosReais);
-        comissaoEventHub.inscrever(this::carregarDadosReais);
+        propostaEventHub.inscrever(this::recarregarDadosSilencioso);
+        comissaoEventHub.inscrever(this::recarregarDadosSilencioso);
         carregarNomeConsultor();
         configurarTabela();
         configurarBuscaReativa();
@@ -235,23 +237,47 @@ public class DashboardController implements Disposable {
     // =========================================================================
     // LÓGICA DE DADOS (ASYNC) E MÉTRICAS
     // =========================================================================
+    public void recarregarDadosSilencioso() {
+        executarCargaDeDados(false);
+    }
+
+    // MANTIDO: Usado no initialize e no botão FXML de "Atualizar Caixa"
     @FXML
     public void carregarDadosReais() {
-        log.debug("[DASHBOARD] carregarDadosReais: Iniciando carregamento assíncrono de propostas e comissões");
-        navigator.mostrarLoading(MSG_CARREGANDO);
+        executarCargaDeDados(true);
+    }
+
+    // NOVO MOTOR CENTRAL: Controla se vai travar a tela ou não
+    private void executarCargaDeDados(boolean exibirLoading) {
+        log.debug("[DASHBOARD] executarCargaDeDados: exibindoLoading={}", exibirLoading);
+        if (exibirLoading) {
+            navigator.mostrarLoading(MSG_CARREGANDO);
+        }
 
         AsyncUtils.executarTaskAsync(
                 () -> {
-                    log.debug("[DASHBOARD] carregarDadosReais: Buscando dados no repositório");
+                    log.debug("[DASHBOARD] Buscando dados no repositório");
                     List<PropostaModel> propostas = propostaRepository.findAllComDetalhes();
                     List<ComissaoModel> comissoes = comissaoRepository.findAll();
-                    log.debug("[DASHBOARD] carregarDadosReais: Encontradas {} propostas e {} comissões",
-                            propostas.size(), comissoes.size());
                     return calcularMetricasDoDashboard(propostas, comissoes);
                 },
-                this::atualizarInterfaceDoDashboard,
+                res -> {
+                    // 1. Atualiza os dados da tela
+                    atualizarInterfaceDoDashboard(res);
+
+                    // 2. Resolve as regras de carregamento da interface
+                    if (exibirLoading) {
+                        if (isPrimeiraCarga) {
+                            exibirLoadingMotivacional();
+                            isPrimeiraCarga = false; // Desativa a frase motivacional para o resto da sessão
+                        } else {
+                            navigator.ocultarLoading(); // Atualização manual comum (sem frase)
+                        }
+                    }
+                },
                 erro -> {
-                    navigator.ocultarLoading();
+                    if (exibirLoading)
+                        navigator.ocultarLoading();
                     log.error("[DASHBOARD][DADOS] Erro ao carregar dados: {}", erro.getMessage(), erro);
                 });
     }
@@ -324,8 +350,6 @@ public class DashboardController implements Disposable {
         lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(res.volumeAprovado()));
         lblComissaoPendente.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPendente()));
         lblComissaoPaga.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPaga()));
-
-        exibirLoadingMotivacional();
     }
 
     private void exibirLoadingMotivacional() {
@@ -362,7 +386,7 @@ public class DashboardController implements Disposable {
     @Override
     public void dispose() {
         log.info("[DASHBOARD] dispose: Desinscrevendo dos hubs.");
-        propostaEventHub.desinscrever(this::carregarDadosReais);
-        comissaoEventHub.desinscrever(this::carregarDadosReais);
+        propostaEventHub.desinscrever(this::recarregarDadosSilencioso);
+        comissaoEventHub.desinscrever(this::recarregarDadosSilencioso);
     }
 }
