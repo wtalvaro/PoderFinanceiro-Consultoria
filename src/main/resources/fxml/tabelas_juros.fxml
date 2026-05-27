@@ -5,9 +5,13 @@
 <?import org.controlsfx.control.MasterDetailPane?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.TabelaJurosController">
+    fx:controller="br.com.poderfinanceiro.app.controller.TabelaJurosController"
+    maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
 
-    <VBox spacing="20" style="-fx-padding: 10; -fx-background-color: #ffffff;">
+    <VBox spacing="20"
+        maxHeight="1.7976931348623157E308"
+        VBox.vgrow="ALWAYS"
+        style="-fx-padding: 10; -fx-background-color: #ffffff;">
         <children>
 
             <HBox alignment="CENTER_LEFT" spacing="20">
@@ -200,7 +204,7 @@
                                 </children>
                             </HBox>
 
-                            <TableView fx:id="tableTabelas" VBox.vgrow="ALWAYS">
+                            <TableView fx:id="tableTabelas" VBox.vgrow="ALWAYS" minHeight="0">
                                 <columns>
                                     <TableColumn fx:id="colConvenio" text="Convênio" prefWidth="110" />
                                     <TableColumn fx:id="colNome" text="Nome da Tabela"
