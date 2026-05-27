@@ -1,5 +1,6 @@
 package br.com.poderfinanceiro.app.controller;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import org.springframework.stereotype.Component;
@@ -39,6 +40,10 @@ public class LoginController {
     private ProgressIndicator progress;
     @FXML
     private Label lblMensagem;
+    @FXML
+    private TextField txtSenhaRevelada;
+    @FXML
+    private Button btnMostrarSenha;
 
     // =========================================================================
     // ESTADO DA CLASSE E INJEÇÕES
@@ -46,6 +51,8 @@ public class LoginController {
     private final AuthService authService;
     private final Navigator navigator;
     private final StatusBarController statusBarController;
+
+    private boolean isSenhaVisivel = false;
 
     public LoginController(AuthService authService, Navigator navigator,
             StatusBarController statusBarController) {
@@ -62,6 +69,7 @@ public class LoginController {
     public void initialize() {
         log.debug("[LOGIN] initialize: Iniciando configuração da tela de login");
         lblMensagem.setVisible(false);
+        txtSenhaRevelada.textProperty().bindBidirectional(txtSenha.textProperty());
         log.info("[LOGIN] initialize: Configuração concluída");
     }
 
@@ -84,6 +92,30 @@ public class LoginController {
 
         alternarEstadoCarregamento(true);
         executarLoginAssincrono(email, senha);
+    }
+
+    @FXML
+    private void handleToggleSenha() {
+        // Inverte o estado atual
+        isSenhaVisivel = !isSenhaVisivel;
+
+        if (isSenhaVisivel) {
+            btnMostrarSenha.setText("🔒"); // Ícone para ocultar
+
+            txtSenhaRevelada.setVisible(true);
+            txtSenha.setVisible(false);
+
+            txtSenhaRevelada.requestFocus();
+            Platform.runLater(txtSenhaRevelada::selectEnd);
+        } else {
+            btnMostrarSenha.setText("👁️"); // Ícone para mostrar
+
+            txtSenha.setVisible(true);
+            txtSenhaRevelada.setVisible(false);
+
+            txtSenha.requestFocus();
+            Platform.runLater(txtSenha::selectEnd);
+        }
     }
 
     private boolean isInputInvalido(String email, String senha) {

@@ -32,8 +32,22 @@
                         </VBox>
                         <VBox spacing="5.0">
                             <Label text="Senha" />
-                            <PasswordField fx:id="txtSenha" prefHeight="40.0"
-                                promptText="sua senha segura" />
+                            <StackPane alignment="CENTER_RIGHT">
+                                <children>
+                                    <PasswordField fx:id="txtSenha" prefHeight="40.0"
+                                        promptText="sua senha segura"
+                                        style="-fx-padding: 0 40 0 10;" />
+
+                                    <TextField fx:id="txtSenhaRevelada" prefHeight="40.0"
+                                        promptText="sua senha segura" visible="false"
+                                        style="-fx-padding: 0 40 0 10;" />
+
+                                    <Button fx:id="btnMostrarSenha"
+                                        onAction="#handleToggleSenha"
+                                        text="👁️" styleClass="flat" focusTraversable="false"
+                                        style="-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 0 15 0 0;" />
+                                </children>
+                            </StackPane>
                         </VBox>
                     </children>
                 </VBox>
