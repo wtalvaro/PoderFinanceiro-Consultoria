@@ -75,7 +75,7 @@
         <HBox fx:id="overlaySidebar" visible="false" managed="false">
             <Pane HBox.hgrow="ALWAYS" onMouseClicked="#toggleSidebarChats" style="-fx-cursor: hand;" />
 
-            <VBox fx:id="paneSidebarChats" prefWidth="260"
+            <VBox fx:id="paneSidebarChats" prefWidth="385"
                 style="-fx-background-color: #f8f9fa; -fx-border-color: #E0E0E0; -fx-border-width: 0 0 0 1; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, -5, 0);">
                 <VBox style="-fx-padding: 15;">
                     <Button text="➕ Nova Conversa" onAction="#iniciarNovaConversa"

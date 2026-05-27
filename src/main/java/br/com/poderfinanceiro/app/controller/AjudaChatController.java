@@ -564,7 +564,7 @@ public class AjudaChatController {
         Arrays.sort(arquivos, Comparator.comparingLong(File::lastModified).reversed());
 
         for (File file : arquivos) {
-            String nomeAmigavel = formatarNomeArquivo(file.getName());
+            String nomeAmigavel = extrairPrimeiraMensagem(file);
             Button btnSessao = new Button(nomeAmigavel);
 
             btnSessao.setMaxWidth(Double.MAX_VALUE);
@@ -605,6 +605,31 @@ public class AjudaChatController {
         } catch (Exception e) {
             return "💬 " + nome.replace(".json", "");
         }
+    }
+
+    private String extrairPrimeiraMensagem(File arquivo) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            List<GeminiRequest.Content> historico = mapper.readValue(
+                    arquivo, new TypeReference<List<GeminiRequest.Content>>() {
+                    });
+
+            for (GeminiRequest.Content content : historico) {
+                if ("user".equals(content.role())
+                        && content.parts() != null
+                        && !content.parts().isEmpty()) {
+                    String texto = content.parts().get(0).text();
+                    if (texto != null && !texto.isBlank()) {
+                        return "💬 " + texto.trim();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[CHAT][SIDEBAR] Falha ao extrair primeira mensagem de '{}': {}",
+                    arquivo.getName(), e.getMessage());
+        }
+        // Fallback seguro: exibe a data se o JSON não tiver texto legível
+        return formatarNomeArquivo(arquivo.getName());
     }
 
     private void abrirSessaoHistorica(File file) {
