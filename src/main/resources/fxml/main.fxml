@@ -84,4 +84,25 @@
               <Button text="Entendido" onAction="#ocultarOverlayMensagem" maxWidth="Infinity"
                      style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold;" />
        </VBox>
+
+       <VBox fx:id="overlayConfirmacaoGlobal" visible="false" alignment="CENTER"
+              style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
+
+              <VBox alignment="CENTER" spacing="20" maxWidth="400"
+                     style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
+
+                     <Label fx:id="lblConfirmacaoTitulo"
+                            style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e293b;" />
+                     <Label fx:id="lblConfirmacaoTexto" wrapText="true" textAlignment="CENTER"
+                            style="-fx-font-size: 14px; -fx-text-fill: #475569;" />
+
+                     <HBox spacing="15" alignment="CENTER">
+                            <Button text="Cancelar" onAction="#cancelarConfirmacaoGlobal"
+                                   styleClass="flat" />
+                            <Button fx:id="btnConfirmarGlobal" onAction="#executarConfirmacaoGlobal"
+                                   style="-fx-font-weight: bold; -fx-text-fill: white; -fx-background-radius: 4;" />
+                     </HBox>
+
+              </VBox>
+       </VBox>
 </StackPane>

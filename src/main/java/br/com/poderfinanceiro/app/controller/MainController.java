@@ -12,6 +12,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -76,6 +77,15 @@ public class MainController implements Navigator {
     @FXML
     private Label lblMsgTexto;
 
+    @FXML
+    private VBox overlayConfirmacaoGlobal;
+    @FXML
+    private Label lblConfirmacaoTitulo;
+    @FXML
+    private Label lblConfirmacaoTexto;
+    @FXML
+    private Button btnConfirmarGlobal;
+
     // =========================================================================
     // ESTADO E INJEÇÕES
     // =========================================================================
@@ -86,6 +96,7 @@ public class MainController implements Navigator {
     private double mouseStartX = 0;
     private double chatStartWidth = 0;
     private String telaAtual = "";
+    private Runnable acaoConfirmacaoPendente;
 
     // Padrão moderno (Java 14+) para classes de puro transporte de dados
     private record ViewPair(Node view, Object controller) {
@@ -259,6 +270,21 @@ public class MainController implements Navigator {
         navegarPara(FXML_LOGIN, false);
     }
 
+    @FXML
+    private void cancelarConfirmacaoGlobal() {
+        overlayConfirmacaoGlobal.setVisible(false);
+        acaoConfirmacaoPendente = null;
+    }
+
+    @FXML
+    private void executarConfirmacaoGlobal() {
+        overlayConfirmacaoGlobal.setVisible(false);
+        if (acaoConfirmacaoPendente != null) {
+            acaoConfirmacaoPendente.run();
+            acaoConfirmacaoPendente = null;
+        }
+    }
+
     // 🚀 MÉTODO: Exibe o overlay (substitui o Alert)
     private void exibirOverlayMensagem(String titulo, String mensagem) {
         log.debug("[MAIN] exibirOverlayMensagem: titulo='{}', mensagem='{}'", titulo, mensagem);
@@ -423,5 +449,24 @@ public class MainController implements Navigator {
     public void mostrarOverlaySair() {
         log.debug("[MAIN] mostrarOverlaySair: exibindo confirmação de logout");
         overlaySair.setVisible(true);
+    }
+
+    @Override
+    public void solicitarConfirmacao(String titulo, String mensagem, String textoBotaoConfirmar, String estiloCssCor,
+            Runnable acaoConfirmar) {
+        log.debug("[MAIN] solicitarConfirmacao: titulo='{}'", titulo);
+        Platform.runLater(() -> {
+            lblConfirmacaoTitulo.setText(titulo);
+            lblConfirmacaoTexto.setText(mensagem);
+
+            btnConfirmarGlobal.setText(textoBotaoConfirmar);
+            btnConfirmarGlobal.setStyle(
+                    "-fx-background-color: " + estiloCssCor + "; -fx-text-fill: white; -fx-font-weight: bold;");
+
+            this.acaoConfirmacaoPendente = acaoConfirmar;
+
+            overlayConfirmacaoGlobal.setVisible(true);
+            overlayConfirmacaoGlobal.toFront();
+        });
     }
 }

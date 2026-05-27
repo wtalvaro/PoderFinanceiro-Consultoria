@@ -29,13 +29,24 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import java.util.Arrays;
+import java.util.Comparator;
+import javafx.scene.control.Button;
+import javafx.geometry.Pos;
 
 @Component
 @Scope("prototype")
@@ -76,6 +87,12 @@ public class AjudaChatController {
     private WebView webViewChat;
     @FXML
     private ComboBox<String> cmbModelo;
+    @FXML
+    private VBox paneSidebarChats;
+    @FXML
+    private VBox listaChatsRecentes;
+    @FXML
+    private HBox overlaySidebar;
 
     // =========================================================================
     // ESTADO DA CLASSE
@@ -84,8 +101,12 @@ public class AjudaChatController {
     private boolean paginaCarregada = false;
     private WebEngine webEngine;
     private File ficheiroAnexado = null;
+    private String arquivoSessaoAtual = null;
+    final String sessaoNoEnvio = arquivoSessaoAtual;
+
     private final List<Runnable> filaMensagensPendentes = new ArrayList<>();
     private final List<GeminiRequest.Content> historicoConversa = Collections.synchronizedList(new ArrayList<>());
+
     private static final int MAX_TURNOS = 20;
 
     // =========================================================================
@@ -120,6 +141,7 @@ public class AjudaChatController {
         log.info("[CHAT] Inicializando AjudaChatController...");
         configurarWebView();
         carregarModelosIniciais();
+        obterDiretorioChats();
         log.info("[CHAT] Inicialização concluída.");
     }
 
@@ -280,6 +302,14 @@ public class AjudaChatController {
         File file = ficheiroAnexado;
         removerAnexo();
 
+        // Captura a identidade da sessão no momento exato do disparo.
+        // Isso é a âncora que impede um callback tardio de contaminar
+        // uma sessão diferente caso o usuário troque de conversa enquanto a IA
+        // processa.
+        final String sessaoNoMomentoDoEnvio = arquivoSessaoAtual;
+        log.debug("[CHAT][ENVIO] Sessão de referência capturada para guarda de integridade: '{}'",
+                sessaoNoMomentoDoEnvio != null ? sessaoNoMomentoDoEnvio : "<nova conversa>");
+
         long inicioEnvio = System.currentTimeMillis();
 
         AsyncUtils.executarTaskAsync(
@@ -290,6 +320,23 @@ public class AjudaChatController {
                 },
                 (resposta) -> {
                     long tempoTotal = System.currentTimeMillis() - inicioEnvio;
+
+                    // Verifica se a sessão ativa no momento do callback ainda é a mesma
+                    // que estava ativa quando o envio foi disparado.
+                    // Divergência indica que o usuário trocou ou criou uma nova conversa
+                    // durante o processamento — o turno deve ser descartado para evitar
+                    // corromper o histórico da sessão atualmente ativa.
+                    if (!Objects.equals(arquivoSessaoAtual, sessaoNoMomentoDoEnvio)) {
+                        log.warn("[CHAT][IA] Race condition detectada: sessão trocada durante processamento. " +
+                                "Sessão no envio='{}' | Sessão atual='{}'. " +
+                                "Turno descartado para preservar integridade do histórico. Tempo total={}ms",
+                                sessaoNoMomentoDoEnvio != null ? sessaoNoMomentoDoEnvio : "<nova conversa>",
+                                arquivoSessaoAtual != null ? arquivoSessaoAtual : "<nova conversa>",
+                                tempoTotal);
+                        finalizarEnvioInterface(resposta);
+                        return;
+                    }
+
                     // Tempo de resposta é o indicador mais importante de performance da integração
                     // IA
                     log.info("[CHAT][IA] Resposta recebida com sucesso. Tempo total={}ms | " +
@@ -307,8 +354,10 @@ public class AjudaChatController {
                     long tempoTotal = System.currentTimeMillis() - inicioEnvio;
                     // Histórico preservado em caso de erro — log deixa isso explícito
                     log.error("[CHAT][IA] FALHA na chamada à IA após {}ms. " +
-                            "Histórico preservado ({} turnos). Erro: {}",
-                            tempoTotal, historicoConversa.size(), erro.getMessage(), erro);
+                            "Histórico preservado ({} turnos). Sessão de referência='{}'. Erro: {}",
+                            tempoTotal, historicoConversa.size(),
+                            sessaoNoMomentoDoEnvio != null ? sessaoNoMomentoDoEnvio : "<nova conversa>",
+                            erro.getMessage(), erro);
                     finalizarEnvioInterface(MSG_ERRO_SISTEMA);
                 });
     }
@@ -381,7 +430,8 @@ public class AjudaChatController {
     private void finalizarEnvioInterface(String mensagemIA) {
         executarScriptSeguro(JS_REMOVER_CARREGAMENTO);
         adicionarBalao(mensagemIA, false);
-        log.debug("[CHAT][UI] Interface atualizada com a resposta da IA.");
+        salvarSessaoAtualAutomatica();
+        log.debug("[CHAT][UI] Interface atualizada e salva com a resposta da IA.");
     }
 
     // =========================================================================
@@ -414,6 +464,190 @@ public class AjudaChatController {
         }
         log.debug("[CHAT][CONTEXTO] Tela não é de comissões, contexto retornado vazio.");
         return "[]";
+    }
+
+    @FXML
+    private void toggleSidebarChats() {
+        boolean visivel = !overlaySidebar.isVisible();
+        setVisibilidadeElemento(overlaySidebar, visivel);
+        if (visivel) {
+            atualizarListaRecentes();
+        }
+    }
+
+    @FXML
+    private void iniciarNovaConversa() {
+        log.info("[CHAT][SESSION] Iniciando nova conversa. Limpando memória.");
+        historicoConversa.clear();
+        filaMensagensPendentes.clear();
+        arquivoSessaoAtual = null;
+        paginaCarregada = false;
+        webEngine.reload();
+        setVisibilidadeElemento(overlaySidebar, false);
+    }
+
+    private File obterDiretorioChats() {
+        String os = System.getProperty("os.name").toLowerCase();
+        String home = System.getProperty("user.home");
+        String caminhoBase;
+
+        if (os.contains("win")) {
+            caminhoBase = System.getenv("APPDATA") + File.separator + "PoderFinanceiro";
+        } else if (os.contains("mac")) {
+            caminhoBase = home + File.separator + "Library" + File.separator + "Application Support" + File.separator
+                    + "PoderFinanceiro";
+        } else {
+            String xdgData = System.getenv("XDG_DATA_HOME");
+            caminhoBase = (xdgData != null && !xdgData.isEmpty())
+                    ? xdgData + File.separator + "PoderFinanceiro"
+                    : home + File.separator + ".local" + File.separator + "share" + File.separator + "PoderFinanceiro";
+        }
+
+        File pastaChats = new File(caminhoBase, "chats_gemini");
+
+        if (!pastaChats.exists()) {
+            boolean criado = pastaChats.mkdirs(); // mkdirs() cria pastas pai se não existirem
+            if (criado) {
+                log.info("[CHAT][DIR] 📁 Diretório criado com sucesso em: {}", pastaChats.getAbsolutePath());
+            } else {
+                log.error("[CHAT][DIR] ❌ Falha grave ao criar diretório. Permissão negada no caminho: {}",
+                        pastaChats.getAbsolutePath());
+            }
+        } else {
+            log.trace("[CHAT][DIR] Diretório de chat verificado e disponível.");
+        }
+
+        return pastaChats;
+    }
+
+    private void salvarSessaoAtualAutomatica() {
+        if (historicoConversa.isEmpty())
+            return;
+
+        File diretorio = obterDiretorioChats();
+
+        // Se for a primeira mensagem da conversa, cria um nome de arquivo
+        if (arquivoSessaoAtual == null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+            arquivoSessaoAtual = "chat_" + LocalDateTime.now().format(formatter) + ".json";
+        }
+
+        File arquivo = new File(diretorio, arquivoSessaoAtual);
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.writeValue(arquivo, historicoConversa);
+            log.debug("[CHAT][AUTOSAVE] Sessão salva em background: {}", arquivo.getName());
+
+            // Atualiza a lista lateral de forma reativa se estiver aberta
+            if (paneSidebarChats.isVisible()) {
+                Platform.runLater(this::atualizarListaRecentes);
+            }
+        } catch (Exception e) {
+            log.error("[CHAT][AUTOSAVE] Falha ao persistir sessão: {}", e.getMessage(), e);
+        }
+    }
+
+    private void atualizarListaRecentes() {
+        listaChatsRecentes.getChildren().clear();
+        File diretorio = obterDiretorioChats();
+        File[] arquivos = diretorio.listFiles((dir, name) -> name.endsWith(".json"));
+
+        if (arquivos == null || arquivos.length == 0) {
+            Label lblVazio = new Label("Nenhuma conversa recente.");
+            lblVazio.setStyle("-fx-text-fill: #9e9e9e; -fx-font-style: italic;");
+            listaChatsRecentes.getChildren().add(lblVazio);
+            return;
+        }
+
+        // Ordena do mais recente para o mais antigo
+        Arrays.sort(arquivos, Comparator.comparingLong(File::lastModified).reversed());
+
+        for (File file : arquivos) {
+            String nomeAmigavel = formatarNomeArquivo(file.getName());
+            Button btnSessao = new Button(nomeAmigavel);
+
+            btnSessao.setMaxWidth(Double.MAX_VALUE);
+            btnSessao.setAlignment(Pos.CENTER_LEFT);
+
+            // NOVO: Adiciona reticências (...) se o botão ficar espremido
+            btnSessao.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
+
+            // NOVO: Exibe o nome completo quando o usuário passa o mouse por cima
+            btnSessao.setTooltip(new javafx.scene.control.Tooltip(nomeAmigavel));
+
+            // Destaque visual para a sessão que está ativa no momento
+            if (file.getName().equals(arquivoSessaoAtual)) {
+                btnSessao.setStyle(
+                        "-fx-background-color: #e3f2fd; -fx-text-fill: #1565c0; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 6; -fx-border-color: #bbdefb; -fx-border-radius: 6;");
+            } else {
+                btnSessao.setStyle(
+                        "-fx-background-color: transparent; -fx-text-fill: #424242; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 6;");
+                btnSessao.setOnMouseEntered(e -> btnSessao.setStyle(
+                        "-fx-background-color: #eeeeee; -fx-text-fill: #212121; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 6;"));
+                btnSessao.setOnMouseExited(e -> btnSessao.setStyle(
+                        "-fx-background-color: transparent; -fx-text-fill: #424242; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 6;"));
+            }
+
+            btnSessao.setOnAction(e -> abrirSessaoHistorica(file));
+            listaChatsRecentes.getChildren().add(btnSessao);
+        }
+    }
+
+    private String formatarNomeArquivo(String nome) {
+        // Converte "chat_20260526_224014.json" para algo legível
+        try {
+            String parteData = nome.substring(5, 13); // 20260526
+            String ano = parteData.substring(0, 4);
+            String mes = parteData.substring(4, 6);
+            String dia = parteData.substring(6, 8);
+            return "💬 Chat " + dia + "/" + mes + "/" + ano;
+        } catch (Exception e) {
+            return "💬 " + nome.replace(".json", "");
+        }
+    }
+
+    private void abrirSessaoHistorica(File file) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            List<GeminiRequest.Content> historicoCarregado = mapper.readValue(
+                    file,
+                    new TypeReference<List<GeminiRequest.Content>>() {
+                    });
+
+            historicoConversa.clear();
+            historicoConversa.addAll(historicoCarregado);
+            arquivoSessaoAtual = file.getName(); // Define esta como a sessão ativa
+
+            paginaCarregada = false;
+            webEngine.reload();
+
+            for (GeminiRequest.Content content : historicoCarregado) {
+                boolean isUsuario = "user".equals(content.role());
+                String texto = "";
+                if (content.parts() != null && !content.parts().isEmpty()) {
+                    texto = content.parts().get(0).text();
+                    if (texto == null)
+                        texto = "[Documento Anexado]";
+                }
+
+                final String textoFinal = texto;
+                Runnable rotinaInjecao = () -> {
+                    String textoB64 = Base64.getEncoder().encodeToString(textoFinal.getBytes(StandardCharsets.UTF_8));
+                    String script = String.format(JS_ADICIONAR_BALAO, textoB64, isUsuario);
+                    webEngine.executeScript(script);
+                };
+                filaMensagensPendentes.add(rotinaInjecao);
+            }
+
+            atualizarListaRecentes();
+            setVisibilidadeElemento(overlaySidebar, false); // Fecha o painel
+            log.info("[CHAT][LOAD] Sessão carregada silenciosamente: {}", file.getName());
+
+        } catch (Exception e) {
+            log.error("[CHAT][LOAD] Falha ao carregar sessão.", e);
+            adicionarBalao("❌ Erro interno ao ler histórico.", false);
+        }
     }
 
     // =========================================================================

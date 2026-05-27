@@ -19,6 +19,13 @@
         </VBox>
         <Pane HBox.hgrow="ALWAYS" />
 
+        <Button text="🧿" onAction="#toggleSidebarChats"
+            style="-fx-background-color: transparent; -fx-font-size: 20px; -fx-cursor: hand; -fx-padding: 2 10;">
+            <tooltip>
+                <Tooltip text="Histórico de Conversas" />
+            </tooltip>
+        </Button>
+
         <Button text="🔑" onAction="#toggleConfigChave"
             style="-fx-background-color: transparent; -fx-font-size: 20px; -fx-cursor: hand; -fx-padding: 2 10;">
             <tooltip>
@@ -61,7 +68,29 @@
             style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32; -fx-font-size: 10px; -fx-padding: 2 8; -fx-background-radius: 10; -fx-font-weight: bold;" />
     </HBox>
 
-    <WebView fx:id="webViewChat" VBox.vgrow="ALWAYS" />
+    <StackPane VBox.vgrow="ALWAYS" alignment="TOP_RIGHT">
+
+        <WebView fx:id="webViewChat" />
+
+        <HBox fx:id="overlaySidebar" visible="false" managed="false">
+            <Pane HBox.hgrow="ALWAYS" onMouseClicked="#toggleSidebarChats" style="-fx-cursor: hand;" />
+
+            <VBox fx:id="paneSidebarChats" prefWidth="260"
+                style="-fx-background-color: #f8f9fa; -fx-border-color: #E0E0E0; -fx-border-width: 0 0 0 1; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, -5, 0);">
+                <VBox style="-fx-padding: 15;">
+                    <Button text="➕ Nova Conversa" onAction="#iniciarNovaConversa"
+                        maxWidth="Infinity"
+                        style="-fx-background-color: #00a884; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 8; -fx-cursor: hand;" />
+                </VBox>
+                <Label text="Recentes"
+                    style="-fx-padding: 0 15 5 15; -fx-font-weight: bold; -fx-text-fill: #9e9e9e; -fx-font-size: 12px; -fx-text-transform: uppercase;" />
+                <ScrollPane fitToWidth="true"
+                    style="-fx-background-color: transparent; -fx-padding: 0;" VBox.vgrow="ALWAYS">
+                    <VBox fx:id="listaChatsRecentes" spacing="5" style="-fx-padding: 5 10 10 10;" />
+                </ScrollPane>
+            </VBox>
+        </HBox>
+    </StackPane>
 
     <HBox fx:id="boxAnexo" alignment="CENTER_LEFT" spacing="8" visible="false" managed="false"
         style="-fx-background-color: #E3F2FD; -fx-padding: 6 16; -fx-border-color: #BBDEFB; -fx-border-width: 1 0 0 0;">
@@ -76,10 +105,11 @@
     <VBox
         style="-fx-background-color: #F0F2F5; -fx-padding: 14 16; -fx-border-color: #DDDDDD; -fx-border-width: 1 0 0 0;">
         <HBox spacing="10" alignment="CENTER">
+
             <Button text="📎" onAction="#escolherFicheiro"
                 style="-fx-background-color: transparent; -fx-font-size: 20px; -fx-cursor: hand; -fx-text-fill: #616161;" />
 
-            <TextField fx:id="txtMensagem" promptText="Digite sua dúvida ou anexe um holerite..."
+            <TextField fx:id="txtMensagem" promptText="Digite sua dúvida ou anexe um documento..."
                 HBox.hgrow="ALWAYS" onAction="#enviarMensagem"
                 style="-fx-background-color: #FFFFFF; -fx-background-radius: 22; -fx-padding: 12 18; -fx-font-size: 15px;" />
 

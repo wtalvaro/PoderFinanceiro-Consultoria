@@ -51,4 +51,7 @@ public interface Navigator {
     void notificarSucesso(String mensagem);
 
     void notificarAviso(String mensagem);
+    
+    // NOVO: Diálogo global de confirmação (Sim/Não)
+    void solicitarConfirmacao(String titulo, String mensagem, String textoBotaoConfirmar, String estiloBotao, Runnable acaoConfirmar);
 }
