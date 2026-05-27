@@ -48,6 +48,36 @@ public class UpdateService {
 
     public void baixarEExecutarAtualizacao(String tag) {
         log.info("[UPDATE] Iniciando processo de download e instalação da versão {}", tag);
+
+        // ---------------------------------------------------------------------
+        // NOVO: Validação do Diretório de Instalação e Autogeração do Inicializador
+        // ---------------------------------------------------------------------
+        String pastaInstalacao = System.getProperty("user.dir");
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+
+        log.info("[UPDATE][INFRA] Verificando diretório de instalação: {}", pastaInstalacao);
+
+        if (isWindows) {
+            File inicializadorBat = new File(pastaInstalacao, "iniciar.bat");
+            if (!inicializadorBat.exists()) {
+                log.info("[UPDATE][INFRA] 'iniciar.bat' não encontrado. Gerando inicializador persistente...");
+                try {
+                    String conteudoIniciar = "@echo off\n" +
+                            "cd /d \"%~dp0\"\n" +
+                            "start \"\" javaw -jar PoderFinanceiro.jar\n" +
+                            "exit\n";
+                    Files.writeString(inicializadorBat.toPath(), conteudoIniciar);
+                    log.info("[UPDATE][INFRA] 'iniciar.bat' criado com sucesso na pasta de instalação.");
+                } catch (Exception e) {
+                    log.error("[UPDATE][INFRA] Falha ao criar 'iniciar.bat' preventivo: {}", e.getMessage());
+                    // Não travamos o fluxo principal se apenas o bat falhar em ser escrito
+                }
+            } else {
+                log.debug("[UPDATE][INFRA] 'iniciar.bat' já existe e está íntegro.");
+            }
+        }
+        // ---------------------------------------------------------------------
+
         String downloadUrl = "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/download/" + tag + "/"
                 + NOME_JAR_LOCAL;
         File tempJar = new File(System.getProperty("java.io.tmpdir"), "PoderFinanceiro_Update.jar");
@@ -58,7 +88,6 @@ public class UpdateService {
             Files.write(tempJar.toPath(), jarBytes);
             log.info("[UPDATE] Download concluído com sucesso ({} bytes).", jarBytes.length);
 
-            boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
             File scriptFile = gerarScriptAtualizacao(tempJar, isWindows);
 
             log.info("[UPDATE] Script de transição gerado. Reiniciando a aplicação...");
