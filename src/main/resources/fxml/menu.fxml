@@ -42,5 +42,9 @@
     <Menu text="_Ajuda">
         <MenuItem text="🤖 Assistente de IA (Gemini)" onAction="#handleAbrirIA"
             accelerator="Shortcut+I" />
+        <SeparatorMenuItem />
+        <MenuItem
+            text="🔄 Verificar Atualizações..."
+            onAction="#handleVerificarAtualizacoes" />
     </Menu>
 </MenuBar>

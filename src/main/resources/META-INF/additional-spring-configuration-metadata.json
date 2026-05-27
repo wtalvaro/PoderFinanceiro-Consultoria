@@ -8,5 +8,10 @@
     "name": "\ngemini.api.ur",
     "type": "java.lang.String",
     "description": "A description for '\ngemini.api.ur'"
+  },
+  {
+    "name": "\napp.versio",
+    "type": "java.lang.String",
+    "description": "A description for '\napp.versio'"
   }
 ]}
