@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 
@@ -16,8 +17,14 @@ public class StatusBarController {
 
     private final AuthService authService;
 
+    // Lendo a versão direto do application.properties gerenciado pelo Maven
+    @Value("${app.version:v1.0.0}")
+    private String appVersion;
+
     @FXML
     private Label lblUsuario;
+    @FXML
+    private Label lblVersao;
 
     // Injeção de dependência via construtor para o Spring
     public StatusBarController(AuthService authService) {
@@ -31,6 +38,13 @@ public class StatusBarController {
         log.info("[STATUS_BAR] StatusBarController carregado com sucesso!");
 
         atualizarStatusUsuario();
+
+        // Atualiza dinamicamente a versão lida do arquivo de propriedades
+        if (lblVersao != null) {
+            lblVersao.setText("Poder Financeiro " + appVersion);
+            log.info("[STATUS_BAR] Versão atual da aplicação exibida: {}", appVersion);
+        }
+        
         log.info("[STATUS_BAR] initialize: Configuração concluída");
     }
 

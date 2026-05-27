@@ -13,6 +13,12 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.Set;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Path;
+
 @Service
 public class UpdateService {
 
@@ -84,9 +90,26 @@ public class UpdateService {
 
         try {
             log.debug("[UPDATE] Baixando arquivo de: {}", downloadUrl);
-            byte[] jarBytes = restClient.get().uri(downloadUrl).retrieve().body(byte[].class);
-            Files.write(tempJar.toPath(), jarBytes);
-            log.info("[UPDATE] Download concluído com sucesso ({} bytes).", jarBytes.length);
+
+            // Utiliza o HttpClient nativo do Java para lidar com redirecionamentos (GitHub
+            // -> AWS) e Streaming direto para o disco
+            HttpClient client = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .build();
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(downloadUrl))
+                    .GET()
+                    .build();
+
+            HttpResponse<Path> response = client.send(request, HttpResponse.BodyHandlers.ofFile(tempJar.toPath()));
+
+            if (response.statusCode() >= 400) {
+                throw new RuntimeException(
+                        "Falha no servidor ao baixar atualização. Status HTTP: " + response.statusCode());
+            }
+
+            log.info("[UPDATE] Download concluído com sucesso direto para o disco.");
 
             File scriptFile = gerarScriptAtualizacao(tempJar, isWindows);
 

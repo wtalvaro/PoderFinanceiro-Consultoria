@@ -25,6 +25,6 @@
     <Label text="Última Sincronização: Hoje às 08:30"
         style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted;" />
     <Separator orientation="VERTICAL" />
-    <Label text="Poder Financeiro v2.0"
+    <Label fx:id="lblVersao" text="Poder Financeiro..."
         style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -color-fg-muted;" />
 </HBox>
