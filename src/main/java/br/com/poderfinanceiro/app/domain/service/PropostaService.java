@@ -231,19 +231,16 @@ public class PropostaService {
     public PropostaModel converterRascunhoParaProposta(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado,
             ProponenteModel cliente) {
         if (resultado == null || resultado.tabela() == null || resultado.tabela().getBanco() == null) {
-            log.error(
-                    "[PROPOSTA_SERVICE] converterRascunhoParaProposta: Resultado ou tabela de simulação inválido para conversão de rascunho");
+            log.error("[PROPOSTA_SERVICE] converterRascunhoParaProposta: Resultado ou tabela de simulação inválido.");
             throw new IllegalArgumentException("Resultado de simulação inválido para conversão de rascunho em proposta.");
         }
 
         if (cliente == null) {
-            log.error("[PROPOSTA_SERVICE] converterRascunhoParaProposta: Cliente nulo para conversão de rascunho em proposta");
+            log.error("[PROPOSTA_SERVICE] converterRascunhoParaProposta: Cliente nulo.");
             throw new IllegalArgumentException("Cliente inválido para conversão de rascunho em proposta.");
         }
 
-        log.info(
-                "[PROPOSTA_SERVICE] converterRascunhoParaProposta: Convertendo rascunho para proposta - cliente ID={}, banco='{}'",
-                cliente.getId(), resultado.tabela().getBanco().getNome());
+        log.info("[PROPOSTA_SERVICE] Montando rascunho de proposta em memória para o cliente: {}", cliente.getNomeCompleto());
 
         PropostaModel novaProposta = new PropostaModel();
         novaProposta.setProponente(cliente);
@@ -252,13 +249,20 @@ public class PropostaService {
 
         novaProposta.setValorSolicitado(rascunho.valorDesejado());
         novaProposta.setPrazoDesejado(rascunho.prazoDesejado());
-        novaProposta.setConvenioOrgao(TipoConvenioModel.valueOf(rascunho.tipoConvenio()));
+
+        try {
+            novaProposta.setConvenioOrgao(TipoConvenioModel.valueOf(rascunho.tipoConvenio()));
+        } catch (Exception e) {
+            novaProposta.setConvenioOrgao(TipoConvenioModel.PADRAO);
+        }
 
         novaProposta.setStatus(StatusPropostaModel.DIGITADA);
         novaProposta.setObservacoes("✨ Proposta originada automaticamente via Copiloto de Vendas.");
+        novaProposta.setUsuario(authService.getUsuarioLogado());
 
-        PropostaModel salva = salvarProposta(novaProposta);
-        log.info("[PROPOSTA_SERVICE] Proposta ID={} criada a partir do Copiloto", salva.getId());
-        return salva;
+        // NÃO SALVAMOS NO BANCO AQUI. Retornamos apenas o objeto em memória.
+        log.debug("[PROPOSTA_SERVICE] Rascunho de proposta montado com sucesso.");
+        return novaProposta;
     }
+
 }

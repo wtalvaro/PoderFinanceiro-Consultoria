@@ -75,15 +75,27 @@
               </VBox>
        </VBox>
 
-       <VBox fx:id="overlayMensagem" visible="false" alignment="CENTER" maxWidth="400" maxHeight="200"
+       <!-- Overlay de Mensagem Dinâmico com Scroll -->
+       <VBox fx:id="overlayMensagem" visible="false" alignment="CENTER" maxWidth="450"
               style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
+
               <Label fx:id="lblMsgTitulo"
-                     style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b;" />
-              <Label fx:id="lblMsgTexto" wrapText="true"
-                     style="-fx-font-size: 14px; -fx-text-fill: #475569; -fx-padding: 10 0 20 0;" />
+                     style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b; -fx-padding: 0 0 10 0;" />
+
+              <!-- O ScrollPane garante que o overlay não cresça infinitamente -->
+              <ScrollPane fitToWidth="true"
+                     style="-fx-background-color: transparent; -fx-background: transparent;"
+                     hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" maxHeight="400">
+                     <content>
+                            <Label fx:id="lblMsgTexto" wrapText="true"
+                                   style="-fx-font-size: 14px; -fx-text-fill: #475569; -fx-padding: 0 0 15 0;" />
+                     </content>
+              </ScrollPane>
+
               <Button text="Entendido" onAction="#ocultarOverlayMensagem" maxWidth="Infinity"
                      style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold;" />
        </VBox>
+
 
        <VBox fx:id="overlayConfirmacaoGlobal" visible="false" alignment="CENTER"
               style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">

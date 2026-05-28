@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
-import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
-import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
+import br.com.poderfinanceiro.app.facade.IWorkspaceFacade;
 import br.com.poderfinanceiro.app.util.Disposable;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -12,74 +12,82 @@ import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+/**
+ * <h1>WorkspaceController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável por gerenciar as abas (Tabs) do
+ * sistema. Atua como um <b>Humble Object</b>, delegando a gestão do estado
+ * global (Contexto) para a {@link IWorkspaceFacade}.
+ * </p>
+ */
 @Component
 public class WorkspaceController {
 
-    @FXML
-    private TabPane tabPanePrincipal;
-
-    private final ApplicationContext context;
-    private final AtendimentoContextService contextoService;
-
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(WorkspaceController.class);
+    private static final String LOG_PREFIX = "[WorkspaceController]";
 
-    public WorkspaceController(ApplicationContext context, AtendimentoContextService contextoService) {
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
+    private final ApplicationContext context;
+    private final IWorkspaceFacade workspaceFacade;
+
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
+    @FXML private TabPane tabPanePrincipal;
+
+    public WorkspaceController(ApplicationContext context, IWorkspaceFacade workspaceFacade) {
         this.context = context;
-        this.contextoService = contextoService;
-        log.debug("[WORKSPACE] Construtor: Controller instanciado");
+        this.workspaceFacade = workspaceFacade;
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
     }
 
-    @FXML
-    public void initialize() {
-        log.debug("[WORKSPACE] initialize: Configurando abas e eventos");
+    // ==========================================================================================
+    // MÓDULO 4: INICIALIZAÇÃO E CICLO DE VIDA
+    // ==========================================================================================
+    @FXML public void initialize() {
+        log.info("{} [TELEMETRIA] Inicializando Workspace (Motor de Abas)...", LOG_PREFIX);
         configurarScrollHorizontal();
 
         tabPanePrincipal.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            log.debug("[WORKSPACE] Seleção de aba alterada: {} -> {}",
-                    oldTab != null ? oldTab.getText() : "null",
+            log.trace("{} [UI] Seleção de aba alterada: {} -> {}", LOG_PREFIX, oldTab != null ? oldTab.getText() : "null",
                     newTab != null ? newTab.getText() : "null");
             sincronizarContextoComIA(newTab);
         });
-        log.info("[WORKSPACE] initialize: Workspace configurado com sucesso");
+
+        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
     }
 
+    // ==========================================================================================
+    // MÓDULO 5: GESTÃO DE CONTEXTO GLOBAL
+    // ==========================================================================================
     private void sincronizarContextoComIA(Tab abaFocada) {
-        log.debug("[WORKSPACE] sincronizarContextoComIA: Focando aba '{}'",
-                abaFocada != null ? abaFocada.getText() : "null");
         if (abaFocada == null) {
-            contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
-            log.trace("[WORKSPACE] Nenhuma aba focada, contexto resetado para DASHBOARD");
+            workspaceFacade.resetarContextoParaDashboard();
             return;
         }
 
         Object userData = abaFocada.getUserData();
-        log.trace("[WORKSPACE] userData da aba: {}", userData);
 
         if (userData instanceof String idAba) {
             RotaAba rota = RotaAba.fromId(idAba);
-
-            if (rota != null && rota.getTipoTelaFocada() != null) {
-                if (rota == RotaAba.PROPOSTAS) {
-                    contextoService.setTelaAtualFocada(rota.getTipoTelaFocada());
-                    log.debug("[WORKSPACE] Contexto atualizado: tela focada = PROPOSTAS (sem limpar proponente)");
-                } else {
-                    contextoService.atualizarFocoInterface(null, rota.getTipoTelaFocada());
-                    log.debug("[WORKSPACE] Contexto atualizado: tela focada = {}, proponente limpo",
-                            rota.getTipoTelaFocada());
-                }
+            if (rota != null) {
+                workspaceFacade.atualizarContextoParaRota(rota);
                 return;
             } else if (idAba.startsWith("ABA_")) {
-                contextoService.atualizarFocoInterface(null, TipoTelaFocada.DASHBOARD);
-                log.debug("[WORKSPACE] Aba genérica (ABA_*), contexto resetado para DASHBOARD");
+                workspaceFacade.resetarContextoParaDashboard();
                 return;
             }
         }
@@ -87,30 +95,24 @@ public class WorkspaceController {
         Object controller = abaFocada.getProperties().get("controller");
         if (controller instanceof AtendimentoHubController hub) {
             if (hub.getLeadController() != null && hub.getLeadController().getViewModel() != null) {
-                contextoService.atualizarFocoInterface(hub.getProponenteComCamposDaTela(),
-                        TipoTelaFocada.CADASTRO_CLIENTE);
-                log.debug("[WORKSPACE] Contexto atualizado: CADASTRO_CLIENTE com proponente ativo");
+                workspaceFacade.atualizarContextoParaAtendimento(hub.getProponenteComCamposDaTela());
             } else {
-                contextoService.atualizarFocoInterface(null, TipoTelaFocada.CADASTRO_CLIENTE);
-                log.debug("[WORKSPACE] Contexto atualizado: CADASTRO_CLIENTE sem proponente");
+                workspaceFacade.atualizarContextoParaAtendimento(null);
             }
-        } else {
-            log.trace("[WORKSPACE] Controller da aba não é do tipo esperado, nenhuma ação tomada");
         }
     }
 
-    // ========================================================================
-    // PROTOCOLO DE ADMISSÃO (Motor de Abas)
-    // ========================================================================
-
+    // ==========================================================================================
+    // MÓDULO 6: MOTOR DE ABAS (ADMISSÃO)
+    // ==========================================================================================
     public void admitirAbaSimples(RotaAba rota, String titulo, String fxmlPath) {
         String id = rota.getId();
-        log.debug("[WORKSPACE] admitirAbaSimples: rota={}, titulo='{}'", rota, titulo);
+        log.info("{} [TELEMETRIA] Solicitando abertura de aba. Rota: {}, Título: '{}'", LOG_PREFIX, rota, titulo);
 
         for (Tab tab : tabPanePrincipal.getTabs()) {
             if (id.equals(tab.getUserData())) {
                 tabPanePrincipal.getSelectionModel().select(tab);
-                log.debug("[WORKSPACE] Aba '{}' já existe, apenas selecionada", titulo);
+                log.trace("{} [UI] Aba '{}' já existe. Foco transferido.", LOG_PREFIX, titulo);
                 return;
             }
         }
@@ -127,82 +129,90 @@ public class WorkspaceController {
 
             Object controller = loader.getController();
             novaAba.getProperties().put("controller", controller);
+
             novaAba.setOnCloseRequest(event -> {
-                log.debug("[WORKSPACE] Fechando aba '{}' (rota={})", titulo, rota);
+                log.trace("{} [UI] Fechando aba '{}'.", LOG_PREFIX, titulo);
                 tentarDisposar(controller);
             });
 
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
-            log.info("[WORKSPACE] Nova aba '{}' criada e selecionada (rota={})", titulo, rota);
+            log.info("{} [UI] Nova aba '{}' criada e selecionada.", LOG_PREFIX, titulo);
+
         } catch (IOException e) {
-            log.error("[WORKSPACE] Erro ao carregar aba '{}' com FXML '{}'", titulo, fxmlPath, e);
+            log.error("{} [SISTEMA] Erro ao carregar aba '{}' com FXML '{}': {}", LOG_PREFIX, titulo, fxmlPath, e.getMessage());
         }
     }
 
-    // ========================================================================
-    // MÉTODOS PÚBLICOS (Ordens de Serviço)
-    // ========================================================================
+        public void abrirOuFocarAbaComPropostaEmMemoria(PropostaModel proposta) {
+        log.info("{} [TELEMETRIA] Solicitando abertura de proposta em memória (Copiloto).", LOG_PREFIX);
+        
+        admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
 
+        for (Tab tab : tabPanePrincipal.getTabs()) {
+            if (RotaAba.PROPOSTAS.getId().equals(tab.getUserData())) {
+                Object controller = tab.getProperties().get("controller");
+                if (controller instanceof EsteiraPropostasController esteira) {
+                    // Passa o objeto diretamente para o formulário da esteira
+                    esteira.abrirFormularioComPropostaEmMemoria(proposta);
+                }
+                break;
+            }
+        }
+    }
+
+
+    // ==========================================================================================
+    // MÓDULO 7: ROTAS DIRETAS (ORDENS DE SERVIÇO)
+    // ==========================================================================================
     public void abrirAbaDashboard() {
-        log.info("[WORKSPACE] abrirAbaDashboard: Solicitado");
         admitirAbaSimples(RotaAba.DASHBOARD, "📊 Visão Geral", "/fxml/dashboard.fxml");
     }
 
     public void abrirAbaPlaybook() {
-        log.info("[WORKSPACE] abrirAbaPlaybook: Solicitado");
-        admitirAbaSimples(RotaAba.fromId("ABA_PLAYBOOK") != null ? RotaAba.fromId("ABA_PLAYBOOK") : RotaAba.DASHBOARD,
-                "📚 Playbook", "/fxml/playbook.fxml");
+        admitirAbaSimples(RotaAba.fromId("ABA_PLAYBOOK") != null ? RotaAba.fromId("ABA_PLAYBOOK") : RotaAba.DASHBOARD, "📚 Playbook",
+                "/fxml/playbook.fxml");
     }
 
     public void abrirAbaClientes() {
-        log.info("[WORKSPACE] abrirAbaClientes: Solicitado");
         admitirAbaSimples(RotaAba.CLIENTES, "👥 Clientes", "/fxml/proponente_list.fxml");
     }
 
     public void abrirAbaLinks() {
-        log.info("[WORKSPACE] abrirAbaLinks: Solicitado");
         admitirAbaSimples(RotaAba.LINKS, "🔗 Links Úteis", "/fxml/links_uteis.fxml");
     }
 
     public void abrirAbaTabelasJuros() {
-        log.info("[WORKSPACE] abrirAbaTabelasJuros: Solicitado");
         admitirAbaSimples(RotaAba.JUROS, "📈 Tabelas de Juros", "/fxml/tabelas_juros.fxml");
     }
 
     public void abrirAbaBancosConvenios() {
-        log.info("[WORKSPACE] abrirAbaBancosConvenios: Solicitado");
         admitirAbaSimples(RotaAba.BANCOS, "🏦 Bancos e Convênios", "/fxml/bancos_convenios.fxml");
     }
 
     public void abrirAbaComissoes() {
-        log.info("[WORKSPACE] abrirAbaComissoes: Solicitado");
         admitirAbaSimples(RotaAba.COMISSOES, "💰 Gestão de Repasses (RV)", "/fxml/comissoes.fxml");
     }
 
     public void abrirAbaPropostas(String filtroInicial) {
-        log.info("[WORKSPACE] abrirAbaPropostas: Solicitado (filtro='{}')", filtroInicial);
         admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
     }
 
     public void abrirAbaImportadorTabelas() {
-        log.info("[WORKSPACE] abrirAbaImportadorTabelas: Solicitado");
         admitirAbaSimples(RotaAba.IMPORTADOR_TABELAS, "📥 Importador IA", "/fxml/importador_tabelas.fxml");
     }
 
-    // =====================================================================
-    // ROTEAMENTO: HUB DE CLIENTE
-    // =====================================================================
+    // ==========================================================================================
+    // MÓDULO 8: ROTEAMENTO COMPLEXO (HUB DE CLIENTE)
+    // ==========================================================================================
     public void abrirOuFocarAba(ProponenteModel proponente) {
         String idBuscado = (proponente != null && proponente.getId() != null) ? String.valueOf(proponente.getId())
                 : "NOVO_" + UUID.randomUUID().toString();
-        log.info("[WORKSPACE] abrirOuFocarAba: Cliente '{}' (ID={})",
-                proponente != null ? proponente.getNomeCompleto() : "novo", idBuscado);
+        log.info("{} [TELEMETRIA] Solicitando abertura de Hub de Atendimento. Cliente ID: {}", LOG_PREFIX, idBuscado);
 
         for (Tab tab : tabPanePrincipal.getTabs()) {
             if (idBuscado.equals(String.valueOf(tab.getUserData()))) {
                 tabPanePrincipal.getSelectionModel().select(tab);
-                log.debug("[WORKSPACE] Aba existente encontrada e selecionada para ID={}", idBuscado);
                 if (tab.getProperties().get("controller") instanceof AtendimentoHubController hubExistente) {
                     hubExistente.inicializarAtendimento(proponente);
                 }
@@ -218,10 +228,8 @@ public class WorkspaceController {
 
             if (proponente != null && proponente.getId() != null) {
                 hub.inicializarAtendimento(proponente);
-                log.debug("[WORKSPACE] AtendimentoHub inicializado com cliente existente ID={}", proponente.getId());
             } else {
                 hub.prepararNovoAtendimento();
-                log.debug("[WORKSPACE] AtendimentoHub preparado para novo atendimento");
             }
 
             Tab novaAba = new Tab();
@@ -232,55 +240,53 @@ public class WorkspaceController {
             configurarTituloReativoLead(novaAba, hub);
 
             novaAba.setOnCloseRequest(event -> {
-                log.debug("[WORKSPACE] Tentativa de fechar aba de atendimento ID={}", idBuscado);
-
-                // 1. Bloqueamos o fechamento automático do JavaFX
+                log.trace("{} [UI] Tentativa de fechar aba de atendimento ID: {}", LOG_PREFIX, idBuscado);
                 event.consume();
-
-                // 2. Delegamos a decisão para o HubController.
-                // Se houver alterações, ele mostra o overlay. Se não, ele
-                // executa o Runnable imediatamente.
                 hub.solicitarFechamento(() -> {
                     hub.limparRecursos();
                     tentarDisposar(hub);
                     tabPanePrincipal.getTabs().remove(novaAba);
-                    log.info("[WORKSPACE] Aba de atendimento ID={} fechada com sucesso", idBuscado);
+                    log.info("{} [UI] Aba de atendimento ID {} fechada com sucesso.", LOG_PREFIX, idBuscado);
                 });
             });
 
             tabPanePrincipal.getTabs().add(novaAba);
             tabPanePrincipal.getSelectionModel().select(novaAba);
-            log.info("[WORKSPACE] Nova aba de atendimento criada e selecionada para ID={}", idBuscado);
+
         } catch (IOException e) {
-            log.error("[WORKSPACE] Erro ao criar aba de atendimento para ID={}", idBuscado, e);
+            log.error("{} [SISTEMA] Erro ao criar aba de atendimento para ID {}: {}", LOG_PREFIX, idBuscado, e.getMessage());
         }
     }
 
-    // DEPOIS:
     public void abrirOuFocarAbaComProposta(ProponenteModel proponente, Long propostaIdAlvo) {
-        log.info("[WORKSPACE] abrirOuFocarAbaComProposta: proponente={}, propostaId={}",
-                proponente != null ? proponente.getNomeCompleto() : "null", propostaIdAlvo);
-        if (propostaIdAlvo != null) {
-            admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
-            log.debug("[WORKSPACE] Esteira de propostas garantida, buscando aba para selecionar proposta ID={}",
-                    propostaIdAlvo);
+        log.info("{} [TELEMETRIA] Solicitando abertura de proposta específica. Proposta ID: {}", LOG_PREFIX, propostaIdAlvo);
 
+        if (propostaIdAlvo != null) {
+            // 1. Garante que a aba da Esteira existe
+            admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
+
+            // 2. Procura a aba e passa a instrução
             for (Tab tab : tabPanePrincipal.getTabs()) {
                 if (RotaAba.PROPOSTAS.getId().equals(tab.getUserData())) {
                     Object controller = tab.getProperties().get("controller");
                     if (controller instanceof EsteiraPropostasController esteira) {
-                        esteira.selecionarPropostaPorId(propostaIdAlvo);
-                        log.debug("[WORKSPACE] Proposta ID={} solicitada à esteira", propostaIdAlvo);
+                        // Usamos Platform.runLater para dar tempo da UI
+                        // respirar
+                        javafx.application.Platform.runLater(() -> {
+                            esteira.selecionarPropostaPorId(propostaIdAlvo);
+                        });
                     }
                     break;
                 }
             }
         } else {
-            log.debug("[WORKSPACE] Nenhuma proposta alvo, abrindo apenas aba de cliente");
             abrirOuFocarAba(proponente);
         }
     }
 
+    // ==========================================================================================
+    // MÓDULO 9: UTILITÁRIOS DE UI
+    // ==========================================================================================
     private void configurarTituloReativoLead(Tab aba, AtendimentoHubController hub) {
         aba.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(() -> {
             String nome = hub.getLeadController().getViewModel().nomeProperty().get();
@@ -292,27 +298,18 @@ public class WorkspaceController {
         Label icone = new Label("👤");
         icone.setStyle("-fx-font-size: 14px;");
         aba.setGraphic(icone);
-        log.trace("[WORKSPACE] Título reativo configurado para aba de atendimento");
     }
 
     private void configurarScrollHorizontal() {
-        log.debug("[WORKSPACE] configurarScrollHorizontal: Aplicando rolagem horizontal com scroll do mouse");
-
-        // 1. Aguarda o skin do TabPane ser carregado (necessário para o lookup)
         tabPanePrincipal.skinProperty().addListener((obs, oldSkin, newSkin) -> {
-            if (newSkin != null) {
+            if (newSkin != null)
                 aplicarScrollNoHeader();
-            }
         });
-
-        // 2. Se o skin já estiver pronto, aplica imediatamente
-        if (tabPanePrincipal.getSkin() != null) {
+        if (tabPanePrincipal.getSkin() != null)
             aplicarScrollNoHeader();
-        }
     }
 
     private void aplicarScrollNoHeader() {
-        // Força a aplicação de CSS e layout para garantir que os nós estejam prontos
         tabPanePrincipal.applyCss();
         tabPanePrincipal.layout();
 
@@ -325,21 +322,13 @@ public class WorkspaceController {
                     tabPanePrincipal.getSelectionModel().selectPrevious();
                 event.consume();
             });
-            log.debug("[WORKSPACE] Scroll horizontal configurado com sucesso.");
-        } else {
-            log.warn(
-                    "[WORKSPACE] .tab-header-area não encontrado mesmo após aplicar CSS. Verifique se o arquivo de estilos está carregado.");
         }
     }
 
     private void tentarDisposar(Object controller) {
         if (controller instanceof Disposable disposable) {
             disposable.dispose();
-            log.debug("[WORKSPACE] Recurso do controller {} foi liberado (dispose)",
-                    controller.getClass().getSimpleName());
-        } else {
-            log.trace("[WORKSPACE] Controller {} não implementa Disposable, nenhuma ação necessária",
-                    controller != null ? controller.getClass().getSimpleName() : "null");
+            log.trace("{} [SISTEMA] Recurso do controller {} liberado (dispose).", LOG_PREFIX, controller.getClass().getSimpleName());
         }
     }
 }

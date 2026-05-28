@@ -11,30 +11,31 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
+/**
+ * <h1>CopilotoCardController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável por renderizar um único card de
+ * resultado na lista de simulações do Copiloto. É um componente visual puro.
+ * </p>
+ */
 public class CopilotoCardController {
 
     private static final Logger log = LoggerFactory.getLogger(CopilotoCardController.class);
+    private static final String LOG_PREFIX = "[CopilotoCardController]";
 
-    @FXML
-    private VBox cardContainer;
-    @FXML
-    private Label lblRecomendado;
-    @FXML
-    private Label lblBanco;
-    @FXML
-    private Label lblParcela;
-    @FXML
-    private Label lblComissao;
-    @FXML
-    private Button btnAproveitar;
+    @FXML private VBox cardContainer;
+    @FXML private Label lblRecomendado;
+    @FXML private Label lblBanco;
+    @FXML private Label lblParcela;
+    @FXML private Label lblComissao;
+    @FXML private Button btnAproveitar;
 
     private ResultadoSimulacaoDTO resultado;
     private Consumer<ResultadoSimulacaoDTO> onGerarProposta;
 
     public void setDados(ResultadoSimulacaoDTO resultado, Consumer<ResultadoSimulacaoDTO> onGerarProposta) {
-        // Dado nulo aqui causaria NPE silencioso na renderização do card
         if (resultado == null) {
-            log.error("[COPILOTO_CARD] setDados chamado com resultado null. Card não será renderizado corretamente.");
+            log.error("{} [SISTEMA] setDados chamado com resultado null. Card não será renderizado.", LOG_PREFIX);
             return;
         }
 
@@ -43,24 +44,16 @@ public class CopilotoCardController {
 
         lblBanco.setText("🏦 " + resultado.tabela().getBanco().getNome() + " - " + resultado.tabela().getNomeTabela());
         lblParcela.setText("Parcela: R$ " + FinanceiroUtils.formatarParaExibicao(resultado.valorParcela()));
-        lblComissao.setText(String.format("💰 Comissão: R$ %s (%s%%)",
-                FinanceiroUtils.formatarParaExibicao(resultado.comissaoEstimada()),
+        lblComissao.setText(String.format("💰 Comissão: R$ %s (%s%%)", FinanceiroUtils.formatarParaExibicao(resultado.comissaoEstimada()),
                 resultado.tabela().getComissaoPercentual()));
 
-        log.debug("[COPILOTO_CARD] Card populado. Banco='{}' | Tabela='{}' | Parcela={} | Comissão={}",
-                resultado.tabela().getBanco().getNome(),
-                resultado.tabela().getNomeTabela(),
-                FinanceiroUtils.formatarParaExibicao(resultado.valorParcela()),
-                FinanceiroUtils.formatarParaExibicao(resultado.comissaoEstimada()));
+        log.trace("{} [UI] Card populado. Banco: '{}', Parcela: {}", LOG_PREFIX, resultado.tabela().getBanco().getNome(),
+                FinanceiroUtils.formatarParaExibicao(resultado.valorParcela()));
     }
 
     public void setRecomendadoIA(int rankIA) {
-        // Rank fora do esperado (0–3) indica bug no código que monta os cards
         if (rankIA < 0 || rankIA > 3) {
-            log.warn("[COPILOTO_CARD] rankIA={} fora do intervalo válido (0–3). Banco='{}'. " +
-                    "Tratando como não recomendado.",
-                    rankIA,
-                    resultado != null ? resultado.tabela().getBanco().getNome() : "N/A");
+            log.warn("{} [SISTEMA] rankIA={} fora do intervalo válido (0–3). Tratando como não recomendado.", LOG_PREFIX, rankIA);
             rankIA = 0;
         }
 
@@ -69,9 +62,7 @@ public class CopilotoCardController {
         lblRecomendado.setManaged(recomendado);
 
         if (recomendado) {
-            log.debug("[COPILOTO_CARD] Card marcado como recomendado. Rank={} | Banco='{}'",
-                    rankIA,
-                    resultado != null ? resultado.tabela().getBanco().getNome() : "N/A");
+            log.trace("{} [UI] Aplicando estilo de recomendação. Rank: {}", LOG_PREFIX, rankIA);
 
             if (rankIA == 1) {
                 lblRecomendado.setText("🏆 1ª Escolha da IA");
@@ -102,22 +93,14 @@ public class CopilotoCardController {
         return btnAproveitar;
     }
 
-    @FXML
-    private void handleGerarProposta() {
+    @FXML private void handleGerarProposta() {
         if (resultado == null || onGerarProposta == null) {
-            // Sem este log, o clique no botão simplesmente não faria nada — invisível para
-            // debug
-            log.warn("[COPILOTO_CARD] handleGerarProposta chamado em estado inválido. " +
-                    "resultado={} | onGerarProposta={}",
-                    resultado == null ? "NULL" : "ok",
-                    onGerarProposta == null ? "NULL" : "ok");
+            log.warn("{} [SISTEMA] Clique em 'Aproveitar' ignorado. Estado inválido (resultado ou callback nulos).", LOG_PREFIX);
             return;
         }
 
-        log.info("[COPILOTO_CARD] Usuário acionou 'Aproveitar'. Banco='{}' | Tabela='{}' | Parcela={}",
-                resultado.tabela().getBanco().getNome(),
-                resultado.tabela().getNomeTabela(),
-                FinanceiroUtils.formatarParaExibicao(resultado.valorParcela()));
+        log.info("{} [TELEMETRIA] Usuário acionou 'Aproveitar' no card. Banco: '{}', Tabela: '{}'", LOG_PREFIX,
+                resultado.tabela().getBanco().getNome(), resultado.tabela().getNomeTabela());
 
         onGerarProposta.accept(resultado);
     }

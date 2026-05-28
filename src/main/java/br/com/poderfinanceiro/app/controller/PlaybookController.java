@@ -1,12 +1,8 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.model.PlaybookItemModel;
-import br.com.poderfinanceiro.app.domain.service.AuthService;
-import br.com.poderfinanceiro.app.domain.service.GeminiService;
-import br.com.poderfinanceiro.app.domain.service.PlaybookService;
+import br.com.poderfinanceiro.app.facade.IPlaybookFacade;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -17,131 +13,87 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 
 import java.net.URL;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+/**
+ * <h1>PlaybookController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável pelo Playbook de Vendas. Implementa
+ * o padrão <b>Humble Object</b>, delegando a persistência, filtros e
+ * estruturação via IA para a {@link IPlaybookFacade}.
+ * </p>
+ */
 @Controller
 public class PlaybookController implements Initializable {
 
-    // =========================================================================
-    // CONSTANTES (Clean Code)
-    // =========================================================================
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
+    private static final Logger log = LoggerFactory.getLogger(PlaybookController.class);
+    private static final String LOG_PREFIX = "[PlaybookController]";
+
     private static final String MODELO_PADRAO = "gemini-3.5-flash";
     private static final String NOME_CONSULTOR_PLACEHOLDER = "%CONSULTOR%";
-    private static final String PROMPT_ENGENHARIA_VENDAS = """
-            Você é um Diretor Comercial e Estrategista de Vendas especializado em correspondentes bancários.
 
-            REGRAS ABSOLUTAS E INQUEBRÁVEIS (PUNIÇÃO SE DESCUMPRIR):
-            1. "conteudo": ESTE É O CAMPO PRINCIPAL. Aqui vai 100% do texto que o cliente vai ler no WhatsApp. Extraia a mensagem de vendas na íntegra, com todos os textos, links, gatilhos, emojis e formatações originais (use \\n para quebras de linha). É PROIBIDO colocar a copy de vendas em qualquer outro lugar.
-            2. "dica": INVENTE UMA DICA CURTA. É ESTRITAMENTE PROIBIDO colocar o texto da mensagem de vendas aqui.
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
+    private final IPlaybookFacade playbookFacade;
 
-            --- EXEMPLO PRÁTICO (SIGA EXATAMENTE ESTA PROPORÇÃO) ---
-            TEXTO BRUTO DE ENTRADA:
-            "Estratégia para hoje: Mandar pra quem sumiu. Texto para enviar: Olá! Tudo bem? Vi que conversamos sobre o empréstimo, mas não finalizamos. Muitos clientes na sua situação já liberaram os valores hoje! Posso dar continuidade ao seu processo para garantir seu dinheiro ainda hoje? Lembre-se: Sem consultas ao SPC/Serasa e cai em 10 minutos via PIX. Me responde com um SIM."
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
+    @FXML private TextField txtBusca;
+    @FXML private TreeView<String> treeViewScripts;
 
-            JSON DE SAÍDA ESPERADO:
-            {
-              "categoria": "Geral / Remarketing",
-              "titulo": "Resgate de Indecisos",
-              "conteudo": "Olá! Tudo bem? Vi que conversamos sobre o empréstimo, mas não finalizamos.\\n\\nMuitos clientes na sua situação já liberaram os valores hoje! Posso dar continuidade ao seu processo para garantir seu dinheiro ainda hoje?\\n\\nLembre-se: Sem consultas ao SPC/Serasa e cai em 10 minutos via PIX.\\n\\nMe responde com um SIM.",
-              "dica": "Dispare esta mensagem no final da tarde criando senso de escassez e foque na palavra 'PIX' para reativar o cliente."
-            }
-            --------------------------------------------------------
+    @FXML private TextField txtTitulo;
+    @FXML private TextField txtCategoria;
+    @FXML private TextArea txtConteudo;
 
-            Retorne APENAS o objeto JSON puro e válido. Não adicione crases de markdown (```json).
+    @FXML private StackPane stackDica;
+    @FXML private Label lblDica;
+    @FXML private TextArea txtDica;
 
-            Texto bruto real recebido do grupo para processar agora:
-            """;
+    @FXML private Button btnCopiar, btnEditar, btnExcluir;
+    @FXML private HBox boxAcoesTopo, boxAcoesEdicao;
 
-    private static final Logger log = LoggerFactory.getLogger(PlaybookController.class);
+    @FXML private VBox overlayIA;
+    @FXML private TextArea txtInputIA;
+    @FXML private Button btnProcessarIA;
+    @FXML private ComboBox<String> cmbModeloIA;
 
-    // =========================================================================
-    // COMPONENTES FXML
-    // =========================================================================
-    @FXML
-    private TextField txtBusca;
-    @FXML
-    private TreeView<String> treeViewScripts;
-
-    // Campos principais
-    @FXML
-    private TextField txtTitulo;
-    @FXML
-    private TextField txtCategoria;
-    @FXML
-    private TextArea txtConteudo;
-
-    // Inline Editing Dica
-    @FXML
-    private StackPane stackDica;
-    @FXML
-    private Label lblDica;
-    @FXML
-    private TextArea txtDica;
-
-    // Ações
-    @FXML
-    private Button btnCopiar;
-    @FXML
-    private Button btnEditar;
-    @FXML
-    private Button btnExcluir;
-    @FXML
-    private HBox boxAcoesTopo;
-    @FXML
-    private HBox boxAcoesEdicao;
-
-    // IA Overlay
-    @FXML
-    private VBox overlayIA;
-    @FXML
-    private TextArea txtInputIA;
-    @FXML
-    private Button btnProcessarIA;
-    @FXML
-    private ComboBox<String> cmbModeloIA;
-
-    // =========================================================================
-    // DEPENDÊNCIAS E ESTADO
-    // =========================================================================
-    private final PlaybookService playbookService;
-    private final AuthService authService;
-    private final GeminiService geminiService;
-
+    // ==========================================================================================
+    // MÓDULO 4: ESTADO INTERNO DA TELA
+    // ==========================================================================================
     private List<PlaybookItemModel> todosOsItens;
     private PlaybookItemModel itemSelecionadoAtual;
-
     private boolean modoEdicao = false;
     private boolean criandoNovo = false;
     private boolean modelosCarregados = false;
 
-    public PlaybookController(PlaybookService playbookService, AuthService authService, GeminiService geminiService) {
-        this.playbookService = playbookService;
-        this.authService = authService;
-        this.geminiService = geminiService;
-        log.debug("[PLAYBOOK] Construtor: Controller instanciado");
+    public PlaybookController(IPlaybookFacade playbookFacade) {
+        this.playbookFacade = playbookFacade;
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
     }
 
-    // =========================================================================
-    // INICIALIZAÇÃO
-    // =========================================================================
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        log.debug("[PLAYBOOK] initialize: Carregando dados do Playbook");
-        this.todosOsItens = playbookService.listarTudoParaOPlaybook();
-        construirArvore(this.todosOsItens, false);
+    // ==========================================================================================
+    // MÓDULO 5: INICIALIZAÇÃO E CICLO DE VIDA
+    // ==========================================================================================
+    @Override public void initialize(URL location, ResourceBundle resources) {
+        log.info("{} [TELEMETRIA] Inicializando interface do Playbook...", LOG_PREFIX);
+
+        AsyncUtils.executarTaskAsync(playbookFacade::listarTodosOsScripts, itens -> {
+            this.todosOsItens = itens;
+            construirArvore(this.todosOsItens, false);
+            log.info("{} [TELEMETRIA] Playbook inicializado com {} itens.", LOG_PREFIX, itens.size());
+        }, erro -> log.error("{} [SISTEMA] Erro ao carregar playbook: {}", LOG_PREFIX, erro.getMessage()));
+
         configurarSelecaoNaArvore();
         configurarFiltroDeBusca();
         alternarModoVisualizacao(false);
@@ -149,38 +101,27 @@ public class PlaybookController implements Initializable {
         if (cmbModeloIA != null) {
             cmbModeloIA.getItems().add(MODELO_PADRAO);
             cmbModeloIA.getSelectionModel().selectFirst();
-            log.debug("[PLAYBOOK] initialize: Modelo padrão adicionado ao combobox");
         }
-        log.info("[PLAYBOOK] initialize: Playbook inicializado com {} itens",
-                todosOsItens != null ? todosOsItens.size() : 0);
+        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
     }
 
+    // ==========================================================================================
+    // MÓDULO 6: CONFIGURAÇÃO DA ÁRVORE E FILTROS
+    // ==========================================================================================
     private void configurarFiltroDeBusca() {
-        log.debug("[PLAYBOOK] configurarFiltroDeBusca: Configurando listener de busca textual");
+        log.trace("{} [UI] Configurando listener de busca reativa.", LOG_PREFIX);
         txtBusca.textProperty().addListener((obs, oldVal, newVal) -> {
-            log.debug("[PLAYBOOK] Busca alterada: '{}' -> '{}'", oldVal, newVal);
-            if (newVal == null || newVal.trim().isEmpty()) {
-                construirArvore(this.todosOsItens, false);
-                return;
-            }
-            String termo = newVal.toLowerCase().trim();
-            List<PlaybookItemModel> itensFiltrados = todosOsItens.stream()
-                    .filter(item -> item.getTitulo().toLowerCase().contains(termo)
-                            || item.getCategoria().toLowerCase().contains(termo)
-                            || item.getConteudo().toLowerCase().contains(termo))
-                    .collect(Collectors.toList());
-            log.debug("[PLAYBOOK] Filtro aplicado: {} itens restantes de {}", itensFiltrados.size(),
-                    todosOsItens.size());
-            construirArvore(itensFiltrados, true);
+            log.debug("{} [UI] Termo de busca alterado: '{}'", LOG_PREFIX, newVal);
+            AsyncUtils.executarTaskAsync(() -> playbookFacade.filtrarScripts(newVal),
+                    itensFiltrados -> construirArvore(itensFiltrados, newVal != null && !newVal.trim().isEmpty()),
+                    erro -> log.error("{} [SISTEMA] Erro ao filtrar scripts: {}", LOG_PREFIX, erro.getMessage()));
         });
     }
 
     private void construirArvore(List<PlaybookItemModel> itensParaExibir, boolean expandirPastas) {
-        log.trace("[PLAYBOOK] construirArvore: Construindo árvore com {} itens, expandirPastas={}",
-                itensParaExibir != null ? itensParaExibir.size() : 0, expandirPastas);
+        log.trace("{} [UI] Construindo árvore visual com {} itens.", LOG_PREFIX, itensParaExibir != null ? itensParaExibir.size() : 0);
         if (itensParaExibir == null || itensParaExibir.isEmpty()) {
             treeViewScripts.setRoot(new TreeItem<>("Nenhum resultado encontrado"));
-            log.warn("[PLAYBOOK] Nenhum item para exibir na árvore");
             return;
         }
 
@@ -195,8 +136,7 @@ public class PlaybookController implements Initializable {
             categoriaNode.setExpanded(expandirPastas);
 
             List<PlaybookItemModel> scriptsOrdenados = entry.getValue().stream()
-                    .sorted(Comparator.comparing(PlaybookItemModel::getTitulo, String.CASE_INSENSITIVE_ORDER))
-                    .collect(Collectors.toList());
+                    .sorted(Comparator.comparing(PlaybookItemModel::getTitulo, String.CASE_INSENSITIVE_ORDER)).toList();
 
             for (PlaybookItemModel item : scriptsOrdenados) {
                 categoriaNode.getChildren().add(new TreeItem<>(item.getTitulo()));
@@ -207,32 +147,25 @@ public class PlaybookController implements Initializable {
     }
 
     private void configurarSelecaoNaArvore() {
-        log.debug("[PLAYBOOK] configurarSelecaoNaArvore: Adicionando listener de seleção");
+        log.trace("{} [UI] Configurando listener de seleção na árvore.", LOG_PREFIX);
         treeViewScripts.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (modoEdicao) {
-                log.trace("[PLAYBOOK] Seleção ignorada porque modo de edição está ativo");
+            if (modoEdicao)
                 return;
-            }
 
-            if (newVal != null && newVal.isLeaf() && newVal.getParent() != null
-                    && newVal.getParent().getValue() != null) {
-                log.debug("[PLAYBOOK] Selecionado script: '{}' na categoria '{}'", newVal.getValue(),
-                        newVal.getParent().getValue());
+            if (newVal != null && newVal.isLeaf() && newVal.getParent() != null && newVal.getParent().getValue() != null) {
+                log.debug("{} [UI] Script selecionado: '{}'", LOG_PREFIX, newVal.getValue());
                 exibirDetalhesDoScript(newVal.getValue(), newVal.getParent().getValue());
             } else {
-                log.trace("[PLAYBOOK] Seleção não é uma folha válida, limpando painel");
                 limparPainelDeDetalhes();
             }
         });
     }
 
     private void exibirDetalhesDoScript(String titulo, String categoria) {
-        log.debug("[PLAYBOOK] exibirDetalhesDoScript: Buscando detalhes do script '{}' / '{}'", titulo, categoria);
-        String nomeConsultor = authService.estaLogado() ? authService.getUsuarioLogado().getNome() : "Consultor(a)";
+        log.trace("{} [UI] Exibindo detalhes do script: {}", LOG_PREFIX, titulo);
+        String nomeConsultor = playbookFacade.obterNomeConsultorLogado();
 
-        todosOsItens.stream()
-                .filter(i -> i.getTitulo().equals(titulo) && i.getCategoria().equals(categoria))
-                .findFirst()
+        todosOsItens.stream().filter(i -> i.getTitulo().equals(titulo) && i.getCategoria().equals(categoria)).findFirst()
                 .ifPresent(item -> {
                     this.itemSelecionadoAtual = item;
                     txtTitulo.setText(item.getTitulo());
@@ -243,16 +176,14 @@ public class PlaybookController implements Initializable {
                     btnCopiar.setDisable(false);
                     btnEditar.setDisable(false);
                     btnExcluir.setDisable(false);
-                    log.info("[PLAYBOOK] Detalhes exibidos para script '{}' : '{}'", item.getTitulo(), item.getCategoria());
                 });
     }
 
-    // =========================================================================
-    // AÇÕES DE CRUD E INTERFACE
-    // =========================================================================
-    @FXML
-    private void handleNovo() {
-        log.info("[PLAYBOOK] handleNovo: Criando novo script");
+    // ==========================================================================================
+    // MÓDULO 7: AÇÕES DE CRUD E INTERFACE
+    // ==========================================================================================
+    @FXML private void handleNovo() {
+        log.info("{} [TELEMETRIA] Usuário solicitou criação de novo script.", LOG_PREFIX);
         this.itemSelecionadoAtual = new PlaybookItemModel();
         this.criandoNovo = true;
         txtTitulo.setText("");
@@ -264,68 +195,67 @@ public class PlaybookController implements Initializable {
         txtTitulo.requestFocus();
     }
 
-    @FXML
-    private void handleEditar() {
-        if (itemSelecionadoAtual == null) {
-            log.warn("[PLAYBOOK] handleEditar: Nenhum item selecionado para edição");
+    @FXML private void handleEditar() {
+        if (itemSelecionadoAtual == null)
             return;
-        }
-        log.info("[PLAYBOOK] handleEditar: Editando script '{}'", itemSelecionadoAtual.getTitulo());
+        log.info("{} [TELEMETRIA] Usuário solicitou edição do script: {}", LOG_PREFIX, itemSelecionadoAtual.getTitulo());
         this.criandoNovo = false;
         txtConteudo.setText(itemSelecionadoAtual.getConteudo());
         alternarModoVisualizacao(true);
     }
 
-    @FXML
-    private void handleExcluir() {
+    @FXML private void handleExcluir() {
         if (itemSelecionadoAtual != null) {
-            log.info("[PLAYBOOK] handleExcluir: Excluindo script '{}' : '{}'", itemSelecionadoAtual.getTitulo(),
-                    itemSelecionadoAtual.getCategoria());
+            log.warn("{} [TELEMETRIA] Usuário solicitou exclusão do script: {}", LOG_PREFIX, itemSelecionadoAtual.getTitulo());
             todosOsItens.remove(itemSelecionadoAtual);
-            playbookService.salvarTodos(todosOsItens);
-            limparPainelDeDetalhes();
-            construirArvore(todosOsItens, false);
-        } else {
-            log.warn("[PLAYBOOK] handleExcluir: Tentativa de exclusão sem item selecionado");
+
+            AsyncUtils.executarTaskAsync(() -> {
+                playbookFacade.salvarTodosOsScripts(todosOsItens);
+                return null;
+            }, sucesso -> {
+                log.info("{} [AUDITORIA] Script excluído com sucesso.", LOG_PREFIX);
+                limparPainelDeDetalhes();
+                construirArvore(todosOsItens, false);
+            }, erro -> log.error("{} [AUDITORIA] Erro ao excluir script: {}", LOG_PREFIX, erro.getMessage()));
         }
     }
 
-    @FXML
-    private void handleSalvar() {
+    @FXML private void handleSalvar() {
         if (txtTitulo.getText().trim().isEmpty() || txtCategoria.getText().trim().isEmpty()) {
-            log.warn("[PLAYBOOK] handleSalvar: Título ou categoria vazios, salvamento cancelado");
+            log.warn("{} [NEGOCIO] Salvamento bloqueado: Título ou categoria vazios.", LOG_PREFIX);
             return;
         }
 
-        log.info("[PLAYBOOK] handleSalvar: Salvando script '{}' (criandoNovo={})", txtTitulo.getText(), criandoNovo);
+        log.info("{} [TELEMETRIA] Salvando script: {}", LOG_PREFIX, txtTitulo.getText());
         itemSelecionadoAtual.setTitulo(txtTitulo.getText().trim());
         itemSelecionadoAtual.setCategoria(txtCategoria.getText().trim());
         itemSelecionadoAtual.setConteudo(txtConteudo.getText().trim());
         itemSelecionadoAtual.setDica(txtDica.getText().trim());
 
-        if (criandoNovo) {
+        if (criandoNovo)
             todosOsItens.add(itemSelecionadoAtual);
-        }
 
-        playbookService.salvarTodos(todosOsItens);
-        construirArvore(todosOsItens, true);
-        alternarModoVisualizacao(false);
-        exibirDetalhesDoScript(itemSelecionadoAtual.getTitulo(), itemSelecionadoAtual.getCategoria());
+        AsyncUtils.executarTaskAsync(() -> {
+            playbookFacade.salvarTodosOsScripts(todosOsItens);
+            return null;
+        }, sucesso -> {
+            log.info("{} [AUDITORIA] Script salvo com sucesso.", LOG_PREFIX);
+            construirArvore(todosOsItens, true);
+            alternarModoVisualizacao(false);
+            exibirDetalhesDoScript(itemSelecionadoAtual.getTitulo(), itemSelecionadoAtual.getCategoria());
+        }, erro -> log.error("{} [AUDITORIA] Erro ao salvar script: {}", LOG_PREFIX, erro.getMessage()));
     }
 
-    @FXML
-    private void handleCancelar() {
-        log.debug("[PLAYBOOK] handleCancelar: Cancelando edição");
+    @FXML private void handleCancelar() {
+        log.trace("{} [UI] Edição cancelada pelo usuário.", LOG_PREFIX);
         alternarModoVisualizacao(false);
-        if (criandoNovo) {
+        if (criandoNovo)
             limparPainelDeDetalhes();
-        } else {
+        else
             exibirDetalhesDoScript(itemSelecionadoAtual.getTitulo(), itemSelecionadoAtual.getCategoria());
-        }
     }
 
     private void alternarModoVisualizacao(boolean editando) {
-        log.debug("[PLAYBOOK] alternarModoVisualizacao: editando={}", editando);
         this.modoEdicao = editando;
         txtTitulo.setEditable(editando);
         txtCategoria.setEditable(editando);
@@ -338,9 +268,9 @@ public class PlaybookController implements Initializable {
         txtTitulo.setStyle(txtTitulo.getStyle() + (editando ? bordaAtiva : bordaInativa));
         txtCategoria.setStyle(txtCategoria.getStyle() + (editando ? bordaAtiva : bordaInativa));
 
-        if (editando) {
+        if (editando)
             txtDica.setText(lblDica.getText());
-        }
+
         lblDica.setVisible(!editando);
         lblDica.setManaged(!editando);
         txtDica.setVisible(editando);
@@ -354,7 +284,6 @@ public class PlaybookController implements Initializable {
     }
 
     private void limparPainelDeDetalhes() {
-        log.debug("[PLAYBOOK] limparPainelDeDetalhes: Resetando painel");
         this.itemSelecionadoAtual = null;
         txtTitulo.setText("Selecione um Script");
         txtCategoria.setText("");
@@ -365,115 +294,73 @@ public class PlaybookController implements Initializable {
         btnExcluir.setDisable(true);
     }
 
-    @FXML
-    private void handleCopiar() {
+    @FXML private void handleCopiar() {
         String textoParaCopiar = txtConteudo.getText();
         if (textoParaCopiar != null && !textoParaCopiar.isEmpty()) {
-            log.info("[PLAYBOOK] handleCopiar: Copiando conteúdo do script '{}'",
-                    itemSelecionadoAtual != null ? itemSelecionadoAtual.getTitulo() : "desconhecido");
+            log.info("{} [TELEMETRIA] Usuário copiou o conteúdo do script.", LOG_PREFIX);
             ClipboardContent content = new ClipboardContent();
             content.putString(textoParaCopiar);
             Clipboard.getSystemClipboard().setContent(content);
 
             String textoOriginal = btnCopiar.getText();
             btnCopiar.setText("Copiado! ✓");
-            btnCopiar.setStyle(
-                    "-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
+            btnCopiar.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
 
             new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
+                @Override public void run() {
                     Platform.runLater(() -> {
                         btnCopiar.setText(textoOriginal);
-                        btnCopiar.setStyle(
-                                "-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
+                        btnCopiar.setStyle("-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
                     });
                 }
             }, 2000);
-        } else {
-            log.warn("[PLAYBOOK] handleCopiar: Nada para copiar (conteúdo vazio)");
         }
     }
 
-    // =========================================================================
-    // ENGENHARIA COGNITIVA (GEMINI)
-    // =========================================================================
-    // 🚀 PATCH: Delegação para AsyncUtils
-    @FXML
-    private void handleGerarComIA() {
-        log.info("[PLAYBOOK] handleGerarComIA: Abrindo overlay de geração com IA");
+    // ==========================================================================================
+    // MÓDULO 8: INTELIGÊNCIA ARTIFICIAL (GEMINI)
+    // ==========================================================================================
+    @FXML private void handleGerarComIA() {
+        log.info("{} [TELEMETRIA] Abrindo overlay de geração com IA.", LOG_PREFIX);
         txtInputIA.clear();
         overlayIA.setVisible(true);
         txtInputIA.requestFocus();
 
         if (!modelosCarregados && cmbModeloIA != null) {
-            String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
-            if (token != null && !token.isBlank()) {
-                log.debug("[PLAYBOOK] Carregando modelos Gemini disponíveis");
-                AsyncUtils.executarTaskAsync(
-                        () -> geminiService.listarModelosMultimodais(token),
-                        modelos -> {
-                            cmbModeloIA.getItems().setAll(modelos);
-                            cmbModeloIA.getSelectionModel()
-                                    .select(modelos.contains(MODELO_PADRAO) ? MODELO_PADRAO : modelos.get(0));
-                            modelosCarregados = true;
-                            log.info("[PLAYBOOK] {} modelos carregados no combobox", modelos.size());
-                        },
-                        erro -> log.error("[PLAYBOOK] Erro ao carregar modelos Gemini", erro));
-            }
+            AsyncUtils.executarTaskAsync(playbookFacade::listarModelosIADisponiveis, modelos -> {
+                if (!modelos.isEmpty()) {
+                    cmbModeloIA.getItems().setAll(modelos);
+                    cmbModeloIA.getSelectionModel().select(modelos.contains(MODELO_PADRAO) ? MODELO_PADRAO : modelos.get(0));
+                    modelosCarregados = true;
+                }
+            }, erro -> log.error("{} [SISTEMA] Erro ao carregar modelos Gemini: {}", LOG_PREFIX, erro.getMessage()));
         }
     }
 
-    @FXML
-    private void fecharOverlayIA() {
-        log.debug("[PLAYBOOK] fecharOverlayIA: Fechando overlay de IA");
+    @FXML private void fecharOverlayIA() {
+        log.trace("{} [UI] Fechando overlay de IA.", LOG_PREFIX);
         overlayIA.setVisible(false);
     }
 
-    // 🚀 PATCH: Delegação para AsyncUtils
-    @FXML
-    private void processarTextoComIA() {
+    @FXML private void processarTextoComIA() {
         String textoBruto = txtInputIA.getText();
         if (textoBruto == null || textoBruto.trim().isEmpty()) {
-            log.warn("[PLAYBOOK] processarTextoComIA: Texto de entrada vazio, cancelando");
+            log.warn("{} [NEGOCIO] Processamento bloqueado: Texto de entrada vazio.", LOG_PREFIX);
             return;
         }
 
-        log.info("[PLAYBOOK] processarTextoComIA: Enviando texto para IA (tamanho={})", textoBruto.length());
+        String modelo = (cmbModeloIA != null && cmbModeloIA.getValue() != null) ? cmbModeloIA.getValue() : MODELO_PADRAO;
+        log.info("{} [TELEMETRIA] Enviando texto para estruturação via IA. Modelo: {}", LOG_PREFIX, modelo);
+
         btnProcessarIA.setDisable(true);
         btnProcessarIA.setText("Processando...");
 
-        String promptCompleto = PROMPT_ENGENHARIA_VENDAS + "--- inicio do conteudo --- \n" + textoBruto
-                + "\n --- final do conteudo ---";
-        String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
-        String modelo = (cmbModeloIA != null && cmbModeloIA.getValue() != null) ? cmbModeloIA.getValue()
-                : MODELO_PADRAO;
-
-        AsyncUtils.executarTaskAsync(
-                () -> formatarRespostaIAParaJson(geminiService.perguntarTexto(promptCompleto, token, modelo)),
-                jsonNode -> aplicarEstruturaIA(jsonNode),
+        AsyncUtils.executarTaskAsync(() -> playbookFacade.estruturarTextoComIA(textoBruto, modelo), this::aplicarEstruturaIA,
                 erro -> aplicarErroIA(erro, textoBruto));
     }
 
-    private JsonNode formatarRespostaIAParaJson(String respostaBruta) throws Exception {
-        log.debug("[PLAYBOOK] formatarRespostaIAParaJson: Processando resposta da IA (tamanho={})",
-                respostaBruta != null ? respostaBruta.length() : 0);
-        if (respostaBruta == null || respostaBruta.isBlank()) {
-            throw new Exception("A inteligência artificial não retornou dados.");
-        }
-
-        int startIndex = respostaBruta.indexOf('{');
-        int endIndex = respostaBruta.lastIndexOf('}');
-
-        if (startIndex >= 0 && endIndex >= startIndex) {
-            String jsonPuro = respostaBruta.substring(startIndex, endIndex + 1);
-            return new ObjectMapper().readTree(jsonPuro.trim());
-        }
-        throw new Exception("Padrão JSON estruturado não localizado.");
-    }
-
     private void aplicarEstruturaIA(JsonNode node) {
-        log.info("[PLAYBOOK] aplicarEstruturaIA: Estruturando novo script a partir da resposta IA");
+        log.info("{} [AUDITORIA] Estruturação via IA concluída com sucesso.", LOG_PREFIX);
         this.itemSelecionadoAtual = new PlaybookItemModel();
         this.criandoNovo = true;
 
@@ -489,7 +376,7 @@ public class PlaybookController implements Initializable {
     }
 
     private void aplicarErroIA(Throwable erro, String textoBruto) {
-        log.error("[PLAYBOOK][ERROIA] Erro: {}", erro.getMessage(), erro);
+        log.error("{} [AUDITORIA] Falha na estruturação via IA: {}", LOG_PREFIX, erro.getMessage());
         txtInputIA.setText("⚠️ Falha ao estruturar dados ou servidores ocupados. Tente outro modelo.\n\n" + textoBruto);
         btnProcessarIA.setDisable(false);
         btnProcessarIA.setText("✨ Estruturar com Gemini");

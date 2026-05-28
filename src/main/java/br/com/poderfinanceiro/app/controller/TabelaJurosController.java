@@ -5,155 +5,163 @@ import br.com.poderfinanceiro.app.domain.event.TabelaJurosUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
-import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.facade.ITabelaJurosFacade;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.TabelaJurosViewModel;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
-import org.springframework.stereotype.Component;
 import org.controlsfx.control.MasterDetailPane;
-import javafx.beans.binding.Bindings;
-
-import java.math.BigDecimal;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+
+/**
+ * <h1>TabelaJurosController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável por gerenciar as Tabelas de Juros.
+ * Implementa o padrão <b>Humble Object</b>, delegando a persistência, filtros e
+ * formatações para a {@link ITabelaJurosFacade}.
+ * </p>
+ */
 @Component
 public class TabelaJurosController implements Disposable {
 
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(TabelaJurosController.class);
+    private static final String LOG_PREFIX = "[TabelaJurosController]";
 
-    private final TabelaJurosService service;
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
+    private final ITabelaJurosFacade tabelaFacade;
     private final TabelaJurosViewModel viewModel;
-    private final BancoRepository bancoRepository;
     private final BancoUIEventHub bancoEventHub;
     private final TabelaJurosUIEventHub tabelaEventHub;
 
-    @FXML
-    private MasterDetailPane paneFormulario; // Trocado de TitledPane para MasterDetailPane
-    @FXML
-    private Label lblFormTitulo; // Novo label interno do formulário
-    @FXML
-    private Button btnToggleForm; // Novo botão mestre do cabeçalho
-    @FXML
-    private Label lblAviso;
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
+    @FXML private MasterDetailPane paneFormulario;
+    @FXML private Label lblFormTitulo;
+    @FXML private Button btnToggleForm;
+    @FXML private Label lblAviso;
 
-    @FXML
-    private TextField txtNomeTabela;
-    @FXML
-    private ComboBox<TipoConvenioModel> comboConvenio;
-    @FXML
-    private TextField txtTaxaMensal;
-    @FXML
-    private TextField txtComissao;
-    @FXML
-    private TextField txtValorMinimo;
-    @FXML
-    private TextField txtValorMaximo;
-    @FXML
-    private TextField txtPrazoMinimo;
-    @FXML
-    private TextField txtPrazoMaximo;
-    @FXML
-    private TextField txtIdadeMinima;
-    @FXML
-    private TextField txtIdadeMaxima;
-    @FXML
-    private TextField txtRendaMinima;
+    @FXML private TextField txtNomeTabela;
+    @FXML private ComboBox<TipoConvenioModel> comboConvenio;
+    @FXML private TextField txtTaxaMensal;
+    @FXML private TextField txtComissao;
+    @FXML private TextField txtValorMinimo;
+    @FXML private TextField txtValorMaximo;
+    @FXML private TextField txtPrazoMinimo;
+    @FXML private TextField txtPrazoMaximo;
+    @FXML private TextField txtIdadeMinima;
+    @FXML private TextField txtIdadeMaxima;
+    @FXML private TextField txtRendaMinima;
 
-    @FXML
-    private TextField txtBusca;
-    @FXML
-    private TableView<TabelaJurosModel> tableTabelas;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colConvenio;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colNome;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colTaxa;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colComissao;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colLimites;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colRenda;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colIdade;
-    @FXML
-    private TableColumn<TabelaJurosModel, String> colPrazo;
-    @FXML
-    private TableColumn<TabelaJurosModel, Void> colAcoes;
-    @FXML
-    private ComboBox<BancoModel> comboBanco;
-    @FXML
-    private VBox overlayArquivar;
-    @FXML
-    private Label lblTotalRegistros;
+    @FXML private TextField txtBusca;
+    @FXML private TableView<TabelaJurosModel> tableTabelas;
+    @FXML private TableColumn<TabelaJurosModel, String> colConvenio, colNome, colTaxa, colComissao, colLimites, colRenda, colIdade,
+            colPrazo;
+    @FXML private TableColumn<TabelaJurosModel, Void> colAcoes;
+    @FXML private ComboBox<BancoModel> comboBanco;
+    @FXML private VBox overlayArquivar;
+    @FXML private Label lblTotalRegistros;
 
-    private SortedList<TabelaJurosModel> sortedData;
-    private FilteredList<TabelaJurosModel> filteredData;
-
-    private ObservableList<TabelaJurosModel> dadosOriginais;
+    // ==========================================================================================
+    // MÓDULO 4: ESTADO INTERNO DA TELA
+    // ==========================================================================================
+    private final ObservableList<TabelaJurosModel> listaTabelas = FXCollections.observableArrayList();
     private TabelaJurosModel tabelaSelecionadaParaArquivar;
 
-    public TabelaJurosController(TabelaJurosService service, TabelaJurosViewModel viewModel,
-            BancoRepository bancoRepository, BancoUIEventHub bancoEventHub,
+    public TabelaJurosController(ITabelaJurosFacade tabelaFacade, TabelaJurosViewModel viewModel, BancoUIEventHub bancoEventHub,
             TabelaJurosUIEventHub tabelaEventHub) {
-        this.service = service;
+        this.tabelaFacade = tabelaFacade;
         this.viewModel = viewModel;
-        this.bancoRepository = bancoRepository;
         this.bancoEventHub = bancoEventHub;
         this.tabelaEventHub = tabelaEventHub;
-        log.debug("[TABELA_JUROS] Construtor: Controller instanciado");
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring (Injeção por Construtor).", LOG_PREFIX);
     }
 
-    @FXML
-    public void initialize() {
-        log.debug("[TABELA_JUROS] initialize: Iniciando configuração da tela de tabelas de juros");
+    // ==========================================================================================
+    // MÓDULO 5: INICIALIZAÇÃO E CICLO DE VIDA
+    // ==========================================================================================
+    @FXML public void initialize() {
+        log.info("{} [TELEMETRIA] Inicializando interface de Tabelas de Juros...", LOG_PREFIX);
         configurarFormulario();
         configurarColunasTabela();
         carregarDados();
-        configurarFiltroBusca();
+        configurarFiltroReativo();
 
-        // Inscrever-se para atualizações
         bancoEventHub.inscrever(this::recarregarBancos);
         tabelaEventHub.inscrever(this::carregarDados);
-        lblTotalRegistros.textProperty().bind(
-                Bindings.format("Total: %d tabela(s)", Bindings.size(tableTabelas.getItems())));
-        log.info("[TABELA_JUROS] initialize: Centro Cirúrgico Pronto com Utils!");
+
+        lblTotalRegistros.textProperty().bind(Bindings.format("Total: %d tabela(s)", Bindings.size(listaTabelas)));
+        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
     }
 
-    // =========================================================
-    // CONFIGURAÇÕES DE UI E BINDINGS
-    // =========================================================
+    @Override public void dispose() {
+        log.info("{} [LIFECYCLE] Desinscrevendo dos hubs de eventos.", LOG_PREFIX);
+        tabelaEventHub.desinscrever(this::carregarDados);
+        bancoEventHub.desinscrever(this::recarregarBancos);
+    }
+
+    // ==========================================================================================
+    // MÓDULO 6: LÓGICA DE LISTAGEM E FILTRO
+    // ==========================================================================================
+    private void carregarDados() {
+        log.trace("{} [TELEMETRIA] Recarregando lista de tabelas.", LOG_PREFIX);
+        filtrarTabelas(txtBusca.getText());
+    }
+
     private void recarregarBancos() {
-        log.debug("[TABELA_JUROS] recarregarBancos: Atualizando combo de bancos.");
-        comboBanco.setItems(FXCollections.observableArrayList(bancoRepository.findByAtivoTrueOrderByNomeAsc()));
+        log.trace("{} [TELEMETRIA] Atualizando combo de bancos.", LOG_PREFIX);
+        AsyncUtils.executarTaskAsync(tabelaFacade::listarBancosAtivos,
+                bancos -> comboBanco.setItems(FXCollections.observableArrayList(bancos)),
+                erro -> log.error("{} [SISTEMA] Erro ao carregar bancos: {}", LOG_PREFIX, erro.getMessage()));
     }
 
+    private void configurarFiltroReativo() {
+        log.trace("{} [UI] Configurando listener de busca reativa.", LOG_PREFIX);
+        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> {
+            log.debug("{} [UI] Termo de busca alterado: '{}'", LOG_PREFIX, newVal);
+            filtrarTabelas(newVal);
+        });
+    }
+
+    private void filtrarTabelas(String termo) {
+        AsyncUtils.executarTaskAsync(() -> tabelaFacade.filtrarTabelas(termo), tabelasFiltradas -> {
+            listaTabelas.setAll(tabelasFiltradas);
+            tableTabelas.setItems(listaTabelas);
+            log.info("{} [TELEMETRIA] Tabela atualizada. {} registro(s) exibido(s).", LOG_PREFIX, tabelasFiltradas.size());
+        }, erro -> log.error("{} [SISTEMA] Erro ao filtrar tabelas: {}", LOG_PREFIX, erro.getMessage()));
+    }
+
+    // ==========================================================================================
+    // MÓDULO 7: CONFIGURAÇÕES DE UI E BINDINGS
+    // ==========================================================================================
     private void configurarFormulario() {
-        log.debug("[TABELA_JUROS] configurarFormulario: Configurando combos, bindings e formatadores");
-        comboBanco.setItems(FXCollections.observableArrayList(bancoRepository.findByAtivoTrueOrderByNomeAsc()));
+        log.trace("{} [UI] Configurando combos, bindings e formatadores.", LOG_PREFIX);
+        recarregarBancos();
+
         comboBanco.setConverter(new StringConverter<BancoModel>() {
-            @Override
-            public String toString(BancoModel b) {
+            @Override public String toString(BancoModel b) {
                 return b != null ? b.getNome() : "";
             }
 
-            @Override
-            public BancoModel fromString(String s) {
+            @Override public BancoModel fromString(String s) {
                 return null;
             }
         });
@@ -163,89 +171,30 @@ public class TabelaJurosController implements Disposable {
         comboConvenio.valueProperty().bindBidirectional(viewModel.getTipoConvenio());
         txtNomeTabela.textProperty().bindBidirectional(viewModel.getNomeTabela());
 
-        // 🚀 BINDINGS COM O SEU FINANCEIRO UTILS (Para Moeda/Percentual)
-        TextFormatter<BigDecimal> tfTaxa = FinanceiroUtils.criarFormatadorMoeda();
-        txtTaxaMensal.setTextFormatter(tfTaxa);
-        tfTaxa.valueProperty().bindBidirectional(viewModel.getTaxaMensal());
+        vincularMascaraMoeda(txtTaxaMensal, viewModel.getTaxaMensal());
+        vincularMascaraMoeda(txtComissao, viewModel.getComissaoPercentual());
+        vincularMascaraMoeda(txtValorMinimo, viewModel.getValorMinimoEmprestimo());
+        vincularMascaraMoeda(txtValorMaximo, viewModel.getValorMaximoEmprestimo());
+        vincularMascaraMoeda(txtRendaMinima, viewModel.getRendaMinima());
 
-        TextFormatter<BigDecimal> tfComissao = FinanceiroUtils.criarFormatadorMoeda();
-        txtComissao.setTextFormatter(tfComissao);
-        tfComissao.valueProperty().bindBidirectional(viewModel.getComissaoPercentual());
-
-        TextFormatter<BigDecimal> tfValorMin = FinanceiroUtils.criarFormatadorMoeda();
-        txtValorMinimo.setTextFormatter(tfValorMin);
-        tfValorMin.valueProperty().bindBidirectional(viewModel.getValorMinimoEmprestimo());
-
-        TextFormatter<BigDecimal> tfValorMax = FinanceiroUtils.criarFormatadorMoeda();
-        txtValorMaximo.setTextFormatter(tfValorMax);
-        tfValorMax.valueProperty().bindBidirectional(viewModel.getValorMaximoEmprestimo());
-
-        TextFormatter<BigDecimal> tfRendaMin = FinanceiroUtils.criarFormatadorMoeda();
-        txtRendaMinima.setTextFormatter(tfRendaMin);
-        tfRendaMin.valueProperty().bindBidirectional(viewModel.getRendaMinima());
-
-        // 🚀 BINDINGS ROBUSTOS PARA INTEIROS (Para Idade/Prazos)
-        TextFormatter<Integer> tfPrazoMin = criarFormatadorInteiroPadrao();
-        txtPrazoMinimo.setTextFormatter(tfPrazoMin);
-        tfPrazoMin.valueProperty().bindBidirectional(viewModel.getPrazoMinimo());
-
-        TextFormatter<Integer> tfPrazoMax = criarFormatadorInteiroPadrao();
-        txtPrazoMaximo.setTextFormatter(tfPrazoMax);
-        tfPrazoMax.valueProperty().bindBidirectional(viewModel.getPrazoMaximo());
-
-        TextFormatter<Integer> tfIdadeMin = criarFormatadorInteiroPadrao();
-        txtIdadeMinima.setTextFormatter(tfIdadeMin);
-        tfIdadeMin.valueProperty().bindBidirectional(viewModel.getIdadeMinima());
-
-        TextFormatter<Integer> tfIdadeMax = criarFormatadorInteiroPadrao();
-        txtIdadeMaxima.setTextFormatter(tfIdadeMax);
-        tfIdadeMax.valueProperty().bindBidirectional(viewModel.getIdadeMaxima());
-        log.trace("[TABELA_JUROS] configurarFormulario: Bindings concluídos");
-    }
-
-    /**
-     * Motor nativo de Formatação de Inteiros para impedir travamentos e letras
-     */
-    private TextFormatter<Integer> criarFormatadorInteiroPadrao() {
-        log.trace("[TABELA_JUROS] criarFormatadorInteiroPadrao: Criando formatador para inteiros");
-        return new TextFormatter<>(new StringConverter<Integer>() {
-            @Override
-            public String toString(Integer object) {
-                return object != null ? object.toString() : "";
-            }
-
-            @Override
-            public Integer fromString(String string) {
-                if (string == null || string.trim().isEmpty())
-                    return null;
-                try {
-                    return Integer.parseInt(string.replaceAll("[^0-9]", ""));
-                } catch (NumberFormatException e) {
-                    log.warn("[TABELA_JUROS] criarFormatadorInteiroPadrao: Erro ao converter '{}' para inteiro",
-                            string);
-                    return null;
-                }
-            }
-        }, null, change -> {
-            if (change.getControlNewText().matches("\\d*")) {
-                return change;
-            }
-            return null;
-        });
+        vincularMascaraInteiro(txtPrazoMinimo, viewModel.getPrazoMinimo());
+        vincularMascaraInteiro(txtPrazoMaximo, viewModel.getPrazoMaximo());
+        vincularMascaraInteiro(txtIdadeMinima, viewModel.getIdadeMinima());
+        vincularMascaraInteiro(txtIdadeMaxima, viewModel.getIdadeMaxima());
     }
 
     private void configurarColunasTabela() {
-        log.debug("[TABELA_JUROS] configurarColunasTabela: Configurando colunas da tabela");
+        log.trace("{} [UI] Configurando colunas da tabela.", LOG_PREFIX);
         colConvenio.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getTipoConvenio().name()));
         colNome.setCellValueFactory(cell -> {
             String bancoNome = cell.getValue().getBanco() != null ? cell.getValue().getBanco().getNome() : "S/B";
             return new SimpleStringProperty("[" + bancoNome + "] " + cell.getValue().getNomeTabela());
         });
 
-        colTaxa.setCellValueFactory(cell -> new SimpleStringProperty(
-                FinanceiroUtils.formatarParaExibicao(cell.getValue().getTaxaMensal()) + "%"));
-        colComissao.setCellValueFactory(cell -> new SimpleStringProperty(
-                FinanceiroUtils.formatarParaExibicao(cell.getValue().getComissaoPercentual()) + "%"));
+        colTaxa.setCellValueFactory(
+                cell -> new SimpleStringProperty(FinanceiroUtils.formatarParaExibicao(cell.getValue().getTaxaMensal()) + "%"));
+        colComissao.setCellValueFactory(
+                cell -> new SimpleStringProperty(FinanceiroUtils.formatarParaExibicao(cell.getValue().getComissaoPercentual()) + "%"));
 
         colLimites.setCellValueFactory(cell -> {
             String min = cell.getValue().getValorMinimoEmprestimo() != null
@@ -260,10 +209,9 @@ public class TabelaJurosController implements Disposable {
 
         colRenda.setCellValueFactory(cell -> {
             BigDecimal min = cell.getValue().getRendaMinima();
-            String texto = (min != null && min.compareTo(BigDecimal.ZERO) > 0)
-                    ? "A partir de R$ " + FinanceiroUtils.formatarParaExibicao(min)
-                    : "Isento";
-            return new SimpleStringProperty(texto);
+            return new SimpleStringProperty(
+                    (min != null && min.compareTo(BigDecimal.ZERO) > 0) ? "A partir de R$ " + FinanceiroUtils.formatarParaExibicao(min)
+                            : "Isento");
         });
 
         colIdade.setCellValueFactory(cell -> {
@@ -284,113 +232,76 @@ public class TabelaJurosController implements Disposable {
             private final HBox pane = new HBox(5, btnEditar, btnArquivar);
             {
                 btnEditar.getStyleClass().add("flat");
-                btnEditar.setOnAction(event -> {
-                    TabelaJurosModel tabela = getTableView().getItems().get(getIndex());
-                    log.debug("[TABELA_JUROS] Ação 'Editar' disparada para tabela ID={}", tabela.getId());
-                    editarTabela(tabela);
-                });
+                btnEditar.setOnAction(event -> editarTabela(getTableView().getItems().get(getIndex())));
+
                 btnArquivar.getStyleClass().add("flat");
                 btnArquivar.setStyle("-fx-text-fill: #f57c00;");
-                btnArquivar.setOnAction(event -> {
-                    TabelaJurosModel tabela = getTableView().getItems().get(getIndex());
-                    log.debug("[TABELA_JUROS] Ação 'Arquivar' disparada para tabela ID={}", tabela.getId());
-                    abrirConfirmacaoArquivamento(tabela);
-                });
+                btnArquivar.setOnAction(event -> abrirConfirmacaoArquivamento(getTableView().getItems().get(getIndex())));
             }
 
-            @Override
-            protected void updateItem(Void item, boolean empty) {
+            @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(empty ? null : pane);
             }
         });
     }
 
-    private void carregarDados() {
-        log.debug("[TABELA_JUROS] carregarDados: Carregando lista de tabelas ativas");
-        List<TabelaJurosModel> novasTabelas = service.listarAtivas();
-        log.info("[TABELA_JUROS] carregarDados: {} tabelas ativas carregadas", novasTabelas.size());
-
-        if (dadosOriginais == null) {
-            dadosOriginais = FXCollections.observableArrayList(novasTabelas);
-        } else {
-            dadosOriginais.setAll(novasTabelas);
-        }
-    }
-
-    private void configurarFiltroBusca() {
-        log.debug("[TABELA_JUROS] configurarFiltroBusca: Configurando filtro de busca reativo");
-        filteredData = new FilteredList<>(dadosOriginais, b -> true);
-        sortedData = new SortedList<>(filteredData);
-        sortedData.comparatorProperty().bind(tableTabelas.comparatorProperty());
-
-        txtBusca.textProperty().addListener((observable, oldValue, newValue) -> {
-            log.debug("[TABELA_JUROS] Busca alterada: '{}' -> '{}'", oldValue, newValue);
-            filteredData.setPredicate(tabela -> {
-                if (newValue == null || newValue.trim().isEmpty()) {
-                    return true;
-                }
-                String termoBusca = newValue.toLowerCase().trim();
-                boolean matches = gerarStringDeBusca(tabela).contains(termoBusca);
-                if (matches)
-                    log.trace("[TABELA_JUROS] Tabela '{}' corresponde ao termo '{}'", tabela.getNomeTabela(),
-                            termoBusca);
-                return matches;
-            });
-        });
-
-        tableTabelas.setItems(sortedData);
-    }
-
-    private String gerarStringDeBusca(TabelaJurosModel t) {
-        return ((t.getBanco() != null ? t.getBanco().getNome() : "") + " " +
-                (t.getNomeTabela() != null ? t.getNomeTabela() : "") + " " +
-                (t.getTipoConvenio() != null ? t.getTipoConvenio().name() : "") + " " +
-                FinanceiroUtils.formatarParaExibicao(t.getTaxaMensal()) + " " +
-                FinanceiroUtils.formatarParaExibicao(t.getComissaoPercentual()) + " " +
-                t.getValorMinimoEmprestimo() + " " +
-                t.getValorMaximoEmprestimo() + " " +
-                t.getIdadeMinima() + " " +
-                t.getIdadeMaxima() + " " +
-                t.getPrazoMinimo() + " " +
-                t.getPrazoMaximo()).toLowerCase();
-    }
-
-    // =========================================================
-    // AÇÕES (MÉTODOS FXML)
-    // =========================================================
-
-    @FXML
-    private void handleSalvar() {
-        log.debug("[TABELA_JUROS] handleSalvar: Iniciando salvamento da tabela");
+    // ==========================================================================================
+    // MÓDULO 8: AÇÕES DE NEGÓCIO (CRUD)
+    // ==========================================================================================
+    @FXML private void handleSalvar() {
+        log.info("{} [TELEMETRIA] Tentativa de salvar tabela.", LOG_PREFIX);
         if (!viewModel.isDirty()) {
-            log.warn("[TABELA_JUROS] handleSalvar: Nenhuma alteração detectada");
+            log.warn("{} [NEGOCIO] Salvamento bloqueado: Nenhuma alteração detectada.", LOG_PREFIX);
             mostrarMensagem("Nenhuma alteração detectada para salvar.", false);
             return;
         }
-        try {
-            TabelaJurosModel tabelaAtualizada = viewModel.atualizarModel(new TabelaJurosModel());
-            log.info("[TABELA_JUROS] handleSalvar: Salvando tabela '{}'", tabelaAtualizada.getNomeTabela());
-            service.salvarComRegraDeOuro(tabelaAtualizada);
+
+        TabelaJurosModel tabelaAtualizada = viewModel.atualizarModel(new TabelaJurosModel());
+
+        AsyncUtils.executarTaskAsync(() -> tabelaFacade.salvarTabela(tabelaAtualizada), salva -> {
+            log.info("{} [AUDITORIA] Tabela salva com sucesso. ID: {}", LOG_PREFIX, salva.getId());
             mostrarMensagem("Tabela atualizada com sucesso! A vigência antiga foi arquivada.", true);
             limparFormulario();
-        } catch (Exception e) {
-            log.error("[TABELA_JUROS] handleSalvar: Erro ao salvar tabela", e);
-            mostrarMensagem("Erro ao salvar: " + e.getMessage(), false);
-        }
+            carregarDados();
+        }, erro -> {
+            log.error("{} [AUDITORIA] Falha ao persistir tabela: {}", LOG_PREFIX, erro.getMessage());
+            mostrarMensagem("Erro ao salvar: " + erro.getMessage(), false);
+        });
     }
 
-    @FXML
-    private void handleToggleForm() {
+    @FXML private void confirmarArquivamento() {
+        if (tabelaSelecionadaParaArquivar != null) {
+            Long idTabela = tabelaSelecionadaParaArquivar.getId();
+            log.info("{} [TELEMETRIA] Confirmando arquivamento da tabela ID: {}", LOG_PREFIX, idTabela);
+
+            AsyncUtils.executarTaskAsync(() -> {
+                tabelaFacade.arquivarTabela(tabelaSelecionadaParaArquivar);
+                return null;
+            }, sucesso -> {
+                log.info("{} [AUDITORIA] Tabela ID {} arquivada com sucesso.", LOG_PREFIX, idTabela);
+                mostrarMensagem("Tabela arquivada! Ela não aparecerá mais para novas propostas.", true);
+                carregarDados();
+            }, erro -> {
+                log.error("{} [AUDITORIA] Falha ao arquivar tabela ID {}: {}", LOG_PREFIX, idTabela, erro.getMessage());
+                mostrarMensagem("Erro ao arquivar: " + erro.getMessage(), false);
+            });
+        }
+        cancelarArquivamento();
+    }
+
+    // ==========================================================================================
+    // MÓDULO 9: GESTÃO DO MODAL (FORMULÁRIO)
+    // ==========================================================================================
+    @FXML private void handleToggleForm() {
         boolean mostrandoForm = paneFormulario.isShowDetailNode();
-        log.debug("[TABELA_JUROS] handleToggleForm: Alternando formulário. Mostrando antes? {}", mostrandoForm);
+        log.trace("{} [UI] Alternando formulário. Mostrando antes? {}", LOG_PREFIX, mostrandoForm);
         paneFormulario.setShowDetailNode(!mostrandoForm);
         btnToggleForm.setText(!mostrandoForm ? "➖ Fechar Formulário" : "➕ Prescrever Nova Tabela");
     }
 
-    @FXML
-    private void limparFormulario() {
-        log.debug("[TABELA_JUROS] limparFormulario: Resetando formulário");
+    @FXML private void limparFormulario() {
+        log.trace("{} [UI] Resetando formulário.", LOG_PREFIX);
         viewModel.reset();
         paneFormulario.setShowDetailNode(false);
         lblFormTitulo.setText("💊 Prescrever Nova Tabela (Cadastrar / Atualizar)");
@@ -398,8 +309,7 @@ public class TabelaJurosController implements Disposable {
     }
 
     private void editarTabela(TabelaJurosModel tabela) {
-        log.info("[TABELA_JUROS] editarTabela: Editando tabela ID={}, nome='{}'", tabela.getId(),
-                tabela.getNomeTabela());
+        log.info("{} [UI] Editando tabela ID={}, nome='{}'", LOG_PREFIX, tabela.getId(), tabela.getNomeTabela());
         viewModel.loadFromModel(tabela);
         paneFormulario.setShowDetailNode(true);
         lblFormTitulo.setText("🔄 Editando Tabela: " + tabela.getNomeTabela() + " (Isso gerará uma nova versão)");
@@ -408,55 +318,61 @@ public class TabelaJurosController implements Disposable {
     }
 
     private void abrirConfirmacaoArquivamento(TabelaJurosModel tabela) {
-        log.debug("[TABELA_JUROS] abrirConfirmacaoArquivamento: Abrindo overlay para tabela ID={}", tabela.getId());
+        log.trace("{} [UI] Abrindo overlay de arquivamento para tabela ID={}", LOG_PREFIX, tabela.getId());
         this.tabelaSelecionadaParaArquivar = tabela;
         overlayArquivar.setVisible(true);
     }
 
-    @FXML
-    private void cancelarArquivamento() {
-        log.debug("[TABELA_JUROS] cancelarArquivamento: Cancelando arquivamento");
+    @FXML private void cancelarArquivamento() {
+        log.trace("{} [UI] Arquivamento cancelado.", LOG_PREFIX);
         this.tabelaSelecionadaParaArquivar = null;
         overlayArquivar.setVisible(false);
     }
 
-    @FXML
-    private void prepararNovaVersao() {
+    @FXML private void prepararNovaVersao() {
         if (tabelaSelecionadaParaArquivar != null) {
-            log.info("[TABELA_JUROS] prepararNovaVersao: Preparando nova versão a partir da tabela ID={}",
-                    tabelaSelecionadaParaArquivar.getId());
+            log.info("{} [UI] Preparando nova versão a partir da tabela ID={}", LOG_PREFIX, tabelaSelecionadaParaArquivar.getId());
             editarTabela(tabelaSelecionadaParaArquivar);
         }
         cancelarArquivamento();
         txtNomeTabela.requestFocus();
     }
 
-    @FXML
-    private void confirmarArquivamento() {
-        if (tabelaSelecionadaParaArquivar != null) {
-            log.info("[TABELA_JUROS] confirmarArquivamento: Arquivando tabela ID={}",
-                    tabelaSelecionadaParaArquivar.getId());
-            service.arquivarTabela(tabelaSelecionadaParaArquivar);
-            mostrarMensagem("Tabela arquivada! Ela não aparecerá mais para novas propostas.", true);
-        } else {
-            log.warn("[TABELA_JUROS] confirmarArquivamento: Nenhuma tabela selecionada para arquivar");
-        }
-        cancelarArquivamento();
-    }
-
     private void mostrarMensagem(String texto, boolean sucesso) {
-        log.debug("[TABELA_JUROS] mostrarMensagem: '{}' (sucesso={})", texto, sucesso);
+        log.trace("{} [UI] Exibindo aviso no formulário: '{}'", LOG_PREFIX, texto);
         lblAviso.setText(texto);
-        lblAviso.setStyle(sucesso ? "-fx-text-fill: green; -fx-font-weight: bold;"
-                : "-fx-text-fill: red; -fx-font-weight: bold;");
+        lblAviso.setStyle(sucesso ? "-fx-text-fill: green; -fx-font-weight: bold;" : "-fx-text-fill: red; -fx-font-weight: bold;");
         lblAviso.setVisible(true);
         lblAviso.setManaged(true);
     }
 
-    @Override
-    public void dispose() {
-        log.info("[TABELA_JUROS] dispose: Desinscrevendo dos hubs.");
-        tabelaEventHub.desinscrever(this::carregarDados);
-        bancoEventHub.desinscrever(this::recarregarBancos);
+    // ==========================================================================================
+    // MÓDULO 10: UTILITÁRIOS
+    // ==========================================================================================
+    private void vincularMascaraMoeda(TextField campo, javafx.beans.property.Property<BigDecimal> prop) {
+        TextFormatter<BigDecimal> fmt = FinanceiroUtils.criarFormatadorMoeda();
+        campo.setTextFormatter(fmt);
+        fmt.valueProperty().bindBidirectional(prop);
+    }
+
+    private void vincularMascaraInteiro(TextField campo, javafx.beans.property.Property<Integer> prop) {
+        TextFormatter<Integer> fmt = new TextFormatter<>(new StringConverter<Integer>() {
+            @Override public String toString(Integer object) {
+                return object != null ? object.toString() : "";
+            }
+
+            @Override public Integer fromString(String string) {
+                if (string == null || string.trim().isEmpty())
+                    return null;
+                try {
+                    return Integer.parseInt(string.replaceAll("[^0-9]", ""));
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+        }, null, change -> change.getControlNewText().matches("\\d*") ? change : null);
+
+        campo.setTextFormatter(fmt);
+        fmt.valueProperty().bindBidirectional(prop);
     }
 }

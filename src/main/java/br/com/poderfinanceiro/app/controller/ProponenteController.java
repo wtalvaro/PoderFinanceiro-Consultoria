@@ -15,6 +15,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.util.StringConverter;
 import javafx.util.converter.LocalDateStringConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -22,114 +24,104 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@Component
-@Scope("prototype")
+/**
+ * <h1>ProponenteController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável pelo formulário de dados do
+ * cliente. Atua como um <b>Humble Object</b> puro, gerenciando apenas bindings
+ * e formatações visuais. A persistência é orquestrada pelo
+ * AtendimentoHubController.
+ * </p>
+ */
+@Component @Scope("prototype")
 public class ProponenteController {
 
-    // =========================================================================
-    // CONSTANTES (Clean Code & DRY)
-    // =========================================================================
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
+    private static final Logger log = LoggerFactory.getLogger(ProponenteController.class);
+    private static final String LOG_PREFIX = "[ProponenteController]";
+
     private static final String MSG_NOVO_CONTATO = "Cadastrar Novo Contato";
     private static final String MSG_EDITAR_CONTATO = "Editando Contato: ";
     private static final String PADRAO_DATA = "dd/MM/yyyy";
 
-    private static final Logger log = LoggerFactory.getLogger(ProponenteController.class);
-
-    // =========================================================================
-    // DEPENDÊNCIAS DE UI E FXML
-    // =========================================================================
-    @FXML
-    private Label lblTituloTela;
-    @FXML
-    private TextField txtNome, txtCpf, txtTelefone, txtMatricula, txtRenda;
-    @FXML
-    private ComboBox<OrigemLeadModel> cbOrigem;
-    @FXML
-    private ComboBox<TipoVinculoModel> cbVinculo;
-    @FXML
-    private ComboBox<TipoRelacionamentoModel> cbClassificacao;
-    @FXML
-    private DatePicker dpDataNascimento;
-    @FXML
-    private ProgressIndicator progress;
-    @FXML
-    private ScrollPane scrollPrincipal;
-
-    // =========================================================================
-    // ESTADO DA CLASSE E INJEÇÕES
-    // =========================================================================
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
     private final LeadViewModel viewModel;
+
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
+    @FXML private Label lblTituloTela;
+    @FXML private TextField txtNome, txtCpf, txtTelefone, txtMatricula, txtRenda;
+    @FXML private ComboBox<OrigemLeadModel> cbOrigem;
+    @FXML private ComboBox<TipoVinculoModel> cbVinculo;
+    @FXML private ComboBox<TipoRelacionamentoModel> cbClassificacao;
+    @FXML private DatePicker dpDataNascimento;
+    @FXML private ProgressIndicator progress;
+    @FXML private ScrollPane scrollPrincipal;
 
     public ProponenteController(LeadViewModel viewModel) {
         this.viewModel = viewModel;
-        log.debug("[PROPONENTE] Construtor: Controller instanciado (escopo prototype)");
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring (Prototype).", LOG_PREFIX);
     }
 
-    // =========================================================================
-    // INICIALIZAÇÃO
-    // =========================================================================
-    @FXML
-    public void initialize() {
-        log.debug("[PROPONENTE] initialize: Iniciando configuração do formulário de proponente");
+    // ==========================================================================================
+    // MÓDULO 4: INICIALIZAÇÃO E CICLO DE VIDA
+    // ==========================================================================================
+    @FXML public void initialize() {
+        log.info("{} [TELEMETRIA] Inicializando formulário de proponente...", LOG_PREFIX);
         configurarTituloDinamico();
         configurarListasEFormatadoresDeData();
         estabelecerBindings();
         configurarAutoSelecao(txtRenda);
-        log.info("[PROPONENTE] initialize: Configuração concluída");
+        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
     }
 
+    // ==========================================================================================
+    // MÓDULO 5: CONFIGURAÇÃO DE UI E BINDINGS
+    // ==========================================================================================
     private void configurarTituloDinamico() {
-        log.debug("[PROPONENTE] configurarTituloDinamico: Vinculando título dinâmico ao nome do ViewModel");
+        log.trace("{} [UI] Configurando título dinâmico reativo.", LOG_PREFIX);
         lblTituloTela.textProperty().bind(Bindings.createStringBinding(() -> {
             String nome = viewModel.nomeProperty().get();
-            String titulo = (nome == null || nome.isBlank()) ? MSG_NOVO_CONTATO : MSG_EDITAR_CONTATO + nome;
-            log.trace("[PROPONENTE] Título dinâmico atualizado: '{}'", titulo);
-            return titulo;
+            return (nome == null || nome.isBlank()) ? MSG_NOVO_CONTATO : MSG_EDITAR_CONTATO + nome;
         }, viewModel.nomeProperty()));
     }
 
     private void configurarListasEFormatadoresDeData() {
-        log.debug("[PROPONENTE] configurarListasEFormatadoresDeData: Carregando combos e formatador de data");
+        log.trace("{} [UI] Carregando ComboBoxes e formatadores de data.", LOG_PREFIX);
         configurarCombo(cbOrigem, OrigemLeadModel.values(), OrigemLeadModel::fromString);
         configurarCombo(cbVinculo, TipoVinculoModel.values(), TipoVinculoModel::fromString);
         configurarCombo(cbClassificacao, TipoRelacionamentoModel.values(), TipoRelacionamentoModel::fromString);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(PADRAO_DATA);
         dpDataNascimento.setConverter(new LocalDateStringConverter(formatter, formatter));
-        log.trace("[PROPONENTE] Formatador de data configurado com padrão '{}'", PADRAO_DATA);
     }
 
-    private <T extends Enum<T> & LabeledModel> void configurarCombo(ComboBox<T> combo, T[] values,
-            Function<String, T> searcher) {
+    private <T extends Enum<T> & LabeledModel> void configurarCombo(ComboBox<T> combo, T[] values, Function<String, T> searcher) {
         combo.getItems().setAll(values);
         combo.setConverter(new StringConverter<T>() {
-            @Override
-            public String toString(T obj) {
+            @Override public String toString(T obj) {
                 return (obj != null) ? obj.getLabel() : "";
             }
 
-            @Override
-            public T fromString(String str) {
+            @Override public T fromString(String str) {
                 return searcher.apply(str);
             }
         });
-        log.trace("[PROPONENTE] Combo '{}' configurado com {} itens", combo.getId(), values.length);
     }
 
-    // =========================================================================
-    // BINDINGS (SRP Aplicado)
-    // =========================================================================
     private void estabelecerBindings() {
-        log.debug("[PROPONENTE] estabelecerBindings: Configurando bindings bidirecionais");
+        log.trace("{} [UI] Estabelecendo bindings bidirecionais com o ViewModel.", LOG_PREFIX);
         vincularCamposSimples();
         vincularCamposComFormatacao();
     }
 
     private void vincularCamposSimples() {
-        log.trace("[PROPONENTE] vinculando campos simples");
         txtNome.textProperty().bindBidirectional(viewModel.nomeProperty());
         txtMatricula.textProperty().bindBidirectional(viewModel.matriculaProperty());
         cbOrigem.valueProperty().bindBidirectional(viewModel.origemProperty());
@@ -138,7 +130,6 @@ public class ProponenteController {
     }
 
     private void vincularCamposComFormatacao() {
-        log.trace("[PROPONENTE] vinculando campos com formatação especial (data, renda, CPF, telefone)");
         // Data de Nascimento
         TextFormatter<LocalDate> dataFormatter = DataUtils.criarFormatadorData();
         dpDataNascimento.getEditor().setTextFormatter(dataFormatter);
@@ -161,23 +152,20 @@ public class ProponenteController {
         telefoneFormatter.valueProperty().bindBidirectional(viewModel.telefoneProperty());
     }
 
-    // =========================================================================
-    // UTILITÁRIOS DE UI (DRY Aplicado)
-    // =========================================================================
+    // ==========================================================================================
+    // MÓDULO 6: UTILITÁRIOS
+    // ==========================================================================================
     private void configurarAutoSelecao(TextField... campos) {
-        log.debug("[PROPONENTE] configurarAutoSelecao: Ativando seleção automática ao focar campos");
+        log.trace("{} [UI] Configurando auto-seleção de texto para campos numéricos.", LOG_PREFIX);
         for (TextField campo : campos) {
             campo.focusedProperty().addListener((obs, estavaFocado, agoraFocado) -> {
-                if (agoraFocado) {
-                    log.trace("[PROPONENTE] Campo '{}' ganhou foco, selecionando todo o texto", campo.getId());
+                if (agoraFocado)
                     Platform.runLater(campo::selectAll);
-                }
             });
         }
     }
 
     public LeadViewModel getViewModel() {
-        log.trace("[PROPONENTE] getViewModel: Retornando ViewModel atual");
         return viewModel;
     }
 }

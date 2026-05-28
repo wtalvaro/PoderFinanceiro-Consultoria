@@ -412,7 +412,12 @@ public class PropostaController {
                     log.info("{} [AUDITORIA] Análise de IA concluída com sucesso para documento ID: {}", LOG_PREFIX, doc.getId());
                     if (navigator != null)
                         navigator.ocultarLoading();
-                    mostrarFeedback(config.icone(), config.titulo(), resultado, null);
+
+                    // 🚀 CORREÇÃO: Chama o WebView diretamente para renderizar
+                    // o HTML da IA
+                    if (esteiraController != null) {
+                        esteiraController.mostrarFeedback(config.icone(), config.titulo(), resultado, null);
+                    }
                 }, erro -> {
                     log.error("{} [AUDITORIA] Falha na análise de IA: {}", LOG_PREFIX, erro.getMessage());
                     if (navigator != null)
@@ -741,8 +746,11 @@ public class PropostaController {
 
     private void mostrarFeedback(String icone, String titulo, String msg, Runnable callback) {
         log.trace("{} [UI] Exibindo feedback visual: {} - {}", LOG_PREFIX, titulo, msg);
-        if (esteiraController != null)
-            esteiraController.mostrarFeedback(icone, titulo, msg, callback);
+        if (esteiraController != null) {
+            // Usa o alerta simples (pequeno) para mensagens comuns
+            String tipoBotao = titulo.contains("Erro") || titulo.contains("Falha") ? "danger" : "success";
+            esteiraController.mostrarAlertaSimples(icone, titulo, msg, tipoBotao, callback);
+        }
     }
 
     /**

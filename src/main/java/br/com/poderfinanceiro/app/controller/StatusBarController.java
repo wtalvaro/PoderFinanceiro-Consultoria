@@ -1,68 +1,88 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.facade.IAuthFacade;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Value;
-
-import br.com.poderfinanceiro.app.domain.service.AuthService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+/**
+ * <h1>StatusBarController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável pela barra de status inferior. Atua
+ * como um <b>Humble Object</b>, delegando a consulta de sessão para a
+ * {@link IAuthFacade}.
+ * </p>
+ */
 @Component
 public class StatusBarController {
 
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(StatusBarController.class);
+    private static final String LOG_PREFIX = "[StatusBarController]";
 
-    private final AuthService authService;
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
+    private final IAuthFacade authFacade;
 
-    // Lendo a versão direto do application.properties gerenciado pelo Maven
-    @Value("${app.version:v1.0.0}")
-    private String appVersion;
+    @Value("${app.version:v1.0.0}") private String appVersion;
 
-    @FXML
-    private Label lblUsuario;
-    @FXML
-    private Label lblVersao;
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
+    @FXML private Label lblUsuario;
+    @FXML private Label lblVersao;
 
-    // Injeção de dependência via construtor para o Spring
-    public StatusBarController(AuthService authService) {
-        this.authService = authService;
-        log.debug("[STATUS_BAR] Construtor: Controller instanciado");
+    public StatusBarController(IAuthFacade authFacade) {
+        this.authFacade = authFacade;
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
     }
 
-    @FXML
-    public void initialize() {
-        log.debug("[STATUS_BAR] initialize: Iniciando configuração da barra de status");
-        log.info("[STATUS_BAR] StatusBarController carregado com sucesso!");
+    // ==========================================================================================
+    // MÓDULO 4: INICIALIZAÇÃO E CICLO DE VIDA
+    // ==========================================================================================
+    @FXML public void initialize() {
+        log.info("{} [TELEMETRIA] Inicializando barra de status...", LOG_PREFIX);
 
         atualizarStatusUsuario();
 
-        // Atualiza dinamicamente a versão lida do arquivo de propriedades
         if (lblVersao != null) {
             lblVersao.setText("Poder Financeiro " + appVersion);
-            log.info("[STATUS_BAR] Versão atual da aplicação exibida: {}", appVersion);
+            log.info("{} [SISTEMA] Versão da aplicação exibida: {}", LOG_PREFIX, appVersion);
+        } else {
+            log.warn("{} [UI] Label de versão (lblVersao) não encontrado no FXML.", LOG_PREFIX);
         }
-        
-        log.info("[STATUS_BAR] initialize: Configuração concluída");
+
+        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
     }
 
+    // ==========================================================================================
+    // MÓDULO 5: ATUALIZAÇÃO DE ESTADO
+    // ==========================================================================================
     /**
-     * Atualiza o texto da barra de status com o nome do consultor logado
+     * Atualiza o texto da barra de status com o nome do consultor logado. Deve
+     * ser chamado sempre que houver uma mudança de sessão (ex: após o login).
      */
     public void atualizarStatusUsuario() {
-        log.debug("[STATUS_BAR] atualizarStatusUsuario: Verificando estado da autenticação");
-        if (authService.estaLogado() && lblUsuario != null) {
-            String nomeConsultor = authService.getUsuarioLogado().getNome();
+        log.trace("{} [UI] Verificando estado da autenticação para atualizar a barra.", LOG_PREFIX);
+
+        if (lblUsuario == null) {
+            log.error("{} [SISTEMA] Label de usuário (lblUsuario) está nulo. Impossível atualizar.", LOG_PREFIX);
+            return;
+        }
+
+        if (authFacade.isUsuarioLogado()) {
+            String nomeConsultor = authFacade.getUsuarioLogado().getNome();
             lblUsuario.setText("👤 Consultor: " + nomeConsultor);
-            log.info("[STATUS_BAR] Usuário logado: '{}'", nomeConsultor);
-        } else if (lblUsuario != null) {
-            lblUsuario.setText("👤 Usuário não identificado");
-            log.warn("[STATUS_BAR] Usuário não logado ou não identificado. lblUsuario disponível? {}",
-                    lblUsuario != null);
+            log.info("{} [TELEMETRIA] Barra de status atualizada para o usuário: '{}'", LOG_PREFIX, nomeConsultor);
         } else {
-            log.error("[STATUS_BAR] lblUsuario está nulo, não foi possível atualizar a barra de status");
+            lblUsuario.setText("👤 Usuário não identificado");
+            log.warn("{} [NEGOCIO] Nenhum usuário logado. Barra de status exibindo estado anônimo.", LOG_PREFIX);
         }
     }
 }

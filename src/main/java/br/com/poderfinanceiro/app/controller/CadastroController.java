@@ -1,189 +1,152 @@
 package br.com.poderfinanceiro.app.controller;
 
+import br.com.poderfinanceiro.app.facade.IAuthFacade;
+import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.util.AsyncUtils;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import org.springframework.stereotype.Component;
-
-import br.com.poderfinanceiro.app.domain.service.AuthService;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
-import br.com.poderfinanceiro.app.util.AsyncUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+/**
+ * <h1>CadastroController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável pela tela de registro de novos
+ * consultores. Implementa o padrão <b>Humble Object</b>, delegando a
+ * persistência e regras de negócio para a {@link IAuthFacade}.
+ * </p>
+ */
 @Component
 public class CadastroController {
 
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(CadastroController.class);
+    private static final String LOG_PREFIX = "[CadastroController]";
+    private static final String URL_AI_STUDIO = "https://aistudio.google.com/";
 
-    private final AuthService authService;
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
+    private final IAuthFacade authFacade;
     private final Navigator navigator;
     private final HostServices hostServices;
 
-    @FXML
-    private TextField txtNome;
-    @FXML
-    private TextField txtEmail;
-    @FXML
-    private PasswordField txtSenha;
-    @FXML
-    private PasswordField txtConfirmarSenha;
-    @FXML
-    private Label lblMensagem;
-    @FXML
-    private Button btnCadastrar;
-    @FXML
-    private TextField txtUsername;
-    @FXML
-    private PasswordField txtGeminiApiKey;
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
+    @FXML private TextField txtNome;
+    @FXML private TextField txtEmail;
+    @FXML private PasswordField txtSenha;
+    @FXML private PasswordField txtConfirmarSenha;
+    @FXML private Label lblMensagem;
+    @FXML private Button btnCadastrar;
+    @FXML private TextField txtUsername;
+    @FXML private PasswordField txtGeminiApiKey;
 
-    public CadastroController(AuthService authService, Navigator navigator, HostServices hostServices) {
-        this.authService = authService;
+    public CadastroController(IAuthFacade authFacade, Navigator navigator, HostServices hostServices) {
+        this.authFacade = authFacade;
         this.navigator = navigator;
         this.hostServices = hostServices;
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
     }
 
-    // =========================================================================
-    // FLUXO PRINCIPAL DE CADASTRO
-    // =========================================================================
-    @FXML
-    private void handleCadastrar() {
-        log.info("[CADASTRO] Tentativa de cadastro iniciada. username='{}'",
-                txtUsername.getText().trim());
+    // ==========================================================================================
+    // MÓDULO 4: FLUXO PRINCIPAL DE CADASTRO
+    // ==========================================================================================
+    @FXML private void handleCadastrar() {
+        String username = txtUsername.getText().trim();
+        log.info("{} [TELEMETRIA] Tentativa de cadastro iniciada. Username: '{}'", LOG_PREFIX, username);
 
         if (!validarEntradas()) {
-            // A validação já loga o motivo específico da falha
-            return;
+            return; // A validação já loga o motivo e exibe o erro na UI
         }
 
-        log.info("[CADASTRO] Validação aprovada. Disparando cadastro assíncrono. username='{}'",
-                txtUsername.getText().trim());
-
         setLoading(true);
-        long inicio = System.currentTimeMillis();
 
-        AsyncUtils.executarTaskAsync(
-                () -> {
-                    log.debug("[CADASTRO] Chamando AuthService.cadastrar na thread '{}'.",
-                            Thread.currentThread().getName());
-                    authService.cadastrar(
-                            txtNome.getText().trim(),
-                            txtUsername.getText().trim(),
-                            txtEmail.getText().toLowerCase().trim(),
-                            txtSenha.getText(),
-                            txtGeminiApiKey.getText().trim());
-                    return null;
-                },
-                sucesso -> {
-                    long tempo = System.currentTimeMillis() - inicio;
-                    // Username no log de sucesso permite rastrear qual conta foi criada
-                    log.info("[CADASTRO] Usuário '{}' cadastrado com sucesso em {}ms. Redirecionando para login.",
-                            txtUsername.getText().trim(), tempo);
+        AsyncUtils.executarTaskAsync(() -> authFacade.cadastrarUsuario(txtNome.getText().trim(), username,
+                txtEmail.getText().toLowerCase().trim(), txtSenha.getText(), txtGeminiApiKey.getText().trim()), sucesso -> {
+                    log.info("{} [AUDITORIA] Usuário '{}' cadastrado com sucesso. Redirecionando para login.", LOG_PREFIX, username);
                     navigator.navegarPara("/fxml/login.fxml", false);
-                },
-                erro -> {
-                    long tempo = System.currentTimeMillis() - inicio;
-                    // Distingue erros de negócio (ex: username já existe) de falhas técnicas
-                    if (erro instanceof IllegalArgumentException || erro instanceof IllegalStateException) {
-                        log.warn(
-                                "[CADASTRO] Cadastro rejeitado por regra de negócio após {}ms. username='{}' | Motivo: {}",
-                                tempo, txtUsername.getText().trim(), erro.getMessage());
-                    } else {
-                        log.error("[CADASTRO] FALHA técnica no cadastro após {}ms. username='{}' | Erro: {}",
-                                tempo, txtUsername.getText().trim(), erro.getMessage(), erro);
-                    }
+                }, erro -> {
+                    log.error("{} [AUDITORIA] Falha no cadastro do usuário '{}': {}", LOG_PREFIX, username, erro.getMessage());
                     setLoading(false);
                     exibirErro(erro.getMessage());
                 });
     }
 
-    // =========================================================================
-    // VALIDAÇÃO DE ENTRADAS
-    // =========================================================================
+    // ==========================================================================================
+    // MÓDULO 5: VALIDAÇÃO DE ENTRADAS (Regras de UI)
+    // ==========================================================================================
     private boolean validarEntradas() {
-        // Campos obrigatórios — sem logar os valores (LGPD)
+        log.trace("{} [UI] Validando campos do formulário de cadastro.", LOG_PREFIX);
+
         if (txtNome.getText().isBlank() || txtUsername.getText().isBlank() || txtEmail.getText().isBlank()) {
-            log.warn("[CADASTRO][VALIDAÇÃO] Falhou: campos obrigatórios em branco. " +
-                    "nome={} | username={} | email={}",
-                    !txtNome.getText().isBlank(),
-                    !txtUsername.getText().isBlank(),
-                    !txtEmail.getText().isBlank());
+            log.warn("{} [NEGOCIO] Validação falhou: Campos obrigatórios em branco.", LOG_PREFIX);
             exibirErro("Todos os campos são obrigatórios.");
             return false;
         }
 
         if (txtUsername.getText().contains(" ")) {
-            log.warn("[CADASTRO][VALIDAÇÃO] Falhou: username '{}' contém espaços.",
-                    txtUsername.getText().trim());
+            log.warn("{} [NEGOCIO] Validação falhou: Username contém espaços.", LOG_PREFIX);
             exibirErro("O nome de usuário não pode conter espaços.");
             return false;
         }
 
         if (!txtEmail.getText().contains("@")) {
-            // E-mail mascarado: não expõe o valor completo no log
-            log.warn("[CADASTRO][VALIDAÇÃO] Falhou: e-mail informado não contém '@'. " +
-                    "Tamanho do valor: {} chars.", txtEmail.getText().length());
+            log.warn("{} [NEGOCIO] Validação falhou: E-mail inválido (sem '@').", LOG_PREFIX);
             exibirErro("Insira um e-mail válido.");
             return false;
         }
 
         if (txtSenha.getText().length() < 8) {
-            // NUNCA logar senha — apenas o comprimento para diagnóstico mínimo
-            log.warn("[CADASTRO][VALIDAÇÃO] Falhou: senha com {} caracteres (mínimo: 8).",
-                    txtSenha.getText().length());
+            log.warn("{} [NEGOCIO] Validação falhou: Senha muito curta.", LOG_PREFIX);
             exibirErro("A senha deve ter pelo menos 8 caracteres.");
             return false;
         }
 
         if (!txtSenha.getText().equals(txtConfirmarSenha.getText())) {
-            log.warn("[CADASTRO][VALIDAÇÃO] Falhou: senha e confirmação não coincidem.");
+            log.warn("{} [NEGOCIO] Validação falhou: Senhas não coincidem.", LOG_PREFIX);
             exibirErro("As senhas informadas não coincidem.");
             return false;
         }
 
         if (txtGeminiApiKey.getText() == null || txtGeminiApiKey.getText().trim().isBlank()) {
-            log.warn("[CADASTRO][VALIDAÇÃO] Falhou: API Key do Gemini não preenchida.");
+            log.warn("{} [NEGOCIO] Validação falhou: API Key do Gemini ausente.", LOG_PREFIX);
             exibirErro("A chave de API do Gemini é obrigatória para o suporte analítico.");
             return false;
         }
 
-        // Loga prefixo da key apenas para confirmar que não foi colada uma chave errada
-        String chaveTrim = txtGeminiApiKey.getText().trim();
-        log.debug("[CADASTRO][VALIDAÇÃO] Todas as regras aprovadas. username='{}' | " +
-                "API Key: {} chars, prefixo='{}'",
-                txtUsername.getText().trim(),
-                chaveTrim.length(),
-                chaveTrim.length() > 6 ? chaveTrim.substring(0, 6) + "..." : "***");
-
+        log.debug("{} [UI] Validação do formulário aprovada.", LOG_PREFIX);
         return true;
     }
 
-    // =========================================================================
-    // NAVEGAÇÃO E INTEGRAÇÕES
-    // =========================================================================
-    @FXML
-    private void handleVoltarLogin() {
-        log.info("[CADASTRO] Usuário retornou para a tela de login sem concluir o cadastro.");
+    // ==========================================================================================
+    // MÓDULO 6: NAVEGAÇÃO E INTEGRAÇÕES
+    // ==========================================================================================
+    @FXML private void handleVoltarLogin() {
+        log.info("{} [TELEMETRIA] Usuário cancelou o cadastro e retornou ao login.", LOG_PREFIX);
         navigator.navegarPara("/fxml/login.fxml", false);
     }
 
-    @FXML
-    private void abrirGoogleAIStudio() {
+    @FXML private void abrirGoogleAIStudio() {
+        log.info("{} [TELEMETRIA] Solicitando abertura do Google AI Studio no navegador.", LOG_PREFIX);
         if (hostServices != null) {
-            log.info("[CADASTRO] Abrindo Google AI Studio no browser.");
-            hostServices.showDocument("https://aistudio.google.com/");
+            hostServices.showDocument(URL_AI_STUDIO);
         } else {
-            log.error("[CADASTRO] CRÍTICO: HostServices indisponível. Impossível abrir link externo.");
+            log.error("{} [SISTEMA] HostServices indisponível. Impossível abrir link externo.", LOG_PREFIX);
         }
     }
 
-    // =========================================================================
-    // UTILITÁRIOS DE UI
-    // =========================================================================
+    // ==========================================================================================
+    // MÓDULO 7: UTILITÁRIOS DE UI
+    // ==========================================================================================
     private void setLoading(boolean loading) {
-        log.debug("[CADASTRO][UI] Estado de loading: {}.", loading ? "ATIVADO" : "DESATIVADO");
+        log.trace("{} [UI] Alterando estado de loading para: {}", LOG_PREFIX, loading);
         btnCadastrar.setDisable(loading);
         txtNome.setDisable(loading);
         txtUsername.setDisable(loading);
@@ -192,11 +155,13 @@ public class CadastroController {
         txtConfirmarSenha.setDisable(loading);
         txtGeminiApiKey.setDisable(loading);
 
-        if (loading)
+        if (loading) {
             lblMensagem.setVisible(false);
+        }
     }
 
     private void exibirErro(String msg) {
+        log.trace("{} [UI] Exibindo mensagem de erro: {}", LOG_PREFIX, msg);
         Platform.runLater(() -> {
             lblMensagem.setText(msg);
             lblMensagem.setVisible(true);

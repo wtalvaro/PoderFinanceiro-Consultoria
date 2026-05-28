@@ -2,159 +2,135 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.domain.event.ComissaoUIEventHub;
 import br.com.poderfinanceiro.app.domain.event.PropostaUIEventHub;
-import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
-import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
-import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
-import br.com.poderfinanceiro.app.domain.service.AuthService;
+import br.com.poderfinanceiro.app.facade.IDashboardFacade;
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import javafx.animation.PauseTransition;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.util.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Random;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javafx.beans.binding.Bindings;
-
+/**
+ * <h1>DashboardController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável pela tela inicial (Dashboard).
+ * Implementa o padrão <b>Humble Object</b>, delegando cálculos de métricas,
+ * filtros e consultas para a {@link IDashboardFacade}.
+ * </p>
+ */
 @Component
 public class DashboardController implements Disposable {
 
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
+    private static final String LOG_PREFIX = "[DashboardController]";
 
-    // =========================================================================
-    // CONSTANTES (Clean Code)
-    // =========================================================================
-    private static final String STATUS_PAGO_COMISSAO = "Pago";
-    private static final String STATUS_LIQUIDADO_COMISSAO = "Liquidado";
-    private static final String MSG_OFFLINE = "Consultor Offline";
     private static final String MSG_SEM_CONVENIO = "Sem Convênio";
     private static final String MSG_CARREGANDO = "Calculando métricas do Dashboard...";
 
-    private static final String[] FRASES_MOTIVACIONAIS = {
-            "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+    private static final String[] FRASES_MOTIVACIONAIS = { "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
             "Bons negócios não caem do céu, são construídos. Ótimo dia de vendas!",
             "Cada 'não' te deixa mais perto do próximo 'sim'. Vamos em frente!",
-            "Consultoria de excelência gera clientes para a vida toda.",
-            "Acredite no seu potencial. O fechamento perfeito começa agora!",
-            "O único lugar onde o sucesso vem antes do trabalho é no dicionário."
-    };
+            "Consultoria de excelência gera clientes para a vida toda.", "Acredite no seu potencial. O fechamento perfeito começa agora!",
+            "O único lugar onde o sucesso vem antes do trabalho é no dicionário." };
 
-    // =========================================================================
-    // DEPENDÊNCIAS
-    // =========================================================================
-    private final PropostaRepository propostaRepository;
-    private final ComissaoRepository comissaoRepository;
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
+    private final IDashboardFacade dashboardFacade;
     private final Navigator navigator;
-    private final AuthService authService;
     private final PropostaUIEventHub propostaEventHub;
     private final ComissaoUIEventHub comissaoEventHub;
 
-    // =========================================================================
-    // COMPONENTES UI (FXML)
-    // =========================================================================
-    @FXML
-    private Label lblNomeConsultor;
-    @FXML
-    private Label lblQtdAguardando;
-    @FXML
-    private Label lblVolumeAprovado;
-    @FXML
-    private Label lblComissaoPendente;
-    @FXML
-    private Label lblComissaoPaga;
-    @FXML
-    private TextField txtBuscaPropostas;
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
+    @FXML private Label lblNomeConsultor, lblQtdAguardando, lblVolumeAprovado, lblComissaoPendente, lblComissaoPaga;
+    @FXML private TextField txtBuscaPropostas;
+    @FXML private TableView<PropostaModel> tabelaPropostas;
+    @FXML private TableColumn<PropostaModel, String> colCliente, colBanco, colConvenio;
+    @FXML private TableColumn<PropostaModel, BigDecimal> colValorSolicitado, colValor, colComissao;
+    @FXML private TableColumn<PropostaModel, StatusPropostaModel> colStatus;
+    @FXML private TableColumn<PropostaModel, Void> colAcoes;
+    @FXML private Label lblTotalRegistros;
 
-    @FXML
-    private TableView<PropostaModel> tabelaPropostas;
-    @FXML
-    private TableColumn<PropostaModel, String> colCliente;
-    @FXML
-    private TableColumn<PropostaModel, String> colBanco;
-    @FXML
-    private TableColumn<PropostaModel, String> colConvenio;
-    @FXML
-    private TableColumn<PropostaModel, BigDecimal> colValorSolicitado;
-    @FXML
-    private TableColumn<PropostaModel, BigDecimal> colValor;
-    @FXML
-    private TableColumn<PropostaModel, BigDecimal> colComissao;
-    @FXML
-    private TableColumn<PropostaModel, StatusPropostaModel> colStatus;
-    @FXML
-    private TableColumn<PropostaModel, Void> colAcoes;
-    @FXML
-    private Label lblTotalRegistros;
-
+    // ==========================================================================================
+    // MÓDULO 4: ESTADO INTERNO DA TELA
+    // ==========================================================================================
     private final ObservableList<PropostaModel> masterData = FXCollections.observableArrayList();
+    private final ObservableList<PropostaModel> filteredData = FXCollections.observableArrayList();
     private final Random randomGenerator = new Random();
-
     private boolean isPrimeiraCarga = true;
 
-    public DashboardController(PropostaRepository propostaRepository, ComissaoRepository comissaoRepository,
-            Navigator navigator, AuthService authService, PropostaUIEventHub propostaEventHub,
+    public DashboardController(IDashboardFacade dashboardFacade, Navigator navigator, PropostaUIEventHub propostaEventHub,
             ComissaoUIEventHub comissaoEventHub) {
-        this.propostaRepository = propostaRepository;
-        this.comissaoRepository = comissaoRepository;
+        this.dashboardFacade = dashboardFacade;
         this.navigator = navigator;
-        this.authService = authService;
         this.propostaEventHub = propostaEventHub;
         this.comissaoEventHub = comissaoEventHub;
-        log.debug("[DASHBOARD] Construtor: Controller instanciado com dependências injetadas");
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
     }
 
-    // =========================================================================
-    // INICIALIZAÇÃO E CONFIGURAÇÃO DE UI
-    // =========================================================================
-    @FXML
-    public void initialize() {
-        log.debug("[DASHBOARD] initialize: Iniciando configuração do Dashboard");
+    // ==========================================================================================
+    // MÓDULO 5: INICIALIZAÇÃO E CICLO DE VIDA
+    // ==========================================================================================
+    @FXML public void initialize() {
+        log.info("{} [TELEMETRIA] Inicializando interface do Dashboard...", LOG_PREFIX);
+
         propostaEventHub.inscrever(this::recarregarDadosSilencioso);
         comissaoEventHub.inscrever(this::recarregarDadosSilencioso);
+
         carregarNomeConsultor();
         configurarTabela();
         configurarBuscaReativa();
         carregarDadosReais();
-        lblTotalRegistros.textProperty().bind(
-                Bindings.format("Total: %d registro(s)", Bindings.size(tabelaPropostas.getItems())));
-        log.info("[DASHBOARD] initialize: Dashboard configurado com sucesso");
+
+        lblTotalRegistros.textProperty().bind(Bindings.format("Total: %d registro(s)", Bindings.size(filteredData)));
+        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
     }
 
+    @Override public void dispose() {
+        log.info("{} [LIFECYCLE] Desinscrevendo dos hubs de eventos.", LOG_PREFIX);
+        propostaEventHub.desinscrever(this::recarregarDadosSilencioso);
+        comissaoEventHub.desinscrever(this::recarregarDadosSilencioso);
+    }
+
+    // ==========================================================================================
+    // MÓDULO 6: CONFIGURAÇÃO DE UI E BINDINGS
+    // ==========================================================================================
     private void carregarNomeConsultor() {
-        UsuarioModel usuario = authService.getUsuarioLogado();
-        String nome = usuario != null ? usuario.getNome() : MSG_OFFLINE;
+        String nome = dashboardFacade.obterNomeConsultorLogado();
         lblNomeConsultor.setText(nome);
-        log.debug("[DASHBOARD] carregarNomeConsultor: Consultor = '{}'", nome);
+        log.trace("{} [UI] Nome do consultor atualizado: {}", LOG_PREFIX, nome);
     }
 
     private void configurarTabela() {
-        log.debug("[DASHBOARD] configurarTabela: Configurando colunas da tabela de propostas");
+        log.trace("{} [UI] Configurando colunas da tabela de propostas.", LOG_PREFIX);
+        tabelaPropostas.setItems(filteredData);
+
         colCliente.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProponente().getNomeCompleto()));
         colBanco.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getBanco().getNome()));
-        colConvenio.setCellValueFactory(d -> {
-            var convenio = d.getValue().getConvenioOrgao();
-            return new SimpleStringProperty(convenio != null ? convenio.getLabel() : MSG_SEM_CONVENIO);
-        });
+        colConvenio.setCellValueFactory(d -> new SimpleStringProperty(
+                d.getValue().getConvenioOrgao() != null ? d.getValue().getConvenioOrgao().getLabel() : MSG_SEM_CONVENIO));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
 
         configurarColunaMoeda(colValorSolicitado, "valorSolicitado");
@@ -162,28 +138,35 @@ public class DashboardController implements Disposable {
         configurarColunaMoeda(colComissao, "comissaoEstimada");
 
         configurarColunaAcoes();
-        log.debug("[DASHBOARD] configurarTabela: Tabela configurada");
     }
 
     private void configurarColunaMoeda(TableColumn<PropostaModel, BigDecimal> coluna, String propertyName) {
         coluna.setCellValueFactory(new PropertyValueFactory<>(propertyName));
         coluna.setCellFactory(tc -> new TableCell<>() {
-            @Override
-            protected void updateItem(BigDecimal item, boolean empty) {
+            @Override protected void updateItem(BigDecimal item, boolean empty) {
                 super.updateItem(item, empty);
                 setText((empty || item == null) ? "-" : FinanceiroUtils.formatarParaExibicao(item));
             }
         });
-        log.trace("[DASHBOARD] configurarColunaMoeda: Coluna '{}' configurada", propertyName);
     }
 
     private void configurarColunaAcoes() {
-        log.debug("[DASHBOARD] configurarColunaAcoes: Configurando coluna de ações (botão Abrir)");
         colAcoes.setCellFactory(param -> new TableCell<>() {
-            private final Button btnAbrir = criarBotaoAbrirProposta();
+            private final Button btnAbrir = new Button("📂 Abrir");
+            {
+                btnAbrir.getStyleClass().addAll("flat", "accent");
+                btnAbrir.setCursor(Cursor.HAND);
+                btnAbrir.setOnAction(event -> {
+                    PropostaModel proposta = getTableView().getItems().get(getIndex());
+                    if (proposta != null && proposta.getProponente() != null) {
+                        log.info("{} [TELEMETRIA] Abrindo proposta ID={} do cliente {}", LOG_PREFIX, proposta.getId(),
+                                proposta.getProponente().getNomeCompleto());
+                        navigator.abrirPropostaNoWorkspace(proposta);
+                    }
+                });
+            }
 
-            @Override
-            protected void updateItem(Void item, boolean empty) {
+            @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
@@ -192,207 +175,81 @@ public class DashboardController implements Disposable {
                     setAlignment(Pos.CENTER);
                 }
             }
-
-            private Button criarBotaoAbrirProposta() {
-                Button btn = new Button("📂 Abrir");
-                btn.getStyleClass().addAll("flat", "accent");
-                btn.setCursor(Cursor.HAND);
-                btn.setOnAction(event -> {
-                    PropostaModel proposta = getTableView().getItems().get(getIndex());
-                    if (proposta != null && proposta.getProponente() != null) {
-                        log.info("[DASHBOARD] Abrindo proposta ID={} do cliente {}", proposta.getId(),
-                                proposta.getProponente().getNomeCompleto());
-                        navigator.abrirPropostaNoWorkspace(proposta);
-                    } else {
-                        log.warn("[DASHBOARD] Tentativa de abrir proposta inválida (proposta ou proponente nulo)");
-                    }
-                });
-                return btn;
-            }
         });
     }
 
     private void configurarBuscaReativa() {
-        log.debug("[DASHBOARD] configurarBuscaReativa: Configurando busca reativa (filtro por texto)");
-        FilteredList<PropostaModel> filteredData = new FilteredList<>(masterData, p -> true);
-
+        log.trace("{} [UI] Configurando listener de busca reativa.", LOG_PREFIX);
         txtBuscaPropostas.textProperty().addListener((obs, oldVal, newVal) -> {
-            log.debug("[DASHBOARD] Busca alterada: '{}' -> '{}'", oldVal, newVal);
-            filteredData.setPredicate(proposta -> atendeFiltroDeBusca(proposta, newVal));
+            log.debug("{} [UI] Termo de busca alterado: '{}'", LOG_PREFIX, newVal);
+            aplicarFiltro(newVal);
         });
-
-        SortedList<PropostaModel> sortedData = new SortedList<>(filteredData);
-        sortedData.comparatorProperty().bind(tabelaPropostas.comparatorProperty());
-        tabelaPropostas.setItems(sortedData);
     }
 
-    private boolean atendeFiltroDeBusca(PropostaModel proposta, String termo) {
-        if (termo == null || termo.isBlank())
-            return true;
-
-        String filtro = termo.toLowerCase();
-        String nome = proposta.getProponente().getNomeCompleto().toLowerCase();
-        String cpf = proposta.getProponente().getCpf().replaceAll("[^0-9]", "");
-        String banco = proposta.getBanco().getNome().toLowerCase();
-
-        boolean matches = nome.contains(filtro) || cpf.contains(filtro) || banco.contains(filtro);
-        log.trace("[DASHBOARD] atendeFiltroDeBusca: termo='{}', proposta cliente='{}' -> {}", termo, nome, matches);
-        return matches;
+    private void aplicarFiltro(String termo) {
+        AsyncUtils.executarTaskAsync(() -> dashboardFacade.filtrarPropostas(masterData, termo), resultado -> filteredData.setAll(resultado),
+                erro -> log.error("{} [SISTEMA] Erro ao filtrar propostas: {}", LOG_PREFIX, erro.getMessage()));
     }
 
-    // =========================================================================
-    // LÓGICA DE DADOS (ASYNC) E MÉTRICAS
-    // =========================================================================
+    // ==========================================================================================
+    // MÓDULO 7: LÓGICA DE DADOS (ASYNC) E MÉTRICAS
+    // ==========================================================================================
     public void recarregarDadosSilencioso() {
         executarCargaDeDados(false);
     }
 
-    // MANTIDO: Usado no initialize e no botão FXML de "Atualizar Caixa"
-    @FXML
-    public void carregarDadosReais() {
+    @FXML public void carregarDadosReais() {
         executarCargaDeDados(true);
     }
 
-    // NOVO MOTOR CENTRAL: Controla se vai travar a tela ou não
     private void executarCargaDeDados(boolean exibirLoading) {
-        log.debug("[DASHBOARD] executarCargaDeDados: exibindoLoading={}", exibirLoading);
-        if (exibirLoading) {
+        log.trace("{} [SISTEMA] Executando carga de dados. Exibir Loading: {}", LOG_PREFIX, exibirLoading);
+        if (exibirLoading)
             navigator.mostrarLoading(MSG_CARREGANDO);
-        }
 
-        AsyncUtils.executarTaskAsync(
-                () -> {
-                    log.debug("[DASHBOARD] Buscando dados no repositório");
-                    List<PropostaModel> propostas = propostaRepository.findAllComDetalhes();
-                    List<ComissaoModel> comissoes = comissaoRepository.findAll();
-                    return calcularMetricasDoDashboard(propostas, comissoes);
-                },
-                res -> {
-                    // 1. Atualiza os dados da tela
-                    atualizarInterfaceDoDashboard(res);
-
-                    // 2. Resolve as regras de carregamento da interface
-                    if (exibirLoading) {
-                        if (isPrimeiraCarga) {
-                            exibirLoadingMotivacional();
-                            isPrimeiraCarga = false; // Desativa a frase motivacional para o resto da sessão
-                        } else {
-                            navigator.ocultarLoading(); // Atualização manual comum (sem frase)
-                        }
-                    }
-                },
-                erro -> {
-                    if (exibirLoading)
-                        navigator.ocultarLoading();
-                    log.error("[DASHBOARD][DADOS] Erro ao carregar dados: {}", erro.getMessage(), erro);
-                });
+        AsyncUtils.executarTaskAsync(dashboardFacade::calcularMetricasGerais, metricas -> {
+            atualizarInterfaceDoDashboard(metricas);
+            if (exibirLoading) {
+                if (isPrimeiraCarga) {
+                    exibirLoadingMotivacional();
+                    isPrimeiraCarga = false;
+                } else {
+                    navigator.ocultarLoading();
+                }
+            }
+        }, erro -> {
+            if (exibirLoading)
+                navigator.ocultarLoading();
+            log.error("{} [SISTEMA] Erro ao carregar métricas do Dashboard: {}", LOG_PREFIX, erro.getMessage());
+        });
     }
 
-    private ResultadoDashboard calcularMetricasDoDashboard(List<PropostaModel> propostas,
-            List<ComissaoModel> comissoes) {
-        log.debug("[DASHBOARD] calcularMetricasDoDashboard: Calculando métricas");
-        long aguardando = propostas.stream().filter(this::isPropostaAguardando).count();
-        BigDecimal volumeAprovado = somarVolumeAprovado(propostas);
-        BigDecimal comissaoPendente = somarComissoes(comissoes, false);
-        BigDecimal comissaoPaga = somarComissoes(comissoes, true);
+    private void atualizarInterfaceDoDashboard(IDashboardFacade.MetricasDashboardDTO metricas) {
+        log.trace("{} [UI] Atualizando componentes visuais com novas métricas.", LOG_PREFIX);
+        masterData.setAll(metricas.propostas());
+        aplicarFiltro(txtBuscaPropostas.getText());
 
-        log.info(
-                "[DASHBOARD] Métricas calculadas: aguardando={}, volumeAprovado={}, comissaoPendente={}, comissaoPaga={}",
-                aguardando,
-                FinanceiroUtils.formatarParaExibicao(volumeAprovado),
-                FinanceiroUtils.formatarParaExibicao(comissaoPendente),
-                FinanceiroUtils.formatarParaExibicao(comissaoPaga));
+        lblQtdAguardando.setText(String.valueOf(metricas.qtdAguardando()));
+        lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(metricas.volumeAprovado()));
+        lblComissaoPendente.setText(FinanceiroUtils.formatarParaExibicao(metricas.comissaoPendente()));
+        lblComissaoPaga.setText(FinanceiroUtils.formatarParaExibicao(metricas.comissaoPaga()));
 
-        return new ResultadoDashboard(propostas, aguardando, volumeAprovado, comissaoPendente, comissaoPaga);
-    }
-
-    private boolean isPropostaAguardando(PropostaModel p) {
-        boolean aguardando = p.getStatus() == StatusPropostaModel.DIGITADA
-                || p.getStatus() == StatusPropostaModel.PENDENTE;
-        log.trace("[DASHBOARD] isPropostaAguardando: Proposta ID={} status={} -> {}", p.getId(), p.getStatus(),
-                aguardando);
-        return aguardando;
-    }
-
-    private BigDecimal somarVolumeAprovado(List<PropostaModel> propostas) {
-        BigDecimal soma = propostas.stream()
-                .filter(p -> p.getStatus() == StatusPropostaModel.PAGO)
-                .map(p -> p.getValorFinalCliente() != null ? p.getValorFinalCliente() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        log.debug("[DASHBOARD] somarVolumeAprovado: Total = {}", FinanceiroUtils.formatarParaExibicao(soma));
-        return soma;
-    }
-
-    private BigDecimal somarComissoes(List<ComissaoModel> comissoes, boolean isPaga) {
-        BigDecimal soma = comissoes.stream()
-                .filter(c -> isComissaoPaga(c) == isPaga)
-                .map(c -> {
-                    BigDecimal valor = isPaga ? c.getValorPagoPelaPoder() : c.getValorBrutoComissao();
-                    return valor != null ? valor : BigDecimal.ZERO;
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        log.debug("[DASHBOARD] somarComissoes: isPaga={}, total = {}", isPaga,
-                FinanceiroUtils.formatarParaExibicao(soma));
-        return soma;
-    }
-
-    private boolean isComissaoPaga(ComissaoModel c) {
-        String status = c.getStatusPagamento();
-        boolean paga = STATUS_PAGO_COMISSAO.equalsIgnoreCase(status)
-                || STATUS_LIQUIDADO_COMISSAO.equalsIgnoreCase(status);
-        log.trace("[DASHBOARD] isComissaoPaga: Comissão ID={} status='{}' -> {}", c.getId(), status, paga);
-        return paga;
-    }
-
-    // =========================================================================
-    // ATUALIZAÇÃO DA UI E EXPERIÊNCIA DO USUÁRIO
-    // =========================================================================
-    private void atualizarInterfaceDoDashboard(ResultadoDashboard res) {
-        log.debug("[DASHBOARD] atualizarInterfaceDoDashboard: Atualizando componentes visuais");
-        masterData.setAll(res.propostas());
-        log.info("[DASHBOARD] Atualizados {} registros na tabela", res.propostas().size());
-
-        lblQtdAguardando.setText(String.valueOf(res.qtdAguardando()));
-        lblVolumeAprovado.setText(FinanceiroUtils.formatarParaExibicao(res.volumeAprovado()));
-        lblComissaoPendente.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPendente()));
-        lblComissaoPaga.setText(FinanceiroUtils.formatarParaExibicao(res.comissaoPaga()));
+        log.info("{} [TELEMETRIA] Dashboard atualizado. {} propostas carregadas.", LOG_PREFIX, metricas.propostas().size());
     }
 
     private void exibirLoadingMotivacional() {
         String fraseSorteada = FRASES_MOTIVACIONAIS[randomGenerator.nextInt(FRASES_MOTIVACIONAIS.length)];
-        log.debug("[DASHBOARD] exibirLoadingMotivacional: Frase sorteada = '{}'", fraseSorteada);
+        log.trace("{} [UI] Exibindo frase motivacional: '{}'", LOG_PREFIX, fraseSorteada);
         navigator.mostrarLoading("💡 " + fraseSorteada);
 
         PauseTransition delay = new PauseTransition(Duration.seconds(3.5));
-        delay.setOnFinished(e -> {
-            log.debug("[DASHBOARD] exibirLoadingMotivacional: Ocultando loading após 3.5s");
-            navigator.ocultarLoading();
-        });
+        delay.setOnFinished(e -> navigator.ocultarLoading());
         delay.play();
     }
 
-    @FXML
-    private void simularNovo() {
-        log.info("[DASHBOARD] simularNovo: Usuário iniciou nova simulação (limpa busca e abre workspace vazio)");
+    @FXML private void simularNovo() {
+        log.info("{} [TELEMETRIA] Usuário iniciou nova simulação via Dashboard.", LOG_PREFIX);
         txtBuscaPropostas.clear();
         navigator.abrirClienteNoWorkspace(null);
-    }
-
-    // =========================================================================
-    // RECORDS AUXILIARES
-    // =========================================================================
-    private record ResultadoDashboard(
-            List<PropostaModel> propostas,
-            long qtdAguardando,
-            BigDecimal volumeAprovado,
-            BigDecimal comissaoPendente,
-            BigDecimal comissaoPaga) {
-    }
-
-    @Override
-    public void dispose() {
-        log.info("[DASHBOARD] dispose: Desinscrevendo dos hubs.");
-        propostaEventHub.desinscrever(this::recarregarDadosSilencioso);
-        comissaoEventHub.desinscrever(this::recarregarDadosSilencioso);
     }
 }

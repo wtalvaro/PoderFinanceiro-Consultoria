@@ -47,7 +47,7 @@
             </columns>
         </TableView>
 
-        <Button fx:id="btnGravarLote" text="💾 Gravar Lote Completo" onAction="#gravarLoteNoBanco"
+        <Button fx:id="btnGravarLote" text="💾 Gravar Lote Completo" onAction="#handleGravarLote"
             maxWidth="Infinity"
             style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;" />
     </VBox>
@@ -130,7 +130,7 @@
 
             <HBox spacing="10">
                 <Button fx:id="btnConfirmarTabela" text="✓ Revisado: Confirmar e ir para o Próximo"
-                    onAction="#confirmarTabelaAtual" HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                    onAction="#handleConfirmarEdicao" HBox.hgrow="ALWAYS" maxWidth="Infinity"
                     style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12;" />
 
                 <Button text="🗑️ Remover" onAction="#removerTabelaAtual"

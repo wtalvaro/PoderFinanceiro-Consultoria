@@ -1,120 +1,120 @@
 package br.com.poderfinanceiro.app.controller;
 
-import javafx.fxml.FXML;
-import org.springframework.stereotype.Component;
-
 import br.com.poderfinanceiro.app.ui.navigation.Navigator;
-import br.com.poderfinanceiro.app.ui.stage.StageInitializer;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.scene.Node;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+/**
+ * <h1>ToolbarController</h1>
+ * <p>
+ * Controlador de Interface (UI) responsável pela barra de ferramentas (ícones
+ * de atalho). Atua como um <b>Humble Object</b> puro, roteando cliques
+ * exclusivamente para o {@link Navigator}.
+ * </p>
+ */
 @Component
 public class ToolbarController {
 
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(ToolbarController.class);
+    private static final String LOG_PREFIX = "[ToolbarController]";
 
-    private final StageInitializer stageInitializer;
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
     private final Navigator navigator;
 
-    public ToolbarController(StageInitializer stageInitializer, Navigator navigator) {
-        this.stageInitializer = stageInitializer;
+    public ToolbarController(Navigator navigator) {
         this.navigator = navigator;
-        log.debug("[TOOLBAR] Construtor: Controller instanciado");
+        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
     }
 
-    // ==========================================
-    // AÇÕES GLOBAIS
-    // ==========================================
-
-    @FXML
-    private void handleNovoContato() {
-        log.info("[TOOLBAR] Usuário clicou em 'Novo Contato'");
+    // ==========================================================================================
+    // MÓDULO 3: AÇÕES GLOBAIS
+    // ==========================================================================================
+    @FXML private void handleNovoContato() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Novo Contato'.", LOG_PREFIX);
         navigator.irParaNovoContato();
     }
 
-    // ==========================================
-    // NAVEGAÇÃO PRINCIPAL (Transplantada)
-    // ==========================================
-
-    @FXML
-    private void abrirWorkspace() {
-        log.info("[TOOLBAR] Usuário clicou em 'Workspace/Dashboard'");
+    // ==========================================================================================
+    // MÓDULO 4: NAVEGAÇÃO PRINCIPAL
+    // ==========================================================================================
+    @FXML private void abrirWorkspace() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Dashboard'.", LOG_PREFIX);
         navigator.abrirDashboard();
     }
 
-    @FXML
-    private void abrirPlaybook() {
-        log.info("[TOOLBAR] Usuário clicou em 'Playbook'");
+    @FXML private void abrirPlaybook() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Playbook'.", LOG_PREFIX);
         navigator.abrirPlaybook();
     }
 
-    @FXML
-    private void abrirTelaBaseClientes() {
-        log.info("[TOOLBAR] Usuário clicou em 'Clientes'");
+    @FXML private void abrirTelaBaseClientes() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Clientes'.", LOG_PREFIX);
         navigator.abrirClientes();
     }
 
-    @FXML
-    private void abrirPropostasList() {
-        log.info("[TOOLBAR] Usuário clicou em 'Lista de Propostas'");
+    @FXML private void abrirPropostasList() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Lista de Propostas'.", LOG_PREFIX);
         navigator.irParaPropostas();
     }
 
-    // Adicione no grupo CONFIGURAÇÕES E AUXILIARES
-    @FXML
-    private void abrirImportadorTabelas() {
-        log.info("[TOOLBAR] Usuário clicou em 'Importador de Tabelas'");
+    // ==========================================================================================
+    // MÓDULO 5: CONFIGURAÇÕES E AUXILIARES
+    // ==========================================================================================
+    @FXML private void abrirImportadorTabelas() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Importador de Tabelas'.", LOG_PREFIX);
         navigator.irParaImportadorTabelas();
     }
 
-    // ==========================================
-    // CONFIGURAÇÕES E AUXILIARES
-    // ==========================================
-
-    @FXML
-    private void abrirBancosConvenios() {
-        log.info("[TOOLBAR] Usuário clicou em 'Bancos e Convênios'");
+    @FXML private void abrirBancosConvenios() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Bancos e Convênios'.", LOG_PREFIX);
         navigator.irParaBancosConvenios();
     }
 
-    @FXML
-    private void abrirTabelasJuros() {
-        log.info("[TOOLBAR] Usuário clicou em 'Tabelas de Juros'");
+    @FXML private void abrirTabelasJuros() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Tabelas de Juros'.", LOG_PREFIX);
         navigator.irParaTabelasJuros();
     }
 
-    @FXML
-    private void abrirTabelaComissoes() {
-        log.info("[TOOLBAR] Usuário clicou em 'Tabela de Comissões'");
+    @FXML private void abrirTabelaComissoes() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Tabela de Comissões'.", LOG_PREFIX);
         navigator.irParaTabelaComissoes();
     }
 
-    @FXML
-    private void handleLinksUteis() {
-        log.info("[TOOLBAR] Usuário clicou em 'Links Úteis'");
+    @FXML private void handleLinksUteis() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Links Úteis'.", LOG_PREFIX);
         navigator.irParaLinksUteis();
     }
 
-    @FXML
-    public void handleAbrirIA() {
-        log.info("[TOOLBAR] Usuário clicou em 'Abrir IA' (alternar painel)");
+    // ==========================================================================================
+    // MÓDULO 6: INTELIGÊNCIA ARTIFICIAL
+    // ==========================================================================================
+    @FXML public void handleAbrirIA() {
+        log.trace("{} [UI] Usuário clicou no atalho 'Abrir IA'.", LOG_PREFIX);
         navigator.alternarPainelIA();
     }
 
-    @FXML
-    public void handleAbrirCopiloto(javafx.event.ActionEvent event) {
-        log.info("[TOOLBAR] Usuário clicou em 'Abrir Copiloto'");
-        javafx.scene.Node source = (javafx.scene.Node) event.getSource();
+    @FXML public void handleAbrirCopiloto(ActionEvent event) {
+        log.trace("{} [UI] Usuário clicou no atalho 'Abrir Copiloto'.", LOG_PREFIX);
+        Node source = (Node) event.getSource();
         navigator.abrirCopilotoSimulacao(source);
     }
 
-    // ==========================================
-    // SISTEMA
-    // ==========================================
-
-    @FXML
-    private void handleLogout() {
-        log.info("[TOOLBAR] Usuário solicitou logout");
-        stageInitializer.logout(); // Chama a lógica centralizada
+    // ==========================================================================================
+    // MÓDULO 7: SISTEMA
+    // ==========================================================================================
+    @FXML private void handleLogout() {
+        log.info("{} [TELEMETRIA] Usuário solicitou logout via Toolbar.", LOG_PREFIX);
+        // Padronizado com o MenuController: O Navigator exibe o overlay de
+        // confirmação
+        navigator.mostrarOverlaySair();
     }
 }
