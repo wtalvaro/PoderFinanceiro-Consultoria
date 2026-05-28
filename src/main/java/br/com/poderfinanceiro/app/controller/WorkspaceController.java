@@ -233,20 +233,19 @@ public class WorkspaceController {
 
             novaAba.setOnCloseRequest(event -> {
                 log.debug("[WORKSPACE] Tentativa de fechar aba de atendimento ID={}", idBuscado);
-                if (hub.temAlteracoesNaoSalvas()) {
-                    log.warn("[WORKSPACE] Aba com alterações não salvas, fechamento bloqueado até confirmação");
-                    event.consume();
-                    hub.solicitarFechamento(() -> {
-                        hub.limparRecursos();
-                        tentarDisposar(hub);
-                        tabPanePrincipal.getTabs().remove(novaAba);
-                        log.info("[WORKSPACE] Aba de atendimento ID={} fechada após confirmação", idBuscado);
-                    });
-                } else {
+
+                // 1. Bloqueamos o fechamento automático do JavaFX
+                event.consume();
+
+                // 2. Delegamos a decisão para o HubController.
+                // Se houver alterações, ele mostra o overlay. Se não, ele
+                // executa o Runnable imediatamente.
+                hub.solicitarFechamento(() -> {
                     hub.limparRecursos();
                     tentarDisposar(hub);
-                    log.info("[WORKSPACE] Aba de atendimento ID={} fechada (sem pendências)", idBuscado);
-                }
+                    tabPanePrincipal.getTabs().remove(novaAba);
+                    log.info("[WORKSPACE] Aba de atendimento ID={} fechada com sucesso", idBuscado);
+                });
             });
 
             tabPanePrincipal.getTabs().add(novaAba);
