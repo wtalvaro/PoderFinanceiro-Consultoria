@@ -32,8 +32,6 @@
                 </children>
             </HBox>
 
-            <Label fx:id="lblAviso" visible="false" managed="false" wrapText="true" />
-
             <MasterDetailPane fx:id="paneFormulario" detailSide="TOP" showDetailNode="false"
                 animated="true" dividerPosition="1.0" VBox.vgrow="ALWAYS">
                 <detailNode>
@@ -237,46 +235,7 @@
                         </children>
                     </VBox>
                 </masterNode>
-
             </MasterDetailPane>
         </children>
     </VBox>
-
-    <VBox fx:id="overlayArquivar" alignment="CENTER" spacing="20" visible="false"
-        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
-        <children>
-            <VBox alignment="CENTER" spacing="20" maxWidth="550"
-                style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
-                <children>
-                    <Label text="⚠️ Opções de Arquivamento"
-                        style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f57c00;" />
-                    <Label text="Como você deseja proceder com esta tabela?" wrapText="true"
-                        textAlignment="CENTER" style="-fx-font-size: 15px; -fx-text-fill: #333;" />
-                    <VBox spacing="10" alignment="CENTER" style="-fx-padding: 10 0;">
-                        <children>
-                            <Button text="🔄 Arquivar e Criar Nova Versão (Renovar)"
-                                onAction="#prepararNovaVersao" maxWidth="Infinity"
-                                styleClass="accent" style="-fx-font-weight: bold; -fx-padding: 10;" />
-                            <Label
-                                text="Os dados irão para o formulário. Ao salvar, a antiga será arquivada e uma nova será criada."
-                                style="-fx-font-size: 11px; -fx-text-fill: #666;" />
-                            <Separator style="-fx-padding: 5 0;" />
-                            <Button text="📦 Apenas Arquivar (Inativar Definitivamente)"
-                                onAction="#confirmarArquivamento" maxWidth="Infinity"
-                                style="-fx-background-color: #ffe0b2; -fx-text-fill: #e65100; -fx-font-weight: bold; -fx-padding: 10;" />
-                            <Label text="A tabela sairá de uso e não criará uma substituta."
-                                style="-fx-font-size: 11px; -fx-text-fill: #666;" />
-                        </children>
-                    </VBox>
-                    <HBox spacing="15" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
-                        <children>
-                            <Button text="Cancelar" onAction="#cancelarArquivamento"
-                                styleClass="flat" />
-                        </children>
-                    </HBox>
-                </children>
-            </VBox>
-        </children>
-    </VBox>
-
 </StackPane>

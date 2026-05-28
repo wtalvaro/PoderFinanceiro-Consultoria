@@ -1,104 +1,185 @@
 package br.com.poderfinanceiro.app.domain.service;
 
-import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Serviço de Gestão de Contexto de Atendimento. Centraliza o estado da
+ * aplicação e notifica interessados via eventos Spring. Otimizado para Project
+ * Loom com ReentrantLock.
+ */
 @Service
 public class AtendimentoContextService {
 
     private static final Logger log = LoggerFactory.getLogger(AtendimentoContextService.class);
+    private static final String LOG_PREFIX = "[AtendimentoContextService]";
 
     public enum TipoTelaFocada {
-        DASHBOARD,
-        LISTA_CLIENTES,
-        CADASTRO_CLIENTE,
-        ESTEIRA_PROPOSTAS,
-        TABELAS_JUROS,
-        LINKS_UTEIS,
-        GESTAO_COMISSOES
+        DASHBOARD, LISTA_CLIENTES, CADASTRO_CLIENTE, ESTEIRA_PROPOSTAS, TABELAS_JUROS, LINKS_UTEIS, GESTAO_COMISSOES
     }
+
+    /**
+     * Record interno para representar a mudança de contexto.
+     */
+    public record ContextoAlteradoEvent(Object source, ProponenteModel lead, TipoTelaFocada tela) {
+    }
+
+    private final ApplicationEventPublisher eventPublisher;
+    private final ReentrantLock lock = new ReentrantLock();
 
     private ProponenteModel leadAtivo;
     private PropostaModel propostaAtiva;
-    private List<ComissaoModel> comissoesAtivas;
+    private List<ComissaoModel> comissoesAtivas = new ArrayList<>();
     private TipoTelaFocada telaAtualFocada = TipoTelaFocada.DASHBOARD;
 
-    public AtendimentoContextService() {
-        log.debug("[ATENDIMENTO_CONTEXT] Serviço de contexto instanciado");
+    public AtendimentoContextService(ApplicationEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
+        log.info("{} [SISTEMA] Serviço de contexto reativo inicializado.", LOG_PREFIX);
     }
 
-    // --- GETTERS E SETTERS ---
+    // --- GETTERS (Thread-Safe) ---
 
     public ProponenteModel getLeadAtivo() {
-        log.trace("[ATENDIMENTO_CONTEXT] getLeadAtivo: {}", leadAtivo != null ? leadAtivo.getId() : "null");
-        return leadAtivo;
-    }
-
-    public void setLeadAtivo(ProponenteModel leadAtivo) {
-        Long id = leadAtivo != null ? leadAtivo.getId() : null;
-        log.debug("[ATENDIMENTO_CONTEXT] setLeadAtivo: ID={}", id);
-        this.leadAtivo = leadAtivo;
+        lock.lock();
+        try {
+            return leadAtivo;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public PropostaModel getPropostaAtiva() {
-        log.trace("[ATENDIMENTO_CONTEXT] getPropostaAtiva: {}", propostaAtiva != null ? propostaAtiva.getId() : "null");
-        return propostaAtiva;
-    }
-
-    public void setPropostaAtiva(PropostaModel propostaAtiva) {
-        Long id = propostaAtiva != null ? propostaAtiva.getId() : null;
-        log.debug("[ATENDIMENTO_CONTEXT] setPropostaAtiva: ID={}", id);
-        this.propostaAtiva = propostaAtiva;
+        lock.lock();
+        try {
+            return propostaAtiva;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public List<ComissaoModel> getComissoesAtivas() {
-        log.trace("[ATENDIMENTO_CONTEXT] getComissoesAtivas: size={}",
-                comissoesAtivas != null ? comissoesAtivas.size() : 0);
-        return comissoesAtivas;
-    }
-
-    public void setComissoesAtivas(List<ComissaoModel> comissoesAtivas) {
-        int size = comissoesAtivas != null ? comissoesAtivas.size() : 0;
-        log.debug("[ATENDIMENTO_CONTEXT] setComissoesAtivas: {} comissão(ões) ativa(s)", size);
-        this.comissoesAtivas = comissoesAtivas;
+        lock.lock();
+        try {
+            return comissoesAtivas != null ? Collections.unmodifiableList(comissoesAtivas) : List.of();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public TipoTelaFocada getTelaAtualFocada() {
-        log.trace("[ATENDIMENTO_CONTEXT] getTelaAtualFocada: {}", telaAtualFocada);
-        return telaAtualFocada;
+        lock.lock();
+        try {
+            return telaAtualFocada;
+        } finally {
+            lock.unlock();
+        }
     }
 
-    public void setTelaAtualFocada(TipoTelaFocada telaAtualFocada) {
-        log.debug("[ATENDIMENTO_CONTEXT] setTelaAtualFocada: de {} para {}", this.telaAtualFocada, telaAtualFocada);
-        this.telaAtualFocada = telaAtualFocada;
+    // --- SETTERS COM DISPARO DE EVENTOS ---
+
+    public void setLeadAtivo(ProponenteModel leadAtivo) {
+        lock.lock();
+        try {
+            log.debug("{} [NEGOCIO] Alterando Lead Ativo. ID: {}", LOG_PREFIX,
+                    leadAtivo != null ? leadAtivo.getId() : "NULL");
+            this.leadAtivo = leadAtivo;
+            notificarMudanca();
+        } finally {
+            lock.unlock();
+        }
     }
 
-    // --- MÉTODOS DE APOIO ---
+    public void setPropostaAtiva(PropostaModel propostaAtiva) {
+        lock.lock();
+        try {
+            log.debug("{} [NEGOCIO] Alterando Proposta Ativa. ID: {}", LOG_PREFIX,
+                    propostaAtiva != null ? propostaAtiva.getId() : "NULL");
+            this.propostaAtiva = propostaAtiva;
+            notificarMudanca();
+        } finally {
+            lock.unlock();
+        }
+    }
 
+    public void setTelaAtualFocada(TipoTelaFocada novaTela) {
+        lock.lock();
+        try {
+            if (this.telaAtualFocada != novaTela) {
+                log.info("{} [NEGOCIO] Transição de tela: {} -> {}", LOG_PREFIX, this.telaAtualFocada, novaTela);
+                this.telaAtualFocada = novaTela;
+                notificarMudanca();
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void setComissoesAtivas(List<ComissaoModel> comissoesAtivas) {
+        lock.lock();
+        try {
+            this.comissoesAtivas = comissoesAtivas != null ? new ArrayList<>(comissoesAtivas) : new ArrayList<>();
+            notificarMudanca();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Atualiza o foco da interface de forma atômica e notifica uma única vez.
+     */
     public void atualizarFocoInterface(ProponenteModel lead, TipoTelaFocada tela) {
-        Long leadId = lead != null ? lead.getId() : null;
-        log.info("[ATENDIMENTO_CONTEXT] atualizarFocoInterface: leadId={}, tela={}", leadId, tela);
-        this.leadAtivo = lead;
-        this.telaAtualFocada = tela;
-    }
-
-    public boolean isAbaCadastroClienteAtiva() {
-        boolean ativa = TipoTelaFocada.CADASTRO_CLIENTE.equals(this.telaAtualFocada);
-        log.trace("[ATENDIMENTO_CONTEXT] isAbaCadastroClienteAtiva: {}", ativa);
-        return ativa;
+        lock.lock();
+        try {
+            log.info("{} [NEGOCIO] Atualização atômica de contexto: Lead={}, Tela={}", LOG_PREFIX,
+                    lead != null ? lead.getId() : "NULL", tela);
+            this.leadAtivo = lead;
+            this.telaAtualFocada = tela;
+            notificarMudanca();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void limparContexto() {
-        log.info("[ATENDIMENTO_CONTEXT] limparContexto: resetando lead, proposta e tela para DASHBOARD");
-        this.leadAtivo = null;
-        this.propostaAtiva = null;
-        this.telaAtualFocada = TipoTelaFocada.DASHBOARD;
+        lock.lock();
+        try {
+            log.info("{} [AUDITORIA] Resetando contexto de atendimento.", LOG_PREFIX);
+            this.leadAtivo = null;
+            this.propostaAtiva = null;
+            this.comissoesAtivas = new ArrayList<>();
+            this.telaAtualFocada = TipoTelaFocada.DASHBOARD;
+            notificarMudanca();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean isAbaCadastroClienteAtiva() {
+        lock.lock();
+        try {
+            return TipoTelaFocada.CADASTRO_CLIENTE.equals(this.telaAtualFocada);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Método privado para centralizar a publicação do evento. Nota: O Spring
+     * Events é síncrono por padrão. Se o listener for UI, ele deve usar
+     * Platform.runLater() ou AsyncUtils.
+     */
+    private void notificarMudanca() {
+        log.trace("{} [TELEMETRIA] Publicando evento de alteração de contexto.", LOG_PREFIX);
+        eventPublisher.publishEvent(new ContextoAlteradoEvent(this, this.leadAtivo, this.telaAtualFocada));
     }
 }

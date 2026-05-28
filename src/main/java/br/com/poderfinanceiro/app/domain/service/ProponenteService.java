@@ -6,19 +6,26 @@ import br.com.poderfinanceiro.app.domain.event.ProponenteExcluidoEvent;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
 import br.com.poderfinanceiro.app.infrastructure.repository.ProponenteRepository;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.ApplicationEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Serviço de Domínio para Gestão de Proponentes (Leads). Centraliza as regras
+ * de negócio de prospecção, isolamento de carteira por consultor e integridade
+ * de dados cadastrais.
+ */
 @Service
+@Transactional(readOnly = true)
 public class ProponenteService {
 
     private static final Logger log = LoggerFactory.getLogger(ProponenteService.class);
+    private static final String LOG_PREFIX = "[ProponenteService]";
 
     private final ProponenteRepository proponenteRepository;
     private final AuthService authService;
@@ -29,133 +36,149 @@ public class ProponenteService {
         this.proponenteRepository = proponenteRepository;
         this.authService = authService;
         this.eventPublisher = eventPublisher;
-        log.debug("[PROPONENTE_SERVICE] Construtor: Serviço instanciado");
+        log.info("{} [SISTEMA] Serviço de Proponentes inicializado com isolamento de carteira.", LOG_PREFIX);
     }
 
-    @Transactional
-    public ProponenteModel salvarProponente(ProponenteModel lead) {
-        if (lead == null) {
-            log.error("[PROPONENTE_SERVICE] salvarProponente: Proponente nulo");
-            throw new IllegalArgumentException("Proponente não pode ser nulo.");
-        }
-        log.debug("[PROPONENTE_SERVICE] salvarProponente: Salvando proponente com ID={}",
-                lead.getId());
-        UsuarioModel consultorLogado = authService.getUsuarioLogado();
-        if (consultorLogado == null) {
-            log.error("[PROPONENTE_SERVICE] salvarProponente: Nenhum consultor logado na sessão");
-            throw new IllegalStateException("Erro de segurança: Nenhum consultor logado na sessão.");
-        }
-        log.trace("[PROPONENTE_SERVICE] Consultor logado: ID={}", consultorLogado.getId());
+    /**
+     * Salva ou atualiza um proponente, aplicando saneamento de CPF/Telefone e
+     * validando duplicidade na carteira do consultor.
+     */
+    @Transactional public ProponenteModel salvarProponente(ProponenteModel proponente) {
+        log.info("{} [TELEMETRIA] Iniciando persistência de proponente: {}", LOG_PREFIX,
+                proponente != null ? proponente.getNomeCompleto() : "NULL");
 
-        boolean isNovo = lead.getId() == null;
-
-        if (lead.getCpf() != null) {
-            String cpfAntigo = lead.getCpf();
-            lead.setCpf(lead.getCpf().replaceAll("[^0-9]", ""));
-            log.trace("[PROPONENTE_SERVICE] CPF normalizado: '{}' -> '{}'", cpfAntigo, lead.getCpf());
-        }
-        if (lead.getTelefone() != null) {
-            String telefoneAntigo = lead.getTelefone();
-            lead.setTelefone(lead.getTelefone().replaceAll("[^0-9]", ""));
-            log.trace("[PROPONENTE_SERVICE] Telefone normalizado: '{}' -> '{}'", telefoneAntigo, lead.getTelefone());
+        // 1. Validação de Segurança e Contexto
+        UsuarioModel consultor = authService.getUsuarioLogado();
+        if (consultor == null) {
+            log.error("{} [NEGOCIO] Falha de segurança: Tentativa de salvar proponente sem consultor logado.",
+                    LOG_PREFIX);
+            throw new IllegalStateException("Sessão inválida ou expirada.");
         }
 
-        String cpfLimpo = lead.getCpf();
-        Long idAtual = lead.getId();
-        boolean isCpfPreenchido = cpfLimpo != null && !cpfLimpo.trim().isEmpty();
+        if (proponente == null) {
+            throw new IllegalArgumentException("Os dados do proponente são obrigatórios.");
+        }
 
-        if (isCpfPreenchido) {
-            if (idAtual == null) {
-                if (proponenteRepository.existsByCpfAndUsuarioIdAndDeletadoEmIsNull(cpfLimpo,
-                        consultorLogado.getId())) {
-                    log.warn("[PROPONENTE_SERVICE] salvarProponente: CPF '{}' já existe na carteira do consultor ID={}",
-                            cpfLimpo, consultorLogado.getId());
-                    throw new IllegalArgumentException("Você já possui um cliente cadastrado com este CPF.");
-                }
+        // 2. Saneamento de Dados (Sanitization)
+        sanitizarDadosCadastrais(proponente);
+
+        // 3. Validação de Regra de Negócio: Unicidade de CPF na Carteira do
+        // Consultor
+        validarUnicidadeCpf(proponente, consultor.getId());
+
+        try {
+            boolean isNovo = proponente.getId() == null;
+            proponente.setUsuario(consultor); // Garante o vínculo com o dono da
+                                              // carteira
+
+            ProponenteModel salvo = proponenteRepository.save(proponente);
+            log.info("{} [AUDITORIA] Proponente {} com sucesso. ID: {}, Nome: {}", LOG_PREFIX,
+                    isNovo ? "CRIADO" : "ATUALIZADO", salvo.getId(), salvo.getNomeCompleto());
+
+            // 4. Notificação de Eventos
+            if (isNovo) {
+                eventPublisher.publishEvent(new ProponenteCriadoEvent(salvo.getId()));
             } else {
-                boolean cpfJaExisteEmOutro = proponenteRepository
-                        .existsByCpfAndUsuarioIdAndIdNotAndDeletadoEmIsNull(cpfLimpo, consultorLogado.getId(), idAtual);
-
-                if (cpfJaExisteEmOutro) {
-                    log.warn(
-                            "[PROPONENTE_SERVICE] salvarProponente: CPF '{}' já em uso por outro cliente (ID={}) do consultor",
-                            cpfLimpo, idAtual);
-                    throw new IllegalArgumentException(
-                            "Este CPF já está sendo usado por outro cliente na sua carteira.");
-                }
+                eventPublisher.publishEvent(new ProponenteAtualizadoEvent(salvo.getId()));
             }
+
+            return salvo;
+
+        } catch (Exception e) {
+            log.error("{} [SISTEMA] Erro ao persistir proponente no banco de dados: {}", LOG_PREFIX, e.getMessage());
+            throw e;
         }
-
-        lead.setUsuario(consultorLogado);
-        ProponenteModel leadSalvo = proponenteRepository.save(lead);
-        log.info("[PROPONENTE_SERVICE] salvarProponente: Proponente salvo com ID={}, nome='{}'", leadSalvo.getId(),
-                leadSalvo.getNomeCompleto());
-
-        if (isNovo) {
-            log.debug("[PROPONENTE_SERVICE] Disparando evento ProponenteCriadoEvent para ID={}", leadSalvo.getId());
-            eventPublisher.publishEvent(new ProponenteCriadoEvent(leadSalvo.getId()));
-        } else {
-            log.debug("[PROPONENTE_SERVICE] Disparando evento ProponenteAtualizadoEvent para ID={}", leadSalvo.getId());
-            eventPublisher.publishEvent(new ProponenteAtualizadoEvent(leadSalvo.getId()));
-        }
-
-        return leadSalvo;
     }
 
+    /**
+     * Recupera todos os proponentes ativos da carteira do consultor logado.
+     */
     public List<ProponenteModel> listarMinhaCarteira() {
-        log.debug("[PROPONENTE_SERVICE] listarMinhaCarteira: Consultando carteira do consultor logado");
-        UsuarioModel consultorLogado = authService.getUsuarioLogado();
-        if (consultorLogado == null) {
-            log.warn("[PROPONENTE_SERVICE] listarMinhaCarteira: Nenhum consultor logado, retornando lista vazia");
+        log.trace("{} [TELEMETRIA] Solicitada listagem da carteira de clientes.", LOG_PREFIX);
+
+        UsuarioModel consultor = authService.getUsuarioLogado();
+        if (consultor == null)
             return List.of();
-        }
-        List<ProponenteModel> clientes = proponenteRepository
-                .findByUsuarioIdAndDeletadoEmIsNull(consultorLogado.getId());
-        log.info("[PROPONENTE_SERVICE] listarMinhaCarteira: {} cliente(s) encontrado(s) para consultor ID={}",
-                clientes.size(), consultorLogado.getId());
-        return clientes;
+
+        return proponenteRepository.findByUsuarioIdAndDeletadoEmIsNull(consultor.getId());
     }
 
+    /**
+     * Realiza busca rápida por nome ou CPF dentro da carteira do consultor.
+     */
     public List<ProponenteModel> buscaRapida(String termo) {
-        log.debug("[PROPONENTE_SERVICE] buscaRapida: termo='{}'", termo);
-        UsuarioModel consultorLogado = authService.getUsuarioLogado();
-        if (consultorLogado == null || termo == null || termo.isBlank()) {
-            if (consultorLogado == null) {
-                log.warn("[PROPONENTE_SERVICE] buscaRapida: Nenhum consultor logado");
-            } else {
-                log.warn("[PROPONENTE_SERVICE] buscaRapida: Termo vazio ou nulo");
-            }
+        log.debug("{} [TELEMETRIA] Executando busca rápida por termo: {}", LOG_PREFIX, termo);
+
+        UsuarioModel consultor = authService.getUsuarioLogado();
+        if (consultor == null || termo == null || termo.isBlank())
             return List.of();
-        }
-        String termoBusca = termo.replaceAll("[^a-zA-Z0-9]", "");
-        log.trace("[PROPONENTE_SERVICE] Termo limpo para busca: '{}'", termoBusca);
-        List<ProponenteModel> resultados = proponenteRepository.buscarRapidaPorNomeOuCpf(termoBusca,
-                consultorLogado.getId());
-        log.info("[PROPONENTE_SERVICE] buscaRapida: {} resultado(s) encontrado(s) para termo '{}'", resultados.size(),
-                termo);
-        return resultados;
+
+        String termoLimpo = termo.replaceAll("[^a-zA-Z0-9]", "");
+        return proponenteRepository.buscarRapidaPorNomeOuCpf(termoLimpo, consultor.getId());
     }
 
-    public ProponenteModel buscarPorId(Long id) {
-        log.debug("[PROPONENTE_SERVICE] buscarPorId: Buscando proponente com ID={}", id);
-        if (id == null) {
-            log.warn("[PROPONENTE_SERVICE] buscarPorId: ID nulo, retornando null");
-            return null;
-        }
-        return proponenteRepository.findById(id).orElse(null);
+    /**
+     * Busca um proponente específico pelo ID.
+     */
+    public Optional<ProponenteModel> buscarPorId(Long id) {
+        log.trace("{} [TELEMETRIA] Buscando proponente por ID: {}", LOG_PREFIX, id);
+        return proponenteRepository.findById(id);
     }
 
-    @Transactional
-    public void excluirProponente(Long id) {
-        log.info("[PROPONENTE_SERVICE] excluirProponente: Solicitada exclusão do proponente ID={}", id);
-        if (id == null) return;
-        
-        // Aqui você pode adicionar lógica de soft-delete ou delete real, dependendo da sua regra.
-        // Exemplo para delete real:
-        proponenteRepository.deleteById(id);
-        
-        // Publica o evento de exclusão
-        log.debug("[PROPONENTE_SERVICE] Disparando evento ProponenteExcluidoEvent para ID={}", id);
-        eventPublisher.publishEvent(new ProponenteExcluidoEvent(id));
+    /**
+     * Realiza a exclusão (ou soft-delete) de um proponente.
+     */
+    @Transactional public void excluirProponente(Long id) {
+        log.info("{} [TELEMETRIA] Solicitada exclusão do proponente ID: {}", LOG_PREFIX, id);
+
+        if (id == null || !proponenteRepository.existsById(id)) {
+            log.warn("{} [NEGOCIO] Tentativa de exclusão de ID inexistente ou nulo: {}", LOG_PREFIX, id);
+            return;
+        }
+
+        try {
+            proponenteRepository.deleteById(id);
+            log.info("{} [AUDITORIA] Proponente ID {} removido da carteira.", LOG_PREFIX, id);
+
+            eventPublisher.publishEvent(new ProponenteExcluidoEvent(id));
+        } catch (Exception e) {
+            log.error("{} [SISTEMA] Falha ao excluir proponente: {}", LOG_PREFIX, e.getMessage());
+            throw e;
+        }
+    }
+
+    // --- Métodos Auxiliares de Domínio ---
+
+    private void sanitizarDadosCadastrais(ProponenteModel p) {
+        if (p.getCpf() != null) {
+            p.setCpf(p.getCpf().replaceAll("\\D", ""));
+        }
+        if (p.getTelefone() != null) {
+            p.setTelefone(p.getTelefone().replaceAll("\\D", ""));
+        }
+        if (p.getNomeCompleto() != null) {
+            p.setNomeCompleto(p.getNomeCompleto().trim().toUpperCase());
+        }
+        log.trace("{} [SISTEMA] Dados do proponente sanitizados para persistência.", LOG_PREFIX);
+    }
+
+    private void validarUnicidadeCpf(ProponenteModel proponente, Long usuarioId) {
+        String cpf = proponente.getCpf();
+        if (cpf == null || cpf.isBlank())
+            return;
+
+        boolean existe;
+        if (proponente.getId() == null) {
+            existe = proponenteRepository.existsByCpfAndUsuarioIdAndDeletadoEmIsNull(cpf, usuarioId);
+        } else {
+            existe = proponenteRepository.existsByCpfAndUsuarioIdAndIdNotAndDeletadoEmIsNull(cpf, usuarioId,
+                    proponente.getId());
+        }
+
+        if (existe) {
+            log.warn("{} [NEGOCIO] Violação de unicidade: CPF {} já existe na carteira do consultor {}.", LOG_PREFIX,
+                    cpf, usuarioId);
+            throw new IllegalArgumentException("Este CPF já está cadastrado em sua carteira de clientes.");
+        }
     }
 }

@@ -1,11 +1,11 @@
 package br.com.poderfinanceiro.app.domain.service;
 
 import br.com.poderfinanceiro.app.dto.GitHubReleaseDTO;
+import br.com.poderfinanceiro.app.infrastructure.client.UpdateClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -13,156 +13,133 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.Set;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.file.Path;
-
+/**
+ * Serviço de Gestão de Atualizações (OTA - Over The Air). Orquestra a
+ * verificação de versão, download e aplicação de patches de software.
+ */
 @Service
 public class UpdateService {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateService.class);
-    private final RestClient restClient = RestClient.builder().build();
-
-    // URL fixa da API do GitHub para pegar a última release
-    private static final String GITHUB_API_URL = "https://api.github.com/repos/wtalvaro/PoderFinanceiro-Consultoria/releases/latest";
+    private static final String LOG_PREFIX = "[UpdateService]";
     private static final String NOME_JAR_LOCAL = "PoderFinanceiro.jar";
 
-    @Value("${app.version:v1.0.0}") // Lê do application.properties, padrão v1.0.0 se não existir
-    private String versaoAtual;
+    private final UpdateClient updateClient;
 
+    @Value("${app.version:v1.0.0}") private String versaoAtual;
+
+    public UpdateService(UpdateClient updateClient) {
+        this.updateClient = updateClient;
+        log.info("{} [SISTEMA] Serviço de atualização instanciado. Versão atual: {}", LOG_PREFIX, versaoAtual);
+    }
+
+    /**
+     * Verifica se existe uma nova versão disponível no repositório remoto.
+     */
     public String checarNovaVersao() {
-        log.info("[UPDATE] Checando atualizações. Versão atual local: {}", versaoAtual);
+        log.info("{} [TELEMETRIA] Verificando atualizações remotas.", LOG_PREFIX);
         try {
-            GitHubReleaseDTO release = restClient.get()
-                    .uri(GITHUB_API_URL)
-                    .retrieve()
-                    .body(GitHubReleaseDTO.class);
+            GitHubReleaseDTO release = updateClient.buscarUltimaRelease();
 
             if (release != null && isVersaoNova(versaoAtual, release.tag_name())) {
-                log.info("[UPDATE] Nova versão encontrada: {}", release.tag_name());
+                log.info("{} [NEGOCIO] Nova versão detectada: {}", LOG_PREFIX, release.tag_name());
                 return release.tag_name();
             }
-            log.info("[UPDATE] O sistema já está na versão mais recente.");
+            log.info("{} [NEGOCIO] O sistema está operando na versão mais recente.", LOG_PREFIX);
         } catch (Exception e) {
-            log.error("[UPDATE] Falha ao checar atualizações no GitHub: {}", e.getMessage());
-            throw new RuntimeException("Não foi possível contatar o servidor de atualizações.");
+            log.error("{} [SISTEMA] Falha ao contatar servidor de atualizações: {}", LOG_PREFIX, e.getMessage());
         }
         return null;
     }
 
+    /**
+     * Orquestra o download e a execução do script de substituição do binário.
+     */
     public void baixarEExecutarAtualizacao(String tag) {
-        log.info("[UPDATE] Iniciando processo de download e instalação da versão {}", tag);
+        log.info("{} [TELEMETRIA] Iniciando procedimento de atualização para a versão {}", LOG_PREFIX, tag);
 
-        // ---------------------------------------------------------------------
-        // NOVO: Validação do Diretório de Instalação e Autogeração do Inicializador
-        // ---------------------------------------------------------------------
         String pastaInstalacao = System.getProperty("user.dir");
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
 
-        log.info("[UPDATE][INFRA] Verificando diretório de instalação: {}", pastaInstalacao);
-
-        if (isWindows) {
-            File inicializadorBat = new File(pastaInstalacao, "iniciar.bat");
-            if (!inicializadorBat.exists()) {
-                log.info("[UPDATE][INFRA] 'iniciar.bat' não encontrado. Gerando inicializador persistente...");
-                try {
-                    String conteudoIniciar = "@echo off\n" +
-                            "cd /d \"%~dp0\"\n" +
-                            "start \"\" javaw -jar PoderFinanceiro.jar\n" +
-                            "exit\n";
-                    Files.writeString(inicializadorBat.toPath(), conteudoIniciar);
-                    log.info("[UPDATE][INFRA] 'iniciar.bat' criado com sucesso na pasta de instalação.");
-                } catch (Exception e) {
-                    log.error("[UPDATE][INFRA] Falha ao criar 'iniciar.bat' preventivo: {}", e.getMessage());
-                    // Não travamos o fluxo principal se apenas o bat falhar em ser escrito
-                }
-            } else {
-                log.debug("[UPDATE][INFRA] 'iniciar.bat' já existe e está íntegro.");
-            }
-        }
-        // ---------------------------------------------------------------------
-
-        String downloadUrl = "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/download/" + tag + "/"
-                + NOME_JAR_LOCAL;
-        File tempJar = new File(System.getProperty("java.io.tmpdir"), "PoderFinanceiro_Update.jar");
-
         try {
-            log.debug("[UPDATE] Baixando arquivo de: {}", downloadUrl);
+            // 1. Garantir infraestrutura de inicialização
+            garantirInicializadorPersistente(pastaInstalacao, isWindows);
 
-            // Utiliza o HttpClient nativo do Java para lidar com redirecionamentos (GitHub
-            // -> AWS) e Streaming direto para o disco
-            HttpClient client = HttpClient.newBuilder()
-                    .followRedirects(HttpClient.Redirect.NORMAL)
-                    .build();
+            // 2. Preparar download
+            String downloadUrl = String.format(
+                    "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/download/%s/%s", tag,
+                    NOME_JAR_LOCAL);
+            File tempJar = new File(System.getProperty("java.io.tmpdir"), "PoderFinanceiro_Update.jar");
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(downloadUrl))
-                    .GET()
-                    .build();
+            // 3. Download via Client (Loom-friendly I/O)
+            updateClient.baixarArquivo(downloadUrl, tempJar);
 
-            HttpResponse<Path> response = client.send(request, HttpResponse.BodyHandlers.ofFile(tempJar.toPath()));
+            // 4. Gerar script de transição (Hot Swap)
+            File scriptFile = gerarScriptAtualizacao(tempJar, isWindows, pastaInstalacao);
 
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException(
-                        "Falha no servidor ao baixar atualização. Status HTTP: " + response.statusCode());
-            }
+            log.info("{} [AUDITORIA] Aplicação pronta para transição. Reiniciando processo...", LOG_PREFIX);
 
-            log.info("[UPDATE] Download concluído com sucesso direto para o disco.");
+            executarScriptESair(scriptFile, isWindows);
 
-            File scriptFile = gerarScriptAtualizacao(tempJar, isWindows);
-
-            log.info("[UPDATE] Script de transição gerado. Reiniciando a aplicação...");
-            if (isWindows) {
-                new ProcessBuilder("cmd", "/c", "start", "\"\"", "\"" + scriptFile.getAbsolutePath() + "\"").start();
-            } else {
-                new ProcessBuilder("/bin/bash", "-c", scriptFile.getAbsolutePath()).start();
-            }
-
-            System.exit(0); // Mata o processo Java atual para liberar o arquivo
         } catch (Exception e) {
-            log.error("[UPDATE] Erro crítico ao processar atualização: {}", e.getMessage(), e);
-            throw new RuntimeException("Erro ao baixar ou aplicar a atualização.");
+            log.error("{} [SISTEMA] Erro crítico durante a atualização: {}", LOG_PREFIX, e.getMessage());
+            throw new RuntimeException("Falha ao aplicar atualização: " + e.getMessage());
         }
     }
 
-    private File gerarScriptAtualizacao(File tempJar, boolean isWindows) throws Exception {
-        String caminhoJarAtual = System.getProperty("user.dir") + File.separator + NOME_JAR_LOCAL;
+    private void garantirInicializadorPersistente(String pasta, boolean isWindows) {
+        if (isWindows) {
+            File inicializadorBat = new File(pasta, "iniciar.bat");
+            if (!inicializadorBat.exists()) {
+                try {
+                    String conteudo = "@echo off\ncd /d \"%~dp0\"\nstart \"\" javaw -jar " + NOME_JAR_LOCAL
+                            + "\nexit\n";
+                    Files.writeString(inicializadorBat.toPath(), conteudo);
+                    log.info("{} [SISTEMA] Inicializador 'iniciar.bat' gerado preventivamente.", LOG_PREFIX);
+                } catch (Exception e) {
+                    log.warn("{} [SISTEMA] Não foi possível criar o inicializador bat: {}", LOG_PREFIX, e.getMessage());
+                }
+            }
+        }
+    }
+
+    private File gerarScriptAtualizacao(File tempJar, boolean isWindows, String pastaInstalacao) throws Exception {
+        String caminhoJarAtual = pastaInstalacao + File.separator + NOME_JAR_LOCAL;
         File scriptFile;
         String scriptContent;
 
         if (isWindows) {
             scriptFile = new File(System.getProperty("java.io.tmpdir"), "update_app.bat");
             scriptContent = String.format(
-                    "@echo off\n" +
-                            "timeout /t 3 /nobreak > nul\n" +
-                            "move /y \"%s\" \"%s\"\n" +
-                            "start /b java -jar \"%s\"\n" +
-                            "del \"%%~f0\"",
+                    "@echo off\ntimeout /t 3 /nobreak > nul\nmove /y \"%s\" \"%s\"\nstart /b java -jar \"%s\"\ndel \"%%~f0\"",
                     tempJar.getAbsolutePath(), caminhoJarAtual, caminhoJarAtual);
         } else {
-            // Script para Linux / Mac
             scriptFile = new File(System.getProperty("java.io.tmpdir"), "update_app.sh");
             scriptContent = String.format(
-                    "#!/bin/bash\n" +
-                            "sleep 3\n" +
-                            "mv -f \"%s\" \"%s\"\n" +
-                            "nohup java -jar \"%s\" >/dev/null 2>&1 &\n" +
-                            "rm -- \"$0\"",
+                    "#!/bin/bash\nsleep 3\nmv -f \"%s\" \"%s\"\nnohup java -jar \"%s\" >/dev/null 2>&1 &\nrm -- \"$0\"",
                     tempJar.getAbsolutePath(), caminhoJarAtual, caminhoJarAtual);
         }
 
         Files.writeString(scriptFile.toPath(), scriptContent);
 
-        // Dar permissão de execução no Linux/Mac
         if (!isWindows) {
             Set<PosixFilePermission> perms = new HashSet<>(Files.getPosixFilePermissions(scriptFile.toPath()));
             perms.add(PosixFilePermission.OWNER_EXECUTE);
             Files.setPosixFilePermissions(scriptFile.toPath(), perms);
         }
 
+        log.debug("{} [SISTEMA] Script de transição gerado em: {}", LOG_PREFIX, scriptFile.getAbsolutePath());
         return scriptFile;
+    }
+
+    private void executarScriptESair(File scriptFile, boolean isWindows) throws Exception {
+        ProcessBuilder pb = isWindows
+                ? new ProcessBuilder("cmd", "/c", "start", "\"\"", "\"" + scriptFile.getAbsolutePath() + "\"")
+                : new ProcessBuilder("/bin/bash", "-c", scriptFile.getAbsolutePath());
+
+        pb.start();
+        log.info("{} [AUDITORIA] Script de atualização disparado. Encerrando JVM atual.", LOG_PREFIX);
+        System.exit(0);
     }
 
     private boolean isVersaoNova(String atual, String remota) {

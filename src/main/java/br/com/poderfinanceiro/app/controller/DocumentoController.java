@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.facade.IDocumentoFacade;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -27,8 +28,8 @@ import java.util.List;
  * <p>
  * Controlador de Interface (UI) responsável pela gestão de documentos do
  * cliente (CRM). Implementa o padrão <b>Humble Object</b>, delegando a
- * persistência, I/O de arquivos e regras de negócio para a
- * {@link IDocumentoFacade}.
+ * persistência e I/O para a {@link IDocumentoFacade} e interações de overlay
+ * para o {@link Navigator}.
  * </p>
  */
 @Component
@@ -40,30 +41,29 @@ public class DocumentoController {
     private static final Logger log = LoggerFactory.getLogger(DocumentoController.class);
     private static final String LOG_PREFIX = "[DocumentoController]";
 
-    private static final List<String> TIPOS_DOCUMENTO = List.of("RG", "CNH", "CPF", "Comprovante de Residência", "Contracheque", "Outros");
+    private static final List<String> TIPOS_DOCUMENTO = List.of("RG", "CNH", "CPF", "Comprovante de Residência",
+            "Contracheque", "Outros");
 
     private static final String STYLE_DROP_ACTIVE = "-fx-border-color: #2196F3; -fx-border-style: dashed; -fx-border-width: 2; -fx-background-color: #e3f2fd;";
     private static final String STYLE_DROP_INACTIVE = "-fx-border-color: #aaaaaa; -fx-border-style: dashed; -fx-border-width: 2; -fx-background-color: #fafafa;";
     private static final String STYLE_STATUS_OK = "-fx-text-fill: #2e7d32; -fx-underline: false; -fx-font-weight: bold;";
     private static final String STYLE_STATUS_PENDENTE = "-fx-text-fill: #ffa000; -fx-underline: false; -fx-font-weight: bold;";
-    private static final String STYLE_MSG_SUCESSO = "-fx-text-fill: #2e7d32; -fx-font-weight: bold;";
-    private static final String STYLE_MSG_ERRO = "-fx-text-fill: #c62828; -fx-font-weight: bold;";
 
     // ==========================================================================================
     // MÓDULO 2: DEPENDÊNCIAS (DIP)
     // ==========================================================================================
     private final IDocumentoFacade documentoFacade;
     private final HostServices hostServices;
+    private final Navigator navigator;
 
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
     @FXML private VBox dropZone;
     @FXML private VBox panelClassificacao;
-    @FXML private Label lblNomeArquivo, lblTituloPanel, lblAviso;
+    @FXML private Label lblNomeArquivo, lblTituloPanel;
     @FXML private ComboBox<String> comboTipoDocumento;
     @FXML private ScrollPane scrollPrincipal;
-    @FXML private VBox overlayExclusao;
 
     @FXML private TableView<DocumentoProponenteModel> tableDocumentos;
     @FXML private TableColumn<DocumentoProponenteModel, String> colTipo, colStatus;
@@ -75,12 +75,12 @@ public class DocumentoController {
     private ProponenteModel proponenteAtual;
     private File arquivoPendenteUpload;
     private DocumentoProponenteModel documentoEmEdicao;
-    private DocumentoProponenteModel documentoParaExcluir;
 
-    public DocumentoController(IDocumentoFacade documentoFacade, HostServices hostServices) {
+    public DocumentoController(IDocumentoFacade documentoFacade, HostServices hostServices, Navigator navigator) {
         this.documentoFacade = documentoFacade;
         this.hostServices = hostServices;
-        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
+        this.navigator = navigator;
+        log.info("{} [SISTEMA] Controlador de Documentos instanciado com suporte a Navigator.", LOG_PREFIX);
     }
 
     // ==========================================================================================
@@ -105,7 +105,7 @@ public class DocumentoController {
         } else {
             tableDocumentos.getItems().clear();
             dropZone.setDisable(true);
-            mostrarAviso("Salve o atendimento primeiro para poder anexar documentos.", false);
+            log.debug("{} [NEGOCIO] Bloqueando upload: Proponente não persistido.", LOG_PREFIX);
         }
     }
 
@@ -113,10 +113,11 @@ public class DocumentoController {
         if (!isProponenteValido())
             return;
 
-        AsyncUtils.executarTaskAsync(() -> documentoFacade.listarDocumentosDoProponente(proponenteAtual.getId()), docs -> {
-            tableDocumentos.setItems(FXCollections.observableArrayList(docs));
-            log.info("{} [TELEMETRIA] {} documentos carregados na tabela.", LOG_PREFIX, docs.size());
-        }, erro -> log.error("{} [SISTEMA] Erro ao carregar documentos: {}", LOG_PREFIX, erro.getMessage()));
+        AsyncUtils.executarTaskAsync(() -> documentoFacade.listarDocumentosDoProponente(proponenteAtual.getId()),
+                docs -> {
+                    tableDocumentos.setItems(FXCollections.observableArrayList(docs));
+                    log.debug("{} [TELEMETRIA] {} documentos carregados na tabela.", LOG_PREFIX, docs.size());
+                }, erro -> log.error("{} [SISTEMA] Erro ao carregar documentos: {}", LOG_PREFIX, erro.getMessage()));
     }
 
     // ==========================================================================================
@@ -146,12 +147,15 @@ public class DocumentoController {
     }
 
     @FXML private void handleFileSelection() {
-        if (!isProponenteValido())
+        if (!isProponenteValido()) {
+            navigator.notificarAviso("Salve o atendimento primeiro para poder anexar documentos.");
             return;
+        }
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Selecione o Documento");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Documentos", "*.pdf", "*.jpg", "*.png", "*.jpeg"));
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Documentos", "*.pdf", "*.jpg", "*.png", "*.jpeg"));
 
         File file = fileChooser.showOpenDialog(dropZone.getScene().getWindow());
         if (file != null) {
@@ -193,7 +197,6 @@ public class DocumentoController {
 
     private void abrirPainelAzul() {
         alternarVisibilidadePainel(false);
-        mostrarAviso("", true);
         if (scrollPrincipal != null)
             scrollPrincipal.setVvalue(0.0);
     }
@@ -217,10 +220,11 @@ public class DocumentoController {
         log.info("{} [TELEMETRIA] Confirmando operação inline. Tipo: {}", LOG_PREFIX, tipoSelecionado);
 
         if (tipoSelecionado == null || tipoSelecionado.isBlank()) {
-            mostrarAviso("Por favor, selecione um tipo de documento.", false);
+            navigator.notificarAviso("Por favor, selecione um tipo de documento.");
             return;
         }
 
+        navigator.mostrarLoading("Processando documento...");
         AsyncUtils.executarTaskAsync(() -> {
             if (documentoEmEdicao != null) {
                 return documentoFacade.atualizarTipoDocumento(documentoEmEdicao.getId(), tipoSelecionado);
@@ -228,13 +232,16 @@ public class DocumentoController {
                 return documentoFacade.salvarNovoDocumento(arquivoPendenteUpload, tipoSelecionado, proponenteAtual);
             }
         }, sucesso -> {
+            navigator.ocultarLoading();
             log.info("{} [AUDITORIA] Operação de documento concluída com sucesso.", LOG_PREFIX);
-            mostrarAviso(documentoEmEdicao != null ? "Documento atualizado com sucesso!" : "Documento salvo com sucesso!", true);
+            navigator.notificarSucesso(
+                    documentoEmEdicao != null ? "Classificação atualizada!" : "Documento anexado com sucesso!");
             atualizarTabela();
             cancelarUploadInline();
         }, erro -> {
+            navigator.ocultarLoading();
             log.error("{} [AUDITORIA] Erro na operação de documento: {}", LOG_PREFIX, erro.getMessage());
-            mostrarAviso(erro.getMessage(), false);
+            navigator.notificarAviso(erro.getMessage());
         });
     }
 
@@ -281,10 +288,10 @@ public class DocumentoController {
             AsyncUtils.executarTaskAsync(() -> documentoFacade.alternarStatusVerificacao(doc.getId()), atualizado -> {
                 doc.setVerificado(atualizado.getVerificado());
                 tableDocumentos.refresh();
-                log.info("{} [AUDITORIA] Status alterado com sucesso.", LOG_PREFIX);
+                log.debug("{} [AUDITORIA] Status de verificação alterado para ID: {}", LOG_PREFIX, doc.getId());
             }, erro -> {
                 log.error("{} [AUDITORIA] Erro ao alterar status: {}", LOG_PREFIX, erro.getMessage());
-                mostrarAviso("Erro ao atualizar status: " + erro.getMessage(), false);
+                navigator.notificarAviso("Erro ao atualizar status: " + erro.getMessage());
             });
         });
 
@@ -331,72 +338,49 @@ public class DocumentoController {
     }
 
     private void handleVisualizarArquivo(DocumentoProponenteModel doc) {
-        if (doc == null) {
-            log.warn("{} [NEGOCIO] Tentativa de visualizar documento nulo ignorada.", LOG_PREFIX);
+        if (doc == null)
             return;
-        }
-
         log.info("{} [TELEMETRIA] Solicitando visualização do arquivo ID: {}", LOG_PREFIX, doc.getId());
 
         if (documentoFacade.validarExistenciaArquivoFisico(doc)) {
             hostServices.showDocument(new File(doc.getArquivoPath()).toURI().toString());
         } else {
-            log.warn("{} [AUDITORIA] Arquivo físico não encontrado no disco para o documento ID: {}", LOG_PREFIX, doc.getId());
-            mostrarAviso("Erro: O arquivo físico não foi encontrado no disco.", false);
+            log.warn("{} [AUDITORIA] Arquivo físico não localizado para o documento ID: {}", LOG_PREFIX, doc.getId());
+            navigator.notificarAviso("O arquivo físico não foi encontrado no disco.");
         }
     }
 
     // ==========================================================================================
-    // MÓDULO 9: EXCLUSÃO E AVISOS
+    // MÓDULO 9: EXCLUSÃO GLOBAL (NAVIGATOR)
     // ==========================================================================================
+
+    /**
+     * Solicita confirmação global via Navigator para exclusão de um documento.
+     */
     private void solicitarExclusaoDeDocumento(DocumentoProponenteModel doc) {
-        log.info("{} [TELEMETRIA] Solicitando confirmação de exclusão. ID: {}", LOG_PREFIX, doc.getId());
-        this.documentoParaExcluir = doc;
-        overlayExclusao.setVisible(true);
+        log.info("{} [TELEMETRIA] Solicitando confirmação global para exclusão. ID: {}", LOG_PREFIX, doc.getId());
+
+        navigator.solicitarConfirmacao("🗑️ Excluir Documento",
+                "Tem certeza que deseja apagar permanentemente este documento?\nO arquivo físico será removido do sistema.",
+                "Sim, Excluir", "#c62828", () -> executarExclusaoReal(doc));
     }
 
-    @FXML private void cancelarExclusao() {
-        log.trace("{} [UI] Exclusão cancelada pelo usuário.", LOG_PREFIX);
-        this.documentoParaExcluir = null;
-        overlayExclusao.setVisible(false);
-    }
-
-    @FXML private void confirmarExclusao() {
-        if (this.documentoParaExcluir == null)
-            return;
-
-        Long idDoc = documentoParaExcluir.getId();
-        log.info("{} [TELEMETRIA] Confirmando exclusão do documento ID: {}", LOG_PREFIX, idDoc);
-
-        if (documentoEmEdicao != null && documentoEmEdicao.getId().equals(idDoc)) {
-            cancelarUploadInline();
-        }
+    private void executarExclusaoReal(DocumentoProponenteModel doc) {
+        log.info("{} [TELEMETRIA] Executando exclusão assíncrona do documento ID: {}", LOG_PREFIX, doc.getId());
+        navigator.mostrarLoading("Removendo arquivo...");
 
         AsyncUtils.executarTaskAsync(() -> {
-            documentoFacade.excluirDocumento(idDoc);
+            documentoFacade.excluirDocumento(doc.getId());
             return null;
         }, sucesso -> {
-            log.info("{} [AUDITORIA] Documento excluído com sucesso.", LOG_PREFIX);
-            tableDocumentos.getItems().remove(documentoParaExcluir);
-            mostrarAviso("Documento apagado.", true);
-            cancelarExclusao();
+            navigator.ocultarLoading();
+            log.info("{} [AUDITORIA] Documento ID {} removido com sucesso.", LOG_PREFIX, doc.getId());
+            tableDocumentos.getItems().remove(doc);
+            navigator.notificarSucesso("Documento excluído permanentemente.");
         }, erro -> {
-            log.error("{} [AUDITORIA] Erro ao excluir documento: {}", LOG_PREFIX, erro.getMessage());
-            mostrarAviso("Erro ao apagar: " + erro.getMessage(), false);
-            cancelarExclusao();
+            navigator.ocultarLoading();
+            log.error("{} [AUDITORIA] Falha ao excluir documento: {}", LOG_PREFIX, erro.getMessage());
+            navigator.notificarAviso("Erro ao apagar: " + erro.getMessage());
         });
-    }
-
-    private void mostrarAviso(String msg, boolean sucesso) {
-        if (msg == null || msg.isBlank()) {
-            lblAviso.setVisible(false);
-            lblAviso.setManaged(false);
-            return;
-        }
-        log.trace("{} [UI] Exibindo aviso: {}", LOG_PREFIX, msg);
-        lblAviso.setText(msg);
-        lblAviso.setStyle(sucesso ? STYLE_MSG_SUCESSO : STYLE_MSG_ERRO);
-        lblAviso.setVisible(true);
-        lblAviso.setManaged(true);
     }
 }

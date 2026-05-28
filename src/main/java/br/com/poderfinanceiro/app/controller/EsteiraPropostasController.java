@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.domain.event.ProponenteUIEventHub;
 import br.com.poderfinanceiro.app.domain.event.PropostaUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.facade.IEsteiraPropostasFacade;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
@@ -28,7 +29,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
@@ -36,11 +36,13 @@ import java.time.format.DateTimeFormatter;
  * <h1>EsteiraPropostasController</h1>
  * <p>
  * Controlador de Interface (UI) responsável por gerenciar a Esteira de
- * Propostas. Implementa o padrão <b>Humble Object</b>, delegando a
- * persistência, filtros e formatações para a {@link IEsteiraPropostasFacade}.
+ * Propostas. Implementa o padrão <b>Humble Object</b>, delegando a persistência
+ * e filtros para a {@link IEsteiraPropostasFacade} e interações globais para o
+ * {@link Navigator}.
  * </p>
  */
-@Component @Scope("prototype")
+@Component
+@Scope("prototype")
 public class EsteiraPropostasController implements Disposable {
 
     // ==========================================================================================
@@ -50,14 +52,6 @@ public class EsteiraPropostasController implements Disposable {
     private static final String LOG_PREFIX = "[EsteiraPropostasController]";
 
     private static final DateTimeFormatter FMT_DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-    private static final String STYLE_BTN_BASE = "-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 30; -fx-background-radius: 6;";
-    private static final String STYLE_BTN_SUCCESS = "-fx-background-color: #2e7d32; " + STYLE_BTN_BASE;
-    private static final String STYLE_BTN_DANGER = "-fx-background-color: #c62828; " + STYLE_BTN_BASE;
-    private static final String STYLE_BTN_WARNING = "-fx-background-color: #f57c00; " + STYLE_BTN_BASE;
-
-    private static final String STYLE_LBL_CONFIRM_TITULO = "-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: %s;";
-    private static final String STYLE_BTN_CONFIRM = "-fx-background-color: %s; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4;";
 
     private static final String HTML_TEMPLATE_IA = """
             <!DOCTYPE html>
@@ -80,6 +74,7 @@ public class EsteiraPropostasController implements Disposable {
     // ==========================================================================================
     private final IEsteiraPropostasFacade esteiraFacade;
     private final ApplicationContext context;
+    private final Navigator navigator;
     private final PropostaUIEventHub eventHub;
     private final ProponenteUIEventHub proponenteEventHub;
 
@@ -92,36 +87,28 @@ public class EsteiraPropostasController implements Disposable {
     @FXML private StackPane containerFormulario;
     @FXML private VBox paneVazio;
 
-    @FXML private VBox overlayConfirmacao, overlayFeedback, overlayAlertaSimples;
-    @FXML private Label lblConfirmacaoTitulo, lblConfirmacaoTexto;
-    @FXML private Button btnConfirmarAcao;
-
+    @FXML private VBox overlayFeedback;
     @FXML private Label lblFeedbackIcon, lblFeedbackTitle;
     @FXML private WebView webFeedback;
-    @FXML private Button btnFeedbackAction;
-
-    @FXML private Label lblAlertaIcone, lblAlertaTitulo, lblAlertaMensagem;
-    @FXML private Button btnAlertaAcao;
     @FXML private Label lblTotalRegistros;
 
     // ==========================================================================================
     // MÓDULO 4: ESTADO INTERNO DA TELA
     // ==========================================================================================
     private final ObservableList<PropostaModel> listaPropostas = FXCollections.observableArrayList();
-    private Runnable acaoConfirmacaoPendente;
     private Runnable acaoFeedbackPendente;
-    private Runnable acaoAlertaPendente;
     private PropostaController formularioAtivo;
     private Node viewFormularioAtivo;
     private Long propostaIdPendenteSelecao = null;
 
-    public EsteiraPropostasController(IEsteiraPropostasFacade esteiraFacade, ApplicationContext context, PropostaUIEventHub eventHub,
-            ProponenteUIEventHub proponenteEventHub) {
+    public EsteiraPropostasController(IEsteiraPropostasFacade esteiraFacade, ApplicationContext context,
+            Navigator navigator, PropostaUIEventHub eventHub, ProponenteUIEventHub proponenteEventHub) {
         this.esteiraFacade = esteiraFacade;
         this.context = context;
+        this.navigator = navigator;
         this.eventHub = eventHub;
         this.proponenteEventHub = proponenteEventHub;
-        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
+        log.info("{} [SISTEMA] Controlador da Esteira instanciado com suporte a Navigator.", LOG_PREFIX);
     }
 
     // ==========================================================================================
@@ -156,21 +143,15 @@ public class EsteiraPropostasController implements Disposable {
     }
 
     private void configurarFiltroReativo() {
-        log.trace("{} [UI] Configurando listener de busca reativa.", LOG_PREFIX);
-        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> {
-            log.debug("{} [UI] Termo de busca alterado: '{}'", LOG_PREFIX, newVal);
-            filtrarPropostas(newVal);
-        });
+        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> filtrarPropostas(newVal));
     }
 
     private void filtrarPropostas(String termo) {
         AsyncUtils.executarTaskAsync(() -> esteiraFacade.filtrarPropostas(termo), propostasFiltradas -> {
             listaPropostas.setAll(propostasFiltradas);
             tablePropostas.setItems(listaPropostas);
-            log.info("{} [TELEMETRIA] Tabela atualizada. {} registro(s) exibido(s).", LOG_PREFIX, propostasFiltradas.size());
+            log.debug("{} [TELEMETRIA] Tabela atualizada: {} propostas.", LOG_PREFIX, propostasFiltradas.size());
 
-            // CORREÇÃO: Se havia uma proposta aguardando para ser selecionada,
-            // seleciona agora
             if (propostaIdPendenteSelecao != null) {
                 selecionarPropostaPorId(propostaIdPendenteSelecao);
             }
@@ -187,20 +168,13 @@ public class EsteiraPropostasController implements Disposable {
             return new SimpleStringProperty(data != null ? data.format(FMT_DATA) : "-");
         });
 
-        colCliente.setCellValueFactory(cell -> {
-            String nome = cell.getValue().getProponente() != null ? cell.getValue().getProponente().getNomeCompleto() : "Sem Cliente";
-            return new SimpleStringProperty(nome);
-        });
-
-        colBanco.setCellValueFactory(cell -> {
-            String banco = cell.getValue().getBanco() != null ? cell.getValue().getBanco().getNome() : "-";
-            return new SimpleStringProperty(banco);
-        });
-
-        colValorSol.setCellValueFactory(cell -> {
-            BigDecimal valor = cell.getValue().getValorSolicitado();
-            return new SimpleStringProperty(valor != null ? FinanceiroUtils.formatarParaExibicao(valor) : "0,00");
-        });
+        colCliente.setCellValueFactory(cell -> new SimpleStringProperty(
+                cell.getValue().getProponente() != null ? cell.getValue().getProponente().getNomeCompleto() : "S/C"));
+        colBanco.setCellValueFactory(cell -> new SimpleStringProperty(
+                cell.getValue().getBanco() != null ? cell.getValue().getBanco().getNome() : "-"));
+        colValorSol.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getValorSolicitado() != null
+                ? FinanceiroUtils.formatarParaExibicao(cell.getValue().getValorSolicitado())
+                : "0,00"));
 
         colStatus.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getStatus().getLabel()));
         colStatus.setCellFactory(column -> new TableCell<>() {
@@ -212,19 +186,18 @@ public class EsteiraPropostasController implements Disposable {
                 } else {
                     setText(item);
                     setStyle("-fx-font-weight: bold; -fx-alignment: CENTER;");
-                    switch (item) {
-                    case "Aprovada", "Pago" -> setTextFill(Color.GREEN);
-                    case "Reprovada", "Cancelado" -> setTextFill(Color.RED);
-                    case "Pendente", "Aguardando Documentação" -> setTextFill(Color.ORANGE);
-                    default -> setTextFill(Color.BLACK);
-                    }
+                    if (item.equals("Aprovada") || item.equals("Pago"))
+                        setTextFill(Color.GREEN);
+                    else if (item.equals("Reprovada") || item.equals("Cancelado"))
+                        setTextFill(Color.RED);
+                    else
+                        setTextFill(Color.ORANGE);
                 }
             }
         });
 
         tablePropostas.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
-                log.info("{} [TELEMETRIA] Proposta selecionada na tabela. ID: {}", LOG_PREFIX, newSelection.getId());
                 abrirFormularioComProposta(newSelection);
             }
         });
@@ -234,45 +207,39 @@ public class EsteiraPropostasController implements Disposable {
     // MÓDULO 8: AÇÕES DE NEGÓCIO (CRUD)
     // ==========================================================================================
     @FXML private void criarNovaProposta() {
-        log.info("{} [TELEMETRIA] Usuário solicitou criação de nova proposta.", LOG_PREFIX);
+        log.info("{} [TELEMETRIA] Solicitando criação de nova proposta.", LOG_PREFIX);
+        navigator.mostrarLoading("Preparando simulação...");
 
         AsyncUtils.executarTaskAsync(esteiraFacade::criarNovaPropostaEmBranco, novaProposta -> {
-            log.info("{} [UI] Formulário aberto para nova proposta.", LOG_PREFIX);
-            // Removemos o recarregarDados() daqui, pois a proposta ainda não
-            // está no banco
+            navigator.ocultarLoading();
             abrirFormularioComProposta(novaProposta);
         }, erro -> {
-            log.error("{} [SISTEMA] Falha ao preparar nova proposta: {}", LOG_PREFIX, erro.getMessage());
-            mostrarFeedback("❌", "Erro", "Não foi possível preparar a proposta: " + erro.getMessage(), null);
+            navigator.ocultarLoading();
+            log.error("{} [SISTEMA] Falha ao preparar proposta: {}", LOG_PREFIX, erro.getMessage());
+            navigator.notificarAviso("Não foi possível preparar a proposta: " + erro.getMessage());
         });
     }
 
     public void selecionarPropostaPorId(Long id) {
-        log.trace("{} [UI] Tentando selecionar proposta por ID na tabela: {}", LOG_PREFIX, id);
-
         if (listaPropostas.isEmpty()) {
-            log.debug("{} [SISTEMA] Tabela ainda vazia. Guardando ID {} para seleção posterior.", LOG_PREFIX, id);
             this.propostaIdPendenteSelecao = id;
             return;
         }
-
         for (PropostaModel p : tablePropostas.getItems()) {
             if (p.getId().equals(id)) {
                 tablePropostas.getSelectionModel().select(p);
                 tablePropostas.scrollTo(p);
-                this.propostaIdPendenteSelecao = null; // Limpa a pendência
+                this.propostaIdPendenteSelecao = null;
                 return;
             }
         }
-        log.warn("{} [NEGOCIO] Proposta ID {} não encontrada na tabela atual.", LOG_PREFIX, id);
     }
 
     public void abrirFormularioComPropostaEmMemoria(PropostaModel proposta) {
-        log.trace("{} [UI] Abrindo formulário com proposta gerada em memória.", LOG_PREFIX);
         if (formularioAtivo != null && formularioAtivo.getViewModel().isDirty()) {
-            solicitarConfirmacao("⚠️ Descartar alterações?",
-                    "A proposta atual tem alterações não salvas. Deseja descartá-las e abrir a nova?", "Descartar", "#c62828",
-                    () -> carregarPropostaNoFormulario(proposta), null);
+            navigator.solicitarConfirmacao("⚠️ Descartar alterações?",
+                    "A proposta atual tem alterações não salvas. Deseja descartá-las e abrir a nova?", "Descartar",
+                    "#c62828", () -> carregarPropostaNoFormulario(proposta));
             return;
         }
         carregarPropostaNoFormulario(proposta);
@@ -282,28 +249,22 @@ public class EsteiraPropostasController implements Disposable {
     // MÓDULO 9: GESTÃO DO FORMULÁRIO (MASTER-DETAIL)
     // ==========================================================================================
     private void abrirFormularioComProposta(PropostaModel proposta) {
-        log.trace("{} [UI] Abrindo formulário para a proposta ID: {}", LOG_PREFIX, proposta.getId());
-        if (formularioAtivo != null) {
-            if (formularioAtivo.getViewModel().isDirty()) {
-                log.debug("{} [TELEMETRIA] Formulário atual possui alterações não salvas. Solicitando confirmação.", LOG_PREFIX);
-                solicitarConfirmacao("⚠️ Descartar alterações?",
-                        "A proposta atual tem alterações não salvas. Deseja descartá-las e abrir a nova?", "Descartar", "#c62828",
-                        () -> carregarPropostaNoFormulario(proposta), null);
-                return;
-            }
+        if (formularioAtivo != null && formularioAtivo.getViewModel().isDirty()) {
+            navigator.solicitarConfirmacao("⚠️ Descartar alterações?",
+                    "A proposta atual tem alterações não salvas. Deseja descartá-las e abrir a nova?", "Descartar",
+                    "#c62828", () -> carregarPropostaNoFormulario(proposta));
+            return;
         }
         carregarPropostaNoFormulario(proposta);
     }
 
     private void carregarPropostaNoFormulario(PropostaModel proposta) {
-        log.trace("{} [UI] Carregando proposta no formulário ativo.", LOG_PREFIX);
+        log.trace("{} [UI] Carregando proposta no formulário. ID: {}", LOG_PREFIX, proposta.getId());
         if (formularioAtivo == null) {
             garantirFormularioCarregado();
         }
         if (formularioAtivo != null && viewFormularioAtivo != null) {
             formularioAtivo.carregarProposta(proposta);
-
-            // Injeta a view diretamente no container
             if (!containerFormulario.getChildren().contains(viewFormularioAtivo)) {
                 containerFormulario.getChildren().setAll(viewFormularioAtivo);
             }
@@ -312,28 +273,20 @@ public class EsteiraPropostasController implements Disposable {
 
     private void garantirFormularioCarregado() {
         if (formularioAtivo == null) {
-            log.trace("{} [SISTEMA] Carregando FXML do formulário de proposta.", LOG_PREFIX);
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/proposta.fxml"));
                 loader.setControllerFactory(context::getBean);
-
-                // Guarda a view carregada na variável da classe
                 viewFormularioAtivo = loader.load();
-
                 formularioAtivo = loader.getController();
                 formularioAtivo.setEsteiraController(this);
                 formularioAtivo.setOnPropostaFechada(this::fecharFormulario);
-
-                // REMOVA O LISTENER QUE ESTAVA AQUI!
-
             } catch (IOException e) {
-                log.error("{} [SISTEMA] Falha ao carregar formulário de proposta: {}", LOG_PREFIX, e.getMessage(), e);
+                log.error("{} [SISTEMA] Falha ao carregar FXML de proposta: {}", LOG_PREFIX, e.getMessage());
             }
         }
     }
 
     private void fecharFormulario() {
-        log.trace("{} [UI] Fechando formulário e voltando para o painel vazio.", LOG_PREFIX);
         containerFormulario.getChildren().setAll(paneVazio);
         tablePropostas.getSelectionModel().clearSelection();
         formularioAtivo = null;
@@ -342,37 +295,12 @@ public class EsteiraPropostasController implements Disposable {
     // ==========================================================================================
     // MÓDULO 10: OVERLAYS E FEEDBACKS
     // ==========================================================================================
-    public void solicitarConfirmacao(String titulo, String mensagem, String textoBotaoConfirmar, String corHex, Runnable acaoConfirmar,
-            Runnable acaoCancelar) {
-        log.trace("{} [UI] Exibindo overlay de confirmação: {}", LOG_PREFIX, titulo);
-        Platform.runLater(() -> {
-            lblConfirmacaoTitulo.setText(titulo);
-            lblConfirmacaoTitulo.setStyle(String.format(STYLE_LBL_CONFIRM_TITULO, corHex));
-            lblConfirmacaoTexto.setText(mensagem);
-            btnConfirmarAcao.setText(textoBotaoConfirmar);
-            btnConfirmarAcao.setStyle(String.format(STYLE_BTN_CONFIRM, corHex));
-            this.acaoConfirmacaoPendente = acaoConfirmar;
-            overlayConfirmacao.setVisible(true);
-        });
-    }
 
-    @FXML private void confirmarAcao() {
-        log.trace("{} [UI] Ação confirmada pelo usuário.", LOG_PREFIX);
-        overlayConfirmacao.setVisible(false);
-        if (acaoConfirmacaoPendente != null) {
-            acaoConfirmacaoPendente.run();
-            acaoConfirmacaoPendente = null;
-        }
-    }
-
-    @FXML private void cancelarAcaoBase() {
-        log.trace("{} [UI] Ação cancelada pelo usuário.", LOG_PREFIX);
-        overlayConfirmacao.setVisible(false);
-        acaoConfirmacaoPendente = null;
-    }
-
+    /**
+     * Exibe o overlay de feedback específico para resultados da IA.
+     */
     public void mostrarFeedback(String icone, String titulo, String htmlContent, Runnable callback) {
-        log.trace("{} [UI] Exibindo overlay de feedback (IA/WebView): {}", LOG_PREFIX, titulo);
+        log.info("{} [TELEMETRIA] Exibindo feedback de IA: {}", LOG_PREFIX, titulo);
         Platform.runLater(() -> {
             lblFeedbackIcon.setText(icone);
             lblFeedbackTitle.setText(titulo);
@@ -380,43 +308,15 @@ public class EsteiraPropostasController implements Disposable {
             engine.loadContent(String.format(HTML_TEMPLATE_IA, htmlContent));
             this.acaoFeedbackPendente = callback;
             overlayFeedback.setVisible(true);
+            overlayFeedback.toFront();
         });
     }
 
     @FXML private void fecharFeedback() {
-        log.trace("{} [UI] Fechando overlay de feedback.", LOG_PREFIX);
         overlayFeedback.setVisible(false);
         if (acaoFeedbackPendente != null) {
             acaoFeedbackPendente.run();
             acaoFeedbackPendente = null;
-        }
-    }
-
-    public void mostrarAlertaSimples(String icone, String titulo, String mensagem, String tipoBotao, Runnable callback) {
-        log.trace("{} [UI] Exibindo alerta simples: {}", LOG_PREFIX, titulo);
-        Platform.runLater(() -> {
-            lblAlertaIcone.setText(icone);
-            lblAlertaTitulo.setText(titulo);
-            lblAlertaMensagem.setText(mensagem);
-
-            switch (tipoBotao.toLowerCase()) {
-            case "success" -> btnAlertaAcao.setStyle(STYLE_BTN_SUCCESS);
-            case "danger" -> btnAlertaAcao.setStyle(STYLE_BTN_DANGER);
-            case "warning" -> btnAlertaAcao.setStyle(STYLE_BTN_WARNING);
-            default -> btnAlertaAcao.setStyle(STYLE_BTN_BASE + "-fx-background-color: #1976d2;");
-            }
-
-            this.acaoAlertaPendente = callback;
-            overlayAlertaSimples.setVisible(true);
-        });
-    }
-
-    @FXML private void fecharAlertaSimples() {
-        log.trace("{} [UI] Fechando alerta simples.", LOG_PREFIX);
-        overlayAlertaSimples.setVisible(false);
-        if (acaoAlertaPendente != null) {
-            acaoAlertaPendente.run();
-            acaoAlertaPendente = null;
         }
     }
 }

@@ -32,9 +32,8 @@ import java.util.function.Consumer;
  * <h1>MainController</h1>
  * <p>
  * Controlador de Interface (UI) raiz da aplicação. Implementa o
- * {@link Navigator}. Atua como um <b>Humble Object</b>, gerenciando a troca de
- * telas, overlays globais e delegando regras de negócio para a
- * {@link IMainFacade}.
+ * {@link Navigator}. Gerencia a navegação entre telas, o motor de abas
+ * (Workspace) e provê a API centralizada de overlays para toda a aplicação.
  * </p>
  */
 @Component
@@ -63,7 +62,7 @@ public class MainController implements Navigator {
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
-    @FXML private StackPane contentArea, bottomBar;
+    @FXML private StackPane rootStackPane, contentArea, bottomBar;
     @FXML private VBox topBar, overlaySair, overlayLoading, overlayMensagem, overlayConfirmacaoGlobal;
     @FXML private HBox overlayChatIA;
     @FXML private Region dragHandleChat, painelChat;
@@ -86,7 +85,7 @@ public class MainController implements Navigator {
     public MainController(ApplicationContext context, IMainFacade mainFacade) {
         this.context = context;
         this.mainFacade = mainFacade;
-        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
+        log.info("{} [SISTEMA] Controlador Mestre instanciado com suporte a Virtual Threads.", LOG_PREFIX);
     }
 
     // ==========================================================================================
@@ -141,30 +140,33 @@ public class MainController implements Navigator {
     // ==========================================================================================
     // MÓDULO 6: REGRAS DE NEGÓCIO GLOBAIS (COPILOTO)
     // ==========================================================================================
-    public void iniciarConversaoCopiloto(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado, ProponenteModel cliente) {
-        log.info("{} [TELEMETRIA] Solicitando conversão de rascunho para proposta.", LOG_PREFIX);
+
+    /**
+     * Orquestra a conversão de um rascunho de simulação em uma proposta real.
+     * Utiliza Virtual Threads (Loom) via AsyncUtils para não travar a UI.
+     */
+    public void iniciarConversaoCopiloto(SimulacaoRascunhoDTO rascunho, ResultadoSimulacaoDTO resultado,
+            ProponenteModel cliente) {
+        log.info("{} [TELEMETRIA] Iniciando conversão de rascunho via Copiloto.", LOG_PREFIX);
         mostrarLoading("Gerando proposta...");
 
-        AsyncUtils.executarTaskAsync(() -> mainFacade.converterRascunhoParaProposta(rascunho, resultado, cliente), propostaEmMemoria -> {
-            ocultarLoading();
-
-            // Em vez de passar o ID, passamos o objeto inteiro para o Workspace
-            executarNoWorkspace(ws -> ws.abrirOuFocarAbaComPropostaEmMemoria(propostaEmMemoria));
-
-            String bancoNome = resultado.tabela().getBanco().getNome();
-            notificarSucesso("Proposta gerada com sucesso!\nBanco: " + bancoNome);
-        }, erro -> {
-            ocultarLoading();
-            log.error("{} [AUDITORIA] Erro ao gerar proposta via Copiloto: {}", LOG_PREFIX, erro.getMessage());
-            notificarAviso("Erro ao gerar proposta: " + erro.getMessage());
-        });
+        AsyncUtils.executarTaskAsync(() -> mainFacade.converterRascunhoParaProposta(rascunho, resultado, cliente),
+                propostaEmMemoria -> {
+                    ocultarLoading();
+                    executarNoWorkspace(ws -> ws.abrirOuFocarAbaComPropostaEmMemoria(propostaEmMemoria));
+                    notificarSucesso("Proposta gerada com sucesso!");
+                }, erro -> {
+                    ocultarLoading();
+                    log.error("{} [AUDITORIA] Falha na conversão do Copiloto: {}", LOG_PREFIX, erro.getMessage());
+                    notificarAviso("Erro ao gerar proposta: " + erro.getMessage());
+                });
     }
 
     // ==========================================================================================
     // MÓDULO 7: MOTOR DE NAVEGAÇÃO E CACHE
     // ==========================================================================================
     private void executarNavegacao(String fxmlPath, boolean mostrarEstrutura) {
-        log.trace("{} [UI] Executando navegação para: {}", LOG_PREFIX, fxmlPath);
+        log.trace("{} [UI] Navegando para: {}", LOG_PREFIX, fxmlPath);
         try {
             ViewPair pair = cacheDeViews.computeIfAbsent(fxmlPath, this::carregarNovaView);
             topBar.setVisible(mostrarEstrutura);
@@ -176,19 +178,19 @@ public class MainController implements Navigator {
             log.info("{} [TELEMETRIA] Navegação concluída: {}", LOG_PREFIX, fxmlPath);
         } catch (Exception e) {
             log.error("{} [SISTEMA] Erro fatal ao navegar para '{}': {}", LOG_PREFIX, fxmlPath, e.getMessage());
-            throw new RuntimeException("Erro ao carregar a tela: " + fxmlPath, e);
+            throw new RuntimeException("Erro de navegação", e);
         }
     }
 
     private ViewPair carregarNovaView(String fxmlPath) {
-        log.debug("{} [SISTEMA] Carregando FXML e instanciando Controller: {}", LOG_PREFIX, fxmlPath);
+        log.debug("{} [SISTEMA] Carregando nova View: {}", LOG_PREFIX, fxmlPath);
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             loader.setControllerFactory(context::getBean);
             return new ViewPair(loader.load(), loader.getController());
         } catch (IOException e) {
-            log.error("{} [SISTEMA] Falha ao instanciar o FXML '{}': {}", LOG_PREFIX, fxmlPath, e.getMessage());
-            throw new RuntimeException("Falha ao instanciar o FXML: " + fxmlPath, e);
+            log.error("{} [SISTEMA] Falha no carregamento FXML: {}", LOG_PREFIX, fxmlPath);
+            throw new RuntimeException(e);
         }
     }
 
@@ -200,7 +202,7 @@ public class MainController implements Navigator {
                 acao.accept(wsController);
             }
         } catch (Exception e) {
-            log.error("{} [SISTEMA] Erro ao executar ação no Workspace: {}", LOG_PREFIX, e.getMessage());
+            log.error("{} [SISTEMA] Erro na orquestração do Workspace: {}", LOG_PREFIX, e.getMessage());
         }
     }
 
@@ -214,12 +216,11 @@ public class MainController implements Navigator {
     // MÓDULO 8: CONTROLES DE OVERLAY (LOADING, SAIR, MENSAGENS)
     // ==========================================================================================
     @FXML private void cancelarLogout() {
-        log.trace("{} [UI] Usuário cancelou o logout.", LOG_PREFIX);
         overlaySair.setVisible(false);
     }
 
     @FXML private void confirmarLogout() {
-        log.info("{} [TELEMETRIA] Usuário confirmou logout.", LOG_PREFIX);
+        log.info("{} [AUDITORIA] Logout efetuado pelo usuário.", LOG_PREFIX);
         overlaySair.setVisible(false);
         mainFacade.realizarLogout();
         limparCacheDeTelas();
@@ -234,18 +235,27 @@ public class MainController implements Navigator {
     @FXML private void executarConfirmacaoGlobal() {
         overlayConfirmacaoGlobal.setVisible(false);
         if (acaoConfirmacaoPendente != null) {
+            log.debug("{} [UI] Executando ação de confirmação pendente.", LOG_PREFIX);
             acaoConfirmacaoPendente.run();
             acaoConfirmacaoPendente = null;
         }
     }
 
-    private void exibirOverlayMensagem(String titulo, String mensagem) {
+    /**
+     * Centraliza a exibição de mensagens, garantindo execução na thread da UI.
+     */
+    private void exibirOverlayMensagemInterno(String titulo, String mensagem, boolean isSucesso) {
         Platform.runLater(() -> {
             lblMsgTitulo.setText(titulo);
             lblMsgTexto.setText(mensagem);
 
+            // Estilização dinâmica baseada no tipo de notificação
+            lblMsgTitulo.setStyle(
+                    isSucesso ? "-fx-text-fill: -color-success-emphasis;" : "-fx-text-fill: -color-danger-emphasis;");
+
             overlayMensagem.setVisible(true);
             overlayMensagem.toFront();
+            log.trace("{} [UI] Overlay de mensagem exibido: {}", LOG_PREFIX, titulo);
         });
     }
 
@@ -254,7 +264,7 @@ public class MainController implements Navigator {
     }
 
     // ==========================================================================================
-    // MÓDULO 9: IMPLEMENTAÇÃO DO NAVIGATOR
+    // MÓDULO 9: IMPLEMENTAÇÃO DO NAVIGATOR (API PÚBLICA DE UI)
     // ==========================================================================================
     @Override public void navegarPara(String fxmlPath, boolean mostrarEstrutura) {
         executarNavegacao(fxmlPath, mostrarEstrutura);
@@ -277,15 +287,16 @@ public class MainController implements Navigator {
     }
 
     @Override public void abrirPropostaNoWorkspace(PropostaModel proposta) {
-        if (proposta == null || proposta.getProponente() == null)
-            return;
-        executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
+        if (proposta != null && proposta.getProponente() != null) {
+            executarNoWorkspace(ws -> ws.abrirOuFocarAbaComProposta(proposta.getProponente(), proposta.getId()));
+        }
     }
 
     @Override public void mostrarLoading(String mensagem) {
         Platform.runLater(() -> {
             lblLoadingTexto.setText(mensagem);
             overlayLoading.setVisible(true);
+            overlayLoading.toFront();
         });
     }
 
@@ -294,11 +305,11 @@ public class MainController implements Navigator {
     }
 
     @Override public void notificarSucesso(String mensagem) {
-        exibirOverlayMensagem("Sucesso", mensagem);
+        exibirOverlayMensagemInterno("✅ Sucesso", mensagem, true);
     }
 
     @Override public void notificarAviso(String mensagem) {
-        exibirOverlayMensagem("Atenção", mensagem);
+        exibirOverlayMensagemInterno("⚠️ Atenção", mensagem, false);
     }
 
     @FXML @Override public void alternarPainelIA() {
@@ -337,28 +348,40 @@ public class MainController implements Navigator {
     }
 
     @Override public void limparCacheDeTelas() {
-        log.info("{} [SISTEMA] Limpando cache de telas. {} views removidas.", LOG_PREFIX, cacheDeViews.size());
+        log.info("{} [SISTEMA] Limpando cache de visualização.", LOG_PREFIX);
         cacheDeViews.clear();
     }
 
     @Override public void abrirCopilotoSimulacao(Node anchorNode) {
-        executarNoWorkspace(ws -> ws.admitirAbaSimples(RotaAba.COPILOTO, "✨ Copiloto de Vendas", "/fxml/copiloto_simulacao.fxml"));
+        executarNoWorkspace(
+                ws -> ws.admitirAbaSimples(RotaAba.COPILOTO, "✨ Copiloto de Vendas", "/fxml/copiloto_simulacao.fxml"));
     }
 
     @Override public void mostrarOverlaySair() {
         overlaySair.setVisible(true);
+        overlaySair.toFront();
     }
 
-    @Override public void solicitarConfirmacao(String titulo, String mensagem, String textoBotaoConfirmar, String estiloCssCor,
-            Runnable acaoConfirmar) {
+    /**
+     * Implementação padronizada de diálogos de confirmação. Suporta cores do
+     * tema AtlantaFX ou Hexadecimais.
+     */
+    @Override public void solicitarConfirmacao(String titulo, String mensagem, String textoBotao, String estiloCor,
+            Runnable acao) {
         Platform.runLater(() -> {
             lblConfirmacaoTitulo.setText(titulo);
             lblConfirmacaoTexto.setText(mensagem);
-            btnConfirmarGlobal.setText(textoBotaoConfirmar);
-            btnConfirmarGlobal.setStyle("-fx-background-color: " + estiloCssCor + "; -fx-text-fill: white; -fx-font-weight: bold;");
-            this.acaoConfirmacaoPendente = acaoConfirmar;
+            btnConfirmarGlobal.setText(textoBotao);
+
+            // Aplicação de estilo dinâmico para o botão de ação
+            String background = estiloCor.startsWith("-color") ? estiloCor : estiloCor;
+            btnConfirmarGlobal
+                    .setStyle("-fx-background-color: " + background + "; -fx-text-fill: white; -fx-font-weight: bold;");
+
+            this.acaoConfirmacaoPendente = acao;
             overlayConfirmacaoGlobal.setVisible(true);
             overlayConfirmacaoGlobal.toFront();
+            log.debug("{} [UI] Solicitando confirmação: {}", LOG_PREFIX, titulo);
         });
     }
 }

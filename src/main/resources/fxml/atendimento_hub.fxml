@@ -58,7 +58,7 @@
 
                 <center>
                     <TabPane fx:id="subTabPane" side="LEFT" tabClosingPolicy="UNAVAILABLE"
-                        tabMinWidth="30" tabMaxWidth="150" xmlns:fx="http://javafx.com/fxml/1">
+                        tabMinWidth="30" tabMaxWidth="150">
                         <tabs>
                             <Tab text="📝 Dados">
                                 <fx:include fx:id="abaLead" source="proponente.fxml" />
@@ -67,7 +67,6 @@
                             <Tab text="📍 Localização">
                                 <fx:include fx:id="abaEndereco" source="endereco.fxml" />
                             </Tab>
-
                         </tabs>
                     </TabPane>
                 </center>
@@ -81,30 +80,7 @@
         </detailNode>
     </MasterDetailPane>
 
-    <VBox fx:id="overlayConfirmacaoSaida" alignment="CENTER" spacing="20" visible="false"
-        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
-        <VBox alignment="CENTER" spacing="20" maxWidth="450"
-            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
-
-            <Label text="⚠️ Alterações Não Salvas"
-                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #c62828;" />
-
-            <Label text="Você possui alterações na Lead atual. Deseja salvar antes de sair?"
-                wrapText="true" textAlignment="CENTER"
-                style="-fx-font-size: 14px; -fx-text-fill: #333;" />
-
-            <HBox spacing="15" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
-                <Button text="Cancelar" onAction="#cancelarSaida" styleClass="flat" />
-                <Button text="Descartar Alterações" onAction="#descartarESair"
-                    style="-fx-background-color: #f5f5f5; -fx-text-fill: #666; -fx-border-color: #ddd; -fx-border-radius: 4; -fx-background-radius: 4;" />
-                <Button text="Salvar e Sair" onAction="#descartarESair"
-                    styleClass="accent"
-                    style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;" />
-            </HBox>
-        </VBox>
-    </VBox>
-
-
+    <!-- Overlay de Resumo: Mantido por possuir lógica de Clipboard específica -->
     <VBox fx:id="overlayResumo" alignment="CENTER" spacing="20" visible="false"
         style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 50;">
         <VBox alignment="TOP_LEFT" spacing="20" maxWidth="600" maxHeight="700"
@@ -128,24 +104,6 @@
                 <Button text="Confirmar e Copiar" onAction="#confirmarCopiaResumo"
                     styleClass="accent" style="-fx-padding: 8 20; -fx-font-weight: bold;" />
             </HBox>
-        </VBox>
-    </VBox>
-
-    <VBox fx:id="overlayMensagem" visible="false" alignment="CENTER"
-        style="-fx-background-color: rgba(0, 0, 0, 0.5); -fx-padding: 50;">
-
-        <VBox alignment="CENTER" spacing="20" maxWidth="400"
-            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 20, 0, 0, 0);">
-
-            <Label fx:id="lblMensagemTitulo" text="Aviso"
-                style="-fx-font-size: 18px; -fx-font-weight: bold;" />
-
-            <Label fx:id="lblMensagemTexto" wrapText="true" textAlignment="CENTER"
-                style="-fx-font-size: 14px; -fx-text-fill: #333;" />
-
-            <Button text="Entendido" onAction="#esconderMensagem"
-                styleClass="accent"
-                style="-fx-padding: 8 30; -fx-font-weight: bold; -fx-cursor: hand;" />
         </VBox>
     </VBox>
 </StackPane>

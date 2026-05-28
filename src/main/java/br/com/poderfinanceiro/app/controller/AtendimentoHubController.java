@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.domain.model.EnderecoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.facade.IAtendimentoFacade;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import javafx.application.HostServices;
@@ -33,10 +34,11 @@ import java.util.ArrayList;
  * Controlador de Interface (UI) responsável por orquestrar as abas de um
  * Atendimento (Lead, Endereço, Links). Implementa o padrão <b>Humble
  * Object</b>, delegando a persistência e regras de negócio para a
- * {@link IAtendimentoFacade}.
+ * {@link IAtendimentoFacade} e interações globais para o {@link Navigator}.
  * </p>
  */
-@Component @Scope("prototype")
+@Component
+@Scope("prototype")
 public class AtendimentoHubController {
 
     // ==========================================================================================
@@ -56,6 +58,7 @@ public class AtendimentoHubController {
     private final IAtendimentoFacade atendimentoFacade;
     private final HostServices hostServices;
     private final ApplicationContext context;
+    private final Navigator navigator;
 
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
@@ -63,9 +66,9 @@ public class AtendimentoHubController {
     @FXML private ProponenteController abaLeadController;
     @FXML private EnderecoController abaEnderecoController;
     @FXML private LinkUtilController abaLinksController;
-    @FXML private VBox overlayConfirmacaoSaida, overlayMensagem, overlayResumo;
+    @FXML private VBox overlayResumo;
     @FXML private Button btnSalvar;
-    @FXML private Label lblMensagemTexto, lblMensagemTitulo, lblResumoPreview;
+    @FXML private Label lblResumoPreview;
     @FXML private TabPane subTabPane;
     @FXML private MasterDetailPane masterDetailPane;
 
@@ -73,16 +76,17 @@ public class AtendimentoHubController {
     // MÓDULO 4: ESTADO INTERNO DA TELA
     // ==========================================================================================
     private ProponenteModel proponenteAberto;
-    private Runnable acaoNavegacaoPendente;
     private String resumoGeradoParaCopia;
     private Tab tabPertencente;
     private boolean slaveJaCarregado = false;
 
-    public AtendimentoHubController(IAtendimentoFacade atendimentoFacade, HostServices hostServices, ApplicationContext context) {
+    public AtendimentoHubController(IAtendimentoFacade atendimentoFacade, HostServices hostServices,
+            ApplicationContext context, Navigator navigator) {
         this.atendimentoFacade = atendimentoFacade;
         this.hostServices = hostServices;
         this.context = context;
-        log.debug("{} [SISTEMA] Controller de AtendimentoHub instanciado.", LOG_PREFIX);
+        this.navigator = navigator;
+        log.info("{} [SISTEMA] Controller instanciado com suporte a Navegação Global.", LOG_PREFIX);
     }
 
     // ==========================================================================================
@@ -120,7 +124,8 @@ public class AtendimentoHubController {
     // MÓDULO 6: CICLO DE VIDA DO ATENDIMENTO
     // ==========================================================================================
     public void inicializarAtendimento(ProponenteModel proponente) {
-        log.info("{} [TELEMETRIA] Inicializando atendimento na UI. ID: {}", LOG_PREFIX, proponente != null ? proponente.getId() : "NOVO");
+        log.info("{} [TELEMETRIA] Inicializando atendimento na UI. ID: {}", LOG_PREFIX,
+                proponente != null ? proponente.getId() : "NOVO");
         this.proponenteAberto = proponente;
 
         abaLeadController.getViewModel().loadFromModel(proponente);
@@ -152,13 +157,19 @@ public class AtendimentoHubController {
         atendimentoFacade.limparContextoAtendimento();
     }
 
+    /**
+     * Solicita o fechamento da aba, utilizando o Navigator para confirmação
+     * global se houver alterações.
+     */
     public void solicitarFechamento(Runnable acaoFecharAba) {
         boolean dirty = abaLeadController.getViewModel().isDirty() || abaEnderecoController.getViewModel().isDirty();
         log.info("{} [UI] Solicitação de fechamento. Alterações pendentes: {}", LOG_PREFIX, dirty);
 
         if (dirty) {
-            this.acaoNavegacaoPendente = acaoFecharAba;
-            overlayConfirmacaoSaida.setVisible(true);
+            log.debug("{} [UI] Disparando solicitação de confirmação global via Navigator.", LOG_PREFIX);
+            navigator.solicitarConfirmacao("⚠️ Alterações Não Salvas",
+                    "Você possui alterações pendentes neste atendimento. Deseja descartar e sair?", "Descartar e Sair",
+                    "-color-danger-emphasis", acaoFecharAba);
         } else {
             acaoFecharAba.run();
         }
@@ -173,27 +184,32 @@ public class AtendimentoHubController {
         if (abaLeadController.getViewModel().isDirty() && !abaLeadController.getViewModel().isValido()) {
             log.warn("{} [NEGOCIO] Salvamento bloqueado por validação.", LOG_PREFIX);
             subTabPane.getSelectionModel().select(0);
-            exibirMensagem(MSG_ERRO_VALIDACAO, false);
+            navigator.notificarAviso(MSG_ERRO_VALIDACAO);
             return;
         }
 
         // Snapshot na UI Thread
         ProponenteModel leadSnapshot = abaLeadController.getViewModel().atualizarModel(proponenteAberto);
-        EnderecoProponenteModel enderecoSnapshot = abaEnderecoController.getViewModel().atualizarModel(
-                (proponenteAberto != null && proponenteAberto.getEnderecos() != null && !proponenteAberto.getEnderecos().isEmpty())
-                        ? proponenteAberto.getEnderecos().get(0)
-                        : null);
+        EnderecoProponenteModel enderecoSnapshot = abaEnderecoController.getViewModel()
+                .atualizarModel((proponenteAberto != null && proponenteAberto.getEnderecos() != null
+                        && !proponenteAberto.getEnderecos().isEmpty()) ? proponenteAberto.getEnderecos().get(0) : null);
 
-        AsyncUtils.executarTaskAsync(() -> atendimentoFacade.salvarAtendimentoCompleto(leadSnapshot, enderecoSnapshot), proponenteSalvo -> {
-            log.info("{} [AUDITORIA] Atendimento salvo com sucesso. ID: {}", LOG_PREFIX, proponenteSalvo.getId());
-            inicializarAtendimento(proponenteSalvo);
-            if (tabPertencente != null)
-                tabPertencente.setUserData(String.valueOf(proponenteSalvo.getId()));
-            exibirMensagem(MSG_SUCESSO_SALVAR, true);
-        }, erro -> {
-            log.error("{} [AUDITORIA] Erro ao salvar atendimento: {}", LOG_PREFIX, erro.getMessage());
-            exibirMensagem("Erro ao salvar: " + erro.getMessage(), false);
-        });
+        navigator.mostrarLoading("Salvando atendimento...");
+
+        AsyncUtils.executarTaskAsync(() -> atendimentoFacade.salvarAtendimentoCompleto(leadSnapshot, enderecoSnapshot),
+                proponenteSalvo -> {
+                    navigator.ocultarLoading();
+                    log.info("{} [AUDITORIA] Atendimento salvo com sucesso. ID: {}", LOG_PREFIX,
+                            proponenteSalvo.getId());
+                    inicializarAtendimento(proponenteSalvo);
+                    if (tabPertencente != null)
+                        tabPertencente.setUserData(String.valueOf(proponenteSalvo.getId()));
+                    navigator.notificarSucesso(MSG_SUCESSO_SALVAR);
+                }, erro -> {
+                    navigator.ocultarLoading();
+                    log.error("{} [AUDITORIA] Erro ao salvar atendimento: {}", LOG_PREFIX, erro.getMessage());
+                    navigator.notificarAviso("Erro ao salvar: " + erro.getMessage());
+                });
     }
 
     // ==========================================================================================
@@ -205,7 +221,7 @@ public class AtendimentoHubController {
 
         if (link == null) {
             log.warn("{} [NEGOCIO] Abertura de WhatsApp bloqueada: telefone vazio.", LOG_PREFIX);
-            exibirMensagem(MSG_ERRO_WHATSAPP, false);
+            navigator.notificarAviso(MSG_ERRO_WHATSAPP);
             return;
         }
 
@@ -214,7 +230,7 @@ public class AtendimentoHubController {
             hostServices.showDocument(link);
         } catch (Exception e) {
             log.error("{} [SISTEMA] Falha ao abrir browser para WhatsApp: {}", LOG_PREFIX, e.getMessage());
-            exibirMensagem("Erro ao tentar abrir o navegador.", false);
+            navigator.notificarAviso("Erro ao tentar abrir o navegador.");
         }
     }
 
@@ -223,8 +239,6 @@ public class AtendimentoHubController {
         BigDecimal renda = abaLeadController.getViewModel().rendaProperty().get();
         String rendaStr = (renda != null) ? String.format("%,.2f", renda) : "0,00";
 
-        // Mantido o SummaryGeneratorUtils aqui pois ele depende do ViewModel
-        // diretamente
         this.resumoGeradoParaCopia = SummaryGeneratorUtils.gerar(abaLeadController.getViewModel(), rendaStr);
 
         lblResumoPreview.setText(this.resumoGeradoParaCopia);
@@ -238,7 +252,7 @@ public class AtendimentoHubController {
             content.putString(this.resumoGeradoParaCopia);
             Clipboard.getSystemClipboard().setContent(content);
             fecharOverlayResumo();
-            exibirMensagem(MSG_SUCESSO_COPIA, true);
+            navigator.notificarSucesso(MSG_SUCESSO_COPIA);
         }
     }
 
@@ -258,41 +272,19 @@ public class AtendimentoHubController {
                 log.info("{} [SISTEMA] Painel de links carregado via Lazy Load.", LOG_PREFIX);
             } catch (Exception e) {
                 log.error("{} [SISTEMA] Falha ao carregar painel de links: {}", LOG_PREFIX, e.getMessage());
-                exibirMensagem("Falha ao carregar o painel de links úteis.", false);
+                navigator.notificarAviso("Falha ao carregar o painel de links úteis.");
             }
         }
         masterDetailPane.setShowDetailNode(!estaAberto);
     }
 
     // ==========================================================================================
-    // MÓDULO 10: OVERLAYS E UTILITÁRIOS
+    // MÓDULO 10: UTILITÁRIOS DE INTERFACE
     // ==========================================================================================
-    public void exibirMensagem(String texto, boolean sucesso) {
-        log.trace("{} [UI] Exibindo overlay de mensagem: {}", LOG_PREFIX, texto);
-        lblMensagemTexto.setText(texto);
-        lblMensagemTitulo.setText(sucesso ? "✅ Sucesso" : "⚠️ Atenção");
-        overlayMensagem.setVisible(true);
-    }
-
-    @FXML public void esconderMensagem() {
-        overlayMensagem.setVisible(false);
-    }
-
     @FXML public void fecharOverlayResumo() {
+        log.trace("{} [UI] Fechando overlay de resumo.", LOG_PREFIX);
         overlayResumo.setVisible(false);
         this.resumoGeradoParaCopia = null;
-    }
-
-    @FXML public void cancelarSaida() {
-        overlayConfirmacaoSaida.setVisible(false);
-        this.acaoNavegacaoPendente = null;
-    }
-
-    @FXML public void descartarESair() {
-        log.warn("{} [TELEMETRIA] Usuário descartou alterações e fechou a aba.", LOG_PREFIX);
-        overlayConfirmacaoSaida.setVisible(false);
-        if (acaoNavegacaoPendente != null)
-            acaoNavegacaoPendente.run();
     }
 
     public ProponenteController getLeadController() {

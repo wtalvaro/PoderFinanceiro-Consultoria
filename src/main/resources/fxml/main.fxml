@@ -9,7 +9,7 @@
 
        <BorderPane fx:id="mainContainer" style="-fx-background-color: #ffffff;">
 
-              <!-- ÁREA SUPERIOR (com fx:id para controle) -->
+              <!-- ÁREA SUPERIOR -->
               <top>
                      <VBox fx:id="topBar">
                             <fx:include source="menu.fxml" />
@@ -17,36 +17,33 @@
                      </VBox>
               </top>
 
-              <!-- MAIN CONTENT: A ÁREA DE INJEÇÃO VAZIA -->
+              <!-- ÁREA DE CONTEÚDO DINÂMICO -->
               <center>
                      <StackPane fx:id="contentArea" minHeight="0" />
               </center>
 
-              <!-- STATUS BAR -->
+              <!-- BARRA DE STATUS -->
               <bottom>
-                     <!-- Trocado de HBox para StackPane. O StackPane obriga o filho a preencher
-                     100% da largura -->
                      <StackPane fx:id="bottomBar" maxWidth="1.7976931348623157E308">
                             <fx:include source="statusbar.fxml" />
                      </StackPane>
               </bottom>
        </BorderPane>
 
+       <!-- OVERLAY DO CHAT IA (LATERAL) -->
        <HBox fx:id="overlayChatIA" visible="false" alignment="CENTER_RIGHT"
               style="-fx-background-color: transparent;">
-
               <Region fx:id="dragHandleChat"
                      prefWidth="6.0" minWidth="6.0" maxWidth="6.0"
                      style="-fx-cursor: h-resize; -fx-background-color: rgba(0,0,0,0.03);" />
-
               <fx:include fx:id="painelChat" source="ajuda_chat.fxml" />
        </HBox>
 
-       <!-- Camada de Overlay (Permanece igual) -->
+       <!-- OVERLAY DE LOGOUT -->
        <VBox fx:id="overlaySair" alignment="CENTER" spacing="20" visible="false"
               style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
-              <VBox alignment="CENTER" spacing="20" maxWidth="400"
-                     style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10;">
+              <VBox alignment="CENTER" spacing="20" maxWidth="400" maxHeight="-Infinity"
+                     style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
                      <Label text="🚪 Encerrar Sessão"
                             style="-fx-font-size: 20px; -fx-font-weight: bold;" />
                      <Label
@@ -60,47 +57,48 @@
               </VBox>
        </VBox>
 
+       <!-- OVERLAY DE LOADING (BLOQUEANTE) -->
        <VBox fx:id="overlayLoading" visible="false" alignment="CENTER"
-              style="-fx-background-color: rgba(255, 255, 255, 0.8);">
-              <VBox alignment="CENTER" spacing="15" maxWidth="250"
+              style="-fx-background-color: rgba(255, 255, 255, 0.7);">
+              <VBox alignment="CENTER" spacing="15" maxWidth="250" maxHeight="-Infinity"
                      style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 15, 0, 0, 0);">
-
                      <ProgressIndicator style="-fx-progress-color: -color-accent-fg;" />
-
                      <Label fx:id="lblLoadingTexto"
                             wrapText="true"
                             textAlignment="CENTER"
                             style="-fx-font-size: 14px; -fx-text-fill: -color-fg-default;" />
-                            
               </VBox>
        </VBox>
 
-       <!-- Overlay de Mensagem Dinâmico com Scroll -->
-       <VBox fx:id="overlayMensagem" visible="false" alignment="CENTER" maxWidth="450"
-              style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
+       <!-- CORREÇÃO: OVERLAY DE MENSAGEM (ALTURA DINÂMICA) -->
+       <VBox fx:id="overlayMensagem" visible="false" alignment="CENTER"
+              style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
 
-              <Label fx:id="lblMsgTitulo"
-                     style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b; -fx-padding: 0 0 10 0;" />
+              <VBox alignment="CENTER" maxWidth="450" maxHeight="-Infinity"
+                     style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
 
-              <!-- O ScrollPane garante que o overlay não cresça infinitamente -->
-              <ScrollPane fitToWidth="true"
-                     style="-fx-background-color: transparent; -fx-background: transparent;"
-                     hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" maxHeight="400">
-                     <content>
-                            <Label fx:id="lblMsgTexto" wrapText="true"
-                                   style="-fx-font-size: 14px; -fx-text-fill: #475569; -fx-padding: 0 0 15 0;" />
-                     </content>
-              </ScrollPane>
+                     <Label fx:id="lblMsgTitulo"
+                            style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b; -fx-padding: 0 0 10 0;" />
 
-              <Button text="Entendido" onAction="#ocultarOverlayMensagem" maxWidth="Infinity"
-                     style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold;" />
+                     <ScrollPane fitToWidth="true"
+                            style="-fx-background-color: transparent; -fx-background: transparent;"
+                            hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" maxHeight="400">
+                            <content>
+                                   <Label fx:id="lblMsgTexto" wrapText="true"
+                                          style="-fx-font-size: 14px; -fx-text-fill: #475569; -fx-padding: 0 0 15 0;" />
+                            </content>
+                     </ScrollPane>
+
+                     <Button text="Entendido" onAction="#ocultarOverlayMensagem" maxWidth="Infinity"
+                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" />
+              </VBox>
        </VBox>
 
-
+       <!-- OVERLAY DE CONFIRMAÇÃO GLOBAL -->
        <VBox fx:id="overlayConfirmacaoGlobal" visible="false" alignment="CENTER"
               style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
 
-              <VBox alignment="CENTER" spacing="20" maxWidth="400"
+              <VBox alignment="CENTER" spacing="20" maxWidth="400" maxHeight="-Infinity"
                      style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
 
                      <Label fx:id="lblConfirmacaoTitulo"
@@ -112,9 +110,8 @@
                             <Button text="Cancelar" onAction="#cancelarConfirmacaoGlobal"
                                    styleClass="flat" />
                             <Button fx:id="btnConfirmarGlobal" onAction="#executarConfirmacaoGlobal"
-                                   style="-fx-font-weight: bold; -fx-text-fill: white; -fx-background-radius: 4;" />
+                                   style="-fx-font-weight: bold; -fx-text-fill: white; -fx-background-radius: 4; -fx-cursor: hand;" />
                      </HBox>
-
               </VBox>
        </VBox>
 </StackPane>

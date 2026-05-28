@@ -9,20 +9,27 @@ import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
 import br.com.poderfinanceiro.app.infrastructure.repository.BancoRepository;
 import br.com.poderfinanceiro.app.infrastructure.repository.TabelaJurosRepository;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Serviço de Domínio para Gestão de Tabelas de Juros e Comissões. Implementa a
+ * "Regra de Ouro": Tabelas vigentes são imutáveis; alterações geram novas
+ * versões para preservar o histórico de cálculos de propostas passadas.
+ */
 @Service
+@Transactional(readOnly = true)
 public class TabelaJurosService {
 
     private static final Logger log = LoggerFactory.getLogger(TabelaJurosService.class);
+    private static final String LOG_PREFIX = "[TabelaJurosService]";
 
     private final TabelaJurosRepository tabelaJurosRepository;
     private final BancoRepository bancoRepository;
@@ -33,230 +40,203 @@ public class TabelaJurosService {
         this.tabelaJurosRepository = tabelaJurosRepository;
         this.bancoRepository = bancoRepository;
         this.eventPublisher = eventPublisher;
-        log.debug("[TABELA_JUROS_SERVICE] Construtor: Serviço instanciado");
+        log.info("{} [SISTEMA] Serviço de Tabelas de Juros inicializado.", LOG_PREFIX);
     }
 
     /**
-     * Busca apenas as taxas ativas (que não foram arquivadas).
+     * Recupera todas as tabelas ativas com seus respectivos bancos carregados
+     * (Eager Loading).
      */
     public List<TabelaJurosModel> listarAtivas() {
-        log.debug("[TABELA_JUROS_SERVICE] listarAtivas: Buscando tabelas ativas");
-        List<TabelaJurosModel> ativas = tabelaJurosRepository.findAllAtivasWithBanco();
-        log.info("[TABELA_JUROS_SERVICE] listarAtivas: {} tabelas ativas encontradas", ativas.size());
-        return ativas;
+        log.trace("{} [TELEMETRIA] Solicitada listagem de tabelas ativas.", LOG_PREFIX);
+        return tabelaJurosRepository.findAllAtivasWithBanco();
     }
 
     /**
-     * APLICAÇÃO DA REGRA DE OURO:
-     * Nunca atualizamos uma tabela usada. Fechamos a antiga e criamos uma nova.
+     * Implementação da Regra de Ouro: Se a tabela for nova, cria. Se for
+     * edição, arquiva a atual e gera uma nova versão.
      */
-    @Transactional
-    public TabelaJurosModel salvarComRegraDeOuro(TabelaJurosModel model) {
-        log.debug("[TABELA_JUROS_SERVICE] salvarComRegraDeOuro: Salvando tabela com regra de ouro");
+    @Transactional public TabelaJurosModel salvarComRegraDeOuro(TabelaJurosModel model) {
+        log.info("{} [TELEMETRIA] Iniciando salvamento de tabela com Regra de Ouro.", LOG_PREFIX);
 
-        // ====================================================
-        // CASO 1: Criação de uma nova tabela (não existe no banco)
-        // ====================================================
+        if (model == null)
+            throw new IllegalArgumentException("Modelo de tabela não pode ser nulo.");
+
+        // CASO 1: Nova Tabela
         if (model.getId() == null) {
-            log.info(
-                    "[TABELA_JUROS_SERVICE] Nova tabela, ID nulo. Criando registro ativo com início de vigência hoje.");
             model.setInicioVigencia(LocalDate.now());
             model.setAtivo(true);
-
             TabelaJurosModel salva = tabelaJurosRepository.save(model);
-            log.info("[TABELA_JUROS_SERVICE] Nova tabela criada com ID={}", salva.getId());
 
-            // Publica evento de CRIAÇÃO
+            log.info("{} [AUDITORIA] Nova tabela de juros criada. ID: {}, Nome: {}", LOG_PREFIX, salva.getId(),
+                    salva.getNomeTabela());
             eventPublisher.publishEvent(new TabelaJurosCriadoEvent(salva.getId()));
             return salva;
         }
 
-        // ====================================================
-        // CASO 2: Atualização de uma tabela existente
-        // ====================================================
-        log.info(
-                "[TABELA_JUROS_SERVICE] Atualizando tabela existente ID={}. Aplicando regra de ouro (arquivar antiga, criar nova).",
+        // CASO 2: Atualização (Arquivar antiga e criar nova)
+        log.info("{} [NEGOCIO] Aplicando versionamento: Arquivando ID {} para criar nova versão.", LOG_PREFIX,
                 model.getId());
 
-        // Busca a versão antiga
         TabelaJurosModel antiga = tabelaJurosRepository.findById(model.getId())
-                .orElseThrow(() -> {
-                    log.error("[TABELA_JUROS_SERVICE] Tabela original ID={} não encontrada no sistema", model.getId());
-                    return new IllegalArgumentException("Tabela original não encontrada no sistema.");
-                });
+                .orElseThrow(() -> new IllegalArgumentException("Tabela original não encontrada."));
 
-        // Arquiva a tabela antiga
+        // Arquivamento da versão anterior
         antiga.setFimVigencia(LocalDate.now());
         antiga.setAtivo(false);
         tabelaJurosRepository.save(antiga);
-        log.debug("[TABELA_JUROS_SERVICE] Tabela antiga ID={} arquivada (ativo=false, fimVigencia={})", antiga.getId(),
-                antiga.getFimVigencia());
 
-        // Cria nova versão com os dados atualizados (vindos do model)
-        TabelaJurosModel novaVersao = new TabelaJurosModel();
-        novaVersao.setBanco(antiga.getBanco()); // mantém o mesmo banco da antiga
-        novaVersao.setNomeTabela(model.getNomeTabela());
-        novaVersao.setTipoConvenio(model.getTipoConvenio());
-        novaVersao.setTaxaMensal(model.getTaxaMensal());
-        novaVersao.setComissaoPercentual(model.getComissaoPercentual());
-        novaVersao.setValorMinimoEmprestimo(model.getValorMinimoEmprestimo());
-        novaVersao.setValorMaximoEmprestimo(model.getValorMaximoEmprestimo());
-        novaVersao.setRendaMinima(model.getRendaMinima());
-        novaVersao.setPrazoMinimo(model.getPrazoMinimo());
-        novaVersao.setPrazoMaximo(model.getPrazoMaximo());
-        novaVersao.setIdadeMinima(model.getIdadeMinima());
-        novaVersao.setIdadeMaxima(model.getIdadeMaxima());
-
-        // Data de início da nova versão é hoje
+        // Instanciação da nova versão (Deep Copy dos campos editáveis)
+        TabelaJurosModel novaVersao = clonarParaNovaVersao(antiga, model);
         novaVersao.setInicioVigencia(LocalDate.now());
         novaVersao.setAtivo(true);
 
-        // Salva a nova versão
         TabelaJurosModel salva = tabelaJurosRepository.save(novaVersao);
-        log.info("[TABELA_JUROS_SERVICE] Nova versão da tabela criada com ID={}, inícioVigencia={}", salva.getId(),
-                salva.getInicioVigencia());
 
-        // Publica evento de ATUALIZAÇÃO (pois houve uma alteração na tabela ativa)
+        log.info("{} [AUDITORIA] Tabela versionada com sucesso. Antiga: {} -> Nova: {}", LOG_PREFIX, antiga.getId(),
+                salva.getId());
         eventPublisher.publishEvent(new TabelaJurosAtualizadoEvent(salva.getId()));
 
         return salva;
     }
 
-    @Transactional
-    public void arquivarTabela(TabelaJurosModel tabela) {
-        log.debug("[TABELA_JUROS_SERVICE] arquivarTabela: Solicitado arquivamento para tabela ID={}",
-                tabela != null ? tabela.getId() : "null");
-        if (tabela != null && tabela.getId() != null) {
-            TabelaJurosModel managed = tabelaJurosRepository.findById(tabela.getId()).orElse(null);
-            if (managed != null) {
-                managed.setFimVigencia(LocalDate.now());
-                managed.setAtivo(false);
-                tabelaJurosRepository.save(managed);
-                log.info("[TABELA_JUROS_SERVICE] Tabela ID={} arquivada (ativo=false, fimVigencia={})", managed.getId(),
-                        managed.getFimVigencia());
-                eventPublisher.publishEvent(new TabelaJurosArquivadoEvent(managed.getId()));
-            } else {
-                log.warn("[TABELA_JUROS_SERVICE] Tabela ID={} não encontrada no banco para arquivamento",
-                        tabela.getId());
-            }
-        } else {
-            log.warn("[TABELA_JUROS_SERVICE] Tentativa de arquivar tabela nula ou sem ID");
-        }
+    /**
+     * Desativa uma tabela, definindo o fim de sua vigência para a data atual.
+     */
+    @Transactional public void arquivarTabela(TabelaJurosModel tabela) {
+        log.info("{} [TELEMETRIA] Solicitado arquivamento da tabela ID: {}", LOG_PREFIX,
+                tabela != null ? tabela.getId() : "NULL");
+
+        if (tabela == null || tabela.getId() == null)
+            return;
+
+        tabelaJurosRepository.findById(tabela.getId()).ifPresent(managed -> {
+            managed.setFimVigencia(LocalDate.now());
+            managed.setAtivo(false);
+            tabelaJurosRepository.save(managed);
+
+            log.info("{} [AUDITORIA] Tabela ID {} arquivada com sucesso.", LOG_PREFIX, managed.getId());
+            eventPublisher.publishEvent(new TabelaJurosArquivadoEvent(managed.getId()));
+        });
     }
 
-    // 🚀 MÉTODO ATUALIZADO: Processamento Transacional de Tabelas em Lote com
-    // Ativação Dinâmica e Início de Vigência da IA
-    @Transactional
-    public void salvarLoteTabelasImportadas(List<TabelaImportadaDTO> lote) {
-        log.info("[TABELA_JUROS_SERVICE] salvarLoteTabelasImportadas: Processando lote com {} tabelas",
+    /**
+     * Processa a importação massiva de tabelas vindas do motor de OCR/IA.
+     */
+    @Transactional public void salvarLoteTabelasImportadas(List<TabelaImportadaDTO> lote) {
+        log.info("{} [TELEMETRIA] Iniciando processamento de lote importado. Total: {} itens.", LOG_PREFIX,
                 lote != null ? lote.size() : 0);
-        if (lote == null || lote.isEmpty()) {
-            log.warn("[TABELA_JUROS_SERVICE] Lote vazio ou nulo, nada a processar");
+
+        if (lote == null || lote.isEmpty())
             return;
-        }
 
         for (TabelaImportadaDTO dto : lote) {
-            log.debug("[TABELA_JUROS_SERVICE] Processando DTO: banco='{}', nomeTabela='{}'", dto.getBanco(),
-                    dto.getNomeTabela());
-
-            BancoModel bancoModel = bancoRepository
-                    .findFirstByNomeContainingIgnoreCase(dto.getBanco())
-                    .orElseThrow(() -> {
-                        log.error("[TABELA_JUROS_SERVICE] Banco não cadastrado no ERP: {}", dto.getBanco());
-                        return new RuntimeException("Banco não cadastrado no ERP: " + dto.getBanco());
-                    });
-            log.trace("[TABELA_JUROS_SERVICE] Banco encontrado: ID={}, nome={}", bancoModel.getId(),
-                    bancoModel.getNome());
-
-            tabelaJurosRepository.findByBancoIdAndNomeTabelaAndAtivoTrue(bancoModel.getId(), dto.getNomeTabela())
-                    .ifPresent(tabelaAntiga -> {
-                        log.info("[TABELA_JUROS_SERVICE] Desativando tabela antiga ID={} (banco='{}', nome='{}')",
-                                tabelaAntiga.getId(), bancoModel.getNome(), dto.getNomeTabela());
-                        tabelaAntiga.setAtivo(false);
-                        tabelaAntiga.setFimVigencia(LocalDate.now());
-                        tabelaJurosRepository.save(tabelaAntiga);
-                    });
-
-            TabelaJurosModel novaTabela = new TabelaJurosModel();
-            novaTabela.setBanco(bancoModel);
-            novaTabela.setNomeTabela(dto.getNomeTabela());
-
             try {
-                novaTabela.setTipoConvenio(TipoConvenioModel.valueOf(dto.getTipoConvenio()));
-                log.trace("[TABELA_JUROS_SERVICE] TipoConvênio definido: {}", dto.getTipoConvenio());
+                processarTabelaIndividual(dto);
             } catch (Exception e) {
-                log.warn("[TABELA_JUROS_SERVICE] TipoConvênio inválido '{}', usando fallback INSS_CONSIGNADO",
-                        dto.getTipoConvenio());
-                novaTabela.setTipoConvenio(TipoConvenioModel.INSS_CONSIGNADO);
+                log.error("{} [SISTEMA] Falha ao processar item do lote (Banco: {}): {}", LOG_PREFIX, dto.getBanco(),
+                        e.getMessage());
+                // Em lote, continuamos o processamento dos demais itens mesmo
+                // se um falhar
             }
-
-            novaTabela.setValorMinimoEmprestimo(dto.getValorMinimo());
-            novaTabela.setValorMaximoEmprestimo(dto.getValorMaximo());
-            novaTabela.setPrazoMinimo(dto.getPrazoMinimo());
-            novaTabela.setPrazoMaximo(dto.getPrazoMaximo());
-            novaTabela.setIdadeMinima(dto.getIdadeMinima());
-            novaTabela.setIdadeMaxima(dto.getIdadeMaxima());
-            novaTabela.setTaxaMensal(dto.getTaxaMensal());
-            novaTabela.setComissaoPercentual(dto.getComissaoPercentual());
-
-            LocalDate dataInicioTabela = LocalDate.now();
-            if (dto.getInicioVigenciaCalculado() != null && !dto.getInicioVigenciaCalculado().isBlank()
-                    && !dto.getInicioVigenciaCalculado().equals("null")) {
-                try {
-                    dataInicioTabela = LocalDate.parse(dto.getInicioVigenciaCalculado());
-                    log.trace("[TABELA_JUROS_SERVICE] Data de início definida pela IA: {}", dataInicioTabela);
-                } catch (Exception e) {
-                    log.warn("[TABELA_JUROS_SERVICE] Erro ao parsear data de início '{}', usando hoje",
-                            dto.getInicioVigenciaCalculado());
-                }
-            } else {
-                log.trace("[TABELA_JUROS_SERVICE] Nenhuma data de início fornecida, usando hoje");
-            }
-            novaTabela.setInicioVigencia(dataInicioTabela);
-
-            boolean tabelaAtiva = true;
-            if (dto.getFimVigenciaCalculado() != null && !dto.getFimVigenciaCalculado().isBlank()
-                    && !dto.getFimVigenciaCalculado().equals("null")) {
-                try {
-                    LocalDate dataFim = LocalDate.parse(dto.getFimVigenciaCalculado());
-                    if (dataFim.equals(dataInicioTabela)) {
-                        log.warn(
-                                "[TABELA_JUROS_SERVICE] Data de fim igual à data de início, ignorando fim de vigência (possível alucinação da IA)");
-                        novaTabela.setFimVigencia(null);
-                    } else {
-                        novaTabela.setFimVigencia(dataFim);
-                        if (dataFim.isBefore(LocalDate.now())) {
-                            tabelaAtiva = false;
-                            log.info(
-                                    "[TABELA_JUROS_SERVICE] Tabela com data de fim passada ({}), será criada como inativa",
-                                    dataFim);
-                        } else {
-                            log.trace("[TABELA_JUROS_SERVICE] Data de fim definida: {}", dataFim);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("[TABELA_JUROS_SERVICE] Erro ao parsear data de fim '{}', ignorando",
-                            dto.getFimVigenciaCalculado());
-                    novaTabela.setFimVigencia(null);
-                }
-            }
-
-            novaTabela.setAtivo(tabelaAtiva);
-            TabelaJurosModel salva = tabelaJurosRepository.save(novaTabela);
-            log.info("[TABELA_JUROS_SERVICE] Tabela salva: ID={}, nome='{}', banco='{}', ativo={}", salva.getId(),
-                    salva.getNomeTabela(), bancoModel.getNome(), salva.getAtivo());
         }
-        log.info("[TABELA_JUROS_SERVICE] Processamento do lote concluído com sucesso");
+        log.info("{} [AUDITORIA] Processamento de lote concluído.", LOG_PREFIX);
     }
 
-    public TabelaJurosModel buscarPorId(Long id) {
-        log.debug("[TABELA_JUROS_SERVICE] buscarPorId: Buscando tabela por ID={}", id);
-        TabelaJurosModel tabela = tabelaJurosRepository.findByIdWithBanco(id).orElse(null);
-        if (tabela == null) {
-            log.warn("[TABELA_JUROS_SERVICE] Tabela ID={} não encontrada", id);
-        } else {
-            log.trace("[TABELA_JUROS_SERVICE] Tabela ID={} encontrada: nome='{}'", id, tabela.getNomeTabela());
+    private void processarTabelaIndividual(TabelaImportadaDTO dto) {
+        // 1. Localizar Banco (Regra de Negócio: Banco deve existir no ERP)
+        BancoModel banco = bancoRepository.findFirstByNomeContainingIgnoreCase(dto.getBanco())
+                .orElseThrow(() -> new RuntimeException("Banco '" + dto.getBanco() + "' não cadastrado no sistema."));
+
+        // 2. Arquivar versão anterior se houver conflito de nome/banco
+        tabelaJurosRepository.findByBancoIdAndNomeTabelaAndAtivoTrue(banco.getId(), dto.getNomeTabela())
+                .ifPresent(antiga -> {
+                    log.debug("{} [NEGOCIO] Substituindo tabela ativa existente: ID {}", LOG_PREFIX, antiga.getId());
+                    antiga.setAtivo(false);
+                    antiga.setFimVigencia(LocalDate.now());
+                    tabelaJurosRepository.save(antiga);
+                });
+
+        // 3. Mapear e Salvar Nova Tabela
+        TabelaJurosModel nova = mapearDtoParaModel(dto, banco);
+        TabelaJurosModel salva = tabelaJurosRepository.save(nova);
+
+        log.info("{} [AUDITORIA] Tabela importada com sucesso. ID: {}, Banco: {}, Nome: {}", LOG_PREFIX, salva.getId(),
+                banco.getNome(), salva.getNomeTabela());
+    }
+
+    public Optional<TabelaJurosModel> buscarPorId(Long id) {
+        return tabelaJurosRepository.findByIdWithBanco(id);
+    }
+
+    // --- Helpers de Mapeamento e Lógica de Domínio ---
+
+    private TabelaJurosModel clonarParaNovaVersao(TabelaJurosModel antiga, TabelaJurosModel editada) {
+        TabelaJurosModel nova = new TabelaJurosModel();
+        nova.setBanco(antiga.getBanco());
+        nova.setNomeTabela(editada.getNomeTabela());
+        nova.setTipoConvenio(editada.getTipoConvenio());
+        nova.setTaxaMensal(editada.getTaxaMensal());
+        nova.setComissaoPercentual(editada.getComissaoPercentual());
+        nova.setValorMinimoEmprestimo(editada.getValorMinimoEmprestimo());
+        nova.setValorMaximoEmprestimo(editada.getValorMaximoEmprestimo());
+        nova.setRendaMinima(editada.getRendaMinima());
+        nova.setPrazoMinimo(editada.getPrazoMinimo());
+        nova.setPrazoMaximo(editada.getPrazoMaximo());
+        nova.setIdadeMinima(editada.getIdadeMinima());
+        nova.setIdadeMaxima(editada.getIdadeMaxima());
+        return nova;
+    }
+
+    private TabelaJurosModel mapearDtoParaModel(TabelaImportadaDTO dto, BancoModel banco) {
+        TabelaJurosModel model = new TabelaJurosModel();
+        model.setBanco(banco);
+        model.setNomeTabela(dto.getNomeTabela());
+        model.setValorMinimoEmprestimo(dto.getValorMinimo());
+        model.setValorMaximoEmprestimo(dto.getValorMaximo());
+        model.setPrazoMinimo(dto.getPrazoMinimo());
+        model.setPrazoMaximo(dto.getPrazoMaximo());
+        model.setIdadeMinima(dto.getIdadeMinima());
+        model.setIdadeMaxima(dto.getIdadeMaxima());
+        model.setTaxaMensal(dto.getTaxaMensal());
+        model.setComissaoPercentual(dto.getComissaoPercentual());
+
+        // Tratamento de Enum com Fallback
+        try {
+            model.setTipoConvenio(TipoConvenioModel.valueOf(dto.getTipoConvenio()));
+        } catch (Exception e) {
+            log.warn("{} [NEGOCIO] Tipo de convênio inválido '{}'. Usando padrão INSS.", LOG_PREFIX,
+                    dto.getTipoConvenio());
+            model.setTipoConvenio(TipoConvenioModel.INSS_CONSIGNADO);
         }
-        return tabela;
+
+        // Lógica de Vigência vinda da IA
+        LocalDate inicio = parseData(dto.getInicioVigenciaCalculado(), LocalDate.now());
+        model.setInicioVigencia(inicio);
+
+        if (dto.getFimVigenciaCalculado() != null && !dto.getFimVigenciaCalculado().equals("null")) {
+            LocalDate fim = parseData(dto.getFimVigenciaCalculado(), null);
+            if (fim != null && !fim.isEqual(inicio)) {
+                model.setFimVigencia(fim);
+                model.setAtivo(fim.isAfter(LocalDate.now()));
+            } else {
+                model.setAtivo(true);
+            }
+        } else {
+            model.setAtivo(true);
+        }
+
+        return model;
+    }
+
+    private LocalDate parseData(String dataStr, LocalDate fallback) {
+        if (dataStr == null || dataStr.isBlank() || dataStr.equalsIgnoreCase("null"))
+            return fallback;
+        try {
+            return LocalDate.parse(dataStr);
+        } catch (Exception e) {
+            log.warn("{} [SISTEMA] Erro ao parsear data '{}'. Usando fallback.", LOG_PREFIX, dataStr);
+            return fallback;
+        }
     }
 }

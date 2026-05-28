@@ -14,6 +14,7 @@
                     style="-fx-font-size: 18px; -fx-font-weight: bold;" />
 
                 <StackPane>
+                    <!-- Zona de Upload (Drag & Drop) -->
                     <VBox fx:id="dropZone" alignment="CENTER" spacing="10"
                         minHeight="160" prefHeight="160"
                         style="-fx-border-color: #aaaaaa; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #fafafa; -fx-padding: 30; -fx-cursor: hand;"
@@ -26,6 +27,7 @@
                             style="-fx-font-size: 12px; -fx-text-fill: #888;" />
                     </VBox>
 
+                    <!-- Painel de Classificação Inline (Aparece após seleção do arquivo) -->
                     <VBox fx:id="panelClassificacao" alignment="CENTER" spacing="10" visible="false"
                         managed="false"
                         minHeight="160" prefHeight="160"
@@ -48,8 +50,7 @@
                     </VBox>
                 </StackPane>
 
-                <Label fx:id="lblAviso" visible="false" managed="false" />
-
+                <!-- Tabela de Documentos -->
                 <TableView fx:id="tableDocumentos" minHeight="300" VBox.vgrow="ALWAYS">
                     <columns>
                         <TableColumn fx:id="colTipo" text="Tipo de Documento" prefWidth="250" />
@@ -63,27 +64,4 @@
             </VBox>
         </content>
     </ScrollPane>
-
-    <VBox fx:id="overlayExclusao" alignment="CENTER" spacing="20" visible="false"
-        style="-fx-background-color: rgba(0, 0, 0, 0.6); -fx-padding: 50;">
-        <VBox alignment="CENTER" spacing="20" maxWidth="450"
-            style="-fx-background-color: white; -fx-padding: 30; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 0);">
-
-            <Label text="⚠️ Excluir Documento"
-                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #c62828;" />
-
-            <Label
-                text="Tem certeza que deseja apagar permanentemente este documento? Esta ação não pode ser desfeita e o arquivo será removido do sistema."
-                wrapText="true" textAlignment="CENTER"
-                style="-fx-font-size: 14px; -fx-text-fill: #333;" />
-
-            <HBox spacing="15" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
-                <Button text="Cancelar" onAction="#cancelarExclusao" styleClass="flat" />
-                <Button text="Sim, Excluir Documento" onAction="#confirmarExclusao"
-                    styleClass="danger"
-                    style="-fx-font-weight: bold; -fx-background-color: #c62828; -fx-text-fill: white;" />
-            </HBox>
-        </VBox>
-    </VBox>
-
 </StackPane>
