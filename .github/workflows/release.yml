@@ -1,34 +1,66 @@
-name: Publicar Release Automática
+name: Publicar Release Automática Gold Standard
 
 on:
   push:
     tags:
-      - 'v*' # Dispara o fluxo quando você commita uma tag começando com 'v' (ex: v1.0.0)
+      - 'v*' # Dispara ao criar tags como v2.0.0
 
 jobs:
-  build:
-    runs-on: ubuntu-latest # O ambiente Linux mais rápido e estável
+  build-and-release:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-    - name: Fazer checkout do código
+    - name: 1. Fazer checkout do código
       uses: actions/checkout@v4
 
-    - name: Configurar o Java 25
+    - name: 2. Configurar o OpenJDK 25
       uses: actions/setup-java@v4
       with:
         java-version: '25'
         distribution: 'temurin'
         cache: maven
 
-    - name: Compilar e Empacotar o projeto (.jar)
+    - name: 3. Compilar e Gerar JAR (Maven)
       run: ./mvnw clean package -DskipTests
 
-    - name: Criar Release e Upload dos Artefatos
+    - name: 4. Preparar Pacote de Distribuição (.zip)
+      run: |
+        # Cria pasta temporária para o pacote
+        mkdir -p dist_package
+        
+        # Copia o JAR renomeando para o padrão dos scripts
+        cp target/*.jar dist_package/PoderFinanceiro.jar
+        
+        # Copia os scripts de inicialização (certifique-se que estão na raiz ou na pasta dist do seu repo)
+        # Se você os criou na raiz, use:
+        cp iniciar.bat dist_package/ 2>/dev/null || cp dist/iniciar.bat dist_package/
+        cp iniciar.sh dist_package/ 2>/dev/null || cp dist/iniciar.sh dist_package/
+        
+        # Cria o arquivo ZIP final
+        zip -j PoderFinanceiro_Distribucao_${{ github.ref_name }}.zip dist_package/*
+
+    - name: 5. Criar Release e Upload do ZIP
       uses: softprops/action-gh-release@v2
       with:
+        name: Release ${{ github.ref_name }}
+        body: |
+          🚀 **ERP Poder Financeiro - Versão ${{ github.ref_name }}**
+          
+          Esta release foi gerada automaticamente pelo pipeline de CI/CD.
+          
+          **O que há de novo:**
+          - Arquitetura SOLID Gold Standard.
+          - Otimização Project Loom (Virtual Threads).
+          - Copiloto de Vendas com Gemini 2.5+.
+          
+          **Instruções:**
+          1. Baixe o arquivo `.zip` abaixo.
+          2. Extraia em uma pasta de sua preferência.
+          3. Execute o `iniciar.bat` (Windows) ou `iniciar.sh` (Linux).
         files: |
+          PoderFinanceiro_Distribucao_${{ github.ref_name }}.zip
           target/*.jar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
