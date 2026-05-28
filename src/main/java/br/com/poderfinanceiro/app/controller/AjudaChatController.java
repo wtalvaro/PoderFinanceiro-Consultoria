@@ -67,9 +67,9 @@ public class AjudaChatController {
     // ==========================================================================================
     // MÓDULO 2: DEPENDÊNCIAS (DIP)
     // ==========================================================================================
-    @Autowired private IAjudaChatFacade chatFacade;
-    @Autowired private Navigator navigator;
-    @Autowired private HostServices hostServices;
+    private final IAjudaChatFacade chatFacade;
+    private final Navigator navigator;
+    private final HostServices hostServices;
 
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
@@ -96,8 +96,10 @@ public class AjudaChatController {
     private final List<Runnable> filaMensagensPendentes = new ArrayList<>();
     private final List<GeminiRequest.Content> historicoConversa = Collections.synchronizedList(new ArrayList<>());
 
-    public AjudaChatController() {
-        // Construtor vazio exigido pelo JavaFX FXML Loader
+    public AjudaChatController(IAjudaChatFacade chatFacade, Navigator navigator, HostServices hostServices) {
+        this.chatFacade = chatFacade;
+        this.navigator = navigator;
+        this.hostServices = hostServices;
     }
 
     // ==========================================================================================
