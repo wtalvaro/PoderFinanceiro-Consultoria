@@ -3,7 +3,7 @@ name: Publicar Release Automática Gold Standard
 on:
   push:
     tags:
-      - 'v*' # Dispara ao criar tags como v2.0.0
+      - 'v*' # Dispara ao criar tags como v2.0.0.1
 
 jobs:
   build-and-release:
