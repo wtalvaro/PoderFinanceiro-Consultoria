@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<profiles version="12">
+    <profile kind="CodeFormatterProfile" name="JavaFX_Style" version="12">
+        <!-- ESTA É A LINHA QUE RESOLVE O SEU PROBLEMA (Para Atributos/Fields) -->
+        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_field"
+            value="do not insert" />
+
+        <!-- Caso queira que métodos @FXML também fiquem na mesma linha -->
+        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_method"
+            value="do not insert" />
+
+        <!-- Outras configurações comuns para manter o código limpo -->
+        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_type"
+            value="insert" />
+        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_parameter"
+            value="do not insert" />
+        <setting
+            id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_local_variable"
+            value="do not insert" />
+    </profile>
+</profiles>

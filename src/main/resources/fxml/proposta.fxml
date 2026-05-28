@@ -11,7 +11,7 @@
             <ToolBar
                 style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;">
                 <items>
-                    <Button fx:id="btnSalvar" text="💾 Salvar Proposta" onAction="#handleSalvar"
+                    <Button fx:id="btnSalvar" text="💾 Salvar Proposta" onAction="#salvarProposta"
                         styleClass="flat, accent" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Salvar alterações da proposta" />
@@ -30,13 +30,13 @@
 
                     <Region HBox.hgrow="ALWAYS" />
 
-                    <Button fx:id="btnRemover" text="🗑️ Remover" onAction="#handleRemover"
+                    <Button fx:id="btnRemover" text="🗑️ Remover" onAction="#removerProposta"
                         styleClass="flat, danger" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Excluir permanentemente esta proposta" />
                         </tooltip>
                     </Button>
-                    <Button fx:id="btnFechar" text="✖ Fechar" onAction="#handleFechar"
+                    <Button fx:id="btnFechar" text="✖ Fechar" onAction="#fecharProposta"
                         styleClass="flat, warning" style="-fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="Fechar proposta e retornar à lista" />
@@ -189,7 +189,7 @@
                                         style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #212529;" />
                                     <Region HBox.hgrow="ALWAYS" />
                                     <Button fx:id="btnAnexarDocumento" text="➕ Anexar Documento"
-                                        onAction="#handleAnexarDocumento"
+                                        onAction="#anexarDocumento"
                                         styleClass="flat accent"
                                         style="-fx-font-weight: bold; -fx-padding: 8 16; -fx-background-radius: 6; -fx-cursor: hand;" />
                                 </children>
@@ -232,7 +232,7 @@
             <VBox fx:id="boxSelecaoArquivo" spacing="10" alignment="CENTER"
                 style="-fx-pref-width: 100%; -fx-padding: 15; -fx-border-color: #ced4da; -fx-border-radius: 8; -fx-border-style: dashed;">
                 <Button text="📂 Procurar Arquivo no Computador..."
-                    onAction="#handleProcurarArquivo" styleClass="flat" />
+                    onAction="#procurarArquivo" styleClass="flat" />
                 <Label fx:id="lblArquivoSelecionado" text="Nenhum arquivo selecionado"
                     style="-fx-text-fill: -color-fg-muted; -fx-font-size: 12px;" wrapText="true"
                     textAlignment="CENTER" />
