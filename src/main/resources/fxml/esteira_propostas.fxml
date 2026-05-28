@@ -4,7 +4,7 @@
 <?import javafx.scene.web.WebView?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.EsteiraPropostasController">
+    fx:controller="br.com.poderfinanceiro.app.presentation.controller.proposta.EsteiraPropostasController">
 
     <SplitPane dividerPositions="0.5" styleClass="edge-to-edge">
 

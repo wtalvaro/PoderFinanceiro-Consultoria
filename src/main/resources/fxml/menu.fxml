@@ -2,7 +2,7 @@
 <?import javafx.scene.control.*?>
 
 <MenuBar xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.MenuController">
+    fx:controller="br.com.poderfinanceiro.app.presentation.controller.layout.MenuController">
 
     <Menu text="_Poder Financeiro">
         <MenuItem text="📊 Visão Geral" onAction="#handleDashboard" accelerator="Shortcut+D" />

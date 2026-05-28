@@ -6,7 +6,7 @@
     style="-fx-background-color: -color-bg-default; -fx-padding: 8 15; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0;"
     xmlns="http://javafx.com/javafx/21"
     xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.ToolbarController">
+    fx:controller="br.com.poderfinanceiro.app.presentation.controller.layout.ToolbarController">
 
     <Button text="➕ Novo Contato" onAction="#handleNovoContato" styleClass="flat, accent"
         style="-fx-font-weight: bold;">

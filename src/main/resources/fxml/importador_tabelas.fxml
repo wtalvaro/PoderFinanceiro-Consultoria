@@ -5,7 +5,7 @@
 <SplitPane dividerPositions="0.35" style="-fx-padding: 0;"
     xmlns="[http://javafx.com/javafx/21](http://javafx.com/javafx/21)"
     xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
-    fx:controller="br.com.poderfinanceiro.app.controller.ImportadorTabelasController">
+    fx:controller="br.com.poderfinanceiro.app.presentation.controller.suporte.ImportadorTabelasController">
 
     <VBox spacing="15" style="-fx-padding: 15; -fx-background-color: #ffffff;">
         <HBox alignment="CENTER_LEFT" spacing="10">

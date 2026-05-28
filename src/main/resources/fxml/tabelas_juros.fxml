@@ -5,7 +5,7 @@
 <?import org.controlsfx.control.MasterDetailPane?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.TabelaJurosController"
+    fx:controller="br.com.poderfinanceiro.app.presentation.controller.financeiro.TabelaJurosController"
     maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
 
     <VBox spacing="20"

@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.ProponenteController">
+    fx:controller="br.com.poderfinanceiro.app.presentation.controller.atendimento.ProponenteController">
 
     <ScrollPane fx:id="scrollPrincipal" fitToWidth="true" fitToHeight="true"
         style="-fx-background-color: transparent;" styleClass="edge-to-edge">

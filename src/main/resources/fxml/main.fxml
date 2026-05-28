@@ -5,7 +5,7 @@
 
 <StackPane fx:id="rootStackPane" xmlns:fx="http://javafx.com/fxml"
        maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-       fx:controller="br.com.poderfinanceiro.app.controller.MainController">
+       fx:controller="br.com.poderfinanceiro.app.presentation.controller.layout.MainController">
 
        <BorderPane fx:id="mainContainer" style="-fx-background-color: #ffffff;">
 

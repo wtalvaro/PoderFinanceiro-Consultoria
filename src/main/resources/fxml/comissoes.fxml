@@ -5,7 +5,7 @@
 <?import javafx.scene.shape.Circle?>
 
 <StackPane fx:id="rootPane" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="br.com.poderfinanceiro.app.controller.ComissoesController"
+    fx:controller="br.com.poderfinanceiro.app.presentation.controller.financeiro.ComissoesController"
     stylesheets="@../css/popover-custom.css">
 
     <fx:define>
