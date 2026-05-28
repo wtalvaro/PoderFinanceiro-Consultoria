@@ -2,8 +2,8 @@ package br.com.poderfinanceiro.app.facade;
 
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
-import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import br.com.poderfinanceiro.app.infrastructure.repository.BancoRepository;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

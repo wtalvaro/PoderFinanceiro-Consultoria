@@ -4,7 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.*;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.facade.IPropostaFacade;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.PropostaViewModel;

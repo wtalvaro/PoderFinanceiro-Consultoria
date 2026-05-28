@@ -5,7 +5,7 @@ import br.com.poderfinanceiro.app.domain.event.ProponenteCriadoEvent;
 import br.com.poderfinanceiro.app.domain.event.ProponenteExcluidoEvent;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
-import br.com.poderfinanceiro.app.domain.repository.ProponenteRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.ProponenteRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

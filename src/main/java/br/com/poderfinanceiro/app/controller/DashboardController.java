@@ -5,7 +5,7 @@ import br.com.poderfinanceiro.app.domain.event.PropostaUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.facade.IDashboardFacade;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.Disposable;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;

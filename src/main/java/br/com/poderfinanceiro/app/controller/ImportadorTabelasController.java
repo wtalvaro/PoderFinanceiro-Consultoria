@@ -4,7 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
 import br.com.poderfinanceiro.app.facade.IImportadorTabelasFacade;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;

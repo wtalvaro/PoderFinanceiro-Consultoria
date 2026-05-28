@@ -1,8 +1,8 @@
 package br.com.poderfinanceiro.app.facade;
 
-import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
 import br.com.poderfinanceiro.app.domain.service.*;
 import br.com.poderfinanceiro.app.dto.GeminiRequest;
+import br.com.poderfinanceiro.app.infrastructure.repository.LinkUtilRepository;
 import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

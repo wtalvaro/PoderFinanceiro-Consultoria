@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.domain.repository;
+package br.com.poderfinanceiro.app.infrastructure.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

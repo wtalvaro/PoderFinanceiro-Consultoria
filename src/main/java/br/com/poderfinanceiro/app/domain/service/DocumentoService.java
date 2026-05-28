@@ -4,7 +4,7 @@ import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
-import br.com.poderfinanceiro.app.domain.repository.DocumentoProponenteRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.DocumentoProponenteRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

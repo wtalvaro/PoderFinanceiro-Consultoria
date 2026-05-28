@@ -3,7 +3,7 @@ package br.com.poderfinanceiro.app.controller;
 import br.com.poderfinanceiro.app.domain.event.ComissaoUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.facade.IComissaoFacade;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import br.com.poderfinanceiro.app.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.viewmodel.ComissaoViewModel;

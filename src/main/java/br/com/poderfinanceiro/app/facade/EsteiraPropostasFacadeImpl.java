@@ -2,9 +2,10 @@ package br.com.poderfinanceiro.app.facade;
 
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
-import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.PropostaService;
+import br.com.poderfinanceiro.app.infrastructure.repository.PropostaRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

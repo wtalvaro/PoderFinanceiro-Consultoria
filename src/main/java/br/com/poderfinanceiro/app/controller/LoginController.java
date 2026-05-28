@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.facade.IAuthFacade;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import javafx.application.Platform;
 import javafx.fxml.FXML;

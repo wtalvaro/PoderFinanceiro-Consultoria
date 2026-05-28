@@ -10,12 +10,12 @@ import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
-import br.com.poderfinanceiro.app.domain.repository.DocumentoProponenteRepository;
-import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
-import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
 import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
 import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
+import br.com.poderfinanceiro.app.infrastructure.repository.ComissaoRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.DocumentoProponenteRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.PropostaRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.TabelaJurosRepository;
 import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
 
 import org.springframework.stereotype.Service;

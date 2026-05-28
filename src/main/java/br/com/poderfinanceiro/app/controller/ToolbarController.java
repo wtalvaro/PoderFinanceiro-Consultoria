@@ -1,12 +1,13 @@
 package br.com.poderfinanceiro.app.controller;
 
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 
 /**
  * <h1>ToolbarController</h1>

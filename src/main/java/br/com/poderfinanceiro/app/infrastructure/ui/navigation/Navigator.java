@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.ui.navigation;
+package br.com.poderfinanceiro.app.infrastructure.ui.navigation;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;

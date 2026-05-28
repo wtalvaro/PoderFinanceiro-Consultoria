@@ -2,7 +2,7 @@ package br.com.poderfinanceiro.app.domain.service;
 
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
-import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.ComissaoRepository;
 import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
 
 import org.springframework.stereotype.Service;

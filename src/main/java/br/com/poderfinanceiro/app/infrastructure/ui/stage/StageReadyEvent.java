@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.ui.stage;
+package br.com.poderfinanceiro.app.infrastructure.ui.stage;
 
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationEvent;

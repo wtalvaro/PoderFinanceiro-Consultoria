@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.domain.service;
 
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
-import br.com.poderfinanceiro.app.domain.repository.UsuarioRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.UsuarioRepository;
 import lombok.Getter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

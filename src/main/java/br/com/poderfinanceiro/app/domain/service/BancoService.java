@@ -2,7 +2,8 @@ package br.com.poderfinanceiro.app.domain.service;
 
 import br.com.poderfinanceiro.app.domain.event.*;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
-import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.BancoRepository;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

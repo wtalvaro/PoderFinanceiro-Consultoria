@@ -1,11 +1,12 @@
 package br.com.poderfinanceiro.app.facade;
 
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
-import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
+import br.com.poderfinanceiro.app.infrastructure.repository.BancoRepository;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

@@ -6,9 +6,9 @@ import br.com.poderfinanceiro.app.domain.event.TabelaJurosCriadoEvent;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
-import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
 import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
+import br.com.poderfinanceiro.app.infrastructure.repository.BancoRepository;
+import br.com.poderfinanceiro.app.infrastructure.repository.TabelaJurosRepository;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;

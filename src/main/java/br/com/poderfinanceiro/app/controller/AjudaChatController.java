@@ -2,7 +2,7 @@ package br.com.poderfinanceiro.app.controller;
 
 import br.com.poderfinanceiro.app.dto.GeminiRequest;
 import br.com.poderfinanceiro.app.facade.IAjudaChatFacade;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import javafx.application.HostServices;
 import javafx.application.Platform;

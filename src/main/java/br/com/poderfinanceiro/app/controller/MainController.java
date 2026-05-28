@@ -6,7 +6,7 @@ import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
 import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
 import br.com.poderfinanceiro.app.facade.IMainFacade;
-import br.com.poderfinanceiro.app.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.infrastructure.ui.navigation.Navigator;
 import br.com.poderfinanceiro.app.util.AsyncUtils;
 import javafx.application.Platform;
 import javafx.fxml.FXML;

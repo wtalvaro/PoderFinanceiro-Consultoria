@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.ui.component;
+package br.com.poderfinanceiro.app.infrastructure.ui.component;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
