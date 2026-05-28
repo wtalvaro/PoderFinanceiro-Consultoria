@@ -1,14 +1,15 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.application.dto.TabelaImportadaDTO;
 import br.com.poderfinanceiro.app.domain.event.TabelaJurosArquivadoEvent;
 import br.com.poderfinanceiro.app.domain.event.TabelaJurosAtualizadoEvent;
 import br.com.poderfinanceiro.app.domain.event.TabelaJurosCriadoEvent;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.dto.TabelaImportadaDTO;
-import br.com.poderfinanceiro.app.infrastructure.repository.BancoRepository;
-import br.com.poderfinanceiro.app.infrastructure.repository.TabelaJurosRepository;
+import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

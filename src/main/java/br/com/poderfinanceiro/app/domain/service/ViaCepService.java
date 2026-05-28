@@ -1,6 +1,6 @@
 package br.com.poderfinanceiro.app.domain.service;
 
-import br.com.poderfinanceiro.app.dto.ViaCepResponse;
+import br.com.poderfinanceiro.app.application.dto.ViaCepResponse;
 import br.com.poderfinanceiro.app.infrastructure.client.ViaCepClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

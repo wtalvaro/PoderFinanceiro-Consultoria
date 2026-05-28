@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app;
 
 import atlantafx.base.theme.PrimerLight;
-import br.com.poderfinanceiro.app.infrastructure.ui.component.SplashScreenStage;
-import br.com.poderfinanceiro.app.infrastructure.ui.stage.StageInitializer;
-import br.com.poderfinanceiro.app.util.AsyncUtils;
+import br.com.poderfinanceiro.app.common.util.AsyncUtils;
+import br.com.poderfinanceiro.app.presentation.ui.component.SplashScreenStage;
+import br.com.poderfinanceiro.app.presentation.ui.stage.StageInitializer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;

@@ -1,9 +1,10 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.common.util.SummaryGeneratorUtils;
 import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.infrastructure.factory.GeminiPromptFactory;
-import br.com.poderfinanceiro.app.util.SummaryGeneratorUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

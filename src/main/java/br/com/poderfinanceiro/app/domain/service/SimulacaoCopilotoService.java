@@ -1,10 +1,10 @@
 package br.com.poderfinanceiro.app.domain.service;
 
-import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
-import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
-import br.com.poderfinanceiro.app.infrastructure.repository.TabelaJurosRepository;
+import br.com.poderfinanceiro.app.application.dto.ResultadoSimulacaoDTO;
+import br.com.poderfinanceiro.app.application.dto.SimulacaoRascunhoDTO;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
+import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
 import br.com.poderfinanceiro.app.infrastructure.factory.GeminiPromptFactory;
 
 import org.springframework.stereotype.Service;

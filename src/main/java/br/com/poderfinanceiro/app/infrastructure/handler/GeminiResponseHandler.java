@@ -1,8 +1,10 @@
 package br.com.poderfinanceiro.app.infrastructure.handler;
 
-import br.com.poderfinanceiro.app.dto.GeminiResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import br.com.poderfinanceiro.app.application.dto.GeminiResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.domain.service;
 
-import br.com.poderfinanceiro.app.dto.GeminiRequest;
-import br.com.poderfinanceiro.app.dto.GeminiResponse;
+import br.com.poderfinanceiro.app.application.dto.GeminiRequest;
+import br.com.poderfinanceiro.app.application.dto.GeminiResponse;
 import br.com.poderfinanceiro.app.infrastructure.client.GeminiClient;
 import br.com.poderfinanceiro.app.infrastructure.config.PlaybookResolver;
 import br.com.poderfinanceiro.app.infrastructure.factory.GeminiPromptFactory;

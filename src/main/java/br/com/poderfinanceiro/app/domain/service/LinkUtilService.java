@@ -4,7 +4,8 @@ import br.com.poderfinanceiro.app.domain.event.LinkUtilAtualizadoEvent;
 import br.com.poderfinanceiro.app.domain.event.LinkUtilCriadoEvent;
 import br.com.poderfinanceiro.app.domain.event.LinkUtilExcluidoEvent;
 import br.com.poderfinanceiro.app.domain.model.LinkUtilModel;
-import br.com.poderfinanceiro.app.infrastructure.repository.LinkUtilRepository;
+import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

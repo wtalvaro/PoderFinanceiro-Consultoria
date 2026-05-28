@@ -5,7 +5,8 @@ import br.com.poderfinanceiro.app.domain.event.ProponenteCriadoEvent;
 import br.com.poderfinanceiro.app.domain.event.ProponenteExcluidoEvent;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
-import br.com.poderfinanceiro.app.infrastructure.repository.ProponenteRepository;
+import br.com.poderfinanceiro.app.domain.repository.ProponenteRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

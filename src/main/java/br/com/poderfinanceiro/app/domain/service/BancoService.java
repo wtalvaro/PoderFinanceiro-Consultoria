@@ -4,7 +4,8 @@ import br.com.poderfinanceiro.app.domain.event.BancoAtualizadoEvent;
 import br.com.poderfinanceiro.app.domain.event.BancoCriadoEvent;
 import br.com.poderfinanceiro.app.domain.event.BancoExcluidoEvent;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
-import br.com.poderfinanceiro.app.infrastructure.repository.BancoRepository;
+import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

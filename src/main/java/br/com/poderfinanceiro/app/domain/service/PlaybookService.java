@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.application.dto.PlaybookItemDTO;
 import br.com.poderfinanceiro.app.domain.model.PlaybookItemModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
 import br.com.poderfinanceiro.app.domain.strategy.DocumentStrategy;
-import br.com.poderfinanceiro.app.dto.PlaybookItemDTO;
 import br.com.poderfinanceiro.app.infrastructure.config.PlaybookResolver;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

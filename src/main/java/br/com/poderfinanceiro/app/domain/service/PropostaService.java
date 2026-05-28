@@ -1,5 +1,8 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.application.dto.ResultadoSimulacaoDTO;
+import br.com.poderfinanceiro.app.application.dto.SimulacaoRascunhoDTO;
+import br.com.poderfinanceiro.app.common.util.CicloFinanceiroUtils;
 import br.com.poderfinanceiro.app.domain.event.PropostaAtualizadaEvent;
 import br.com.poderfinanceiro.app.domain.event.PropostaCriadaEvent;
 import br.com.poderfinanceiro.app.domain.event.PropostaExcluidaEvent;
@@ -9,13 +12,11 @@ import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;
 import br.com.poderfinanceiro.app.domain.model.enums.TipoConvenioModel;
-import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
-import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
-import br.com.poderfinanceiro.app.infrastructure.repository.ComissaoRepository;
-import br.com.poderfinanceiro.app.infrastructure.repository.DocumentoProponenteRepository;
-import br.com.poderfinanceiro.app.infrastructure.repository.PropostaRepository;
-import br.com.poderfinanceiro.app.infrastructure.repository.TabelaJurosRepository;
-import br.com.poderfinanceiro.app.util.CicloFinanceiroUtils;
+import br.com.poderfinanceiro.app.domain.repository.ComissaoRepository;
+import br.com.poderfinanceiro.app.domain.repository.DocumentoProponenteRepository;
+import br.com.poderfinanceiro.app.domain.repository.PropostaRepository;
+import br.com.poderfinanceiro.app.domain.repository.TabelaJurosRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

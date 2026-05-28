@@ -1,10 +1,11 @@
 package br.com.poderfinanceiro.app.infrastructure.factory;
 
-import br.com.poderfinanceiro.app.dto.ResultadoSimulacaoDTO;
-import br.com.poderfinanceiro.app.dto.SimulacaoRascunhoDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.application.dto.ResultadoSimulacaoDTO;
+import br.com.poderfinanceiro.app.application.dto.SimulacaoRascunhoDTO;
 
 import java.math.BigDecimal;
 import java.util.List;

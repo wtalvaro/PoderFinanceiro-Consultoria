@@ -1,9 +1,11 @@
 package br.com.poderfinanceiro.app.infrastructure.mapper;
 
-import br.com.poderfinanceiro.app.dto.GeminiRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.application.dto.GeminiRequest;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

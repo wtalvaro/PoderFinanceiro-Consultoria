@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.domain.service;
 
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
-import br.com.poderfinanceiro.app.infrastructure.repository.UsuarioRepository;
+import br.com.poderfinanceiro.app.domain.repository.UsuarioRepository;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,12 +1,13 @@
 package br.com.poderfinanceiro.app.domain.service;
 
+import br.com.poderfinanceiro.app.common.util.AsyncUtils;
 import br.com.poderfinanceiro.app.domain.model.DocumentoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
+import br.com.poderfinanceiro.app.domain.repository.DocumentoProponenteRepository;
 import br.com.poderfinanceiro.app.infrastructure.config.DocumentoStorageResolver;
-import br.com.poderfinanceiro.app.infrastructure.repository.DocumentoProponenteRepository;
-import br.com.poderfinanceiro.app.util.AsyncUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

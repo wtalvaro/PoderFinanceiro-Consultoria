@@ -1,10 +1,11 @@
 package br.com.poderfinanceiro.app.infrastructure.client;
 
-import br.com.poderfinanceiro.app.dto.GitHubReleaseDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import br.com.poderfinanceiro.app.application.dto.GitHubReleaseDTO;
 
 import java.io.File;
 import java.net.URI;

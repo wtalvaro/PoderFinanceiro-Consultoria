@@ -1,12 +1,13 @@
 package br.com.poderfinanceiro.app.infrastructure.client;
 
-import br.com.poderfinanceiro.app.dto.ViaCepResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+
+import br.com.poderfinanceiro.app.application.dto.ViaCepResponse;
 
 import java.util.Random;
 import java.util.concurrent.Callable;

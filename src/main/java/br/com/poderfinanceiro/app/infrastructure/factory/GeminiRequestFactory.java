@@ -1,7 +1,9 @@
 package br.com.poderfinanceiro.app.infrastructure.factory;
 
-import br.com.poderfinanceiro.app.dto.GeminiRequest;
 import org.springframework.stereotype.Component;
+
+import br.com.poderfinanceiro.app.application.dto.GeminiRequest;
+
 import java.util.List;
 
 @Component
