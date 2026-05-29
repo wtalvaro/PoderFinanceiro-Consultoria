@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.IWorkspaceFacade;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;

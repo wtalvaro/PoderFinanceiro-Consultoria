@@ -22,6 +22,7 @@ public class GeminiClient {
     }
 
     public <T> T post(String url, Object body, Class<T> responseType, String contexto) {
+        log.info("{} [TELEMETRIA] SAÍDA INFRA -> API EXTERNA: Payload={}", LOG_PREFIX, body);
         return executarComResiliencia(() -> {
             log.trace("{} [TELEMETRIA] Enviando POST para: {} (Contexto: {})", LOG_PREFIX, url.split("\\?")[0],
                     contexto);

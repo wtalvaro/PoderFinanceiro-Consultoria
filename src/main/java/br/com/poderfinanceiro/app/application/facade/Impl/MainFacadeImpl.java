@@ -1,7 +1,8 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
 import br.com.poderfinanceiro.app.application.dto.ResultadoSimulacaoDTO;
 import br.com.poderfinanceiro.app.application.dto.SimulacaoRascunhoDTO;
+import br.com.poderfinanceiro.app.application.facade.IMainFacade;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.service.AuthService;

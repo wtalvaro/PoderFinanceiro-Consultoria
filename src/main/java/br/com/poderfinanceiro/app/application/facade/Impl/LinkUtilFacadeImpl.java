@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.ILinkUtilFacade;
 import br.com.poderfinanceiro.app.domain.model.LinkUtilModel;
 import br.com.poderfinanceiro.app.domain.service.LinkUtilService;
 import org.slf4j.Logger;

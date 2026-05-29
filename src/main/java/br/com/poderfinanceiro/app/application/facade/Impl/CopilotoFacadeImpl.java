@@ -1,7 +1,8 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
 import br.com.poderfinanceiro.app.application.dto.ResultadoSimulacaoDTO;
 import br.com.poderfinanceiro.app.application.dto.SimulacaoRascunhoDTO;
+import br.com.poderfinanceiro.app.application.facade.ICopilotoFacade;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
@@ -57,7 +58,7 @@ public class CopilotoFacadeImpl implements ICopilotoFacade {
     }
 
     @Override public List<ResultadoSimulacaoDTO> processarSimulacaoRapida(SimulacaoRascunhoDTO rascunho) {
-        log.info("{} [TELEMETRIA] Processando simulação rápida. Valor: {}", LOG_PREFIX, rascunho.valorDesejado());
+        log.info("{} [TELEMETRIA] ENTRADA FACADE -> SERVICE: DTO={}", LOG_PREFIX, rascunho);
         return copilotoService.processarSimulacaoRapida(rascunho);
     }
 

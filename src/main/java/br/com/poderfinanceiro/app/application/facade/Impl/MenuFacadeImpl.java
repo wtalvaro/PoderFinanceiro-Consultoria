@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.IMenuFacade;
 import br.com.poderfinanceiro.app.domain.service.UpdateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

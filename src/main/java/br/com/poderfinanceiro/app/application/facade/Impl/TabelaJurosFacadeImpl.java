@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.ITabelaJurosFacade;
 import br.com.poderfinanceiro.app.common.util.FinanceiroUtils;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.model.TabelaJurosModel;

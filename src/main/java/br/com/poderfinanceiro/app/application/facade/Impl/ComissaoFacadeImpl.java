@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.IComissaoFacade;
 import br.com.poderfinanceiro.app.common.util.CicloFinanceiroUtils;
 import br.com.poderfinanceiro.app.domain.model.ComissaoModel;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;

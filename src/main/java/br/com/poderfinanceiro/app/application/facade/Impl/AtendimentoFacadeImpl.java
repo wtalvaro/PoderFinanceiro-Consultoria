@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.IAtendimentoFacade;
 import br.com.poderfinanceiro.app.common.util.SummaryGeneratorUtils;
 import br.com.poderfinanceiro.app.domain.model.EnderecoProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;

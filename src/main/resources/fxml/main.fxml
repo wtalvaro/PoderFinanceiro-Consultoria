@@ -74,18 +74,21 @@
        <VBox fx:id="overlayMensagem" visible="false" alignment="CENTER"
               style="-fx-background-color: rgba(0, 0, 0, 0.4); -fx-padding: 50;">
 
-              <VBox alignment="CENTER" maxWidth="450" maxHeight="-Infinity"
+              <VBox alignment="CENTER" minHeight="200" maxWidth="450" maxHeight="-Infinity"
                      style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
 
-                     <Label fx:id="lblMsgTitulo"
+                     <Label fx:id="lblMsgTitulo" alignment="CENTER" textAlignment="CENTER"
                             style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b; -fx-padding: 0 0 10 0;" />
 
-                     <ScrollPane fitToWidth="true"
+                     <ScrollPane fitToWidth="true" fitToHeight="true"
                             style="-fx-background-color: transparent; -fx-background: transparent;"
                             hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" maxHeight="400">
                             <content>
-                                   <Label fx:id="lblMsgTexto" wrapText="true"
-                                          style="-fx-font-size: 14px; -fx-text-fill: #475569; -fx-padding: 0 0 15 0;" />
+                                   <StackPane alignment="CENTER">
+                                          <Label fx:id="lblMsgTexto" wrapText="true"
+                                                 textAlignment="CENTER" alignment="CENTER"
+                                                 style="-fx-font-size: 14px; -fx-text-fill: #475569; -fx-padding: 0 0 15 0;" />
+                                   </StackPane>
                             </content>
                      </ScrollPane>
 

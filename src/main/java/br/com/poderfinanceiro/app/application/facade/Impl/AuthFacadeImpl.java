@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.IAuthFacade;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import org.slf4j.Logger;

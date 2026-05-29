@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.IPropostaFacade;
 import br.com.poderfinanceiro.app.domain.event.PropostaPagaEvent;
 import br.com.poderfinanceiro.app.domain.model.*;
 import br.com.poderfinanceiro.app.domain.model.enums.StatusPropostaModel;

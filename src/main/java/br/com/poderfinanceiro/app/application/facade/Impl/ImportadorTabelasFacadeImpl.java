@@ -1,6 +1,7 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
 import br.com.poderfinanceiro.app.application.dto.TabelaImportadaDTO;
+import br.com.poderfinanceiro.app.application.facade.IImportadorTabelasFacade;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
 import br.com.poderfinanceiro.app.domain.service.AuthService;

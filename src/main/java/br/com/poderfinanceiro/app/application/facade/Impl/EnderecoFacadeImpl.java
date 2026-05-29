@@ -1,6 +1,7 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
 import br.com.poderfinanceiro.app.application.dto.ViaCepResponse;
+import br.com.poderfinanceiro.app.application.facade.IEnderecoFacade;
 import br.com.poderfinanceiro.app.domain.service.ViaCepService;
 
 import org.slf4j.Logger;

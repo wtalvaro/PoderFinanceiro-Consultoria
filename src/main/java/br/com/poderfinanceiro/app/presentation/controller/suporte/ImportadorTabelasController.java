@@ -45,7 +45,6 @@ public class ImportadorTabelasController {
     private static final String MODELO_IA_PADRAO = "gemini-3.5-flash";
     private static final String MSG_LOADING_IA = "Analisando layout e extraindo regras de negócio...";
     private static final String MSG_LOADING_GRAVACAO = "Persistindo lote e ativando novas vigências...";
-    private static final String MSG_ERRO_IA = "Falha na extração da IA: ";
     private static final String MSG_ERRO_GRAVACAO = "Erro ao gravar lote: ";
 
     private static final String STATUS_REVISADO = "🟢";
@@ -181,42 +180,46 @@ public class ImportadorTabelasController {
             String modelo = cmbModeloIA.getValue() != null ? cmbModeloIA.getValue() : MODELO_IA_PADRAO;
             navigator.mostrarLoading(MSG_LOADING_IA);
 
-            AsyncUtils.executarTaskAsync(() -> importadorFacade.extrairTabelasDeImagem(arquivo, modelo), tabelasExtraidas -> {
-                log.info("{} [AUDITORIA] Extração concluída. {} tabelas encontradas.", LOG_PREFIX, tabelasExtraidas.size());
+            AsyncUtils.executarTaskAsync(() -> importadorFacade.extrairTabelasDeImagem(arquivo, modelo),
+                    tabelasExtraidas -> {
+                        navigator.ocultarLoading();
+                        log.info("{} [AUDITORIA] IA extraiu {} tabelas. Iniciando aplicação de precedência.",
+                                LOG_PREFIX, tabelasExtraidas.size());
 
-                // RESTAURAÇÃO DA REGRA DE NEGÓCIO: Preenchimento Inteligente
-                // (Smart Defaults)
-                // Se o usuário já escolheu um banco ou convênio no topo da tela
-                // ANTES de processar a imagem,
-                // nós forçamos esses valores nas tabelas extraídas, ignorando o
-                // que a IA achou.
-                String bancoGlobal = cmbBancoLote.getValue();
-                String convenioGlobal = cmbConvenioLote.getValue();
+                        // LÓGICA DE PRECEDÊNCIA: Captura seleções manuais
+                        // pré-processamento
+                        String bancoManual = cmbBancoLote.getSelectionModel().getSelectedItem();
+                        String convenioManual = cmbConvenioLote.getSelectionModel().getSelectedItem();
 
-                for (TabelaImportadaDTO dto : tabelasExtraidas) {
-                    if (bancoGlobal != null && !bancoGlobal.isBlank()) {
-                        dto.setBanco(bancoGlobal);
-                    }
-                    if (convenioGlobal != null && !convenioGlobal.isBlank()) {
-                        dto.setTipoConvenio(convenioGlobal);
-                    }
-                }
+                        for (TabelaImportadaDTO dto : tabelasExtraidas) {
+                            // Só sobrescreve se o usuário selecionou algo real
+                            // (não vazio/null)
+                            if (bancoManual != null && !bancoManual.isBlank()) {
+                                log.trace("{} [NEGOCIO] Aplicando Banco manual: {}", LOG_PREFIX, bancoManual);
+                                dto.setBanco(bancoManual);
+                            }
+                            if (convenioManual != null && !convenioManual.isBlank()) {
+                                log.trace("{} [NEGOCIO] Aplicando Convênio manual: {}", LOG_PREFIX, convenioManual);
+                                dto.setTipoConvenio(convenioManual);
+                            }
 
-                listaTabelas.setAll(tabelasExtraidas);
-                navigator.ocultarLoading();
-                navigator.notificarSucesso(tabelasExtraidas.size() + " tabelas extraídas com sucesso! Revise os dados antes de gravar.");
+                            // LOG DE RASTREABILIDADE: Mostra como o DTO ficou
+                            // após a extração
+                            log.info("{} [TELEMETRIA] DTO Extraído: {}", LOG_PREFIX, dto);
+                        }
 
-                // Seleciona automaticamente a primeira tabela da lista para
-                // facilitar a revisão
-                if (!listaTabelas.isEmpty()) {
-                    selecionarProximaPendente();
-                }
+                        listaTabelas.setAll(tabelasExtraidas);
+                        navigator.notificarSucesso(tabelasExtraidas.size() + " tabelas extraídas com sucesso!");
 
-            }, erro -> {
-                log.error("{} [AUDITORIA] Erro na extração da IA: {}", LOG_PREFIX, erro.getMessage());
-                navigator.ocultarLoading();
-                navigator.notificarAviso(MSG_ERRO_IA + erro.getMessage());
-            });
+                        if (!listaTabelas.isEmpty()) {
+                            selecionarProximaPendente();
+                        }
+
+                    }, erro -> {
+                        log.error("{} [AUDITORIA] Falha na extração da IA: {}", LOG_PREFIX, erro.getMessage());
+                        navigator.ocultarLoading();
+                        navigator.notificarAviso("Erro na extração: " + erro.getMessage());
+                    });
         }
     }
 

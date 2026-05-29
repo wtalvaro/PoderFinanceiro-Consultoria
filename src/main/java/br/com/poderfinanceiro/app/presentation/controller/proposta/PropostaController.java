@@ -140,7 +140,10 @@ public class PropostaController {
         executarSemGatilhos(() -> {
             viewModel.loadFromModel(completa != null ? completa : new PropostaModel());
             sincronizarComboBoxesComViewModel();
-            cbCliente.setDisable(completa != null && completa.getId() != null);
+
+            boolean deveBloquearCliente = completa != null
+                    && (completa.getId() != null || completa.getProponente() != null);
+            cbCliente.setDisable(deveBloquearCliente);
 
             if (completa != null && completa.getId() != null) {
                 carregarDocumentosDaProposta(completa.getId());
@@ -182,7 +185,6 @@ public class PropostaController {
             navigator.ocultarLoading();
             log.info("{} [AUDITORIA] Proposta salva com sucesso. ID: {}", LOG_PREFIX, salva.getId());
             carregarProposta(salva);
-            navigator.notificarSucesso("Proposta salva com sucesso!");
         }, erro -> {
             navigator.ocultarLoading();
             log.error("{} [AUDITORIA] Falha ao salvar: {}", LOG_PREFIX, erro.getMessage());
@@ -208,7 +210,6 @@ public class PropostaController {
                         navigator.ocultarLoading();
                         log.info("{} [AUDITORIA] Proposta ID {} removida.", LOG_PREFIX, id);
                         confirmarFechar();
-                        navigator.notificarSucesso("Proposta removida com sucesso.");
                     }, erro -> {
                         navigator.ocultarLoading();
                         navigator.notificarAviso("Erro ao excluir: " + erro.getMessage());
@@ -407,6 +408,7 @@ public class PropostaController {
         boolean terminal = propostaFacade.isStatusTerminal(snapshot.getStatus(), snapshot.getId());
         boolean bloqueadaPeloCopiloto = propostaFacade.isBloqueadaPeloCopiloto(snapshot);
 
+        cbCliente.setDisable(terminal || bloqueadaPeloCopiloto || snapshot.getId() != null);
         cbStatus.setDisable(terminal);
         cbTabela.setDisable(terminal || bloqueadaPeloCopiloto);
         cbBanco.setDisable(terminal || bloqueadaPeloCopiloto);

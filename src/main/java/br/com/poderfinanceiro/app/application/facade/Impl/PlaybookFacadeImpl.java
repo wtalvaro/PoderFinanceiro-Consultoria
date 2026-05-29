@@ -1,5 +1,6 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.facade.IPlaybookFacade;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
 import br.com.poderfinanceiro.app.domain.model.PlaybookItemModel;
 import br.com.poderfinanceiro.app.domain.service.AuthService;

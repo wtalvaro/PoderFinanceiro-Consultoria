@@ -12,6 +12,7 @@ import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -155,7 +156,6 @@ public class MainController implements Navigator {
                 propostaEmMemoria -> {
                     ocultarLoading();
                     executarNoWorkspace(ws -> ws.abrirOuFocarAbaComPropostaEmMemoria(propostaEmMemoria));
-                    notificarSucesso("Proposta gerada com sucesso!");
                 }, erro -> {
                     ocultarLoading();
                     log.error("{} [AUDITORIA] Falha na conversão do Copiloto: {}", LOG_PREFIX, erro.getMessage());
@@ -249,6 +249,8 @@ public class MainController implements Navigator {
         Platform.runLater(() -> {
             lblMsgTitulo.setText(titulo);
             lblMsgTexto.setText(mensagem);
+            lblMsgTitulo.setAlignment(Pos.CENTER);
+            lblMsgTexto.setAlignment(Pos.CENTER);
 
             // Estilização dinâmica baseada no tipo de notificação
             lblMsgTitulo.setStyle(

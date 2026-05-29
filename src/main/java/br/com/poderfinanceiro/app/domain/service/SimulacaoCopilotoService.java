@@ -50,6 +50,7 @@ public class SimulacaoCopilotoService {
         @Transactional(readOnly = true) public List<ResultadoSimulacaoDTO> processarSimulacaoRapida(
                         SimulacaoRascunhoDTO rascunho) {
                 log.info("{} [TELEMETRIA] Iniciando processamento de simulação rápida.", LOG_PREFIX);
+                log.info("{} [NEGOCIO] PROCESSANDO REGRA DE MATCH: {}", LOG_PREFIX, rascunho);
 
                 if (rascunho == null) {
                         log.warn("{} [NEGOCIO] Rascunho nulo recebido para simulação.", LOG_PREFIX);

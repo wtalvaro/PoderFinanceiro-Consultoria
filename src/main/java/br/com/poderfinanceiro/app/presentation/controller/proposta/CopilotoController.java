@@ -273,11 +273,15 @@ public class CopilotoController implements Disposable {
         BigDecimal valor = FinanceiroUtils.extrairValorParaBanco(txtValor.getText());
         BigDecimal renda = FinanceiroUtils.extrairValorParaBanco(txtRenda.getText());
         BigDecimal margem = FinanceiroUtils.extrairValorParaBanco(txtMargem.getText());
+        Integer prazo = parseSafeInt(txtPrazo.getText());
         String convenio = cbConvenio.getValue() != null ? cbConvenio.getValue().name() : "";
 
-        this.rascunhoAtual = new SimulacaoRascunhoDTO(idade, renda, convenio, valor, 84, margem);
+        this.rascunhoAtual = new SimulacaoRascunhoDTO(idade, renda, convenio, valor, prazo, margem);
+
+        log.info("{} [TELEMETRIA] SAIDA UI -> FACADE: {}", LOG_PREFIX, rascunhoAtual);
 
         navigator.mostrarLoading("Buscando melhores tabelas...");
+
         recomendacoesIA.clear();
 
         AsyncUtils.executarTaskAsync(() -> copilotoFacade.processarSimulacaoRapida(rascunhoAtual), ranking -> {
@@ -302,6 +306,16 @@ public class CopilotoController implements Disposable {
 
         if (navigator instanceof MainController main) {
             main.iniciarConversaoCopiloto(rascunhoAtual, resultado, cliente);
+        }
+    }
+
+    private int parseSafeInt(String texto) {
+        if (texto == null || texto.replaceAll("[^0-9]", "").isEmpty())
+            return 0;
+        try {
+            return Integer.parseInt(texto.replaceAll("[^0-9]", ""));
+        } catch (Exception e) {
+            return 0;
         }
     }
 }

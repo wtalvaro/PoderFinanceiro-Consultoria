@@ -48,7 +48,6 @@ public class AtendimentoHubController {
     private static final Logger log = LoggerFactory.getLogger(AtendimentoHubController.class);
     private static final String LOG_PREFIX = "[AtendimentoHubController]";
 
-    private static final String MSG_SUCESSO_SALVAR = "Atendimento salvo com sucesso!";
     private static final String MSG_ERRO_VALIDACAO = "⚠️ Verifique os campos obrigatórios do cliente antes de salvar.";
     private static final String MSG_ERRO_WHATSAPP = "Por favor, preencha o número de WhatsApp antes de iniciar a conversa.";
     private static final String MSG_SUCESSO_COPIA = "Relatório copiado com sucesso! Pronto para colar.";
@@ -205,7 +204,6 @@ public class AtendimentoHubController {
                     inicializarAtendimento(proponenteSalvo);
                     if (tabPertencente != null)
                         tabPertencente.setUserData(String.valueOf(proponenteSalvo.getId()));
-                    navigator.notificarSucesso(MSG_SUCESSO_SALVAR);
                 }, erro -> {
                     navigator.ocultarLoading();
                     log.error("{} [AUDITORIA] Erro ao salvar atendimento: {}", LOG_PREFIX, erro.getMessage());

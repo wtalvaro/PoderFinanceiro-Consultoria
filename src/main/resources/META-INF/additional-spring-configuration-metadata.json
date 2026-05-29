@@ -18,5 +18,10 @@
     "name": ".\napp.versi",
     "type": "java.lang.String",
     "description": "A description for '.\napp.versi'"
+  },
+  {
+    "name": ".\napp.versi",
+    "type": "java.lang.String",
+    "description": "A description for '.\napp.versi'"
   }
 ]}

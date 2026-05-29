@@ -1,6 +1,7 @@
-package br.com.poderfinanceiro.app.application.facade;
+package br.com.poderfinanceiro.app.application.facade.Impl;
 
 import br.com.poderfinanceiro.app.application.dto.GeminiRequest;
+import br.com.poderfinanceiro.app.application.facade.IAjudaChatFacade;
 import br.com.poderfinanceiro.app.common.util.SummaryGeneratorUtils;
 import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
 import br.com.poderfinanceiro.app.domain.service.*;
