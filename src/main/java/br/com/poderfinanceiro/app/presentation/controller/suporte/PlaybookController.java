@@ -361,19 +361,26 @@ public class PlaybookController implements Initializable {
     }
 
     private void aplicarEstruturaIA(JsonNode node) {
-        log.info("{} [AUDITORIA] Estruturação via IA concluída com sucesso.", LOG_PREFIX);
-        this.itemSelecionadoAtual = new PlaybookItemModel();
-        this.criandoNovo = true;
+        log.info("{} [AUDITORIA] Aplicando estrutura cognitiva. Node: {}", LOG_PREFIX, node.toString());
 
-        txtCategoria.setText(node.has("categoria") ? node.get("categoria").asText() : "Geral");
-        txtTitulo.setText(node.has("titulo") ? node.get("titulo").asText() : "Script via IA");
-        txtConteudo.setText(node.has("conteudo") ? node.get("conteudo").asText() : "");
-        lblDica.setText(node.has("dica") ? node.get("dica").asText() : "");
-
-        fecharOverlayIA();
-        alternarModoVisualizacao(true);
-        btnProcessarIA.setDisable(false);
-        btnProcessarIA.setText("✨ Estruturar com Gemini");
+        // PROTEÇÃO: Uso de path() e asText() com default para evitar
+        // MissingNode
+        String categoria = node.path("categoria").asText("Geral");
+        String titulo = node.path("titulo").asText("Script via IA");
+        String conteudo = node.path("conteudo").asText("");
+        String dica = node.path("dica").asText("Dica de Ouro");
+        Platform.runLater(() -> {
+            this.itemSelecionadoAtual = new PlaybookItemModel();
+            this.criandoNovo = true;
+            txtCategoria.setText(categoria);
+            txtTitulo.setText(titulo);
+            txtConteudo.setText(conteudo);
+            lblDica.setText(dica);
+            txtDica.setText(dica);
+            fecharOverlayIA();
+            alternarModoVisualizacao(true);
+            btnProcessarIA.setDisable(false);
+        });
     }
 
     private void aplicarErroIA(Throwable erro, String textoBruto) {
