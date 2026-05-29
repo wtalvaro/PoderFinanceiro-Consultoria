@@ -1,21 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<profiles version="12">
-    <profile kind="CodeFormatterProfile" name="JavaFX_Style" version="12">
-        <!-- ESTA É A LINHA QUE RESOLVE O SEU PROBLEMA (Para Atributos/Fields) -->
+<profiles version="21">
+    <profile kind="CodeFormatterProfile" name="PoderFinanceiro_Gold_Style" version="21">
+
+        <!-- 1. CONFIGURAÇÃO DE CAMPOS (FIELDS) - Ex: @FXML private ... -->
+        <!-- Garante que NÃO insira nova linha após a anotação -->
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_field"
             value="do not insert" />
+        <!-- FORÇA o alinhamento para 'Não quebrar' (128), garantindo a linha única -->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_field" value="128" />
 
-        <!-- Caso queira que métodos @FXML também fiquem na mesma linha -->
+
+        <!-- 2. CONFIGURAÇÃO DE MÉTODOS (METHODS) - Ex: @Test @DisplayName -->
+        <!-- Garante que INSIRA nova linha após cada anotação -->
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_method"
-            value="do not insert" />
+            value="insert" />
+        <!-- FORÇA o alinhamento para 'Quebrar todos os elementos' (48), garantindo o bloco vertical -->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_method" value="48" />
 
-        <!-- Outras configurações comuns para manter o código limpo -->
+
+        <!-- 3. CONFIGURAÇÃO DE CLASSES (TYPES) -->
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_type"
             value="insert" />
-        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_parameter"
-            value="do not insert" />
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_type" value="48" />
+
+
+        <!-- 4. VARIÁVEIS LOCAIS E PARÂMETROS -->
         <setting
             id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_local_variable"
             value="do not insert" />
+        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_parameter"
+            value="do not insert" />
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_local_variable"
+            value="128" />
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_parameter"
+            value="128" />
+
     </profile>
 </profiles>

@@ -14,8 +14,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Serviço de Gestão de Atualizações (OTA - Over The Air). Orquestra a
- * verificação de versão, download e aplicação de patches de software.
+ * Serviço de Gestão de Atualizações (OTA - Over The Air).
+ * Orquestra a verificação de versão, download e aplicação de patches de
+ * software.
  */
 @Service
 public class UpdateService {
@@ -25,11 +26,11 @@ public class UpdateService {
     private static final String NOME_JAR_LOCAL = "PoderFinanceiro.jar";
 
     private final UpdateClient updateClient;
+    private final String versaoAtual;
 
-    @Value("${app.version:v1.0.0}") private String versaoAtual;
-
-    public UpdateService(UpdateClient updateClient) {
+    public UpdateService(UpdateClient updateClient, @Value("${app.version:v1.0.0}") String versaoAtual) {
         this.updateClient = updateClient;
+        this.versaoAtual = versaoAtual;
         log.info("{} [SISTEMA] Serviço de atualização instanciado. Versão atual: {}", LOG_PREFIX, versaoAtual);
     }
 
@@ -41,7 +42,7 @@ public class UpdateService {
         try {
             GitHubReleaseDTO release = updateClient.buscarUltimaRelease();
 
-            if (release != null && isVersaoNova(versaoAtual, release.tag_name())) {
+            if (release != null && isVersaoNova(this.versaoAtual, release.tag_name())) {
                 log.info("{} [NEGOCIO] Nova versão detectada: {}", LOG_PREFIX, release.tag_name());
                 return release.tag_name();
             }
@@ -62,19 +63,15 @@ public class UpdateService {
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
 
         try {
-            // 1. Garantir infraestrutura de inicialização
             garantirInicializadorPersistente(pastaInstalacao, isWindows);
 
-            // 2. Preparar download
             String downloadUrl = String.format(
                     "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/download/%s/%s", tag,
                     NOME_JAR_LOCAL);
             File tempJar = new File(System.getProperty("java.io.tmpdir"), "PoderFinanceiro_Update.jar");
 
-            // 3. Download via Client (Loom-friendly I/O)
             updateClient.baixarArquivo(downloadUrl, tempJar);
 
-            // 4. Gerar script de transição (Hot Swap)
             File scriptFile = gerarScriptAtualizacao(tempJar, isWindows, pastaInstalacao);
 
             log.info("{} [AUDITORIA] Aplicação pronta para transição. Reiniciando processo...", LOG_PREFIX);
@@ -142,7 +139,12 @@ public class UpdateService {
         System.exit(0);
     }
 
-    private boolean isVersaoNova(String atual, String remota) {
+    /**
+     * Lógica de comparação de versão semântica.
+     * Visibilidade de pacote para permitir acesso pelo teste de unidade no mesmo
+     * pacote.
+     */
+    boolean isVersaoNova(String atual, String remota) {
         if (atual == null || remota == null)
             return false;
 
