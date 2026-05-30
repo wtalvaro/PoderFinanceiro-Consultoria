@@ -33,7 +33,7 @@
                     <Separator orientation="VERTICAL" />
 
                     <!-- Ação Principal -->
-                    <Button text="➕ Novo Proponente" onAction="#handleNovoProponente"
+                    <Button text="➕ Novo Contato" onAction="#handleNovoProponente"
                         styleClass="accent"
                         style="-fx-font-weight: bold; -fx-background-color: -color-accent-fg; -fx-text-fill: white;"
                         prefHeight="40" />

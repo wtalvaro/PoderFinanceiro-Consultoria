@@ -12,7 +12,7 @@
             <VBox spacing="20" style="-fx-background-color: #ffffff; -fx-padding: 30;">
 
                 <VBox spacing="5">
-                    <Label fx:id="lblTituloTela" text="Cadastrar Novo Proponente"
+                    <Label fx:id="lblTituloTela" text="Cadastrar Novo Contato"
                         style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -color-fg-default;" />
                     <Label
                         text="Preencha o que tiver disponível. Conforme a conversa evoluir, você pode voltar e editar."
