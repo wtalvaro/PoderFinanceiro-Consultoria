@@ -28,12 +28,14 @@ public class AssistenteDocumentalService {
     private final GeminiService geminiService;
     private final AuthService authService;
     private final GeminiPromptFactory promptFactory;
+    private final SummaryGeneratorUtils summaryUtils;
 
     public AssistenteDocumentalService(GeminiService geminiService, AuthService authService,
-            GeminiPromptFactory promptFactory) {
+            GeminiPromptFactory promptFactory, SummaryGeneratorUtils summaryUtils) {
         this.geminiService = geminiService;
         this.authService = authService;
         this.promptFactory = promptFactory;
+        this.summaryUtils = summaryUtils;
         log.info("{} [SISTEMA] Serviço de assistência documental inicializado.", LOG_PREFIX);
     }
 
@@ -67,7 +69,7 @@ public class AssistenteDocumentalService {
 
         // 2. Preparar Contexto
         String token = authService.estaLogado() ? authService.getUsuarioLogado().getGeminiApiKey() : null;
-        String jsonCliente = SummaryGeneratorUtils.gerarJsonContextualParaIA(proponente, true);
+        String jsonCliente = summaryUtils.gerarJsonContextualParaIA(proponente, true);
 
         log.debug("{} [NEGOCIO] Aplicando estratégia: {}", LOG_PREFIX, config.titulo());
 

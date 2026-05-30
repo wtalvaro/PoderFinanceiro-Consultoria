@@ -7,6 +7,7 @@ import br.com.poderfinanceiro.app.domain.repository.BancoRepository;
 import br.com.poderfinanceiro.app.domain.service.AuthService;
 import br.com.poderfinanceiro.app.domain.service.GeminiService;
 import br.com.poderfinanceiro.app.domain.service.TabelaJurosService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Teste de Unidade Gold Standard para ImportadorTabelasFacadeImpl.
- * Corrigido para sincronizar com os campos reais do TabelaImportadaDTO.
+ * Sincronizado com a injeção de dependência do ObjectMapper (v2.1.4).
  */
 class ImportadorTabelasFacadeTest {
 
@@ -29,6 +30,7 @@ class ImportadorTabelasFacadeTest {
     private AuthService authService;
     private TabelaJurosService tabelaJurosService;
     private BancoRepository bancoRepository;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
@@ -37,8 +39,17 @@ class ImportadorTabelasFacadeTest {
         tabelaJurosService = mock(TabelaJurosService.class);
         bancoRepository = mock(BancoRepository.class);
 
+        // Instanciação do motor JSON (Simulando JacksonConfig do sistema)
+        objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+
+        // CORREÇÃO: Agora passamos o objectMapper como 5º parâmetro
         facade = new ImportadorTabelasFacadeImpl(
-                geminiService, authService, tabelaJurosService, bancoRepository);
+                geminiService,
+                authService,
+                tabelaJurosService,
+                bancoRepository,
+                objectMapper);
     }
 
     @Test
@@ -54,7 +65,7 @@ class ImportadorTabelasFacadeTest {
         when(authService.estaLogado()).thenReturn(true);
         when(authService.getUsuarioLogado()).thenReturn(usuario);
 
-        // CORREÇÃO: Usando "taxaMensal" em vez de "taxa" para coincidir com o DTO real
+        // JSON simulando a resposta da IA com o campo taxaMensal (conforme DTO real)
         String jsonIA = """
                 [
                     {
@@ -82,7 +93,6 @@ class ImportadorTabelasFacadeTest {
         assertNotNull(resultado);
         assertEquals(2, resultado.size());
         assertEquals("INSS NOVO", resultado.get(0).getNomeTabela());
-        // Validando o campo que causou o erro anteriormente
         assertNotNull(resultado.get(0).getTaxaMensal());
         verify(geminiService, times(1)).extrairTabelasEmLote(any(), anyString(), anyString());
     }

@@ -59,18 +59,27 @@ public class AtendimentoHubController {
     private final HostServices hostServices;
     private final ApplicationContext context;
     private final Navigator navigator;
+    private final SummaryGeneratorUtils summaryUtils;
 
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
-    @FXML private ProponenteController abaLeadController;
-    @FXML private EnderecoController abaEnderecoController;
-    @FXML private LinkUtilController abaLinksController;
-    @FXML private VBox overlayResumo;
-    @FXML private Button btnSalvar;
-    @FXML private Label lblResumoPreview;
-    @FXML private TabPane subTabPane;
-    @FXML private MasterDetailPane masterDetailPane;
+    @FXML
+    private ProponenteController abaLeadController;
+    @FXML
+    private EnderecoController abaEnderecoController;
+    @FXML
+    private LinkUtilController abaLinksController;
+    @FXML
+    private VBox overlayResumo;
+    @FXML
+    private Button btnSalvar;
+    @FXML
+    private Label lblResumoPreview;
+    @FXML
+    private TabPane subTabPane;
+    @FXML
+    private MasterDetailPane masterDetailPane;
 
     // ==========================================================================================
     // MÓDULO 4: ESTADO INTERNO DA TELA
@@ -81,18 +90,20 @@ public class AtendimentoHubController {
     private boolean slaveJaCarregado = false;
 
     public AtendimentoHubController(IAtendimentoFacade atendimentoFacade, HostServices hostServices,
-            ApplicationContext context, Navigator navigator) {
+            ApplicationContext context, Navigator navigator, SummaryGeneratorUtils summaryUtils) {
         this.atendimentoFacade = atendimentoFacade;
         this.hostServices = hostServices;
         this.context = context;
         this.navigator = navigator;
+        this.summaryUtils = summaryUtils;
         log.info("{} [SISTEMA] Controller instanciado com suporte a Navegação Global.", LOG_PREFIX);
     }
 
     // ==========================================================================================
     // MÓDULO 5: INICIALIZAÇÃO E BINDINGS
     // ==========================================================================================
-    @FXML public void initialize() {
+    @FXML
+    public void initialize() {
         log.info("{} [TELEMETRIA] Inicializando Hub de Atendimento...", LOG_PREFIX);
         configurarBloqueioBotaoSalvar();
         log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
@@ -178,7 +189,8 @@ public class AtendimentoHubController {
     // ==========================================================================================
     // MÓDULO 7: FLUXO DE SALVAMENTO
     // ==========================================================================================
-    @FXML public void handleSalvar() {
+    @FXML
+    public void handleSalvar() {
         log.info("{} [TELEMETRIA] Ação acionada: Salvar Atendimento.", LOG_PREFIX);
 
         if (abaLeadController.getViewModel().isDirty() && !abaLeadController.getViewModel().isValido()) {
@@ -214,7 +226,8 @@ public class AtendimentoHubController {
     // ==========================================================================================
     // MÓDULO 8: INTEGRAÇÕES (WHATSAPP E RESUMO)
     // ==========================================================================================
-    @FXML public void abrirWhatsappRapido() {
+    @FXML
+    public void abrirWhatsappRapido() {
         String telefone = abaLeadController.getViewModel().telefoneProperty().get();
         String link = atendimentoFacade.formatarLinkWhatsApp(telefone);
 
@@ -233,18 +246,20 @@ public class AtendimentoHubController {
         }
     }
 
-    @FXML public void copiarResumoLead() {
+    @FXML
+    public void copiarResumoLead() {
         log.info("{} [TELEMETRIA] Gerando resumo do lead para cópia.", LOG_PREFIX);
         BigDecimal renda = abaLeadController.getViewModel().rendaProperty().get();
         String rendaStr = (renda != null) ? String.format("%,.2f", renda) : "0,00";
 
-        this.resumoGeradoParaCopia = SummaryGeneratorUtils.gerar(abaLeadController.getViewModel(), rendaStr);
+        this.resumoGeradoParaCopia = summaryUtils.gerar(abaLeadController.getViewModel(), rendaStr);
 
         lblResumoPreview.setText(this.resumoGeradoParaCopia);
         overlayResumo.setVisible(true);
     }
 
-    @FXML public void confirmarCopiaResumo() {
+    @FXML
+    public void confirmarCopiaResumo() {
         if (this.resumoGeradoParaCopia != null) {
             log.info("{} [TELEMETRIA] Resumo copiado para a área de transferência.", LOG_PREFIX);
             ClipboardContent content = new ClipboardContent();
@@ -258,7 +273,8 @@ public class AtendimentoHubController {
     // ==========================================================================================
     // MÓDULO 9: MASTER-DETAIL (PAINEL DE LINKS)
     // ==========================================================================================
-    @FXML private void alternarPainelLinks() {
+    @FXML
+    private void alternarPainelLinks() {
         boolean estaAberto = masterDetailPane.isShowDetailNode();
         log.trace("{} [UI] Alternando painel de links. Novo estado: {}", LOG_PREFIX, !estaAberto);
 
@@ -280,7 +296,8 @@ public class AtendimentoHubController {
     // ==========================================================================================
     // MÓDULO 10: UTILITÁRIOS DE INTERFACE
     // ==========================================================================================
-    @FXML public void fecharOverlayResumo() {
+    @FXML
+    public void fecharOverlayResumo() {
         log.trace("{} [UI] Fechando overlay de resumo.", LOG_PREFIX);
         overlayResumo.setVisible(false);
         this.resumoGeradoParaCopia = null;

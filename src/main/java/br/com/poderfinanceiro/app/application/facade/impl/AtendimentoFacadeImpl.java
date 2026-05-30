@@ -25,14 +25,19 @@ public class AtendimentoFacadeImpl implements IAtendimentoFacade {
 
     private final ProponenteService proponenteService;
     private final AtendimentoContextService contextoService;
+    private final SummaryGeneratorUtils summaryUtils;
 
-    public AtendimentoFacadeImpl(ProponenteService proponenteService, AtendimentoContextService contextoService) {
+    public AtendimentoFacadeImpl(ProponenteService proponenteService, AtendimentoContextService contextoService,
+            SummaryGeneratorUtils summaryUtils) {
         this.proponenteService = proponenteService;
         this.contextoService = contextoService;
+        this.summaryUtils = summaryUtils;
         log.debug("{} [SISTEMA] Facade de Atendimento instanciada.", LOG_PREFIX);
     }
 
-    @Override @Transactional public ProponenteModel salvarAtendimentoCompleto(ProponenteModel lead, EnderecoProponenteModel endereco) {
+    @Override
+    @Transactional
+    public ProponenteModel salvarAtendimentoCompleto(ProponenteModel lead, EnderecoProponenteModel endereco) {
         log.info("{} [TELEMETRIA] Iniciando orquestração de salvamento do atendimento. Lead ID: {}", LOG_PREFIX,
                 lead.getId() != null ? lead.getId() : "NOVO");
 
@@ -47,15 +52,18 @@ public class AtendimentoFacadeImpl implements IAtendimentoFacade {
         return salvo;
     }
 
-    @Override public String gerarResumoParaCopia(ProponenteModel lead, String rendaFormatada) {
+    @Override
+    public String gerarResumoParaCopia(ProponenteModel lead, String rendaFormatada) {
         log.trace("{} [TELEMETRIA] Gerando resumo do lead para área de transferência.", LOG_PREFIX);
         // Como o SummaryGeneratorUtils espera um ViewModel, vamos adaptar para
         // receber o Model. Se o seu SummaryGeneratorUtils só aceita ViewModel,
-        // você pode mantera chamada no Controller, mas o ideal é que a Facade faça essa ponte.
-        return SummaryGeneratorUtils.gerarJsonContextualParaIA(lead, true); 
+        // você pode mantera chamada no Controller, mas o ideal é que a Facade faça essa
+        // ponte.
+        return summaryUtils.gerarJsonContextualParaIA(lead, true);
     }
 
-    @Override public String formatarLinkWhatsApp(String telefone) {
+    @Override
+    public String formatarLinkWhatsApp(String telefone) {
         if (telefone == null || telefone.trim().isEmpty())
             return null;
 
@@ -67,13 +75,16 @@ public class AtendimentoFacadeImpl implements IAtendimentoFacade {
         return URL_WHATSAPP_BASE + linkFinal;
     }
 
-    @Override public void limparContextoAtendimento() {
+    @Override
+    public void limparContextoAtendimento() {
         log.trace("{} [SISTEMA] Limpando contexto global de atendimento.", LOG_PREFIX);
         contextoService.limparContexto();
     }
 
-    @Override public void definirLeadAtivo(ProponenteModel lead) {
-        log.trace("{} [SISTEMA] Definindo lead ativo no contexto global. ID: {}", LOG_PREFIX, lead != null ? lead.getId() : "NOVO");
+    @Override
+    public void definirLeadAtivo(ProponenteModel lead) {
+        log.trace("{} [SISTEMA] Definindo lead ativo no contexto global. ID: {}", LOG_PREFIX,
+                lead != null ? lead.getId() : "NOVO");
         contextoService.setLeadAtivo(lead);
     }
 }

@@ -2,10 +2,12 @@ package br.com.poderfinanceiro.app.application.facade.impl;
 
 import br.com.poderfinanceiro.app.application.dto.GeminiRequest;
 import br.com.poderfinanceiro.app.application.facade.IAjudaChatFacade.SessaoChatDTO;
+import br.com.poderfinanceiro.app.common.util.SummaryGeneratorUtils;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.domain.repository.LinkUtilRepository;
 import br.com.poderfinanceiro.app.domain.service.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,18 +25,20 @@ import static org.mockito.Mockito.*;
 
 /**
  * TDD Gold Standard para AjudaChatFacadeImpl.
- * Valida a orquestração de IA e persistência de histórico.
+ * Sincronizado com a refatoração de injeção de dependência total (v2.1.4).
  */
 class AjudaChatFacadeTest {
 
     private AjudaChatFacadeImpl facade;
 
-    // Mocks de dependências de domínio e infraestrutura
+    // Mocks de dependências
     private GeminiService geminiService;
     private AuthService authService;
     private AtendimentoContextService contextoService;
     private TabelaJurosService tabelaService;
     private LinkUtilRepository linkRepository;
+    private ObjectMapper objectMapper;
+    private SummaryGeneratorUtils summaryUtils; // Novo mock necessário
 
     private Properties originalProperties;
 
@@ -43,47 +47,54 @@ class AjudaChatFacadeTest {
 
     @BeforeEach
     void setUp() {
-        // Preservar ambiente do desenvolvedor
         originalProperties = (Properties) System.getProperties().clone();
-
-        // Redireciona o diretório de trabalho para a pasta temporária do JUnit
-        System.setProperty("user.home", tempDir.toString());
         System.setProperty("os.name", "Linux");
 
+        // Inicialização dos Mocks
         geminiService = mock(GeminiService.class);
         authService = mock(AuthService.class);
         contextoService = mock(AtendimentoContextService.class);
         tabelaService = mock(TabelaJurosService.class);
         linkRepository = mock(LinkUtilRepository.class);
+        summaryUtils = mock(SummaryGeneratorUtils.class);
 
+        // Configuração do motor JSON real para os testes de persistência
+        objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+
+        // CORREÇÃO: Instanciação com os 8 parâmetros exigidos pela Facade Gold Standard
         facade = new AjudaChatFacadeImpl(
-                geminiService, authService, contextoService, tabelaService, linkRepository);
+                geminiService,
+                authService,
+                contextoService,
+                tabelaService,
+                linkRepository,
+                summaryUtils, // Injetando o mock do utilitário
+                objectMapper,
+                tempDir.toString());
     }
 
     @AfterEach
     void tearDown() {
-        // Restaura as propriedades originais do Fedora
         System.setProperties(originalProperties);
     }
 
     @Test
     @DisplayName("Deve validar se a API Key está configurada no UsuarioModel logado")
     void deveValidarApiKeyConfigurada() {
-        // GIVEN
         UsuarioModel usuario = new UsuarioModel();
         usuario.setGeminiApiKey("AIzaSy_TESTE_KEY");
 
         when(authService.estaLogado()).thenReturn(true);
         when(authService.getUsuarioLogado()).thenReturn(usuario);
 
-        // WHEN & THEN
         assertTrue(facade.isApiKeyConfigurada());
         assertEquals("AIzaSy_TESTE_KEY", facade.getApiKeyAtual());
     }
 
     @Test
-    @DisplayName("Deve enviar mensagem para IA com contexto de PropostaModel quando focada")
-    void deveEnviarMensagemComContextoDeProposta() {
+    @DisplayName("Deve enviar mensagem para IA orquestrando contexto via SummaryUtils")
+    void deveEnviarMensagemComContexto() {
         // GIVEN
         String mensagem = "Analise esta proposta";
         UsuarioModel usuario = new UsuarioModel();
@@ -94,43 +105,33 @@ class AjudaChatFacadeTest {
         when(contextoService.getTelaAtualFocada())
                 .thenReturn(AtendimentoContextService.TipoTelaFocada.ESTEIRA_PROPOSTAS);
         when(contextoService.getPropostaAtiva()).thenReturn(new PropostaModel());
-        when(tabelaService.listarAtivas()).thenReturn(new ArrayList<>());
-        when(linkRepository.findAll()).thenReturn(new ArrayList<>());
+
+        // Simulando o retorno do SummaryUtils injetado
+        when(summaryUtils.gerarJsonTabelasJuros(any())).thenReturn("[]");
+        when(summaryUtils.gerarJsonLinksUteis(any())).thenReturn("[]");
+        when(summaryUtils.gerarJsonPropostaParaIA(any())).thenReturn("{\"id\": 1}");
 
         // WHEN
         facade.enviarMensagemParaIA(mensagem, null, "gemini-1.5-pro", new ArrayList<>());
 
         // THEN
         verify(geminiService).perguntarAoAssistente(
-                eq(mensagem),
-                eq("key-123"),
-                eq("gemini-1.5-pro"),
-                any(),
-                anyString(), // jsonFoco (Deve conter dados da proposta)
-                anyString(), // jsonTabelas
-                anyString(), // jsonLinks
-                anyString(), // jsonComissoes
-                anyList() // historico
-        );
+                eq(mensagem), eq("key-123"), eq("gemini-1.5-pro"), any(),
+                anyString(), anyString(), anyString(), anyString(), anyList());
+        // Verifica se a Facade usou a instância injetada do utilitário
+        verify(summaryUtils, atLeastOnce()).gerarJsonTabelasJuros(any());
     }
 
     @Test
-    @DisplayName("Deve salvar e carregar uma sessão de chat no sistema de arquivos")
+    @DisplayName("Deve salvar e carregar uma sessão de chat no sistema de arquivos temporário")
     void devePersistirSessaoNoDisco() throws Exception {
-        // GIVEN
         String nomeArquivo = "sessao_teste.json";
         List<GeminiRequest.Content> historico = List.of(
                 new GeminiRequest.Content("user", List.of(GeminiRequest.Part.ofText("Olá Gemini"))));
 
-        // WHEN
         facade.salvarSessao(nomeArquivo, historico);
 
-        // THEN
-        // O caminho esperado no Linux simulado é
-        // ~/.local/share/PoderFinanceiro/chats_gemini/
-        File pastaEsperada = new File(tempDir.toFile(), ".local/share/PoderFinanceiro/chats_gemini");
-        File arquivoGerado = new File(pastaEsperada, nomeArquivo);
-
+        File arquivoGerado = new File(tempDir.toFile(), nomeArquivo);
         assertTrue(arquivoGerado.exists(), "O arquivo JSON deveria ter sido criado fisicamente.");
 
         List<GeminiRequest.Content> carregado = facade.carregarSessao(arquivoGerado);
@@ -142,17 +143,13 @@ class AjudaChatFacadeTest {
     @Test
     @DisplayName("Deve listar sessões recentes ordenadas por data de modificação")
     void deveListarSessoesRecentes() throws Exception {
-        // GIVEN
         facade.salvarSessao("chat_antigo.json", new ArrayList<>());
-        Thread.sleep(150); // Garante diferença no timestamp de modificação
+        Thread.sleep(150);
         facade.salvarSessao("chat_recente.json", new ArrayList<>());
 
-        // WHEN
         List<SessaoChatDTO> sessoes = facade.listarSessoesRecentes();
 
-        // THEN
         assertFalse(sessoes.isEmpty());
-        assertEquals("chat_recente.json", sessoes.get(0).arquivo().getName(),
-                "O arquivo mais recente deve ser o primeiro.");
+        assertEquals("chat_recente.json", sessoes.get(0).arquivo().getName());
     }
 }
