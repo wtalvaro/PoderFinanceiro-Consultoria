@@ -28,5 +28,20 @@
     "name": ".\napp.versi",
     "type": "java.lang.String",
     "description": "A description for '.\napp.versi'"
+  },
+  {
+    "name": "4\napp.na",
+    "type": "java.lang.String",
+    "description": "A description for '4\napp.na'"
+  },
+  {
+    "name": "a\napp.storage.ro",
+    "type": "java.lang.String",
+    "description": "A description for 'a\napp.storage.ro'"
+  },
+  {
+    "name": "t\napp.playbook.pa",
+    "type": "java.lang.String",
+    "description": "A description for 't\napp.playbook.pa'"
   }
 ]}
