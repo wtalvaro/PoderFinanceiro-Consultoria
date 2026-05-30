@@ -1,7 +1,6 @@
 package br.com.poderfinanceiro.app.domain.model;
 
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,7 +22,6 @@ import br.com.poderfinanceiro.app.domain.model.enums.TipoVinculoModel;
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(of = "id")
 public class ProponenteModel {
 
     @Id
@@ -98,4 +96,28 @@ public class ProponenteModel {
     protected void onCreate() {
         this.dataCadastro = LocalDateTime.now();
     }
+
+    // 1. REMOVA a anotação @EqualsAndHashCode(of = "id") no topo da classe.
+
+    // 2. ADICIONE os métodos manuais:
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof ProponenteModel that))
+            return false;
+
+        // CPF sanitizado é a identidade única do cliente.
+        String cpfThis = this.cpf != null ? this.cpf.replaceAll("\\D", "") : null;
+        String cpfThat = that.cpf != null ? that.cpf.replaceAll("\\D", "") : null;
+
+        return java.util.Objects.equals(cpfThis, cpfThat);
+    }
+
+    @Override
+    public int hashCode() {
+        String cpfLimpo = this.cpf != null ? this.cpf.replaceAll("\\D", "") : null;
+        return java.util.Objects.hash(cpfLimpo);
+    }
+
 }

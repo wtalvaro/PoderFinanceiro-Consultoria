@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.application.facade.Impl;
+package br.com.poderfinanceiro.app.application.facade.impl;
 
 import br.com.poderfinanceiro.app.application.facade.IPropostaFacade;
 import br.com.poderfinanceiro.app.domain.event.PropostaPagaEvent;
@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * <h1>PropostaFacadeImpl</h1>
@@ -80,9 +79,16 @@ public class PropostaFacadeImpl implements IPropostaFacade {
         return tabelaJurosService.listarAtivas();
     }
 
-    @Override public List<BancoModel> listarBancosDasTabelasAtivas() {
-        log.trace("{} [TELEMETRIA] Extraindo bancos únicos a partir das tabelas ativas.", LOG_PREFIX);
-        return listarTabelasAtivas().stream().map(TabelaJurosModel::getBanco).filter(Objects::nonNull).distinct().toList();
+    @Override
+    public List<BancoModel> listarBancosDasTabelasAtivas() {
+        log.trace("{} [TELEMETRIA] Extraindo bancos únicos com verificação de identidade robusta.", LOG_PREFIX);
+
+        return tabelaJurosService.listarAtivas().stream()
+                .map(TabelaJurosModel::getBanco)
+                .filter(java.util.Objects::nonNull)
+                // O distinct() agora é confiável devido ao Pilar 1
+                .distinct()
+                .toList();
     }
 
     @Override public List<ProponenteModel> listarClientesCarteira() {

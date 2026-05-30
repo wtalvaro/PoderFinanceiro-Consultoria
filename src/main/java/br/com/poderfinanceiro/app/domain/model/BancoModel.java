@@ -1,7 +1,6 @@
 package br.com.poderfinanceiro.app.domain.model;
 
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,7 +14,6 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(of = "id")
 public class BancoModel {
 
     @Id
@@ -65,4 +63,25 @@ public class BancoModel {
                     "Segurança Operacional: Não é possível excluir um Banco que possui Tabelas de Juros atreladas. Remova as tabelas primeiro.");
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof BancoModel that))
+            return false;
+
+        // A identidade de um banco é o seu código (ex: 001, 341).
+        // Se o código for igual, é o mesmo banco, esteja ele no banco de dados ou na
+        // memória.
+        return java.util.Objects.equals(this.codigo, that.codigo);
+    }
+
+    @Override
+    public int hashCode() {
+        // O hashCode DEVE usar os mesmos campos do equals para manter o contrato do
+        // Java.
+        return java.util.Objects.hash(codigo);
+    }
+
 }

@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.application.facade.Impl;
+package br.com.poderfinanceiro.app.application.facade.impl;
 
 import br.com.poderfinanceiro.app.application.facade.IAuthFacade;
 import br.com.poderfinanceiro.app.domain.model.UsuarioModel;

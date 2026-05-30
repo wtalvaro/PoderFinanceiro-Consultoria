@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.application.facade.Impl;
+package br.com.poderfinanceiro.app.application.facade.impl;
 
 import br.com.poderfinanceiro.app.application.facade.IWorkspaceFacade;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
@@ -21,19 +21,23 @@ public class WorkspaceFacadeImpl implements IWorkspaceFacade {
         log.debug("{} [SISTEMA] Facade do Workspace instanciada.", LOG_PREFIX);
     }
 
-    @Override public void atualizarContextoParaRota(RotaAba rota) {
-        if (rota == null || rota.getTipoTelaFocada() == null) {
-            log.trace("{} [NEGOCIO] Rota nula ou sem tipo de tela focado. Nenhuma ação tomada.", LOG_PREFIX);
+    @Override
+    public void atualizarContextoParaRota(RotaAba rota) {
+        if (rota == null)
+            return;
+
+        if (rota.getTipoTelaFocada() == null) {
+            // Em vez de apenas retornar, logamos um aviso crítico para o desenvolvedor
+            log.warn("{} [SISTEMA] A rota {} não possui um TipoTelaFocada mapeado! O contexto ficará dessincronizado.",
+                    LOG_PREFIX, rota);
             return;
         }
 
         log.trace("{} [SISTEMA] Atualizando contexto global para a rota: {}", LOG_PREFIX, rota);
 
         if (rota == RotaAba.PROPOSTAS) {
-            // A esteira de propostas não limpa o proponente ativo
             contextoService.setTelaAtualFocada(rota.getTipoTelaFocada());
         } else {
-            // Outras telas limpam o proponente ativo
             contextoService.atualizarFocoInterface(null, rota.getTipoTelaFocada());
         }
     }

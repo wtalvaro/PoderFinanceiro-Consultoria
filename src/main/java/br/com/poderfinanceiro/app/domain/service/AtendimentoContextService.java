@@ -25,7 +25,17 @@ public class AtendimentoContextService {
     private static final String LOG_PREFIX = "[AtendimentoContextService]";
 
     public enum TipoTelaFocada {
-        DASHBOARD, LISTA_CLIENTES, CADASTRO_CLIENTE, ESTEIRA_PROPOSTAS, TABELAS_JUROS, LINKS_UTEIS, GESTAO_COMISSOES
+        DASHBOARD,
+        LISTA_CLIENTES,
+        CADASTRO_CLIENTE,
+        ESTEIRA_PROPOSTAS,
+        TABELAS_JUROS,
+        LINKS_UTEIS,
+        GESTAO_COMISSOES,
+        GESTAO_BANCOS,
+        IMPORTADOR_IA,
+        COPILOTO_SIMULACAO,
+        PLAYBOOK_VENDAS
     }
 
     /**

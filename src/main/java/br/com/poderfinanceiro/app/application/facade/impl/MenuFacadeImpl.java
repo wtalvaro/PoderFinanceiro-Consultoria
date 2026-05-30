@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.application.facade.Impl;
+package br.com.poderfinanceiro.app.application.facade.impl;
 
 import br.com.poderfinanceiro.app.application.dto.GitHubReleaseDTO;
 import br.com.poderfinanceiro.app.application.facade.IMenuFacade;
