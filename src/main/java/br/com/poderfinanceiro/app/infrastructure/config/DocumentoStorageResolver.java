@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,8 +19,8 @@ import java.util.UUID;
 
 /**
  * Componente de Infraestrutura para gestão de arquivos físicos.
- * Implementa organização por cliente, data e validação de integridade via
- * SHA-256.
+ * Refatorado para evitar criação de pastas na raiz do projeto.
+ * Utiliza caminhos padrão do SO para isolamento de dados.
  */
 @Component
 public class DocumentoStorageResolver {
@@ -30,17 +31,44 @@ public class DocumentoStorageResolver {
 
     private final Path rootPath;
 
-    public DocumentoStorageResolver(@Value("${app.storage.root:./storage/documentos}") String root) {
-        this.rootPath = Path.of(root).toAbsolutePath().normalize();
+    public DocumentoStorageResolver(@Value("${app.storage.root:default}") String root) {
+        this.rootPath = resolverCaminhoRaiz(root);
         inicializarDiretorioRaiz();
+    }
+
+    /**
+     * Resolve o caminho base de armazenamento de forma segura.
+     */
+    private Path resolverCaminhoRaiz(String root) {
+        if (!"default".equalsIgnoreCase(root)) {
+            return Paths.get(root).toAbsolutePath().normalize();
+        }
+
+        // Lógica Gold Standard para caminhos de dados do usuário
+        String os = System.getProperty("os.name").toLowerCase();
+        String home = System.getProperty("user.home");
+        Path base;
+
+        if (os.contains("win")) {
+            String appData = System.getenv("APPDATA");
+            base = (appData != null) ? Paths.get(appData, "PoderFinanceiro")
+                    : Paths.get(home, "AppData", "Roaming", "PoderFinanceiro");
+        } else if (os.contains("mac")) {
+            base = Paths.get(home, "Library", "Application Support", "PoderFinanceiro");
+        } else {
+            // Fedora/Linux: Segue o padrão XDG (~/.local/share)
+            base = Paths.get(home, ".local", "share", "PoderFinanceiro");
+        }
+
+        return base.resolve("storage").resolve("documentos").toAbsolutePath().normalize();
     }
 
     private void inicializarDiretorioRaiz() {
         try {
             Files.createDirectories(rootPath);
-            log.info("{} [SISTEMA] Storage físico configurado em: {}", LOG_PREFIX, rootPath);
+            log.info("{} [SISTEMA] Storage físico isolado em: {}", LOG_PREFIX, rootPath);
         } catch (IOException e) {
-            log.error("{} [SISTEMA] Falha crítica ao inicializar diretório de storage: {}", LOG_PREFIX, e.getMessage());
+            log.error("{} [SISTEMA] Falha crítica ao inicializar storage: {}", LOG_PREFIX, e.getMessage());
             throw new RuntimeException("Erro de I/O na inicialização do storage", e);
         }
     }
@@ -50,26 +78,20 @@ public class DocumentoStorageResolver {
     }
 
     public Path resolverPastaCliente(Long idCliente, String nomeCliente) {
-        String nomeSanitizado = nomeCliente.trim()
-                .replaceAll("[\\s\\W]+", "_")
-                .toUpperCase();
-
+        String nomeSanitizado = nomeCliente.trim().replaceAll("[\\s\\W]+", "_").toUpperCase();
         Path pastaCliente = rootPath.resolve("clientes").resolve(idCliente + "_" + nomeSanitizado);
 
         try {
             Files.createDirectories(pastaCliente);
-            log.debug("{} [TELEMETRIA] Pasta do cliente resolvida: {}", LOG_PREFIX, pastaCliente.getFileName());
             return pastaCliente;
         } catch (IOException e) {
-            log.error("{} [SISTEMA] Erro ao criar diretório para o cliente {}: {}", LOG_PREFIX, idCliente,
-                    e.getMessage());
+            log.error("{} [SISTEMA] Erro ao criar pasta do cliente {}: {}", LOG_PREFIX, idCliente, e.getMessage());
             throw new RuntimeException("Falha na organização física do cliente", e);
         }
     }
 
     public StorageResult salvar(InputStream inputStream, String nomeOriginal) {
         log.info("{} [TELEMETRIA] Persistindo arquivo: {}", LOG_PREFIX, nomeOriginal);
-
         try {
             LocalDate hoje = LocalDate.now();
             Path diretorioDestino = rootPath
@@ -89,9 +111,7 @@ public class DocumentoStorageResolver {
             long tamanho = Files.size(arquivoFinal);
 
             log.info("{} [AUDITORIA] Arquivo armazenado. Hash: {} | Tamanho: {} bytes", LOG_PREFIX, hash, tamanho);
-
             return new StorageResult(rootPath.relativize(arquivoFinal).toString(), hash, tamanho);
-
         } catch (Exception e) {
             log.error("{} [SISTEMA] Erro fatal no salvamento físico: {}", LOG_PREFIX, e.getMessage());
             throw new RuntimeException("Erro ao persistir documento no storage", e);
