@@ -1,18 +1,27 @@
 package br.com.poderfinanceiro.app.application.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-public record GitHubReleaseDTO(String tag_name, List<Asset> assets) {
-
-    private static final Logger log = LoggerFactory.getLogger(PlaybookItemDTO.class);
-
-    public GitHubReleaseDTO {
-        log.debug("[GITHUB_RELEASE_DTO] Criado: tag_name='{}', assets_count='{}'", tag_name, assets.size());
-    }
-
-    public record Asset(String name, String browser_download_url) {
+/**
+ * DTO para mapeamento da resposta da API do GitHub.
+ * Utiliza anotações Jackson para converter snake_case em camelCase.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record GitHubReleaseDTO(
+        @JsonProperty("tag_name") String tagName,
+        @JsonProperty("name") String name,
+        @JsonProperty("body") String body,
+        @JsonProperty("html_url") String htmlUrl,
+        @JsonProperty("assets") List<GitHubAssetDTO> assets) {
+    /**
+     * Representa um asset (binário) da release.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record GitHubAssetDTO(
+            @JsonProperty("name") String name,
+            @JsonProperty("browser_download_url") String downloadUrl,
+            @JsonProperty("size") Long size) {
     }
 }

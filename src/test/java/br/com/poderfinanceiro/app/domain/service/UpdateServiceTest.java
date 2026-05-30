@@ -5,87 +5,75 @@ import br.com.poderfinanceiro.app.infrastructure.client.UpdateClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
-/**
- * <h1>UpdateServiceTest</h1>
- * <p>
- * Testes de Unidade para o motor de atualizações.
- * Localizado no mesmo pacote do serviço para testar métodos package-private.
- * </p>
- */
-@ExtendWith(MockitoExtension.class)
 class UpdateServiceTest {
 
-    private UpdateService service;
-
-    @Mock
+    private UpdateService updateService;
     private UpdateClient updateClient;
-
-    private final String VERSAO_LOCAL = "v2.1.0";
+    private final String VERSAO_ATUAL = "1.0.0";
 
     @BeforeEach
     void setUp() {
-        // Injeção manual passando a versão local para o construtor
-        this.service = new UpdateService(updateClient, VERSAO_LOCAL);
-    }
-
-    @ParameterizedTest
-    @DisplayName("Deve identificar corretamente se a versão remota é mais nova")
-    @CsvSource({
-            "v1.0.0, v1.0.1, true",
-            "v2.1.0, v2.1.1, true",
-            "v2.1.0, v3.0.0, true",
-            "v2.1.0, v2.1.0, false",
-            "v2.1.0, v2.0.9, false"
-    })
-    void deveValidarComparacaoDeVersao(String atual, String remota, boolean esperado) {
-        // Acesso permitido pois o método é package-private e o teste está no mesmo
-        // pacote
-        assertThat(service.isVersaoNova(atual, remota)).isEqualTo(esperado);
+        updateClient = Mockito.mock(UpdateClient.class);
+        updateService = new UpdateService(updateClient, VERSAO_ATUAL);
     }
 
     @Test
-    @DisplayName("Deve retornar a tag da nova versão quando disponível no GitHub")
-    void deveDetectarNovaVersaoRemota() {
-        // CORREÇÃO: GitHubReleaseDTO exige tag_name e List<Asset>
-        GitHubReleaseDTO release = new GitHubReleaseDTO("v2.1.1", List.of());
-        when(updateClient.buscarUltimaRelease()).thenReturn(release);
-
-        String resultado = service.checarNovaVersao();
-
-        assertThat(resultado).isEqualTo("v2.1.1");
-        verify(updateClient).buscarUltimaRelease();
+    @DisplayName("Deve validar corretamente se uma versão é nova")
+    void deveValidarComparacaoDeVersao() {
+        // Atende ao erro: "The method isVersaoNova(String, String) is undefined"
+        assertTrue(updateService.isVersaoNova("1.0.1", "1.0.0"));
+        assertTrue(updateService.isVersaoNova("2.0.0", "1.9.9"));
+        assertFalse(updateService.isVersaoNova("1.0.0", "1.0.0"));
+        assertFalse(updateService.isVersaoNova("0.9.9", "1.0.0"));
     }
 
     @Test
-    @DisplayName("Deve retornar null quando o sistema já estiver atualizado")
-    void deveRetornarNullSeJaAtualizado() {
-        // CORREÇÃO: GitHubReleaseDTO exige tag_name e List<Asset>
-        GitHubReleaseDTO release = new GitHubReleaseDTO("v2.1.0", List.of());
-        when(updateClient.buscarUltimaRelease()).thenReturn(release);
+    @DisplayName("Deve retornar Optional com release quando houver nova versão")
+    void deveDetectarNovaVersao() {
+        // Atende ao erro: "The constructor GitHubReleaseDTO(String, List<Object>) is
+        // undefined"
+        // O Record exige: tagName, name, body, htmlUrl, assets
+        GitHubReleaseDTO mockRelease = new GitHubReleaseDTO(
+                "v1.1.0", "Release 1.1.0", "Notas", "http://url", List.of());
 
-        String resultado = service.checarNovaVersao();
+        when(updateClient.buscarUltimaRelease()).thenReturn(mockRelease);
 
-        assertThat(resultado).isNull();
+        // Atende ao erro: "Type mismatch: cannot convert from
+        // Optional<GitHubReleaseDTO> to String"
+        Optional<GitHubReleaseDTO> resultado = updateService.checarNovaVersao();
+
+        assertTrue(resultado.isPresent());
+        assertEquals("v1.1.0", resultado.get().tagName());
     }
 
     @Test
-    @DisplayName("Deve tratar falhas de rede no cliente de atualização graciosamente")
-    void deveTratarErroDeRede() {
-        when(updateClient.buscarUltimaRelease()).thenThrow(new RuntimeException("GitHub Offline"));
+    @DisplayName("Deve retornar vazio quando a versão for igual ou inferior")
+    void deveIgnorarVersaoAntiga() {
+        GitHubReleaseDTO mockRelease = new GitHubReleaseDTO(
+                "v1.0.0", "Release 1.0.0", "Notas", "http://url", List.of());
 
-        String resultado = service.checarNovaVersao();
+        when(updateClient.buscarUltimaRelease()).thenReturn(mockRelease);
 
-        assertThat(resultado).isNull();
+        Optional<GitHubReleaseDTO> resultado = updateService.checarNovaVersao();
+
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Deve lidar com falhas na API do GitHub retornando vazio")
+    void deveLidarComErroNaApi() {
+        when(updateClient.buscarUltimaRelease()).thenThrow(new RuntimeException("API Down"));
+
+        Optional<GitHubReleaseDTO> resultado = updateService.checarNovaVersao();
+
+        assertTrue(resultado.isEmpty());
     }
 }

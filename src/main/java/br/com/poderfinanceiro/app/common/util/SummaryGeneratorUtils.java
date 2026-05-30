@@ -1,287 +1,211 @@
 package br.com.poderfinanceiro.app.common.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import br.com.poderfinanceiro.app.domain.model.*;
 import br.com.poderfinanceiro.app.presentation.viewmodel.LeadViewModel;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
-public class SummaryGeneratorUtils {
+/**
+ * Utilitário de Geração de Contexto e Resumos.
+ * Centraliza a transformação de modelos para Markdown (WhatsApp)
+ * e JSON (Alimentação de Contexto para IA Gemini).
+ */
+public final class SummaryGeneratorUtils {
 
     private static final Logger log = LoggerFactory.getLogger(SummaryGeneratorUtils.class);
-
+    private static final String LOG_PREFIX = "[SummaryGeneratorUtils]";
     private static final String SEPARADOR = "————————————————————————————\n";
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final DateTimeFormatter BR_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    static {
-        log.debug("[SUMMARY_GENERATOR_UTILS] Classe utilitária carregada");
+    // ObjectMapper configurado com suporte nativo a datas Java 8+
+    private static final ObjectMapper jsonMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+            .enable(SerializationFeature.INDENT_OUTPUT);
+
+    private SummaryGeneratorUtils() {
+        throw new UnsupportedOperationException("Classe utilitária não pode ser instanciada.");
     }
 
+    static {
+        log.info("{} [SISTEMA] Gerador de Sumários inicializado com suporte a JSR-310 (JavaTimeModule).", LOG_PREFIX);
+    }
+
+    /**
+     * Gera relatório formatado em Markdown para o AtendimentoHubController.
+     * Restaurado nome original 'gerar' para compatibilidade de contrato.
+     */
     public static String gerar(LeadViewModel viewModel, String rendaFormatada) {
-        log.debug("[SUMMARY_GENERATOR_UTILS] gerar: viewModel={}, rendaFormatada='{}'", viewModel, rendaFormatada);
+        log.debug("{} [TELEMETRIA] Iniciando geração de relatório Markdown (gerar).", LOG_PREFIX);
+
         if (viewModel == null) {
-            log.warn("[SUMMARY_GENERATOR_UTILS] gerar: viewModel nulo, retornando relatório vazio");
+            log.warn("{} [NEGOCIO] Falha: ViewModel nulo ao tentar gerar relatório.", LOG_PREFIX);
             return "";
         }
 
         StringBuilder sb = new StringBuilder();
         sb.append("📑 *RELATÓRIO DE QUALIFICAÇÃO - PODER FINANCEIRO*\n");
         sb.append(SEPARADOR);
-        appendDadosPessoais(sb, viewModel);
-        appendPerfilFinanceiro(sb, viewModel, rendaFormatada);
+
+        log.trace("{} [NEGOCIO] Mapeando dados do proponente.", LOG_PREFIX);
+        sb.append("*[DADOS DO PROPONENTE]*\n");
+        sb.append("• *Nome:* ").append(Optional.ofNullable(viewModel.nomeProperty().get()).orElse("").toUpperCase())
+                .append("\n");
+        sb.append("• *CPF:* ").append(Optional.ofNullable(viewModel.cpfProperty().get()).orElse("")).append("\n");
+        sb.append("• *WhatsApp:* ").append(Optional.ofNullable(viewModel.telefoneProperty().get()).orElse(""))
+                .append("\n");
+
+        if (viewModel.dataNascimentoProperty().get() != null) {
+            sb.append("• *Data de Nascimento:* ").append(viewModel.dataNascimentoProperty().get().format(BR_DATE))
+                    .append("\n");
+        }
+
+        log.trace("{} [NEGOCIO] Mapeando perfil financeiro.", LOG_PREFIX);
+        sb.append("\n*[PERFIL FINANCEIRO]*\n");
+        sb.append("• *Vínculo:* ")
+                .append(viewModel.vinculoProperty().get() != null ? viewModel.vinculoProperty().get().getLabel()
+                        : "Não informado")
+                .append("\n");
+        sb.append("• *Matrícula:* ").append(Optional.ofNullable(viewModel.matriculaProperty().get())
+                .filter(s -> !s.isEmpty()).orElse("Não informada")).append("\n");
+        sb.append("• *Renda Mensal:* R$ ")
+                .append(rendaFormatada == null || rendaFormatada.isEmpty() ? "0,00" : rendaFormatada).append("\n");
+
         sb.append("\n").append(SEPARADOR);
         sb.append("*Poder Financeiro - Consultoria e Soluções de Crédito*");
 
-        String resultado = sb.toString();
-        log.info("[SUMMARY_GENERATOR_UTILS] Relatório gerado com sucesso (tamanho={})", resultado.length());
-        return resultado;
+        log.info("{} [AUDITORIA] Relatório Markdown gerado com sucesso.", LOG_PREFIX);
+        return sb.toString();
     }
 
-    private static void appendDadosPessoais(StringBuilder sb, LeadViewModel vm) {
-        log.trace("[SUMMARY_GENERATOR_UTILS] appendDadosPessoais: preenchendo dados pessoais");
-        sb.append("*[DADOS DO PROPONENTE]*\n");
-        sb.append("• *Nome:* ").append(vm.nomeProperty().get() == null ? "" : vm.nomeProperty().get().toUpperCase())
-                .append("\n");
-        sb.append("• *CPF:* ").append(vm.cpfProperty().get() == null ? "" : vm.cpfProperty().get()).append("\n");
-        sb.append("• *WhatsApp:* ").append(vm.telefoneProperty().get() == null ? "" : vm.telefoneProperty().get())
-                .append("\n");
+    /**
+     * Gera JSON contextual para o Gemini entender o cliente em atendimento.
+     */
+    public static String gerarJsonContextualParaIA(ProponenteModel model, boolean permitirEndereco) {
+        log.debug("{} [TELEMETRIA] Gerando JSON contextual para IA. Proponente ID: {}", LOG_PREFIX,
+                model != null ? model.getId() : "NULL");
 
-        if (vm.dataNascimentoProperty().get() != null) {
-            String dataNasc = vm.dataNascimentoProperty().get().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            sb.append("• *Data de Nascimento:* ").append(dataNasc).append("\n");
-            log.trace("[SUMMARY_GENERATOR_UTILS] Data de nascimento adicionada: {}", dataNasc);
-        }
-    }
-
-    private static void appendPerfilFinanceiro(StringBuilder sb, LeadViewModel vm, String renda) {
-        log.trace("[SUMMARY_GENERATOR_UTILS] appendPerfilFinanceiro: renda fornecida='{}'", renda);
-        sb.append("\n*[PERFIL FINANCEIRO]*\n");
-        sb.append("• *Vínculo:* ")
-                .append(vm.vinculoProperty().get() == null ? "Não informado" : vm.vinculoProperty().get().getLabel())
-                .append("\n");
-        sb.append("• *Matrícula:* ")
-                .append(vm.matriculaProperty().get() == null || vm.matriculaProperty().get().isEmpty() ? "Não informada"
-                        : vm.matriculaProperty().get())
-                .append("\n");
-        sb.append("• *Renda Mensal:* R$ ").append(renda == null || renda.isEmpty() ? "0,00" : renda).append("\n");
-    }
-
-    public static String gerarJsonContextualParaIA(br.com.poderfinanceiro.app.domain.model.ProponenteModel model,
-            boolean permitirEndereco) {
-        log.debug("[SUMMARY_GENERATOR_UTILS] gerarJsonContextualParaIA: model={}, permitirEndereco={}",
-                model != null ? model.getId() : "null", permitirEndereco);
         if (model == null) {
-            log.warn("[SUMMARY_GENERATOR_UTILS] model nulo, retornando '{}'");
+            log.warn("{} [NEGOCIO] Model nulo recebido para contexto IA.", LOG_PREFIX);
             return "{}";
         }
+
         try {
-            Map<String, Object> contextoGlobal = new LinkedHashMap<>();
-            Map<String, Object> dadosPessoais = new LinkedHashMap<>();
-            dadosPessoais.put("nome", model.getNomeCompleto());
-            dadosPessoais.put("cpf", model.getCpf());
-            dadosPessoais.put("whatsapp", model.getTelefone());
-            if (model.getDataNascimento() != null)
-                dadosPessoais.put("dataNascimento", model.getDataNascimento().toString());
+            Map<String, Object> root = new LinkedHashMap<>();
+            root.put("clienteEmAtendimento", model); // Jackson usa JavaTimeModule para as datas aqui
+            root.put("enderecoResidencial",
+                    permitirEndereco ? extrairEnderecoPrincipal(model) : "Ocultado por segurança");
 
-            String enderecoFormatado = "Ocultado (Abra a aba de detalhes do cliente para liberar)";
-            if (permitirEndereco) {
-                enderecoFormatado = "Não cadastrado";
-                if (model.getEnderecos() != null && !model.getEnderecos().isEmpty()) {
-                    var end = model.getEnderecos().stream().filter(e -> e.getPrincipal() != null && e.getPrincipal())
-                            .findFirst().orElse(model.getEnderecos().get(0));
-                    String logradouro = end.getLogradouro() != null ? end.getLogradouro().trim() : "";
-                    String numero = end.getNumero() != null ? end.getNumero().trim() : "";
-                    String bairro = end.getBairro() != null ? end.getBairro().trim() : "";
-                    String cidade = end.getCidade() != null ? end.getCidade().trim() : "";
-                    String uf = end.getUf() != null ? end.getUf().name() : "";
-                    String cep = end.getCep() != null ? end.getCep().trim() : "";
-
-                    if (!logradouro.isEmpty() || !cidade.isEmpty()) {
-                        enderecoFormatado = String.format("%s, %s%s%s%s",
-                                logradouro.isEmpty() ? "Logradouro não informado" : logradouro,
-                                numero.isEmpty() ? "S/N" : "nº " + numero,
-                                bairro.isEmpty() ? "" : " - " + bairro,
-                                cidade.isEmpty() ? "" : " - " + cidade + (uf.isEmpty() ? "" : "/" + uf.toUpperCase()),
-                                cep.isEmpty() ? "" : " (CEP: " + cep + ")");
-                    }
-                }
-                log.trace("[SUMMARY_GENERATOR_UTILS] Endereço formatado: {}", enderecoFormatado);
-            }
-
-            Map<String, Object> perfilFinanceiro = new LinkedHashMap<>();
-            perfilFinanceiro.put("vinculo",
-                    model.getTipoVinculo() != null ? model.getTipoVinculo().name() : "NAO_INFORMADO");
-            perfilFinanceiro.put("matricula", model.getMatricula());
-            perfilFinanceiro.put("rendaMensalBruta",
-                    model.getRendaMensal() != null ? model.getRendaMensal().doubleValue() : 0.0);
-
-            contextoGlobal.put("clienteEmAtendimento", dadosPessoais);
-            contextoGlobal.put("enderecoResidencial", enderecoFormatado);
-            contextoGlobal.put("perfilFinanceiro", perfilFinanceiro);
-
-            String json = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(contextoGlobal);
-            log.info("[SUMMARY_GENERATOR_UTILS] JSON contextual gerado para ID={} (tamanho={})", model.getId(),
-                    json.length());
+            String json = jsonMapper.writeValueAsString(root);
+            log.info("{} [AUDITORIA] JSON contextual gerado com sucesso.", LOG_PREFIX);
             return json;
         } catch (Exception e) {
-            log.error("[SUMMARY_GENERATOR_UTILS] Erro ao serializar contexto completo para ID={}: {}",
-                    model != null ? model.getId() : "null", e.getMessage(), e);
+            log.error("{} [SISTEMA] Erro ao gerar JSON contextual: {}", LOG_PREFIX, e.getMessage());
             return "{}";
         }
     }
 
-    // 🚀 NOVO GERADOR: Exclusivo para as propostas na Esteira
-    public static String gerarJsonPropostaParaIA(br.com.poderfinanceiro.app.domain.model.PropostaModel proposta) {
-        log.debug("[SUMMARY_GENERATOR_UTILS] gerarJsonPropostaParaIA: proposta={}",
-                proposta != null ? proposta.getId() : "null");
-        if (proposta == null) {
-            log.warn("[SUMMARY_GENERATOR_UTILS] proposta nula, retornando '{}'");
-            return "{}";
-        }
-        try {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("contexto", "O operador está na Esteira de Crédito avaliando esta Proposta específica:");
-
-            if (proposta.getProponente() != null) {
-                Map<String, Object> dadosPessoais = new LinkedHashMap<>();
-                dadosPessoais.put("nome", proposta.getProponente().getNomeCompleto());
-                dadosPessoais.put("cpf", proposta.getProponente().getCpf());
-                dadosPessoais.put("rendaMensal", proposta.getProponente().getRendaMensal());
-                map.put("cliente_associado", dadosPessoais);
-                log.trace("[SUMMARY_GENERATOR_UTILS] Dados do cliente associado adicionados: nome={}",
-                        proposta.getProponente().getNomeCompleto());
-            }
-
-            Map<String, Object> detalhesProposta = new LinkedHashMap<>();
-            detalhesProposta.put("id_proposta", proposta.getId() != null ? proposta.getId() : "Nova (Não salva)");
-            detalhesProposta.put("status_atual",
-                    proposta.getStatus() != null ? proposta.getStatus().name() : "Desconhecido");
-            detalhesProposta.put("convenio",
-                    proposta.getConvenioOrgao() != null ? proposta.getConvenioOrgao().name() : "N/A");
-            detalhesProposta.put("banco_parceiro",
-                    proposta.getBanco() != null ? proposta.getBanco().getNome() : "Não definido");
-            detalhesProposta.put("valor_solicitado", proposta.getValorSolicitado());
-            detalhesProposta.put("valor_aprovado", proposta.getValorAprovado());
-            detalhesProposta.put("quantidade_parcelas", proposta.getQuantidadeParcelas());
-            detalhesProposta.put("valor_parcela", proposta.getValorParcela());
-            detalhesProposta.put("comissao_estimada", proposta.getComissaoEstimada());
-            detalhesProposta.put("observacoes_operador", proposta.getObservacoes());
-
-            map.put("detalhes_da_proposta", detalhesProposta);
-
-            String json = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-            log.info("[SUMMARY_GENERATOR_UTILS] JSON da proposta ID={} gerado (tamanho={})", proposta.getId(),
-                    json.length());
-            return json;
-        } catch (Exception e) {
-            log.error("[SUMMARY_GENERATOR_UTILS] Falha ao processar proposta ID={} para o Gemini: {}",
-                    proposta != null ? proposta.getId() : "null", e.getMessage(), e);
-            return "{}";
-        }
-    }
-
-    public static String gerarJsonTabelasJuros(
-            java.util.List<br.com.poderfinanceiro.app.domain.model.TabelaJurosModel> tabelas) {
-        log.debug("[SUMMARY_GENERATOR_UTILS] gerarJsonTabelasJuros: {} tabelas recebidas",
+    /**
+     * Gera JSON de tabelas de juros para o AjudaChatFacadeImpl.
+     */
+    public static String gerarJsonTabelasJuros(List<TabelaJurosModel> tabelas) {
+        log.debug("{} [TELEMETRIA] Gerando JSON de tabelas de juros. Qtd: {}", LOG_PREFIX,
                 tabelas != null ? tabelas.size() : 0);
-        if (tabelas == null || tabelas.isEmpty()) {
-            log.warn("[SUMMARY_GENERATOR_UTILS] Lista de tabelas vazia ou nula, retornando '[]'");
+
+        if (tabelas == null || tabelas.isEmpty())
             return "[]";
-        }
         try {
-            java.util.List<Map<String, Object>> listaTabelas = new java.util.ArrayList<>();
-            for (br.com.poderfinanceiro.app.domain.model.TabelaJurosModel t : tabelas) {
-                Map<String, Object> map = new LinkedHashMap<>();
-                map.put("banco", t.getBanco() != null ? t.getBanco().getNome() : "Desconhecido");
-                map.put("convenio", t.getTipoConvenio() != null ? t.getTipoConvenio().name() : "GERAL");
-                map.put("taxaMensalBase", t.getTaxaMensal());
-                map.put("comissaoPercentual", t.getComissaoPercentual());
-                listaTabelas.add(map);
-            }
-            String json = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaTabelas);
-            log.info("[SUMMARY_GENERATOR_UTILS] JSON de tabelas de juros gerado (tamanho={})", json.length());
+            String json = jsonMapper.writeValueAsString(tabelas);
+            log.info("{} [AUDITORIA] JSON de tabelas gerado com sucesso.", LOG_PREFIX);
             return json;
         } catch (Exception e) {
-            log.error("[SUMMARY_GENERATOR_UTILS] Erro ao gerar JSON de tabelas de juros: {}", e.getMessage(), e);
+            log.error("{} [SISTEMA] Erro ao serializar tabelas: {}", LOG_PREFIX, e.getMessage());
             return "[]";
         }
     }
 
-    public static String gerarJsonLinksUteis(
-            java.util.List<br.com.poderfinanceiro.app.domain.model.LinkUtilModel> links) {
-        log.debug("[SUMMARY_GENERATOR_UTILS] gerarJsonLinksUteis: {} links recebidos",
-                links != null ? links.size() : 0);
-        if (links == null || links.isEmpty()) {
-            log.warn("[SUMMARY_GENERATOR_UTILS] Lista de links vazia ou nula, retornando '[]'");
+    /**
+     * Gera JSON de links úteis para o AjudaChatFacadeImpl.
+     */
+    public static String gerarJsonLinksUteis(List<LinkUtilModel> links) {
+        log.debug("{} [TELEMETRIA] Gerando JSON de links úteis. Qtd: {}", LOG_PREFIX, links != null ? links.size() : 0);
+
+        if (links == null || links.isEmpty())
             return "[]";
-        }
         try {
-            java.util.List<Map<String, Object>> listaLinks = new java.util.ArrayList<>();
-            for (br.com.poderfinanceiro.app.domain.model.LinkUtilModel l : links) {
-                Map<String, Object> map = new LinkedHashMap<>();
-                map.put("categoria", l.getCategoria() != null ? l.getCategoria().getLabel() : "OUTROS");
-                map.put("titulo", l.getTitulo());
-                map.put("tags", l.getTags());
-                listaLinks.add(map);
-            }
-            String json = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaLinks);
-            log.info("[SUMMARY_GENERATOR_UTILS] JSON de links úteis gerado (tamanho={})", json.length());
+            String json = jsonMapper.writeValueAsString(links);
+            log.info("{} [AUDITORIA] JSON de links gerado com sucesso.", LOG_PREFIX);
             return json;
         } catch (Exception e) {
-            log.error("[SUMMARY_GENERATOR_UTILS] Erro ao gerar JSON de links úteis: {}", e.getMessage(), e);
+            log.error("{} [SISTEMA] Erro ao serializar links: {}", LOG_PREFIX, e.getMessage());
             return "[]";
         }
     }
 
-    public static String gerarJsonComissoes(
-            java.util.List<br.com.poderfinanceiro.app.domain.model.ComissaoModel> comissoes) {
-        log.debug("[SUMMARY_GENERATOR_UTILS] gerarJsonComissoes: {} comissões recebidas",
+    /**
+     * Gera JSON de comissões para o AjudaChatFacadeImpl.
+     */
+    public static String gerarJsonComissoes(List<ComissaoModel> comissoes) {
+        log.debug("{} [TELEMETRIA] Gerando JSON de comissões. Qtd: {}", LOG_PREFIX,
                 comissoes != null ? comissoes.size() : 0);
-        if (comissoes == null || comissoes.isEmpty()) {
-            log.warn("[SUMMARY_GENERATOR_UTILS] Lista de comissões vazia ou nula, retornando '[]'");
-            return "[]";
-        }
-        try {
-            java.util.List<Map<String, Object>> listaComissoes = new java.util.ArrayList<>();
-            for (br.com.poderfinanceiro.app.domain.model.ComissaoModel c : comissoes) {
-                Map<String, Object> map = new LinkedHashMap<>();
-                map.put("comissaoId", c.getId());
-                map.put("cliente", c.getProposta().getProponente().getNomeCompleto());
-                map.put("banco", c.getProposta().getBanco().getNome());
-                map.put("valorBruto",
-                        c.getValorBrutoComissao() != null ? c.getValorBrutoComissao().doubleValue() : 0.0);
-                map.put("valorLiquidoConsultor",
-                        c.getValorLiquidoConsultor() != null ? c.getValorLiquidoConsultor().doubleValue() : 0.0);
-                map.put("valorPagoPelaPoder",
-                        c.getValorPagoPelaPoder() != null ? c.getValorPagoPelaPoder().doubleValue() : 0.0);
-                map.put("statusPagamento", c.getStatusPagamento() != null ? c.getStatusPagamento() : "Pendente");
-                map.put("cicloReferencia", c.getCicloReferencia() != null ? c.getCicloReferencia() : "Legado");
-                map.put("contestada", c.isContestada());
-                map.put("verificadoConsultor", c.isVerificadoConsultor());
 
-                if (c.getDataRecebimentoBanco() != null)
-                    map.put("dataRecebimentoBanco", c.getDataRecebimentoBanco().toString());
-                if (c.getPrevisaoPagamento() != null)
-                    map.put("previsaoPagamento", c.getPrevisaoPagamento().toString());
-                if (c.getDataLimiteContestacao() != null)
-                    map.put("dataLimiteContestacao", c.getDataLimiteContestacao().toString());
-                if (c.getObservacaoAjuste() != null && !c.getObservacaoAjuste().isBlank()) {
-                    map.put("observacoesAuditoria", c.getObservacaoAjuste());
-                }
-                listaComissoes.add(map);
-            }
-            String json = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listaComissoes);
-            log.info("[SUMMARY_GENERATOR_UTILS] JSON de comissões gerado (tamanho={})", json.length());
+        if (comissoes == null || comissoes.isEmpty())
+            return "[]";
+        try {
+            String json = jsonMapper.writeValueAsString(comissoes);
+            log.info("{} [AUDITORIA] JSON de comissões gerado com sucesso.", LOG_PREFIX);
             return json;
         } catch (Exception e) {
-            log.error("[SUMMARY_GENERATOR_UTILS] Falha ao processar metadados de repasses para o Gemini: {}",
-                    e.getMessage(), e);
+            log.error("{} [SISTEMA] Erro ao serializar comissões: {}", LOG_PREFIX, e.getMessage());
             return "[]";
         }
+    }
+
+    /**
+     * Gera JSON de uma proposta específica para análise da IA.
+     */
+    public static String gerarJsonPropostaParaIA(PropostaModel proposta) {
+        log.debug("{} [TELEMETRIA] Gerando JSON de proposta para IA. ID: {}", LOG_PREFIX,
+                proposta != null ? proposta.getId() : "NULL");
+
+        if (proposta == null)
+            return "{}";
+        try {
+            String json = jsonMapper.writeValueAsString(proposta);
+            log.info("{} [AUDITORIA] JSON de proposta gerado com sucesso.", LOG_PREFIX);
+            return json;
+        } catch (Exception e) {
+            log.error("{} [SISTEMA] Erro ao serializar proposta: {}", LOG_PREFIX, e.getMessage());
+            return "{}";
+        }
+    }
+
+    /**
+     * Helper privado para extração de endereço principal.
+     */
+    private static String extrairEnderecoPrincipal(ProponenteModel model) {
+        log.trace("{} [NEGOCIO] Extraindo endereço principal para sumário.", LOG_PREFIX);
+
+        if (model.getEnderecos() == null || model.getEnderecos().isEmpty()) {
+            return "Não cadastrado";
+        }
+
+        EnderecoProponenteModel end = model.getEnderecos().stream()
+                .filter(e -> Boolean.TRUE.equals(e.getPrincipal()))
+                .findFirst()
+                .orElse(model.getEnderecos().get(0));
+
+        return String.format("%s, %s - %s, %s/%s",
+                end.getLogradouro(),
+                end.getNumero() != null ? end.getNumero() : "S/N",
+                end.getBairro(),
+                end.getCidade(),
+                end.getUf() != null ? end.getUf().name() : "N/A");
     }
 }

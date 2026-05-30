@@ -9,159 +9,98 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.attribute.PosixFilePermission;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Optional;
 
 /**
- * Serviço de Gestão de Atualizações (OTA - Over The Air).
- * Orquestra a verificação de versão, download e aplicação de patches de
- * software.
+ * Serviço de Domínio para gestão do ciclo de vida de atualizações.
+ * Implementa a lógica de comparação de versões e gestão de binários.
  */
 @Service
 public class UpdateService {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateService.class);
     private static final String LOG_PREFIX = "[UpdateService]";
-    private static final String NOME_JAR_LOCAL = "PoderFinanceiro.jar";
 
     private final UpdateClient updateClient;
     private final String versaoAtual;
 
-    public UpdateService(UpdateClient updateClient, @Value("${app.version:v1.0.0}") String versaoAtual) {
+    public UpdateService(UpdateClient updateClient, @Value("${app.version:1.0.0}") String versaoAtual) {
         this.updateClient = updateClient;
         this.versaoAtual = versaoAtual;
-        log.info("{} [SISTEMA] Serviço de atualização instanciado. Versão atual: {}", LOG_PREFIX, versaoAtual);
+        log.info("{} [SISTEMA] Serviço de atualização iniciado. Versão atual: {}", LOG_PREFIX, versaoAtual);
     }
 
     /**
-     * Verifica se existe uma nova versão disponível no repositório remoto.
+     * Verifica se existe uma nova versão disponível no GitHub.
      */
-    public String checarNovaVersao() {
-        log.info("{} [TELEMETRIA] Verificando atualizações remotas.", LOG_PREFIX);
+    public Optional<GitHubReleaseDTO> checarNovaVersao() {
+        log.trace("{} [TELEMETRIA] Consultando última release no GitHub.", LOG_PREFIX);
         try {
-            GitHubReleaseDTO release = updateClient.buscarUltimaRelease();
+            GitHubReleaseDTO ultimaRelease = updateClient.buscarUltimaRelease();
 
-            if (release != null && isVersaoNova(this.versaoAtual, release.tag_name())) {
-                log.info("{} [NEGOCIO] Nova versão detectada: {}", LOG_PREFIX, release.tag_name());
-                return release.tag_name();
+            if (ultimaRelease == null || ultimaRelease.tagName() == null) {
+                return Optional.empty();
             }
-            log.info("{} [NEGOCIO] O sistema está operando na versão mais recente.", LOG_PREFIX);
+
+            String versaoRemota = ultimaRelease.tagName().replace("v", "");
+
+            if (isVersaoNova(versaoRemota, versaoAtual)) {
+                log.info("{} [NEGOCIO] Nova versão detectada: {} (Atual: {})",
+                        LOG_PREFIX, ultimaRelease.tagName(), versaoAtual);
+                return Optional.of(ultimaRelease);
+            }
+
+            return Optional.empty();
         } catch (Exception e) {
-            log.error("{} [SISTEMA] Falha ao contatar servidor de atualizações: {}", LOG_PREFIX, e.getMessage());
+            log.error("{} [SISTEMA] Falha ao verificar atualização: {}", LOG_PREFIX, e.getMessage());
+            return Optional.empty();
         }
-        return null;
     }
 
     /**
-     * Orquestra o download e a execução do script de substituição do binário.
+     * Localiza a release pela tag e inicia o download.
      */
-    public void baixarEExecutarAtualizacao(String tag) {
-        log.info("{} [TELEMETRIA] Iniciando procedimento de atualização para a versão {}", LOG_PREFIX, tag);
+    public void baixarEExecutarAtualizacaoPorTag(String tag) throws Exception {
+        log.info("{} [TELEMETRIA] Iniciando busca de binário para a tag: {}", LOG_PREFIX, tag);
 
-        String pastaInstalacao = System.getProperty("user.dir");
-        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        GitHubReleaseDTO release = updateClient.buscarUltimaRelease();
 
+        if (release == null || !tag.equals(release.tagName())) {
+            log.error("{} [NEGOCIO] A tag solicitada ({}) não corresponde à última release disponível.", LOG_PREFIX,
+                    tag);
+            throw new IllegalArgumentException("Versão não localizada para download.");
+        }
+
+        String urlDownload = release.assets().stream()
+                .filter(asset -> asset.name().endsWith(".jar") || asset.name().endsWith(".exe"))
+                .map(GitHubReleaseDTO.GitHubAssetDTO::downloadUrl)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Nenhum binário compatível encontrado na release " + tag));
+
+        File destino = Files.createTempFile("poder-financeiro-update-", ".jar").toFile();
+        destino.deleteOnExit();
+
+        updateClient.baixarArquivo(urlDownload, destino);
+
+        log.info("{} [AUDITORIA] Atualização baixada com sucesso: {}", LOG_PREFIX, destino.getAbsolutePath());
+        // Lógica de reinicialização seria disparada aqui ou via script externo
+    }
+
+    boolean isVersaoNova(String remota, String atual) {
         try {
-            garantirInicializadorPersistente(pastaInstalacao, isWindows);
-
-            String downloadUrl = String.format(
-                    "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/download/%s/%s", tag,
-                    NOME_JAR_LOCAL);
-            File tempJar = new File(System.getProperty("java.io.tmpdir"), "PoderFinanceiro_Update.jar");
-
-            updateClient.baixarArquivo(downloadUrl, tempJar);
-
-            File scriptFile = gerarScriptAtualizacao(tempJar, isWindows, pastaInstalacao);
-
-            log.info("{} [AUDITORIA] Aplicação pronta para transição. Reiniciando processo...", LOG_PREFIX);
-
-            executarScriptESair(scriptFile, isWindows);
-
-        } catch (Exception e) {
-            log.error("{} [SISTEMA] Erro crítico durante a atualização: {}", LOG_PREFIX, e.getMessage());
-            throw new RuntimeException("Falha ao aplicar atualização: " + e.getMessage());
-        }
-    }
-
-    private void garantirInicializadorPersistente(String pasta, boolean isWindows) {
-        if (isWindows) {
-            File inicializadorBat = new File(pasta, "iniciar.bat");
-            if (!inicializadorBat.exists()) {
-                try {
-                    String conteudo = "@echo off\ncd /d \"%~dp0\"\nstart \"\" javaw -jar " + NOME_JAR_LOCAL
-                            + "\nexit\n";
-                    Files.writeString(inicializadorBat.toPath(), conteudo);
-                    log.info("{} [SISTEMA] Inicializador 'iniciar.bat' gerado preventivamente.", LOG_PREFIX);
-                } catch (Exception e) {
-                    log.warn("{} [SISTEMA] Não foi possível criar o inicializador bat: {}", LOG_PREFIX, e.getMessage());
-                }
+            String[] partesRemota = remota.split("\\.");
+            String[] partesAtual = atual.split("\\.");
+            int length = Math.max(partesRemota.length, partesAtual.length);
+            for (int i = 0; i < length; i++) {
+                int vRemota = i < partesRemota.length ? Integer.parseInt(partesRemota[i]) : 0;
+                int vAtual = i < partesAtual.length ? Integer.parseInt(partesAtual[i]) : 0;
+                if (vRemota > vAtual)
+                    return true;
+                if (vRemota < vAtual)
+                    return false;
             }
-        }
-    }
-
-    private File gerarScriptAtualizacao(File tempJar, boolean isWindows, String pastaInstalacao) throws Exception {
-        String caminhoJarAtual = pastaInstalacao + File.separator + NOME_JAR_LOCAL;
-        File scriptFile;
-        String scriptContent;
-
-        if (isWindows) {
-            scriptFile = new File(System.getProperty("java.io.tmpdir"), "update_app.bat");
-            scriptContent = String.format(
-                    "@echo off\ntimeout /t 3 /nobreak > nul\nmove /y \"%s\" \"%s\"\nstart /b java -jar \"%s\"\ndel \"%%~f0\"",
-                    tempJar.getAbsolutePath(), caminhoJarAtual, caminhoJarAtual);
-        } else {
-            scriptFile = new File(System.getProperty("java.io.tmpdir"), "update_app.sh");
-            scriptContent = String.format(
-                    "#!/bin/bash\nsleep 3\nmv -f \"%s\" \"%s\"\nnohup java -jar \"%s\" >/dev/null 2>&1 &\nrm -- \"$0\"",
-                    tempJar.getAbsolutePath(), caminhoJarAtual, caminhoJarAtual);
-        }
-
-        Files.writeString(scriptFile.toPath(), scriptContent);
-
-        if (!isWindows) {
-            Set<PosixFilePermission> perms = new HashSet<>(Files.getPosixFilePermissions(scriptFile.toPath()));
-            perms.add(PosixFilePermission.OWNER_EXECUTE);
-            Files.setPosixFilePermissions(scriptFile.toPath(), perms);
-        }
-
-        log.debug("{} [SISTEMA] Script de transição gerado em: {}", LOG_PREFIX, scriptFile.getAbsolutePath());
-        return scriptFile;
-    }
-
-    private void executarScriptESair(File scriptFile, boolean isWindows) throws Exception {
-        ProcessBuilder pb = isWindows
-                ? new ProcessBuilder("cmd", "/c", "start", "\"\"", "\"" + scriptFile.getAbsolutePath() + "\"")
-                : new ProcessBuilder("/bin/bash", "-c", scriptFile.getAbsolutePath());
-
-        pb.start();
-        log.info("{} [AUDITORIA] Script de atualização disparado. Encerrando JVM atual.", LOG_PREFIX);
-        System.exit(0);
-    }
-
-    /**
-     * Lógica de comparação de versão semântica.
-     * Visibilidade de pacote para permitir acesso pelo teste de unidade no mesmo
-     * pacote.
-     */
-    boolean isVersaoNova(String atual, String remota) {
-        if (atual == null || remota == null)
-            return false;
-
-        String v1 = atual.toLowerCase().replace("v", "");
-        String v2 = remota.toLowerCase().replace("v", "");
-
-        String[] partesAtuais = v1.split("\\.");
-        String[] partesRemotas = v2.split("\\.");
-        int tamanho = Math.max(partesAtuais.length, partesRemotas.length);
-
-        for (int i = 0; i < tamanho; i++) {
-            int n1 = i < partesAtuais.length ? Integer.parseInt(partesAtuais[i]) : 0;
-            int n2 = i < partesRemotas.length ? Integer.parseInt(partesRemotas[i]) : 0;
-            if (n2 > n1)
-                return true;
-            if (n2 < n1)
-                return false;
+        } catch (Exception e) {
+            log.error("{} [SISTEMA] Erro ao comparar versões: {}", LOG_PREFIX, e.getMessage());
         }
         return false;
     }

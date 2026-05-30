@@ -10,11 +10,22 @@ import java.time.temporal.WeekFields;
 
 /**
  * Utilitário responsável pelo Motor de Estados Temporal do sistema.
- * Define os ciclos financeiros com corte rígido na Quarta-feira às 18:00.
+ * Orquestra os ciclos financeiros da Poder Financeiro.
+ * 
+ * <p>
+ * Regras de Negócio:
+ * </p>
+ * <ul>
+ * <li><b>Corte do Ciclo:</b> Quarta-feira às 23:59:59.</li>
+ * <li><b>Limite de Contestação:</b> Quinta-feira às 15:00:00 (Regra da
+ * Correspondente).</li>
+ * <li><b>Liquidação (Pagamento):</b> Sexta-feira às 18:00:00.</li>
+ * </ul>
  */
 public class CicloFinanceiroUtils {
 
     private static final Logger log = LoggerFactory.getLogger(CicloFinanceiroUtils.class);
+    private static final String LOG_PREFIX = "[CicloFinanceiroUtils]";
 
     /**
      * Retorna o ID do Ciclo (Ex: 2026-W20) baseado na data da operação.
@@ -23,36 +34,39 @@ public class CicloFinanceiroUtils {
      * @return String no formato YYYY-Www.
      */
     public static String identificarCiclo(LocalDateTime dataOperacao) {
-        log.debug("[CICLO_FINANCEIRO] identificarCiclo: dataOperacao={}", dataOperacao);
+        log.debug("{} [TELEMETRIA] Identificando ciclo para a data: {}", LOG_PREFIX, dataOperacao);
+
         LocalDateTime quartaFeiraDeFechamento = obterQuartaDeFechamento(dataOperacao);
-        log.trace("[CICLO_FINANCEIRO] Quarta-feira de fechamento calculada: {}", quartaFeiraDeFechamento);
 
         int ano = quartaFeiraDeFechamento.get(WeekFields.ISO.weekBasedYear());
         int semana = quartaFeiraDeFechamento.get(WeekFields.ISO.weekOfWeekBasedYear());
 
         String ciclo = String.format("%04d-W%02d", ano, semana);
-        log.info("[CICLO_FINANCEIRO] Ciclo identificado: {} (baseado em {})", ciclo, dataOperacao);
+        log.info("{} [NEGOCIO] Ciclo identificado: {} para a operação de {}", LOG_PREFIX, ciclo, dataOperacao);
         return ciclo;
     }
 
     /**
-     * Define o prazo máximo que o consultor tem para contestar (Quinta-feira às
-     * 15:00).
+     * Define o prazo máximo que o consultor tem para contestar valores.
+     * Conforme regra da Poder Financeiro, o prazo expira na Quinta-feira às
+     * 15:00:00.
      *
      * @param dataOperacao Data e hora original da operação.
-     * @return Timestamp exato do limite para o botão de "conferido" funcionar.
+     * @return Timestamp exato do limite para contestação.
      */
     public static LocalDateTime calcularLimiteContestacao(LocalDateTime dataOperacao) {
-        log.debug("[CICLO_FINANCEIRO] calcularLimiteContestacao: dataOperacao={}", dataOperacao);
-        LocalDateTime quartaFeiraDeFechamento = obterQuartaDeFechamento(dataOperacao);
-        log.trace("[CICLO_FINANCEIRO] Quarta-feira de fechamento: {}", quartaFeiraDeFechamento);
+        log.debug("{} [TELEMETRIA] Calculando limite de contestação para: {}", LOG_PREFIX, dataOperacao);
 
+        LocalDateTime quartaFeiraDeFechamento = obterQuartaDeFechamento(dataOperacao);
+
+        // Regra Específica: Quinta-feira subsequente à quarta de fechamento às 15:00:00
         LocalDateTime limite = quartaFeiraDeFechamento.plusDays(1)
                 .withHour(15)
                 .withMinute(0)
                 .withSecond(0)
                 .withNano(0);
-        log.info("[CICLO_FINANCEIRO] Limite de contestação calculado: {}", limite);
+
+        log.info("{} [NEGOCIO] Limite de contestação definido: {}", LOG_PREFIX, limite);
         return limite;
     }
 
@@ -61,46 +75,49 @@ public class CicloFinanceiroUtils {
      * É sempre 2 dias após a Quarta-feira de fechamento do ciclo atual.
      *
      * @param dataOperacao Data e hora original da operação.
-     * @return LocalDateTime apontando para a Sexta-feira correta.
+     * @return LocalDateTime apontando para a Sexta-feira às 18:00:00.
      */
     public static LocalDateTime calcularSextaDePagamento(LocalDateTime dataOperacao) {
-        log.debug("[CICLO_FINANCEIRO] calcularSextaDePagamento: dataOperacao={}", dataOperacao);
-        LocalDateTime quartaFeiraDeFechamento = obterQuartaDeFechamento(dataOperacao);
-        log.trace("[CICLO_FINANCEIRO] Quarta-feira de fechamento: {}", quartaFeiraDeFechamento);
+        log.debug("{} [TELEMETRIA] Calculando data de pagamento para: {}", LOG_PREFIX, dataOperacao);
 
+        LocalDateTime quartaFeiraDeFechamento = obterQuartaDeFechamento(dataOperacao);
+
+        // Pagamento ocorre na Sexta-feira às 18:00:00
         LocalDateTime pagamento = quartaFeiraDeFechamento.plusDays(2)
                 .withHour(18)
                 .withMinute(0)
                 .withSecond(0)
                 .withNano(0);
-        log.info("[CICLO_FINANCEIRO] Sexta de pagamento calculada: {}", pagamento);
+
+        log.info("{} [AUDITORIA] Previsão de pagamento calculada: {}", LOG_PREFIX, pagamento);
         return pagamento;
     }
 
     /**
-     * Lógica central da janela de corte. Encontra a Quarta-feira exata a qual
-     * esta operação pertence financeiramente.
+     * Lógica central da janela de corte (Deadline).
+     * Encontra a Quarta-feira de fechamento à qual esta operação pertence.
+     * 
+     * <p>
+     * Refatorado para o corte de 23:59:59.
+     * </p>
      */
     public static LocalDateTime obterQuartaDeFechamento(LocalDateTime dataOperacao) {
-        log.debug("[CICLO_FINANCEIRO] obterQuartaDeFechamento: dataOperacao={}", dataOperacao);
-        DayOfWeek diaDaSemana = dataOperacao.getDayOfWeek();
-        log.trace("[CICLO_FINANCEIRO] Dia da semana: {}, hora: {}", diaDaSemana, dataOperacao.getHour());
-
-        LocalDateTime quarta;
-
-        if (diaDaSemana == DayOfWeek.MONDAY ||
-                diaDaSemana == DayOfWeek.TUESDAY ||
-                (diaDaSemana == DayOfWeek.WEDNESDAY && dataOperacao.getHour() < 18)) {
-
-            quarta = dataOperacao.with(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY));
-            log.debug("[CICLO_FINANCEIRO] Caso: Segunda/Terça/Quarta antes das 18h. Quarta de fechamento = {}", quarta);
-        } else {
-            quarta = dataOperacao.with(TemporalAdjusters.next(DayOfWeek.WEDNESDAY));
-            log.debug(
-                    "[CICLO_FINANCEIRO] Caso: Quarta pós 18h ou Quinta/Sexta/Sábado/Domingo. Quarta de fechamento = {}",
-                    quarta);
+        if (dataOperacao == null) {
+            log.warn("{} [SISTEMA] Data de operação nula recebida. Utilizando data atual.", LOG_PREFIX);
+            dataOperacao = LocalDateTime.now();
         }
 
+        log.trace("{} [TELEMETRIA] Determinando quarta-feira de fechamento. Entrada: {}", LOG_PREFIX, dataOperacao);
+
+        // Se for de Segunda a Quarta, retorna a Quarta desta semana.
+        // Se for de Quinta a Domingo, retorna a Quarta da próxima semana.
+        LocalDateTime quarta = dataOperacao.with(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
+                .withHour(23)
+                .withMinute(59)
+                .withSecond(59)
+                .withNano(999999999);
+
+        log.debug("{} [NEGOCIO] Fechamento do ciclo determinado para: {}", LOG_PREFIX, quarta);
         return quarta;
     }
 }

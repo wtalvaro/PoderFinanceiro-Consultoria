@@ -8,75 +8,88 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Utilitário para manipulação e formatação de datas (LocalDate).
+ * Provê suporte a máscaras dinâmicas para JavaFX e conversões seguras.
+ */
 public class DataUtils {
 
     private static final Logger log = LoggerFactory.getLogger(DataUtils.class);
+    private static final String LOG_PREFIX = "[DataUtils]";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     static {
-        log.debug("[DATA_UTILS] Inicializado com formatador dd/MM/yyyy");
+        log.info("{} [SISTEMA] Inicializado com padrão dd/MM/yyyy.", LOG_PREFIX);
     }
 
+    /**
+     * Formata um LocalDate para String no padrão dd/MM/yyyy.
+     */
+    public static String formatar(LocalDate data) {
+        if (data == null)
+            return "";
+        return DATE_FORMATTER.format(data);
+    }
+
+    /**
+     * Converte uma String dd/MM/yyyy para LocalDate de forma segura.
+     */
+    public static LocalDate parse(String dataStr) {
+        if (dataStr == null || dataStr.isBlank())
+            return null;
+        try {
+            return LocalDate.parse(dataStr, DATE_FORMATTER);
+        } catch (Exception e) {
+            log.warn("{} [NEGOCIO] Falha ao parsear data: '{}'. Erro: {}", LOG_PREFIX, dataStr, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Cria um TextFormatter para campos de data no JavaFX.
+     * Implementa auto-inserção de barras e bloqueio de caracteres não numéricos.
+     */
     public static TextFormatter<LocalDate> criarFormatadorData() {
-        log.debug("[DATA_UTILS] criarFormatadorData: Criando formatador de data");
+        log.debug("{} [SISTEMA] Criando formatador de data para UI.", LOG_PREFIX);
+
         StringConverter<LocalDate> converter = new StringConverter<>() {
             @Override
             public String toString(LocalDate date) {
-                String result = (date != null) ? DATE_FORMATTER.format(date) : "";
-                log.trace("[DATA_UTILS] toString: date={} -> '{}'", date, result);
-                return result;
+                return formatar(date);
             }
 
             @Override
             public LocalDate fromString(String string) {
-                if (string == null || string.isEmpty()) {
-                    log.trace("[DATA_UTILS] fromString: string vazia ou nula, retornando null");
-                    return null;
-                }
-                try {
-                    LocalDate date = LocalDate.parse(string, DATE_FORMATTER);
-                    log.trace("[DATA_UTILS] fromString: '{}' -> {}", string, date);
-                    return date;
-                } catch (Exception e) {
-                    log.warn("[DATA_UTILS] fromString: Falha ao converter '{}' para LocalDate: {}", string,
-                            e.getMessage());
-                    return null;
-                }
+                return parse(string);
             }
         };
 
-        TextFormatter<LocalDate> formatter = new TextFormatter<>(converter, null, change -> {
-            String newText = change.getControlNewText();
-            log.trace("[DATA_UTILS] Formatter change: newText='{}', added={}, deleted={}",
-                    newText, change.isAdded(), change.isDeleted());
+        return new TextFormatter<>(converter, null, change -> {
+            String novoTexto = change.getControlNewText();
 
-            if (!newText.matches("[\\d/]*")) {
-                log.trace("[DATA_UTILS] Change rejeitado: contém caractere inválido (não dígito ou '/')");
+            // 1. Bloqueia qualquer caractere que não seja dígito ou barra
+            if (!novoTexto.matches("[\\d/]*")) {
                 return null;
             }
 
             if (change.isAdded()) {
-                if (newText.length() > 10) {
-                    log.trace("[DATA_UTILS] Change rejeitado: comprimento excede 10");
+                // 2. Limita a 10 caracteres (dd/mm/yyyy)
+                if (novoTexto.length() > 10) {
                     return null;
                 }
 
+                // 3. Auto-inserção de barras nas posições 2 e 5
                 int start = change.getRangeStart();
-                if (start == 2 || start == 5) {
-                    if (!change.getText().equals("/")) {
-                        log.trace("[DATA_UTILS] Inserindo barra automaticamente na posição {}", start);
-                        change.setText("/" + change.getText());
-                        int newCaretPos = change.getControlNewText().length();
-                        change.setCaretPosition(newCaretPos);
-                        change.setAnchor(newCaretPos);
-                    }
+                if ((start == 2 || start == 5) && !change.getText().equals("/")) {
+                    change.setText("/" + change.getText());
+                    int novaPosicao = change.getControlNewText().length();
+                    change.setCaretPosition(novaPosicao);
+                    change.setAnchor(novaPosicao);
                 }
             }
-            log.trace("[DATA_UTILS] Change aceito: newText='{}'", change.getControlNewText());
+
+            log.trace("{} [UI] Alteração de data aceita: {}", LOG_PREFIX, novoTexto);
             return change;
         });
-
-        log.info("[DATA_UTILS] Formatador de data criado com sucesso");
-        return formatter;
     }
 }

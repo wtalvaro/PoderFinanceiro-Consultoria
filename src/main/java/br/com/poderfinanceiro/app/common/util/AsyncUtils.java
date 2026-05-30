@@ -9,52 +9,64 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
+/**
+ * Utilitário de Orquestração Assíncrona.
+ * Utiliza Virtual Threads (Project Loom) para execução de tarefas de I/O e IA
+ * sem bloquear a JavaFX Application Thread.
+ */
 public class AsyncUtils {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncUtils.class);
+    private static final String LOG_PREFIX = "[AsyncUtils]";
 
-    // 🚀 ATUALIZAÇÃO PARA VIRTUAL THREADS (Project Loom)
-    // Não usamos mais pool de threads fixas ou cache.
-    // Cada tarefa agora é executada em uma Virtual Thread dedicada,
-    // oferecendo performance superior e custo de memória irrisório.
+    // 🚀 Executor baseado em Virtual Threads: Performance superior com custo de
+    // memória irrisório.
     private static final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     static {
-        log.info("[ASYNC_UTILS] Inicializado com Virtual Thread Executor (Project Loom)");
+        log.info("{} [SISTEMA] Inicializado com Virtual Thread Executor (Project Loom).", LOG_PREFIX);
     }
 
     /**
-     * Executa uma Task do JavaFX já preconfigurada.
+     * Executa uma Task do JavaFX preconfigurada.
+     * Garante que os callbacks onSuccess e onFailed rodem na UI Thread.
      */
     public static <T> void executarTask(Task<T> task, Consumer<T> onSuccess, Consumer<Throwable> onFailed) {
-        log.debug("[ASYNC_UTILS] executarTask: Iniciando task (classe={})", task.getClass().getSimpleName());
+        log.debug("{} [TELEMETRIA] Iniciando execução de Task: {}", LOG_PREFIX, task.getClass().getSimpleName());
+
         task.setOnSucceeded(e -> {
-            log.debug("[ASYNC_UTILS] Task finalizada com sucesso, chamando callback onSuccess");
-            if (onSuccess != null)
+            log.trace("{} [TELEMETRIA] Task finalizada com sucesso. Disparando callback.", LOG_PREFIX);
+            if (onSuccess != null) {
                 onSuccess.accept(task.getValue());
+            }
         });
+
         task.setOnFailed(e -> {
             Throwable ex = task.getException();
-            log.error("[ASYNC_UTILS] Task falhou: {}", ex != null ? ex.getMessage() : "exceção desconhecida", ex);
-            if (onFailed != null)
+            log.error("{} [SISTEMA] Falha na execução da Task: {}", LOG_PREFIX,
+                    ex != null ? ex.getMessage() : "Erro desconhecido");
+            if (onFailed != null) {
                 onFailed.accept(ex);
+            }
         });
+
         executor.submit(task);
     }
 
     /**
-     * Novo método de conveniência (Boilerplate-free).
-     * Cria a Task internamente usando um Callable.
+     * Método de conveniência para executar um Callable de forma assíncrona.
+     * Cria a Task internamente, reduzindo o boilerplate nos Controllers.
      */
     public static <T> void executarTaskAsync(Callable<T> acao, Consumer<T> onSuccess, Consumer<Throwable> onError) {
-        log.debug("[ASYNC_UTILS] executarTaskAsync: Criando nova task a partir de Callable");
+        log.debug("{} [TELEMETRIA] Criando Task assíncrona a partir de Callable.", LOG_PREFIX);
+
         Task<T> task = new Task<>() {
             @Override
             protected T call() throws Exception {
-                log.trace("[ASYNC_UTILS] Task.call() iniciando execução");
                 return acao.call();
             }
         };
+
         executarTask(task, onSuccess, onError);
     }
 }

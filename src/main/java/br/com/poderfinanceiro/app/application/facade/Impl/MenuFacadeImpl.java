@@ -1,12 +1,17 @@
 package br.com.poderfinanceiro.app.application.facade.Impl;
 
+import br.com.poderfinanceiro.app.application.dto.GitHubReleaseDTO;
 import br.com.poderfinanceiro.app.application.facade.IMenuFacade;
 import br.com.poderfinanceiro.app.domain.service.UpdateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+/**
+ * Implementação da Facade de Menu.
+ * Atua como ponte entre a UI (MenuController) e o Domínio (UpdateService).
+ */
+@Component
 public class MenuFacadeImpl implements IMenuFacade {
 
     private static final Logger log = LoggerFactory.getLogger(MenuFacadeImpl.class);
@@ -16,24 +21,26 @@ public class MenuFacadeImpl implements IMenuFacade {
 
     public MenuFacadeImpl(UpdateService updateService) {
         this.updateService = updateService;
-        log.debug("{} [SISTEMA] Facade do Menu instanciada.", LOG_PREFIX);
+        log.info("{} [SISTEMA] Facade de Menu inicializada com sucesso.", LOG_PREFIX);
     }
 
-    @Override public String checarNovaVersao() throws Exception {
-        log.info("{} [TELEMETRIA] Solicitando verificação de nova versão no servidor.", LOG_PREFIX);
-        String novaTag = updateService.checarNovaVersao();
+    @Override
+    public String checarNovaVersao() throws Exception {
+        log.trace("{} [TELEMETRIA] Iniciando orquestração de checagem de versão.", LOG_PREFIX);
 
-        if (novaTag != null) {
-            log.info("{} [SISTEMA] Nova versão encontrada: {}", LOG_PREFIX, novaTag);
-        } else {
-            log.trace("{} [SISTEMA] Sistema já está na versão mais recente.", LOG_PREFIX);
-        }
-
-        return novaTag;
+        // Converte o Optional do domínio para a String esperada pela UI
+        return updateService.checarNovaVersao()
+                .map(GitHubReleaseDTO::tagName)
+                .orElse(null);
     }
 
-    @Override public void baixarEExecutarAtualizacao(String tag) throws Exception {
-        log.warn("{} [AUDITORIA] Iniciando download e aplicação da atualização: {}", LOG_PREFIX, tag);
-        updateService.baixarEExecutarAtualizacao(tag);
+    @Override
+    public void baixarEExecutarAtualizacao(String tag) throws Exception {
+        log.info("{} [TELEMETRIA] Orquestrando download da versão: {}", LOG_PREFIX, tag);
+
+        // Delega a lógica de download e execução para o serviço de domínio
+        updateService.baixarEExecutarAtualizacaoPorTag(tag);
+
+        log.info("{} [AUDITORIA] Orquestração de download concluída para a tag: {}", LOG_PREFIX, tag);
     }
 }

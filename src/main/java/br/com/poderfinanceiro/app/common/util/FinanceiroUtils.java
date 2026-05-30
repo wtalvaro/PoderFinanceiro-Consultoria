@@ -12,109 +12,103 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 /**
- * <h1>FinanceiroUtils</h1>
- * <p>
- * Classe utilitária para manipulação de valores monetários e formatação de
- * campos. Otimizada para Project Loom utilizando ThreadLocal para garantir
- * thread-safety e performance na formatação de números.
- * </p>
+ * Utilitário para manipulação de valores monetários e inteiros.
+ * Otimizada para Project Loom via ThreadLocal para garantir thread-safety
+ * sem bloqueios (lock-free) na formatação de números.
  */
-public class FinanceiroUtils {
+public final class FinanceiroUtils {
 
     private static final Logger log = LoggerFactory.getLogger(FinanceiroUtils.class);
     private static final String LOG_PREFIX = "[FinanceiroUtils]";
     private static final Locale LOCALE_BR = Locale.of("pt", "BR");
 
     /**
-     * Cache de formatadores por Thread. Justificativa: DecimalFormat não é
-     * thread-safe. O uso de ThreadLocal evita a criação excessiva de objetos
-     * (GC Pressure) e garante segurança em ambientes multi-thread.
+     * Cache de formatadores por Thread.
+     * Justificativa: DecimalFormat não é thread-safe. O uso de ThreadLocal
+     * minimiza a pressão do Garbage Collector e garante isolamento entre Virtual
+     * Threads.
      */
     private static final ThreadLocal<DecimalFormat> CURRENCY_FORMATTER = ThreadLocal.withInitial(() -> {
-        log.trace("{} [SISTEMA] Inicializando nova instância de DecimalFormat para a Thread: {}", LOG_PREFIX,
-                Thread.currentThread().getName());
         DecimalFormat df = (DecimalFormat) NumberFormat.getCurrencyInstance(LOCALE_BR);
         df.setPositivePrefix("");
         df.setNegativePrefix("-");
         return df;
     });
 
+    private FinanceiroUtils() {
+        throw new UnsupportedOperationException("Classe utilitária não pode ser instanciada.");
+    }
+
+    static {
+        log.info("{} [SISTEMA] Utilitário financeiro inicializado com suporte a Virtual Threads.", LOG_PREFIX);
+    }
+
     /**
-     * Formata um BigDecimal para exibição textual (ex: 1.234,56).
-     * 
-     * @param valor Valor monetário
-     * @return String formatada ou "0,00" se nulo
+     * Formata um BigDecimal para exibição textual brasileira (ex: 1.234,56).
      */
     public static String formatarParaExibicao(BigDecimal valor) {
         if (valor == null) {
-            log.trace("{} [NEGOCIO] formatarParaExibicao: valor nulo recebido, retornando fallback.", LOG_PREFIX);
             return "0,00";
         }
+        log.trace("{} [TELEMETRIA] Formatando valor para exibição: {}", LOG_PREFIX, valor);
         return CURRENCY_FORMATTER.get().format(valor).trim();
     }
 
     /**
-     * Converte uma String formatada da UI para um BigDecimal compatível com o
-     * banco de dados.
-     * 
-     * @param texto Valor vindo do campo de texto
-     * @return BigDecimal saneado
+     * Converte uma String da UI para BigDecimal saneado para o banco de dados.
      */
     public static BigDecimal extrairValorParaBanco(String texto) {
         if (texto == null || texto.trim().isEmpty()) {
-            return BigDecimal.ZERO;
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
         try {
-            // Saneamento: Remove separadores de milhar e normaliza o separador
-            // decimal
+            // Remove pontos de milhar e troca vírgula por ponto decimal
             String limpo = texto.replace(".", "").replace(",", ".");
-            limpo = limpo.replaceAll("[^0-9\\.]", "");
+            limpo = limpo.replaceAll("[^0-9\\.-]", "");
 
-            if (limpo.isEmpty())
-                return BigDecimal.ZERO;
+            if (limpo.isEmpty() || limpo.equals("-")) {
+                return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            }
 
             BigDecimal valor = new BigDecimal(limpo).setScale(2, RoundingMode.HALF_UP);
-            log.trace("{} [NEGOCIO] Valor extraído com sucesso: {}", LOG_PREFIX, valor);
+            log.trace("{} [NEGOCIO] Valor extraído para persistência: {}", LOG_PREFIX, valor);
             return valor;
         } catch (Exception e) {
-            log.error("{} [SISTEMA] Erro ao converter texto financeiro '{}': {}", LOG_PREFIX, texto, e.getMessage());
-            return BigDecimal.ZERO;
+            log.error("{} [SISTEMA] Falha crítica na conversão financeira de '{}': {}", LOG_PREFIX, texto,
+                    e.getMessage());
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
     }
 
     /**
-     * Cria um TextFormatter configurado para campos de entrada de moeda.
-     * 
-     * @return TextFormatter<BigDecimal>
+     * Cria um TextFormatter para campos de moeda no JavaFX.
      */
     public static TextFormatter<BigDecimal> criarFormatadorMoeda() {
-        log.debug("{} [SISTEMA] Criando novo TextFormatter de moeda.", LOG_PREFIX);
+        log.debug("{} [SISTEMA] Criando formatador de moeda para UI.", LOG_PREFIX);
 
         StringConverter<BigDecimal> converter = new StringConverter<>() {
-            @Override public String toString(BigDecimal valor) {
+            @Override
+            public String toString(BigDecimal valor) {
                 return formatarParaExibicao(valor);
             }
 
-            @Override public BigDecimal fromString(String string) {
+            @Override
+            public BigDecimal fromString(String string) {
                 return extrairValorParaBanco(string);
             }
         };
 
-        return new TextFormatter<>(converter, BigDecimal.ZERO, change -> {
-            if (change.getControlNewText().matches("([\\d\\.,]*)")) {
+        return new TextFormatter<>(converter, BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP), change -> {
+            if (change.getControlNewText().matches("([\\d\\.,-]*)")) {
                 return change;
             }
-            return null; // Rejeita caracteres não financeiros
+            return null;
         });
     }
 
     /**
-     * Realiza o parse seguro de uma string para inteiro, removendo caracteres
-     * não numéricos.
-     * 
-     * @param texto String de entrada
-     * @return int valor convertido ou 0
+     * Parse seguro de String para Inteiro, removendo caracteres não numéricos.
      */
     public static int parseSafeInt(String texto) {
         if (texto == null || texto.isBlank())
@@ -122,9 +116,7 @@ public class FinanceiroUtils {
 
         try {
             String apenasNumeros = texto.replaceAll("\\D", "");
-            if (apenasNumeros.isEmpty())
-                return 0;
-            return Integer.parseInt(apenasNumeros);
+            return apenasNumeros.isEmpty() ? 0 : Integer.parseInt(apenasNumeros);
         } catch (NumberFormatException e) {
             log.warn("{} [NEGOCIO] Falha ao converter '{}' para inteiro.", LOG_PREFIX, texto);
             return 0;
@@ -132,12 +124,10 @@ public class FinanceiroUtils {
     }
 
     /**
-     * Cria um TextFormatter que permite apenas a entrada de dígitos numéricos.
-     * 
-     * @return TextFormatter<String>
+     * Cria um TextFormatter que permite apenas dígitos numéricos.
      */
     public static TextFormatter<String> criarFormatadorInteiro() {
-        log.debug("{} [SISTEMA] Criando novo TextFormatter de inteiros.", LOG_PREFIX);
+        log.debug("{} [SISTEMA] Criando formatador de inteiros para UI.", LOG_PREFIX);
         return new TextFormatter<>(change -> {
             if (change.getControlNewText().matches("\\d*")) {
                 return change;
