@@ -12,6 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -21,12 +22,14 @@ import org.springframework.stereotype.Component;
  * <h1>EnderecoController</h1>
  * <p>
  * Controlador de Interface (UI) responsável pelo formulário de endereço do
- * cliente. Atua como um <b>Humble Object</b>, gerenciando bindings e delegando
- * a busca de CEP para a {@link IEnderecoFacade}. A persistência é orquestrada
- * pelo AtendimentoHubController.
+ * cliente.
+ * Atua como um <b>Humble Object</b>, gerenciando bindings e delegando a busca
+ * de CEP
+ * para a {@link IEnderecoFacade}.
  * </p>
  */
-@Component @Scope("prototype")
+@Component
+@Scope("prototype")
 public class EnderecoController {
 
     // ==========================================================================================
@@ -36,7 +39,6 @@ public class EnderecoController {
     private static final String LOG_PREFIX = "[EnderecoController]";
 
     private static final int TAMANHO_CEP_VALIDO = 8;
-    private static final String REGEX_SOMENTE_NUMEROS = "\\D";
 
     // ==========================================================================================
     // MÓDULO 2: DEPENDÊNCIAS (DIP)
@@ -47,34 +49,44 @@ public class EnderecoController {
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
-    @FXML private TextField txtCep;
-    @FXML private ComboBox<TipoLogradouroModel> comboTipoLogradouro;
-    @FXML private TextField txtLogradouro;
-    @FXML private TextField txtNumero;
-    @FXML private TextField txtComplemento;
-    @FXML private TextField txtBairro;
-    @FXML private TextField txtCidade;
-    @FXML private ComboBox<UfModel> comboUf;
+    @FXML
+    private TextField txtCep;
+    @FXML
+    private ComboBox<TipoLogradouroModel> comboTipoLogradouro;
+    @FXML
+    private TextField txtLogradouro;
+    @FXML
+    private TextField txtNumero;
+    @FXML
+    private TextField txtComplemento;
+    @FXML
+    private TextField txtBairro;
+    @FXML
+    private TextField txtCidade;
+    @FXML
+    private ComboBox<UfModel> comboUf;
 
     public EnderecoController(EnderecoViewModel viewModel, IEnderecoFacade enderecoFacade) {
         this.viewModel = viewModel;
         this.enderecoFacade = enderecoFacade;
-        log.debug("{} [SISTEMA] Controlador instanciado via Spring (Prototype).", LOG_PREFIX);
+        log.info("{} [SISTEMA] Controlador instanciado com suporte a Virtual Threads.", LOG_PREFIX);
     }
 
     // ==========================================================================================
     // MÓDULO 4: INICIALIZAÇÃO E CICLO DE VIDA
     // ==========================================================================================
-    @FXML public void initialize() {
-        log.info("{} [TELEMETRIA] Inicializando formulário de endereço...", LOG_PREFIX);
+    @FXML
+    public void initialize() {
+        log.info("{} [SISTEMA] Inicializando formulário de endereço.", LOG_PREFIX);
         configurarInterface();
         estabelecerBindings();
-        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
+        log.debug("{} [SISTEMA] Inicialização da UI concluída.", LOG_PREFIX);
     }
 
     public void carregarEndereco(EnderecoProponenteModel endereco) {
-        log.info("{} [TELEMETRIA] Carregando endereço no formulário. Endereço presente? {}", LOG_PREFIX, endereco != null);
+        log.info("{} [TELEMETRIA] Solicitando carga de endereço. Presente: {}", LOG_PREFIX, endereco != null);
         if (endereco == null) {
+            log.debug("{} [NEGOCIO] Endereço nulo recebido. Resetando ViewModel.", LOG_PREFIX);
             viewModel.reset();
             return;
         }
@@ -82,7 +94,7 @@ public class EnderecoController {
     }
 
     public void limparCampos() {
-        log.trace("{} [UI] Resetando formulário de endereço.", LOG_PREFIX);
+        log.info("{} [SISTEMA] Resetando formulário de endereço.", LOG_PREFIX);
         viewModel.reset();
     }
 
@@ -90,15 +102,24 @@ public class EnderecoController {
     // MÓDULO 5: CONFIGURAÇÃO DE UI E BINDINGS
     // ==========================================================================================
     private void configurarInterface() {
-        log.trace("{} [UI] Carregando ComboBoxes e aplicando formatador de CEP.", LOG_PREFIX);
+        log.debug("{} [SISTEMA] Configurando listas de domínios de endereço.", LOG_PREFIX);
         comboTipoLogradouro.setItems(FXCollections.observableArrayList(TipoLogradouroModel.values()));
         comboUf.setItems(FXCollections.observableArrayList(UfModel.values()));
-        txtCep.setTextFormatter(EnderecoUtils.criarFormatadorCep());
     }
 
     private void estabelecerBindings() {
-        log.trace("{} [UI] Estabelecendo bindings bidirecionais com o ViewModel.", LOG_PREFIX);
-        viewModel.cepProperty().bindBidirectional(txtCep.textProperty());
+        log.info("{} [SISTEMA] Estabelecendo bindings bidirecionais reativos.", LOG_PREFIX);
+
+        // Configuração do CEP com segurança de tipos e sincronização de valor limpo
+        TextFormatter<String> cepFormatter = EnderecoUtils.criarFormatadorCep();
+        txtCep.setTextFormatter(cepFormatter);
+
+        // VINCULAÇÃO CRÍTICA: Vinculamos a valueProperty (valor limpo) à ViewModel
+        // Isso garante que o Dirty Checking funcione e o botão Salvar habilite.
+        viewModel.cepProperty().bindBidirectional(cepFormatter.valueProperty());
+
+        log.trace("{} [SISTEMA] Binding de CEP configurado via ValueProperty do Formatter.", LOG_PREFIX);
+
         viewModel.tipoLogradouroProperty().bindBidirectional(comboTipoLogradouro.valueProperty());
         viewModel.logradouroProperty().bindBidirectional(txtLogradouro.textProperty());
         viewModel.numeroProperty().bindBidirectional(txtNumero.textProperty());
@@ -111,42 +132,52 @@ public class EnderecoController {
     // ==========================================================================================
     // MÓDULO 6: INTEGRAÇÃO EXTERNA (BUSCA DE CEP)
     // ==========================================================================================
-    @FXML private void buscarCep() {
-        String cepDigitado = txtCep.getText();
-        log.info("{} [TELEMETRIA] Usuário acionou busca de CEP: '{}'", LOG_PREFIX, cepDigitado);
+    @FXML
+    private void buscarCep() {
+        // Obtemos o valor da ViewModel (que já está limpo pelo binding do formatter)
+        String cepSaneado = EnderecoUtils.limparCep(viewModel.cepProperty().get());
+        log.info("{} [TELEMETRIA] Iniciando busca de CEP: '{}'", LOG_PREFIX, cepSaneado);
 
-        if (cepDigitado == null || cepDigitado.trim().isEmpty()) {
-            log.warn("{} [NEGOCIO] Busca ignorada: CEP vazio.", LOG_PREFIX);
+        if (cepSaneado.isEmpty()) {
+            log.warn("{} [NEGOCIO] Busca abortada: CEP vazio.", LOG_PREFIX);
             return;
         }
 
-        String apenasNumeros = cepDigitado.replaceAll(REGEX_SOMENTE_NUMEROS, "");
-
-        if (apenasNumeros.length() == TAMANHO_CEP_VALIDO) {
-            executarBuscaAssincrona(apenasNumeros);
+        if (cepSaneado.length() == TAMANHO_CEP_VALIDO) {
+            executarBuscaAssincrona(cepSaneado);
         } else {
-            log.warn("{} [NEGOCIO] Busca bloqueada: Tamanho do CEP inválido ({} dígitos).", LOG_PREFIX, apenasNumeros.length());
+            log.warn("{} [NEGOCIO] Busca bloqueada: CEP incompleto ({} dígitos).", LOG_PREFIX, cepSaneado.length());
         }
     }
 
     private void executarBuscaAssincrona(String cep) {
-        log.trace("{} [SISTEMA] Disparando task assíncrona para busca de CEP.", LOG_PREFIX);
+        log.debug("{} [TELEMETRIA] Disparando orquestração assíncrona para ViaCEP.", LOG_PREFIX);
 
-        AsyncUtils.executarTaskAsync(() -> enderecoFacade.buscarEnderecoPorCep(cep), enderecoEncontrado -> {
-            if (enderecoEncontrado != null) {
-                log.info("{} [AUDITORIA] Endereço retornado pela API com sucesso.", LOG_PREFIX);
-                preencherCamposEndereco(enderecoEncontrado);
-            } else {
-                log.warn("{} [NEGOCIO] CEP não encontrado na base dos Correios.", LOG_PREFIX);
-            }
-        }, erro -> log.error("{} [SISTEMA] Erro de comunicação com a API ViaCEP: {}", LOG_PREFIX, erro.getMessage()));
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    log.trace("{} [NEGOCIO] Invocando Facade de endereço para o CEP: {}", LOG_PREFIX, cep);
+                    return enderecoFacade.buscarEnderecoPorCep(cep);
+                },
+                enderecoEncontrado -> {
+                    if (enderecoEncontrado != null) {
+                        log.info("{} [AUDITORIA] Dados de endereço recuperados com sucesso.", LOG_PREFIX);
+                        preencherCamposEndereco(enderecoEncontrado);
+                    } else {
+                        log.warn("{} [AUDITORIA] CEP {} não localizado na base externa.", LOG_PREFIX, cep);
+                    }
+                },
+                erro -> log.error("{} [SISTEMA] Falha na comunicação com serviço de CEP: {}", LOG_PREFIX,
+                        erro.getMessage()));
     }
 
     private void preencherCamposEndereco(ViaCepResponse endereco) {
-        log.trace("{} [UI] Preenchendo campos com os dados da API.", LOG_PREFIX);
-        txtLogradouro.setText(endereco.logradouro());
-        txtBairro.setText(endereco.bairro());
-        txtCidade.setText(endereco.localidade());
+        log.info("{} [NEGOCIO] Atualizando ViewModel com dados da busca externa.", LOG_PREFIX);
+
+        // ATUALIZAÇÃO MVVM: Alteramos a ViewModel. O binding bidirecional atualizará a
+        // UI.
+        viewModel.logradouroProperty().set(endereco.logradouro());
+        viewModel.bairroProperty().set(endereco.bairro());
+        viewModel.cidadeProperty().set(endereco.localidade());
         selecionarUfSeguro(endereco.uf());
     }
 
@@ -155,9 +186,11 @@ public class EnderecoController {
             return;
 
         try {
-            comboUf.setValue(UfModel.valueOf(ufSigla.toUpperCase()));
+            UfModel uf = UfModel.valueOf(ufSigla.toUpperCase());
+            viewModel.ufProperty().set(uf);
+            log.trace("{} [NEGOCIO] UF selecionada: {}", LOG_PREFIX, uf);
         } catch (IllegalArgumentException ex) {
-            log.error("{} [SISTEMA] UF retornada pela API não existe no Enum: {}", LOG_PREFIX, ufSigla);
+            log.error("{} [SISTEMA] Sigla de UF inválida retornada pela API: {}", LOG_PREFIX, ufSigla);
         }
     }
 
