@@ -1,83 +1,57 @@
-name: Publicar Release Gold Standard (Universal)
+name: Publicar Release Gold Standard (Windows Only)
 
 on:
   push:
     tags:
-      - 'v*' # Dispara em tags como v2.1.4
+      - 'v*'
 
 jobs:
   build-and-release:
-    name: Build e Distribuição Multiplataforma
+    name: Build e Distribuição Windows
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-    - name: 1. Checkout do Código Fonte
+    - name: 1. Checkout do Código
       uses: actions/checkout@v4
 
-    - name: 2. Configurar OpenJDK 25 (Temurin)
+    - name: 2. Configurar Java 25
       uses: actions/setup-java@v4
       with:
         java-version: '25'
         distribution: 'temurin'
         cache: maven
 
-    - name: 3. Compilar e Gerar Artefato Universal
-      # O Maven utiliza o pom.xml refatorado com classificadores win/linux/mac
-      run: ./mvnw clean package -DskipTests
+    - name: 3. Compilar e Gerar JAR (Forçando Windows)
+      # Forçamos o classificador win para garantir que o JAR da release tenha as DLLs nativas
+      run: ./mvnw clean package -DskipTests -Djavafx.platform=win
 
     - name: 4. Preparar Pacote de Distribuição (.zip)
       run: |
-        # Cria estrutura de diretórios limpa
         mkdir -p dist_package
-        
-        # Copia o JAR principal (Fonte da Verdade)
         cp target/PoderFinanceiro.jar dist_package/
-        
-        # Copia e normaliza scripts de inicialização
         cp iniciar.bat dist_package/
         cp iniciar.sh dist_package/
-        
-        # Garante permissão de execução para sistemas Unix-like
         chmod +x dist_package/iniciar.sh
-        
-        # Gera o ZIP preservando atributos de arquivo (importante para o chmod +x)
-        zip -r PoderFinanceiro_v${{ github.ref_name }}_Universal.zip dist_package/*
+        zip -r PoderFinanceiro_v${{ github.ref_name }}_Windows.zip dist_package/*
 
-    - name: 5. Publicar Release no GitHub
+    - name: 5. Criar Release no GitHub
       uses: softprops/action-gh-release@v2
       with:
         name: ERP Poder Financeiro - Versão ${{ github.ref_name }}
         tag_name: ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-        generate_release_notes: true
         body: |
-          ## 📑 Notas da Release - ${{ github.ref_name }}
+          ## 🚀 Notas da Release - ${{ github.ref_name }}
           
-          O **ERP Poder Financeiro** atinge um novo patamar de estabilidade e performance com esta versão.
+          Esta versão implementa o novo sistema de **Atualização Manual Assistida**, garantindo 100% de estabilidade no Windows 11.
           
-          ### 🛠️ Destaques Tecnológicos:
-          - **Runtime:** OpenJDK 25 (Project Loom) com Virtual Threads.
-          - **UI:** JavaFX 21 com Temas AtlantaFX (Modern Desktop).
-          - **IA:** Integração nativa com Gemini 2.5+ para suporte analítico.
-          - **Portabilidade:** Binário Universal compatível com Windows, Linux e macOS.
-          
-          ### 📦 Instruções de Instalação:
-          1. Certifique-se de ter o **Java 25** instalado em sua máquina.
-          2. Baixe o arquivo `PoderFinanceiro_v${{ github.ref_name }}_Universal.zip` abaixo.
-          3. Extraia o conteúdo em uma pasta local.
-          4. **Windows:** Execute o `iniciar.bat`.
-          5. **Linux/macOS:** Execute o `iniciar.sh`.
-          
-          ---
-          *Esta release foi orquestrada automaticamente via CI/CD Gold Standard.*
+          ### 📦 Instruções:
+          1. Baixe o arquivo `PoderFinanceiro_v${{ github.ref_name }}_Windows.zip` abaixo.
+          2. Extraia o conteúdo em uma pasta local.
+          3. Execute o `iniciar.bat`.
         files: |
-          # Pacote completo para novos usuários
-          PoderFinanceiro_v${{ github.ref_name }}_Universal.zip
-          
-          # Binário isolado para o UpdateService (Auto-Update)
+          PoderFinanceiro_v${{ github.ref_name }}_Windows.zip
           target/PoderFinanceiro.jar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

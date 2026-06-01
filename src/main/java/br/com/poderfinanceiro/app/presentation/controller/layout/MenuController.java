@@ -1,8 +1,10 @@
 package br.com.poderfinanceiro.app.presentation.controller.layout;
 
-import br.com.poderfinanceiro.app.application.facade.IMenuFacade;
+import br.com.poderfinanceiro.app.application.dto.GitHubReleaseDTO;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
+import br.com.poderfinanceiro.app.domain.service.UpdateService;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import org.slf4j.Logger;
@@ -12,9 +14,9 @@ import org.springframework.stereotype.Component;
 /**
  * <h1>MenuController</h1>
  * <p>
- * Controlador de Interface (UI) responsável pela barra de menus superior.
- * Atua como um <b>Humble Object</b>, roteando cliques para o {@link Navigator}
- * e gerenciando o ciclo de vida de atualizações de forma resiliente.
+ * Controlador de Interface responsável pela barra de menus superior.
+ * Gerencia a navegação e o fluxo de atualização manual assistida via navegador.
+ * Implementa o padrão <b>Humble Object</b>.
  * </p>
  */
 @Component
@@ -30,12 +32,16 @@ public class MenuController {
     // MÓDULO 2: DEPENDÊNCIAS (DIP)
     // ==========================================================================================
     private final Navigator navigator;
-    private final IMenuFacade menuFacade;
+    private final UpdateService updateService;
+    private final HostServices hostServices;
 
-    public MenuController(Navigator navigator, IMenuFacade menuFacade) {
+    public MenuController(Navigator navigator,
+            UpdateService updateService,
+            HostServices hostServices) {
         this.navigator = navigator;
-        this.menuFacade = menuFacade;
-        log.info("{} [SISTEMA] Controlador de Menu instanciado via Spring.", LOG_PREFIX);
+        this.updateService = updateService;
+        this.hostServices = hostServices;
+        log.info("{} [SISTEMA] Controlador de Menu instanciado com suporte a HostServices.", LOG_PREFIX);
     }
 
     // ==========================================================================================
@@ -142,72 +148,42 @@ public class MenuController {
     }
 
     // ==========================================================================================
-    // MÓDULO 7: AUTO-UPDATE (RESILIENTE)
+    // MÓDULO 7: AUTO-UPDATE (MODO MANUAL ASSISTIDO)
     // ==========================================================================================
     @FXML
     private void handleVerificarAtualizacoes() {
         log.info("{} [TELEMETRIA] Iniciando verificação manual de atualizações.", LOG_PREFIX);
-        navigator.mostrarLoading("Buscando atualizações no servidor...");
+        navigator.mostrarLoading("Verificando novidades no servidor...");
 
         AsyncUtils.executarTaskAsync(
-                () -> {
-                    log.debug("{} [NEGOCIO] Consultando última release via Facade.", LOG_PREFIX);
-                    return menuFacade.checarNovaVersao();
-                },
-                novaTag -> {
+                updateService::checarNovaVersao,
+                optRelease -> {
                     navigator.ocultarLoading();
-                    if (novaTag != null) {
-                        log.info("{} [NEGOCIO] Nova versão detectada: {}", LOG_PREFIX, novaTag);
+                    if (optRelease.isPresent()) {
+                        GitHubReleaseDTO release = optRelease.get();
+                        log.info("{} [NEGOCIO] Nova versão detectada: {}", LOG_PREFIX, release.tagName());
+
                         navigator.solicitarConfirmacao(
-                                "🎉 Nova Atualização Encontrada",
-                                "A versão " + novaTag + " está disponível. O download será iniciado em segundo plano.",
-                                "Baixar Agora",
+                                "🚀 Nova Versão Disponível",
+                                "A versão " + release.tagName()
+                                        + " foi lançada com melhorias!\n\nDeseja abrir a página de download para atualizar manualmente?",
+                                "Ir para Download",
                                 "-color-success-emphasis",
-                                () -> iniciarProcessoDeDownload(novaTag));
+                                () -> {
+                                    log.info("{} [TELEMETRIA] Redirecionando usuário para o GitHub Releases.",
+                                            LOG_PREFIX);
+                                    hostServices.showDocument(
+                                            "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/latest");
+                                });
                     } else {
-                        log.info("{} [NEGOCIO] O sistema já está na versão mais recente.", LOG_PREFIX);
+                        log.info("{} [NEGOCIO] Sistema já está na versão mais recente.", LOG_PREFIX);
                         navigator.notificarSucesso("Você já possui a versão mais recente instalada.");
                     }
                 },
                 erro -> {
-                    log.error("{} [SISTEMA] Falha ao verificar atualizações: {}", LOG_PREFIX, erro.getMessage());
+                    log.error("{} [SISTEMA] Falha na checagem de versão: {}", LOG_PREFIX, erro.getMessage());
                     navigator.ocultarLoading();
-                    navigator.notificarAviso("Não foi possível verificar atualizações: " + erro.getMessage());
-                });
-    }
-
-    private void iniciarProcessoDeDownload(String tag) {
-        log.info("{} [TELEMETRIA] Iniciando download da atualização v{}.", LOG_PREFIX, tag);
-        navigator.mostrarLoading("Baixando atualização...\nO sistema será preparado para o reinício.");
-
-        AsyncUtils.executarTaskAsync(
-                () -> {
-                    log.debug("{} [NEGOCIO] Invocando download do binário JAR.", LOG_PREFIX);
-                    menuFacade.baixarEExecutarAtualizacao(tag);
-                    return true;
-                },
-                sucesso -> {
-                    // FIX: Oculta o overlay antes de solicitar o reinício
-                    navigator.ocultarLoading();
-                    log.info("{} [AUDITORIA] Download concluído com sucesso. Solicitando reinício.", LOG_PREFIX);
-
-                    navigator.solicitarConfirmacao(
-                            "🚀 Download Concluído",
-                            "A atualização v" + tag
-                                    + " foi baixada. Deseja reiniciar o sistema agora para aplicar as mudanças?",
-                            "Reiniciar Agora",
-                            "-color-success-emphasis",
-                            () -> {
-                                log.warn("{} [SISTEMA] Encerrando aplicação para Hot Swap (Windows 11).", LOG_PREFIX);
-                                Platform.exit();
-                                System.exit(0); // Essencial para liberar o lock do arquivo no Windows
-                            });
-                },
-                erro -> {
-                    log.error("{} [SISTEMA] Erro crítico no download da atualização: {}", LOG_PREFIX,
-                            erro.getMessage());
-                    navigator.ocultarLoading();
-                    navigator.notificarAviso("Falha no download: " + erro.getMessage());
+                    navigator.notificarAviso("Não foi possível conectar ao servidor de atualizações.");
                 });
     }
 }

@@ -10,7 +10,7 @@ UPDATE_NAME="update.jar"
 
 # 1. Verifica se existe uma atualização pendente
 if [ -f "$UPDATE_NAME" ]; then
-    echo "[SISTEMA] Aplicando atualização v2.1.6.2..."
+    echo "[SISTEMA] Aplicando atualização v2.1.7..."
     mv -f "$UPDATE_NAME" "$JAR_NAME"
 fi
 
