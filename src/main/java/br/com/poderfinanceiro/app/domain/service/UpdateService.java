@@ -58,7 +58,7 @@ public class UpdateService {
     }
 
     /**
-     * Localiza a release pela tag e inicia o download.
+     * Localiza a release pela tag e inicia o download para a raiz da aplicação.
      */
     public void baixarEExecutarAtualizacaoPorTag(String tag) throws Exception {
         log.info("{} [TELEMETRIA] Iniciando busca de binário para a tag: {}", LOG_PREFIX, tag);
@@ -66,24 +66,23 @@ public class UpdateService {
         GitHubReleaseDTO release = updateClient.buscarUltimaRelease();
 
         if (release == null || !tag.equals(release.tagName())) {
-            log.error("{} [NEGOCIO] A tag solicitada ({}) não corresponde à última release disponível.", LOG_PREFIX,
-                    tag);
-            throw new IllegalArgumentException("Versão não localizada para download.");
+            log.error("{} [NEGOCIO] Tag solicitada ({}) inválida.", LOG_PREFIX, tag);
+            throw new IllegalArgumentException("Versão não localizada.");
         }
 
         String urlDownload = release.assets().stream()
-                .filter(asset -> asset.name().endsWith(".jar") || asset.name().endsWith(".exe"))
+                .filter(asset -> asset.name().endsWith(".jar"))
                 .map(GitHubReleaseDTO.GitHubAssetDTO::downloadUrl)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Nenhum binário compatível encontrado na release " + tag));
+                .orElseThrow(() -> new RuntimeException("JAR não encontrado na release."));
 
-        File destino = Files.createTempFile("poder-financeiro-update-", ".jar").toFile();
-        destino.deleteOnExit();
+        // Gold Standard: Salva como 'update.jar' na pasta onde o app está rodando
+        File destino = new File("update.jar");
 
+        log.info("{} [TELEMETRIA] Baixando atualização para: {}", LOG_PREFIX, destino.getAbsolutePath());
         updateClient.baixarArquivo(urlDownload, destino);
 
-        log.info("{} [AUDITORIA] Atualização baixada com sucesso: {}", LOG_PREFIX, destino.getAbsolutePath());
-        // Lógica de reinicialização seria disparada aqui ou via script externo
+        log.info("{} [AUDITORIA] Atualização v{} baixada. Reinicie o sistema para aplicar.", LOG_PREFIX, tag);
     }
 
     boolean isVersaoNova(String remota, String atual) {

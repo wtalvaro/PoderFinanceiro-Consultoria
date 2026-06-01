@@ -43,5 +43,10 @@
     "name": "t\napp.playbook.pa",
     "type": "java.lang.String",
     "description": "A description for 't\napp.playbook.pa'"
+  },
+  {
+    "name": "5\napp.na",
+    "type": "java.lang.String",
+    "description": "A description for '5\napp.na'"
   }
 ]}

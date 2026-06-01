@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 :: 1. Verifica se existe uma atualização pendente
 if exist "update.jar" (
-    echo [SISTEMA] Aplicando atualizacao v2.1.4...
+    echo [SISTEMA] Aplicando atualizacao v2.1....
     move /y "update.jar" "PoderFinanceiro.jar" >nul
     :: O comando 'goto' após o move ajuda o CMD a não perder o ponteiro
     goto :START_APP
