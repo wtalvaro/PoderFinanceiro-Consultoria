@@ -1,38 +1,18 @@
 {"properties": [
   {
-    "name": "\ngemini.api.ke",
-    "type": "java.lang.String",
-    "description": "A description for '\ngemini.api.ke'"
-  },
-  {
     "name": "\ngemini.api.ur",
     "type": "java.lang.String",
     "description": "A description for '\ngemini.api.ur'"
   },
   {
-    "name": "\napp.versio",
-    "type": "java.lang.String",
-    "description": "A description for '\napp.versio'"
-  },
-  {
     "name": ".\napp.versi",
     "type": "java.lang.String",
     "description": "A description for '.\napp.versi'"
   },
   {
-    "name": ".\napp.versi",
+    "name": "7\napp.na",
     "type": "java.lang.String",
-    "description": "A description for '.\napp.versi'"
-  },
-  {
-    "name": ".\napp.versi",
-    "type": "java.lang.String",
-    "description": "A description for '.\napp.versi'"
-  },
-  {
-    "name": "4\napp.na",
-    "type": "java.lang.String",
-    "description": "A description for '4\napp.na'"
+    "description": "A description for '7\napp.na'"
   },
   {
     "name": "a\napp.storage.ro",
@@ -43,40 +23,5 @@
     "name": "t\napp.playbook.pa",
     "type": "java.lang.String",
     "description": "A description for 't\napp.playbook.pa'"
-  },
-  {
-    "name": "5\napp.na",
-    "type": "java.lang.String",
-    "description": "A description for '5\napp.na'"
-  },
-  {
-    "name": "1\napp.na",
-    "type": "java.lang.String",
-    "description": "A description for '1\napp.na'"
-  },
-  {
-    "name": "6\napp.na",
-    "type": "java.lang.String",
-    "description": "A description for '6\napp.na'"
-  },
-  {
-    "name": ".\napp.versi",
-    "type": "java.lang.String",
-    "description": "A description for '.\napp.versi'"
-  },
-  {
-    "name": "\ngemini.api.ur",
-    "type": "java.lang.String",
-    "description": "A description for '\ngemini.api.ur'"
-  },
-  {
-    "name": "\ngemini.api.ur",
-    "type": "java.lang.String",
-    "description": "A description for '\ngemini.api.ur'"
-  },
-  {
-    "name": "2\napp.na",
-    "type": "java.lang.String",
-    "description": "A description for '2\napp.na'"
   }
 ]}
