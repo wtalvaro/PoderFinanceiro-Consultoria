@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.presentation.controller.auth;
 
 import br.com.poderfinanceiro.app.application.facade.IAuthFacade;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
+import br.com.poderfinanceiro.app.common.util.ValidationUtils;
 import br.com.poderfinanceiro.app.presentation.controller.layout.StatusBarController;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
 import javafx.application.Platform;
@@ -15,8 +16,9 @@ import org.springframework.stereotype.Component;
  * <h1>LoginController</h1>
  * <p>
  * Controlador de Interface (UI) responsável pela tela de autenticação.
- * Implementa o padrão <b>Humble Object</b>, delegando a validação de
- * credenciais e gestão de sessão para a {@link IAuthFacade}.
+ * Implementa o padrão <b>Humble Object</b>, utilizando ValidationUtils para
+ * triagem de inputs e AsyncUtils para orquestração de login via Virtual
+ * Threads.
  * </p>
  */
 @Component
@@ -45,13 +47,20 @@ public class LoginController {
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
-    @FXML private TextField txtEmail;
-    @FXML private PasswordField txtSenha;
-    @FXML private TextField txtSenhaRevelada;
-    @FXML private Button btnLogin;
-    @FXML private Button btnMostrarSenha;
-    @FXML private ProgressIndicator progress;
-    @FXML private Label lblMensagem;
+    @FXML
+    private TextField txtEmail; // Representa o identificador (Username ou Email)
+    @FXML
+    private PasswordField txtSenha;
+    @FXML
+    private TextField txtSenhaRevelada;
+    @FXML
+    private Button btnLogin;
+    @FXML
+    private Button btnMostrarSenha;
+    @FXML
+    private ProgressIndicator progress;
+    @FXML
+    private Label lblMensagem;
 
     // ==========================================================================================
     // MÓDULO 4: ESTADO INTERNO DA TELA
@@ -62,69 +71,98 @@ public class LoginController {
         this.authFacade = authFacade;
         this.navigator = navigator;
         this.statusBarController = statusBarController;
-        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
+        log.info("{} [SISTEMA] Controlador de login instanciado com suporte a Virtual Threads.", LOG_PREFIX);
     }
 
     // ==========================================================================================
     // MÓDULO 5: INICIALIZAÇÃO E CICLO DE VIDA
     // ==========================================================================================
-    @FXML public void initialize() {
-        log.info("{} [TELEMETRIA] Inicializando tela de Login...", LOG_PREFIX);
+    @FXML
+    public void initialize() {
+        log.info("{} [SISTEMA] Inicializando componentes da tela de autenticação.", LOG_PREFIX);
         lblMensagem.setVisible(false);
+
+        // Sincronização bidirecional para o recurso de "mostrar senha"
         txtSenhaRevelada.textProperty().bindBidirectional(txtSenha.textProperty());
-        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
+
+        log.debug("{} [SISTEMA] Inicialização concluída.", LOG_PREFIX);
     }
 
     // ==========================================================================================
     // MÓDULO 6: FLUXO DE AUTENTICAÇÃO
     // ==========================================================================================
-    @FXML private void handleLogin() {
-        String username = txtEmail.getText();
+    @FXML
+    private void handleLogin() {
+        String identificador = txtEmail.getText().trim();
         String senha = txtSenha.getText();
-        log.info("{} [TELEMETRIA] Tentativa de login iniciada. Username: '{}'", LOG_PREFIX, username);
 
-        if (isInputInvalido(username, senha)) {
-            log.warn("{} [NEGOCIO] Login bloqueado: Campos obrigatórios vazios.", LOG_PREFIX);
-            exibirErro(MSG_ERRO_CAMPOS_VAZIOS);
+        log.info("{} [TELEMETRIA] Iniciando tentativa de login. Identificador: '{}'", LOG_PREFIX, identificador);
+
+        if (!validarInputs(identificador, senha)) {
             return;
         }
 
         alternarEstadoCarregamento(true);
 
-        AsyncUtils.executarTaskAsync(() -> authFacade.realizarLogin(username, senha), this::processarResultadoLogin,
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    log.debug("{} [NEGOCIO] Invocando Facade para validação de credenciais.", LOG_PREFIX);
+                    return authFacade.realizarLogin(identificador, senha);
+                },
+                this::processarResultadoLogin,
                 this::processarErroLogin);
+    }
+
+    private boolean validarInputs(String identificador, String senha) {
+        if (identificador.isBlank() || senha == null || senha.isBlank()) {
+            log.warn("{} [NEGOCIO] Login abortado: Campos obrigatórios vazios.", LOG_PREFIX);
+            exibirErro(MSG_ERRO_CAMPOS_VAZIOS);
+            return false;
+        }
+
+        // Uso do ValidationUtils para garantir que o identificador segue o padrão do
+        // sistema
+        if (!ValidationUtils.isUsernameValido(identificador) && !ValidationUtils.isEmailValido(identificador)) {
+            log.warn("{} [NEGOCIO] Login abortado: Identificador '{}' com formato inválido.", LOG_PREFIX,
+                    identificador);
+            exibirErro("Identificador inválido.");
+            return false;
+        }
+
+        return true;
     }
 
     private void processarResultadoLogin(Boolean loginBemSucedido) {
         alternarEstadoCarregamento(false);
 
         if (Boolean.TRUE.equals(loginBemSucedido)) {
-            log.info("{} [AUDITORIA] Autenticação bem-sucedida para o username: '{}'", LOG_PREFIX, txtEmail.getText());
+            log.info("{} [AUDITORIA] Autenticação bem-sucedida para: '{}'", LOG_PREFIX, txtEmail.getText());
+
+            // Atualiza o estado global da aplicação
             statusBarController.atualizarStatusUsuario();
             txtSenha.clear();
+
             navigator.navegarPara(ROTA_WORKSPACE, true);
         } else {
-            log.warn("{} [AUDITORIA] Falha na autenticação: Credenciais inválidas para o username: '{}'", LOG_PREFIX, txtEmail.getText());
+            log.warn("{} [AUDITORIA] Falha na autenticação: Credenciais incorretas para: '{}'", LOG_PREFIX,
+                    txtEmail.getText());
             exibirErro(MSG_ERRO_CREDENCIAIS);
         }
     }
 
     private void processarErroLogin(Throwable excecao) {
         alternarEstadoCarregamento(false);
-        log.error("{} [SISTEMA] Erro técnico durante o login: {}", LOG_PREFIX, excecao.getMessage(), excecao);
+        log.error("{} [SISTEMA] Erro crítico durante o processo de login: {}", LOG_PREFIX, excecao.getMessage());
         exibirErro(MSG_ERRO_CONEXAO);
-    }
-
-    private boolean isInputInvalido(String username, String senha) {
-        return username == null || username.isBlank() || senha == null || senha.isBlank();
     }
 
     // ==========================================================================================
     // MÓDULO 7: UTILITÁRIOS DE UI E NAVEGAÇÃO
     // ==========================================================================================
-    @FXML private void handleToggleSenha() {
+    @FXML
+    private void handleToggleSenha() {
         isSenhaVisivel = !isSenhaVisivel;
-        log.trace("{} [UI] Alternando visibilidade da senha: {}", LOG_PREFIX, isSenhaVisivel);
+        log.trace("{} [UI] Alternando visibilidade da senha. Visível: {}", LOG_PREFIX, isSenhaVisivel);
 
         if (isSenhaVisivel) {
             btnMostrarSenha.setText("🔒");
@@ -141,13 +179,14 @@ public class LoginController {
         }
     }
 
-    @FXML private void handleIrParaCadastro() {
-        log.info("{} [TELEMETRIA] Usuário solicitou navegação para a tela de Cadastro.", LOG_PREFIX);
+    @FXML
+    private void handleIrParaCadastro() {
+        log.info("{} [TELEMETRIA] Redirecionando usuário para o fluxo de cadastro.", LOG_PREFIX);
         navigator.navegarPara(ROTA_CADASTRO, false);
     }
 
     private void alternarEstadoCarregamento(boolean isCarregando) {
-        log.trace("{} [UI] Alterando estado de carregamento para: {}", LOG_PREFIX, isCarregando);
+        log.trace("{} [UI] Atualizando estado de carregamento: {}", LOG_PREFIX, isCarregando);
         progress.setVisible(isCarregando);
         btnLogin.setDisable(isCarregando);
         txtEmail.setDisable(isCarregando);
@@ -159,7 +198,7 @@ public class LoginController {
     }
 
     private void exibirErro(String mensagem) {
-        log.trace("{} [UI] Exibindo mensagem de erro: {}", LOG_PREFIX, mensagem);
+        log.debug("{} [UI] Exibindo feedback de erro: {}", LOG_PREFIX, mensagem);
         lblMensagem.setText(mensagem);
         lblMensagem.setVisible(true);
     }

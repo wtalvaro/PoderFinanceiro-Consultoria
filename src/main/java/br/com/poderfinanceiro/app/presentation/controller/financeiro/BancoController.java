@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.application.facade.IBancoFacade;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
 import br.com.poderfinanceiro.app.common.util.ContatoUtils;
 import br.com.poderfinanceiro.app.common.util.Disposable;
+import br.com.poderfinanceiro.app.common.util.ValidationUtils;
 import br.com.poderfinanceiro.app.domain.event.BancoUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.BancoModel;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
@@ -22,9 +23,10 @@ import org.springframework.stereotype.Component;
  * <h1>BancoController</h1>
  * <p>
  * Controlador de Interface (UI) responsável por gerenciar o mural de Bancos e
- * Convênios. Implementa o padrão <b>Humble Object</b>, delegando a persistência
- * e filtros para a {@link IBancoFacade} e interações globais para o
- * {@link Navigator}.
+ * Convênios.
+ * Implementa o padrão <b>Humble Object</b>, utilizando ValidationUtils para
+ * triagem
+ * e AsyncUtils para orquestração via Virtual Threads.
  * </p>
  */
 @Component
@@ -56,15 +58,24 @@ public class BancoController implements Disposable {
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
-    @FXML private FlowPane muralBancos;
-    @FXML private TextField txtBusca;
-    @FXML private VBox overlayFormulario;
-    @FXML private Label lblTituloModal;
-    @FXML private TextField txtCodigo;
-    @FXML private TextField txtNome;
-    @FXML private TextField txtLink;
-    @FXML private TextField txtTelefone;
-    @FXML private Label lblTotalRegistros;
+    @FXML
+    private FlowPane muralBancos;
+    @FXML
+    private TextField txtBusca;
+    @FXML
+    private VBox overlayFormulario;
+    @FXML
+    private Label lblTituloModal;
+    @FXML
+    private TextField txtCodigo;
+    @FXML
+    private TextField txtNome;
+    @FXML
+    private TextField txtLink;
+    @FXML
+    private TextField txtTelefone;
+    @FXML
+    private Label lblTotalRegistros;
 
     // ==========================================================================================
     // MÓDULO 4: ESTADO INTERNO DA TELA
@@ -83,19 +94,24 @@ public class BancoController implements Disposable {
     // ==========================================================================================
     // MÓDULO 5: INICIALIZAÇÃO E CICLO DE VIDA
     // ==========================================================================================
-    @FXML public void initialize() {
-        log.info("{} [TELEMETRIA] Inicializando interface de Bancos e Convênios...", LOG_PREFIX);
+    @FXML
+    public void initialize() {
+        log.info("{} [SISTEMA] Inicializando interface de Bancos e Convênios.", LOG_PREFIX);
         bancoEventHub.inscrever(this::recarregarBancos);
         recarregarBancos();
         configurarFiltroReativo();
+
         txtTelefone.setTextFormatter(ContatoUtils.criarFormatadorTelefone());
+
         lblTotalRegistros.textProperty()
                 .bind(Bindings.format("Total: %d banco(s)", Bindings.size(muralBancos.getChildren())));
-        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
+
+        log.debug("{} [SISTEMA] Inicialização concluída.", LOG_PREFIX);
     }
 
-    @Override public void dispose() {
-        log.info("{} [LIFECYCLE] Desinscrevendo dos hubs de eventos.", LOG_PREFIX);
+    @Override
+    public void dispose() {
+        log.info("{} [SISTEMA] Liberando recursos e desinscrevendo de eventos.", LOG_PREFIX);
         bancoEventHub.desinscrever(this::recarregarBancos);
     }
 
@@ -103,20 +119,29 @@ public class BancoController implements Disposable {
     // MÓDULO 6: LÓGICA DE LISTAGEM E FILTRO
     // ==========================================================================================
     public void recarregarBancos() {
-        log.trace("{} [TELEMETRIA] Recarregando mural de bancos.", LOG_PREFIX);
+        log.info("{} [TELEMETRIA] Iniciando atualização do mural de bancos.", LOG_PREFIX);
         filtrarMural(txtBusca.getText());
     }
 
     private void configurarFiltroReativo() {
-        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> filtrarMural(newVal));
+        txtBusca.textProperty().addListener((obs, oldVal, newVal) -> {
+            log.trace("{} [UI] Filtro de busca alterado: '{}'", LOG_PREFIX, newVal);
+            filtrarMural(newVal);
+        });
     }
 
     private void filtrarMural(String termo) {
-        AsyncUtils.executarTaskAsync(() -> bancoFacade.filtrarBancos(termo), bancosFiltrados -> {
-            muralBancos.getChildren().clear();
-            bancosFiltrados.forEach(banco -> muralBancos.getChildren().add(criarCardBanco(banco)));
-            log.debug("{} [TELEMETRIA] Mural atualizado: {} bancos.", LOG_PREFIX, bancosFiltrados.size());
-        }, erro -> log.error("{} [SISTEMA] Erro ao filtrar bancos: {}", LOG_PREFIX, erro.getMessage()));
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    log.debug("{} [NEGOCIO] Filtrando bancos na base de dados.", LOG_PREFIX);
+                    return bancoFacade.filtrarBancos(termo);
+                },
+                bancosFiltrados -> {
+                    muralBancos.getChildren().clear();
+                    bancosFiltrados.forEach(banco -> muralBancos.getChildren().add(criarCardBanco(banco)));
+                    log.info("{} [AUDITORIA] Mural renderizado com {} bancos.", LOG_PREFIX, bancosFiltrados.size());
+                },
+                erro -> log.error("{} [SISTEMA] Falha ao filtrar bancos: {}", LOG_PREFIX, erro.getMessage()));
     }
 
     // ==========================================================================================
@@ -146,15 +171,18 @@ public class BancoController implements Disposable {
 
     private HBox criarContatoCard(BancoModel banco) {
         String telOriginal = banco.getTelefoneSuporte();
-        boolean temTelefone = telOriginal != null && !telOriginal.trim().isEmpty();
+        boolean temTelefone = ValidationUtils.isPreenchido(telOriginal);
         String telExibicao = temTelefone ? ContatoUtils.formatarTelefone(telOriginal) : "Sem telefone";
+
         Label lblTel = new Label("📞 " + telExibicao);
         lblTel.setStyle(STYLE_LBL_TEL);
+
         Button btnZap = new Button("💬 WhatsApp");
         btnZap.setStyle(STYLE_BTN_ZAP);
         btnZap.setVisible(temTelefone);
         btnZap.setManaged(temTelefone);
         btnZap.setOnAction(e -> abrirWhatsApp(telOriginal));
+
         HBox boxContato = new HBox(15, lblTel, btnZap);
         boxContato.setAlignment(Pos.CENTER_LEFT);
         return boxContato;
@@ -172,15 +200,19 @@ public class BancoController implements Disposable {
         Button btnEditar = new Button("✏️ Editar");
         btnEditar.setStyle(STYLE_BTN_EDITAR);
         btnEditar.setOnAction(e -> abrirModalEdicao(banco));
+
         Button btnRemover = new Button("🗑️ Remover");
         btnRemover.setStyle(STYLE_BTN_REMOVER);
+
         boolean bloqueada = bancoFacade.isExclusaoBloqueada(banco);
         btnRemover.setDisable(bloqueada);
+
         if (bloqueada) {
             Tooltip.install(btnRemover, new Tooltip("Exclusão bloqueada: Este banco possui tabelas ativas."));
         } else {
             btnRemover.setOnAction(e -> solicitarExclusaoBanco(banco));
         }
+
         HBox rodape = new HBox(15, btnRemover, btnEditar);
         rodape.setAlignment(Pos.CENTER_RIGHT);
         return rodape;
@@ -189,13 +221,8 @@ public class BancoController implements Disposable {
     // ==========================================================================================
     // MÓDULO 8: AÇÕES DE NEGÓCIO (CRUD)
     // ==========================================================================================
-
-    /**
-     * Solicita confirmação global via Navigator para exclusão de um banco.
-     */
     private void solicitarExclusaoBanco(BancoModel banco) {
-        log.info("{} [TELEMETRIA] Solicitando confirmação global para exclusão do banco ID: {}", LOG_PREFIX,
-                banco.getId());
+        log.info("{} [TELEMETRIA] Solicitando confirmação para exclusão do banco ID: {}", LOG_PREFIX, banco.getId());
 
         navigator.solicitarConfirmacao("🗑️ Excluir Parceiro",
                 "Tem certeza que deseja excluir o banco " + banco.getNome() + "?\nEsta ação não poderá ser desfeita.",
@@ -203,57 +230,96 @@ public class BancoController implements Disposable {
     }
 
     private void executarExclusaoReal(Long idBanco) {
-        log.info("{} [TELEMETRIA] Executando exclusão assíncrona do banco ID: {}", LOG_PREFIX, idBanco);
+        log.info("{} [TELEMETRIA] Iniciando exclusão assíncrona do banco ID: {}", LOG_PREFIX, idBanco);
         navigator.mostrarLoading("Excluindo parceiro...");
 
-        AsyncUtils.executarTaskAsync(() -> {
-            bancoFacade.excluirBanco(idBanco);
-            return null;
-        }, sucesso -> {
-            navigator.ocultarLoading();
-            log.info("{} [AUDITORIA] Banco ID {} removido com sucesso.", LOG_PREFIX, idBanco);
-            recarregarBancos();
-            navigator.notificarSucesso("Banco removido da base de parceiros.");
-        }, erro -> {
-            navigator.ocultarLoading();
-            log.error("{} [AUDITORIA] Falha ao excluir banco: {}", LOG_PREFIX, erro.getMessage());
-            navigator.notificarAviso("Erro ao excluir: " + erro.getMessage());
-        });
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    bancoFacade.excluirBanco(idBanco);
+                    return null;
+                },
+                sucesso -> {
+                    navigator.ocultarLoading();
+                    log.info("{} [AUDITORIA] Banco ID {} removido com sucesso.", LOG_PREFIX, idBanco);
+                    recarregarBancos();
+                    navigator.notificarSucesso("Banco removido da base de parceiros.");
+                },
+                erro -> {
+                    navigator.ocultarLoading();
+                    log.error("{} [AUDITORIA] Falha ao excluir banco: {}", LOG_PREFIX, erro.getMessage());
+                    navigator.notificarAviso("Erro ao excluir: " + erro.getMessage());
+                });
     }
 
-    @FXML private void salvarBanco() {
-        log.info("{} [TELEMETRIA] Iniciando processo de salvamento de banco.", LOG_PREFIX);
+    @FXML
+    private void salvarBanco() {
+        String codigo = txtCodigo.getText().trim();
+        String nome = txtNome.getText().trim();
+        String link = txtLink.getText().trim();
+        String telefone = txtTelefone.getText().trim();
+
+        log.info("{} [TELEMETRIA] Tentativa de salvamento de banco iniciada. Nome: '{}'", LOG_PREFIX, nome);
+
+        if (!validarFormulario(codigo, nome, link)) {
+            return;
+        }
 
         if (bancoEmEdicao == null)
             bancoEmEdicao = new BancoModel();
 
-        bancoEmEdicao.setCodigo(txtCodigo.getText());
-        bancoEmEdicao.setNome(txtNome.getText());
-        bancoEmEdicao.setSitePortal(txtLink.getText());
-        bancoEmEdicao.setTelefoneSuporte(txtTelefone.getText());
+        bancoEmEdicao.setCodigo(codigo);
+        bancoEmEdicao.setNome(nome);
+        bancoEmEdicao.setSitePortal(link);
+        bancoEmEdicao.setTelefoneSuporte(telefone);
 
         navigator.mostrarLoading("Salvando dados do banco...");
-        AsyncUtils.executarTaskAsync(() -> bancoFacade.salvarBanco(bancoEmEdicao), salvo -> {
-            navigator.ocultarLoading();
-            log.info("{} [AUDITORIA] Banco salvo com sucesso. ID: {}", LOG_PREFIX, salvo.getId());
-            fecharModal();
-            recarregarBancos();
-            navigator.notificarSucesso("Dados do parceiro atualizados com sucesso!");
-        }, erro -> {
-            navigator.ocultarLoading();
-            log.error("{} [AUDITORIA] Falha ao persistir banco: {}", LOG_PREFIX, erro.getMessage());
-            navigator.notificarAviso("Erro ao salvar: " + erro.getMessage());
-        });
+
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    log.debug("{} [NEGOCIO] Invocando Facade para persistência do banco.", LOG_PREFIX);
+                    return bancoFacade.salvarBanco(bancoEmEdicao);
+                },
+                salvo -> {
+                    navigator.ocultarLoading();
+                    log.info("{} [AUDITORIA] Banco salvo com sucesso. ID: {}", LOG_PREFIX, salvo.getId());
+                    fecharModal();
+                    recarregarBancos();
+                    navigator.notificarSucesso("Dados do parceiro atualizados com sucesso!");
+                },
+                erro -> {
+                    navigator.ocultarLoading();
+                    log.error("{} [AUDITORIA] Falha crítica ao persistir banco: {}", LOG_PREFIX, erro.getMessage());
+                    navigator.notificarAviso("Erro ao salvar: " + erro.getMessage());
+                });
+    }
+
+    private boolean validarFormulario(String codigo, String nome, String link) {
+        if (!ValidationUtils.isPreenchido(codigo) || !ValidationUtils.isPreenchido(nome)) {
+            log.warn("{} [NEGOCIO] Validação falhou: Nome ou Código ausentes.", LOG_PREFIX);
+            navigator.notificarAviso("Nome e Código do banco são obrigatórios.");
+            return false;
+        }
+
+        if (ValidationUtils.isPreenchido(link) && !ValidationUtils.isUrlValida(link)) {
+            log.warn("{} [NEGOCIO] Validação falhou: URL do portal inválida.", LOG_PREFIX);
+            navigator.notificarAviso("A URL do portal informada é inválida.");
+            return false;
+        }
+
+        return true;
     }
 
     // ==========================================================================================
     // MÓDULO 9: GESTÃO DO MODAL (FORMULÁRIO)
     // ==========================================================================================
-    @FXML private void abrirModalNovo() {
+    @FXML
+    private void abrirModalNovo() {
+        log.info("{} [TELEMETRIA] Abrindo formulário para novo banco.", LOG_PREFIX);
         prepararModal(new BancoModel(), "➕ Novo Parceiro");
     }
 
     private void abrirModalEdicao(BancoModel banco) {
+        log.info("{} [TELEMETRIA] Abrindo formulário de edição para o banco ID: {}", LOG_PREFIX, banco.getId());
         prepararModal(banco, "✏️ Editando: " + banco.getNome());
     }
 
@@ -267,7 +333,9 @@ public class BancoController implements Disposable {
         overlayFormulario.setVisible(true);
     }
 
-    @FXML private void fecharModal() {
+    @FXML
+    private void fecharModal() {
+        log.trace("{} [UI] Fechando overlay de formulário.", LOG_PREFIX);
         overlayFormulario.setVisible(false);
     }
 
@@ -276,15 +344,19 @@ public class BancoController implements Disposable {
     // ==========================================================================================
     private void abrirLinkNoNavegador(String url) {
         String link = bancoFacade.formatarUrlPortal(url);
-        if (link != null)
+        if (link != null) {
+            log.info("{} [TELEMETRIA] Invocando navegador para URL: {}", LOG_PREFIX, link);
             hostServices.showDocument(link);
+        }
     }
 
     private void abrirWhatsApp(String telefone) {
         String link = bancoFacade.formatarLinkWhatsApp(telefone);
         if (link != null) {
+            log.info("{} [TELEMETRIA] Invocando WhatsApp para o número: {}", LOG_PREFIX, telefone);
             hostServices.showDocument(link);
         } else {
+            log.warn("{} [NEGOCIO] Tentativa de abrir WhatsApp sem número cadastrado.", LOG_PREFIX);
             navigator.notificarAviso("Este banco não possui um WhatsApp de suporte cadastrado.");
         }
     }
