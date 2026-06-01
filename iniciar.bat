@@ -22,7 +22,7 @@ if exist "update.jar" (
 )
 
 :START_APP
-echo [SISTEMA] Iniciando Poder Financeiro v2.1.6.1...
+echo [SISTEMA] Iniciando Poder Financeiro v2.1.6.2...
 
 :: 2. Executa o Java 25
 :: Usamos 'start' sem '/b' para o javaw se desvincular totalmente do CMD

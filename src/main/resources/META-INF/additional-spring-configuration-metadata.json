@@ -73,5 +73,10 @@
     "name": "\ngemini.api.ur",
     "type": "java.lang.String",
     "description": "A description for '\ngemini.api.ur'"
+  },
+  {
+    "name": "2\napp.na",
+    "type": "java.lang.String",
+    "description": "A description for '2\napp.na'"
   }
 ]}
