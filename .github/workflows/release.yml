@@ -7,12 +7,13 @@ on:
 
 jobs:
   build-and-release:
-    name: Build e Distribuição Inteligente
+    name: Build e Distribuição Windows
     runs-on: ubuntu-latest
     permissions:
       contents: write
     
     env:
+      # Prepara o pipeline para a migração de Node.js do GitHub em 2026
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
     steps:
@@ -27,6 +28,7 @@ jobs:
         cache: maven
 
     - name: 3. Compilar e Processar Recursos (Maven)
+      # O parâmetro -Djavafx.platform=win garante a inclusão das DLLs nativas
       run: |
         chmod +x mvnw
         ./mvnw clean package -DskipTests -Djavafx.platform=win
@@ -34,27 +36,40 @@ jobs:
     - name: 4. Preparar Pacote de Distribuição (.zip)
       run: |
         mkdir -p dist_package
+        
+        # Copia o JAR principal
         cp target/PoderFinanceiro.jar dist_package/
+        
+        # Copia os scripts processados pelo Maven (com a versão real injetada)
         cp target/classes/iniciar.bat dist_package/
         cp target/classes/iniciar.sh dist_package/
+        
+        # Garante permissão de execução para o script Linux
         chmod +x dist_package/iniciar.sh
+        
+        # Gera o ZIP (junk-paths para manter os arquivos na raiz do zip)
         zip -j PoderFinanceiro_${{ github.ref_name }}_Windows.zip dist_package/*
 
     - name: 5. Criar Release no GitHub
       uses: softprops/action-gh-release@v2
       with:
-        name: ERP Poder Financeiro - Versão ${{ github.ref_name }}
+        # CORREÇÃO: Removido o 'v' extra. O ref_name já é 'v2.2.5'
+        name: ERP Poder Financeiro - ${{ github.ref_name }}
         tag_name: ${{ github.ref_name }}
         generate_release_notes: true
         body: |
-          ## 🚀 ERP Poder Financeiro - v${{ github.ref_name }}
-          Esta versão implementa a **Atualização Inteligente (Zero-Click)**.
+          ## 🚀 Notas da Release - ${{ github.ref_name }}
           
-          ### 📦 Como Atualizar:
-          1. Clique no arquivo `PoderFinanceiro_${{ github.ref_name }}_Windows.zip` abaixo para baixar.
-          2. Assim que o download terminar, **feche o programa**.
-          3. Abra o programa novamente pelo seu `iniciar.bat`.
-          4. O sistema detectará o pacote em Downloads e se atualizará sozinho!
+          Esta versão consolida a estabilidade do sistema com o novo modelo de **Atualização Manual Assistida**.
+          
+          ### 📦 Instruções de Instalação:
+          1. Baixe o arquivo `PoderFinanceiro_${{ github.ref_name }}_Windows.zip` abaixo.
+          2. Extraia o conteúdo para a pasta onde o programa está instalado.
+          3. Substitua todos os arquivos quando solicitado pelo Windows.
+          4. Execute o `iniciar.bat` para iniciar o sistema.
+          
+          ---
+          *Build orquestrado via CI/CD Gold Standard (Node 24 Ready).*
         files: |
           PoderFinanceiro_${{ github.ref_name }}_Windows.zip
           target/PoderFinanceiro.jar
