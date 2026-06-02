@@ -13,9 +13,8 @@ import java.util.Optional;
  * <h1>UpdateService</h1>
  * <p>
  * Serviço de Domínio responsável pela detecção de novas versões.
- * Implementa a estratégia de Atualização Manual Assistida para garantir
- * estabilidade absoluta no Windows 11, eliminando riscos de bloqueio de
- * arquivo.
+ * Implementa a estratégia de Atualização Inteligente: O Java detecta e o
+ * script de boot executa a logística de arquivos para evitar bloqueios de SO.
  * </p>
  */
 @Service
@@ -55,7 +54,7 @@ public class UpdateService {
                 return Optional.of(ultimaRelease);
             }
 
-            log.debug("{} [NEGOCIO] O sistema já está na versão mais recente.", LOG_PREFIX);
+            log.debug("{} [NEGOCIO] O sistema já está operando na versão mais recente.", LOG_PREFIX);
             return Optional.empty();
         } catch (Exception e) {
             log.error("{} [SISTEMA] Falha ao consultar o GitHub: {}", LOG_PREFIX, e.getMessage());
@@ -64,15 +63,13 @@ public class UpdateService {
     }
 
     /**
-     * MANTIDO PARA PRESERVAR O CONTRATO DA FACADE E EVITAR ERROS DE COMPILAÇÃO.
-     * No modo manual, este método apenas registra o log de intenção.
+     * MANTIDO PARA PRESERVAR O CONTRATO DA FACADE.
+     * No modo inteligente, este método apenas registra o log, pois a extração
+     * será feita pelo script de boot.
      */
     public void baixarEExecutarAtualizacaoPorTag(String tag) throws Exception {
-        log.info(
-                "{} [SISTEMA] Modo de atualização manual ativo. O download deve ser feito via navegador para a tag: {}",
-                LOG_PREFIX, tag);
-        // Lógica de download automático removida para evitar bloqueios de arquivo no
-        // Windows 11.
+        log.info("{} [SISTEMA] Modo inteligente ativo. Instruindo usuário para download manual via navegador.",
+                LOG_PREFIX);
     }
 
     /**

@@ -152,8 +152,7 @@ public class MenuController {
     // ==========================================================================================
     @FXML
     private void handleVerificarAtualizacoes() {
-        log.info("{} [TELEMETRIA] Iniciando verificação manual de atualizações.", LOG_PREFIX);
-        navigator.mostrarLoading("Verificando novidades no servidor...");
+        navigator.mostrarLoading("Verificando novidades...");
 
         AsyncUtils.executarTaskAsync(
                 updateService::checarNovaVersao,
@@ -161,29 +160,25 @@ public class MenuController {
                     navigator.ocultarLoading();
                     if (optRelease.isPresent()) {
                         GitHubReleaseDTO release = optRelease.get();
-                        log.info("{} [NEGOCIO] Nova versão detectada: {}", LOG_PREFIX, release.tagName());
-
                         navigator.solicitarConfirmacao(
-                                "🚀 Nova Versão Disponível",
-                                "A versão " + release.tagName()
-                                        + " foi lançada com melhorias!\n\nDeseja abrir a página de download para atualizar manualmente?",
-                                "Ir para Download",
+                                "🚀 Nova Versão: " + release.tagName(),
+                                "Uma atualização foi encontrada!\n\n" +
+                                        "Como atualizar:\n" +
+                                        "1. Clique em 'Baixar Agora'.\n" +
+                                        "2. Quando o download terminar, feche o programa.\n" +
+                                        "3. Abra o programa novamente pelo 'iniciar.bat'.\n\n" +
+                                        "O sistema fará a instalação sozinho.",
+                                "Baixar Agora",
                                 "-color-success-emphasis",
-                                () -> {
-                                    log.info("{} [TELEMETRIA] Redirecionando usuário para o GitHub Releases.",
-                                            LOG_PREFIX);
-                                    hostServices.showDocument(
-                                            "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/latest");
-                                });
+                                () -> hostServices.showDocument(
+                                        "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/latest"));
                     } else {
-                        log.info("{} [NEGOCIO] Sistema já está na versão mais recente.", LOG_PREFIX);
-                        navigator.notificarSucesso("Você já possui a versão mais recente instalada.");
+                        navigator.notificarSucesso("Você já está na versão mais recente.");
                     }
                 },
                 erro -> {
-                    log.error("{} [SISTEMA] Falha na checagem de versão: {}", LOG_PREFIX, erro.getMessage());
                     navigator.ocultarLoading();
-                    navigator.notificarAviso("Não foi possível conectar ao servidor de atualizações.");
+                    navigator.notificarAviso("Erro ao conectar ao servidor.");
                 });
     }
 }
