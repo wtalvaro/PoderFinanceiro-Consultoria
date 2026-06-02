@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
     steps:
     - name: 1. Checkout do Código
@@ -24,25 +27,17 @@ jobs:
         cache: maven
 
     - name: 3. Compilar e Processar Recursos (Maven)
-      # O Maven injetará a versão nos scripts e no application.properties
-      run: ./mvnw clean package -DskipTests -Djavafx.platform=win
+      run: |
+        chmod +x mvnw
+        ./mvnw clean package -DskipTests -Djavafx.platform=win
 
     - name: 4. Preparar Pacote de Distribuição (.zip)
       run: |
         mkdir -p dist_package
-        
-        # Copia o JAR principal
         cp target/PoderFinanceiro.jar dist_package/
-        
-        # CRÍTICO: Copia os scripts PROCESSADOS pelo Maven (com a versão real)
         cp target/classes/iniciar.bat dist_package/
         cp target/classes/iniciar.sh dist_package/
-        
-        # Garante permissão de execução
         chmod +x dist_package/iniciar.sh
-        
-        # Gera o ZIP com nome compatível com a busca do script iniciar.bat
-        # O padrão buscado é PoderFinanceiro_v*.zip
         zip -j PoderFinanceiro_${{ github.ref_name }}_Windows.zip dist_package/*
 
     - name: 5. Criar Release no GitHub
@@ -53,17 +48,13 @@ jobs:
         generate_release_notes: true
         body: |
           ## 🚀 ERP Poder Financeiro - v${{ github.ref_name }}
-          
-          Esta versão introduz a **Atualização Inteligente (Zero-Click)**.
+          Esta versão implementa a **Atualização Inteligente (Zero-Click)**.
           
           ### 📦 Como Atualizar:
-          1. Clique no arquivo `PoderFinanceiro_${{ github.ref_name }}_Windows.zip` abaixo para iniciar o download.
-          2. Assim que o download terminar no seu navegador, **feche o programa**.
-          3. Abra o programa novamente através do seu `iniciar.bat` habitual.
-          4. O sistema detectará o novo pacote na sua pasta de **Downloads** e fará a instalação automaticamente!
-          
-          ---
-          *Build orquestrado via CI/CD Gold Standard.*
+          1. Clique no arquivo `PoderFinanceiro_${{ github.ref_name }}_Windows.zip` abaixo para baixar.
+          2. Assim que o download terminar, **feche o programa**.
+          3. Abra o programa novamente pelo seu `iniciar.bat`.
+          4. O sistema detectará o pacote em Downloads e se atualizará sozinho!
         files: |
           PoderFinanceiro_${{ github.ref_name }}_Windows.zip
           target/PoderFinanceiro.jar

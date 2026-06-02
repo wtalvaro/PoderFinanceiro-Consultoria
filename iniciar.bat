@@ -1,14 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: ERP Poder Financeiro - Inicializador Inteligente v@project.version@
+:: ERP Poder Financeiro - v@project.version@
 title Poder Financeiro - v@project.version@
 
 set "DOWNLOADS_DIR=%USERPROFILE%\Downloads"
 set "TMP_DIR=%~dp0tmp"
 set "APP_DIR=%~dp0"
 
-echo [SISTEMA] Verificando novos pacotes em %DOWNLOADS_DIR%...
+echo [SISTEMA] Verificando novos pacotes em Downloads...
 
 :: 1. Busca o ZIP mais recente que comece com PoderFinanceiro_v
 set "LATEST_ZIP="
@@ -24,10 +24,8 @@ if defined LATEST_ZIP (
 
     if not exist "%TMP_DIR%" mkdir "%TMP_DIR%"
     
-    :: Move o arquivo para a pasta local tmp
     move /y "%DOWNLOADS_DIR%\%LATEST_ZIP%" "%TMP_DIR%\update.zip" >nul
 
-    :: Extrai usando o tar nativo do Windows 11
     tar -xf "%TMP_DIR%\update.zip" -C "%APP_DIR%"
 
     if errorlevel 0 (

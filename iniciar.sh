@@ -1,5 +1,5 @@
 #!/bin/bash
-# ERP Poder Financeiro - Inicializador Inteligente v@project.version@
+# ERP Poder Financeiro - v@project.version@
 
 DOWNLOADS_DIR="$HOME/Downloads"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
