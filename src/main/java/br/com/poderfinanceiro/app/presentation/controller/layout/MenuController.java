@@ -152,6 +152,7 @@ public class MenuController {
     // ==========================================================================================
     @FXML
     private void handleVerificarAtualizacoes() {
+        log.info("{} [TELEMETRIA] Usuário solicitou verificação de atualizações.", LOG_PREFIX);
         navigator.mostrarLoading("Verificando novidades...");
 
         AsyncUtils.executarTaskAsync(
@@ -161,24 +162,25 @@ public class MenuController {
                     if (optRelease.isPresent()) {
                         GitHubReleaseDTO release = optRelease.get();
                         navigator.solicitarConfirmacao(
-                                "🚀 Nova Versão: " + release.tagName(),
-                                "Uma atualização foi encontrada!\n\n" +
-                                        "Como atualizar:\n" +
-                                        "1. Clique em 'Baixar Agora'.\n" +
-                                        "2. Quando o download terminar, feche o programa.\n" +
-                                        "3. Abra o programa novamente pelo 'iniciar.bat'.\n\n" +
-                                        "O sistema fará a instalação sozinho.",
-                                "Baixar Agora",
+                                "🚀 Nova Versão Disponível",
+                                "A versão " + release.tagName()
+                                        + " foi lançada!\n\nDeseja abrir a página de download para atualizar manualmente?",
+                                "Ir para Download",
                                 "-color-success-emphasis",
-                                () -> hostServices.showDocument(
-                                        "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/latest"));
+                                () -> {
+                                    log.info("{} [TELEMETRIA] Abrindo navegador para download manual.", LOG_PREFIX);
+                                    hostServices.showDocument(
+                                            "https://github.com/wtalvaro/PoderFinanceiro-Consultoria/releases/latest");
+                                });
                     } else {
-                        navigator.notificarSucesso("Você já está na versão mais recente.");
+                        navigator.notificarSucesso("Você já possui a versão mais recente instalada.");
                     }
                 },
                 erro -> {
+                    log.error("{} [SISTEMA] Falha na checagem: {}", LOG_PREFIX, erro.getMessage());
                     navigator.ocultarLoading();
-                    navigator.notificarAviso("Erro ao conectar ao servidor.");
+                    navigator.notificarAviso("Não foi possível checar atualizações.");
                 });
     }
+
 }

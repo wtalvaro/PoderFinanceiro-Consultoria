@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>br.com.poderfinanceiro</groupId>
 	<artifactId>app</artifactId>
-	<version>2.2.4</version>
+	<version>2.2.5</version>
 	<name>Poder Financeiro</name>
 	<description>ERP para Correspondentes Bancários</description>
 

@@ -6,15 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import java.util.Optional;
 
 /**
  * <h1>UpdateService</h1>
  * <p>
- * Serviço de Domínio responsável pela detecção de novas versões.
- * Implementa a estratégia de Atualização Inteligente: O Java detecta e o
- * script de boot executa a logística de arquivos para evitar bloqueios de SO.
+ * Serviço de Domínio responsável apenas pela detecção de novas versões.
+ * Estratégia: Manual Assistida (Risco Zero para Windows 11).
  * </p>
  */
 @Service
@@ -30,79 +28,59 @@ public class UpdateService {
     public UpdateService(UpdateClient updateClient, @Value("${app.version:1.0.0}") String versaoAtual) {
         this.updateClient = updateClient;
         this.versaoAtual = normalizarVersao(versaoAtual);
-        log.info("{} [SISTEMA] Sensor de atualizações inicializado. Versão local: {}", LOG_PREFIX, this.versaoAtual);
+        log.info("{} [SISTEMA] Sensor de atualizações ativo. Versão local: {}", LOG_PREFIX, this.versaoAtual);
     }
 
-    /**
-     * Verifica se existe uma nova versão disponível no repositório remoto.
-     */
     public Optional<GitHubReleaseDTO> checarNovaVersao() {
-        log.info("{} [TELEMETRIA] Iniciando verificação de versão remota no GitHub.", LOG_PREFIX);
+        log.info("{} [TELEMETRIA] Verificando disponibilidade de novas versões no GitHub.", LOG_PREFIX);
         try {
             GitHubReleaseDTO ultimaRelease = updateClient.buscarUltimaRelease();
-
-            if (ultimaRelease == null || ultimaRelease.tagName() == null) {
-                log.warn("{} [SISTEMA] Resposta inválida do servidor de releases.", LOG_PREFIX);
+            if (ultimaRelease == null || ultimaRelease.tagName() == null)
                 return Optional.empty();
-            }
 
             String versaoRemota = normalizarVersao(ultimaRelease.tagName());
 
             if (isVersaoNova(versaoRemota, versaoAtual)) {
-                log.info("{} [NEGOCIO] Nova release detectada: {} (Atual: {})",
-                        LOG_PREFIX, ultimaRelease.tagName(), versaoAtual);
+                log.info("{} [NEGOCIO] Nova versão detectada: {} (Atual: {})", LOG_PREFIX, ultimaRelease.tagName(),
+                        versaoAtual);
                 return Optional.of(ultimaRelease);
             }
-
-            log.debug("{} [NEGOCIO] O sistema já está operando na versão mais recente.", LOG_PREFIX);
             return Optional.empty();
         } catch (Exception e) {
-            log.error("{} [SISTEMA] Falha ao consultar o GitHub: {}", LOG_PREFIX, e.getMessage());
+            log.error("{} [SISTEMA] Erro ao consultar atualizações: {}", LOG_PREFIX, e.getMessage());
             return Optional.empty();
         }
     }
 
     /**
-     * MANTIDO PARA PRESERVAR O CONTRATO DA FACADE.
-     * No modo inteligente, este método apenas registra o log, pois a extração
-     * será feita pelo script de boot.
+     * Método mantido para compatibilidade de contrato, mas sem execução de
+     * download.
      */
     public void baixarEExecutarAtualizacaoPorTag(String tag) throws Exception {
-        log.info("{} [SISTEMA] Modo inteligente ativo. Instruindo usuário para download manual via navegador.",
-                LOG_PREFIX);
+        log.info("{} [SISTEMA] Modo manual ativo. Redirecionando usuário para o navegador.", LOG_PREFIX);
     }
 
-    /**
-     * Normaliza strings de versão removendo prefixos e espaços.
-     * Visibilidade package-private para suportar testes unitários.
-     */
     String normalizarVersao(String versao) {
         if (versao == null)
             return "0.0.0";
         return versao.toLowerCase().replace(PREFIXO_V, "").trim();
     }
 
-    /**
-     * Algoritmo de comparação de versões semânticas (SemVer).
-     * Visibilidade package-private para suportar testes unitários.
-     */
     boolean isVersaoNova(String remota, String atual) {
         try {
-            String[] partesRemota = remota.split("\\.");
-            String[] partesAtual = atual.split("\\.");
-            int maxPartes = Math.max(partesRemota.length, partesAtual.length);
-
-            for (int i = 0; i < maxPartes; i++) {
-                int vRemota = i < partesRemota.length ? Integer.parseInt(partesRemota[i].replaceAll("\\D", "")) : 0;
-                int vAtual = i < partesAtual.length ? Integer.parseInt(partesAtual[i].replaceAll("\\D", "")) : 0;
-
-                if (vRemota > vAtual)
+            String[] pR = remota.split("\\.");
+            String[] pA = atual.split("\\.");
+            int max = Math.max(pR.length, pA.length);
+            for (int i = 0; i < max; i++) {
+                int vR = i < pR.length ? Integer.parseInt(pR[i].replaceAll("\\D", "")) : 0;
+                int vA = i < pA.length ? Integer.parseInt(pA[i].replaceAll("\\D", "")) : 0;
+                if (vR > vA)
                     return true;
-                if (vRemota < vAtual)
+                if (vR < vA)
                     return false;
             }
         } catch (Exception e) {
-            log.error("{} [SISTEMA] Erro ao processar comparação numérica de versões: {}", LOG_PREFIX, e.getMessage());
+            log.error("{} [SISTEMA] Erro na comparação de versões.", LOG_PREFIX);
         }
         return false;
     }
