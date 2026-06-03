@@ -1,11 +1,48 @@
 .workspace-container .tab-header-area {
-    /* Define o cursor como 'mãozinha' ao passar sobre as abas */
     -fx-cursor: hand;
     cursor: pointer;
-    /* Compatibilidade padrão (W3C) */
 }
 
 .workspace-container .tab {
     -fx-tab-min-width: 150px;
     -fx-tab-max-width: 250px;
+}
+
+/* ============================================================
+   ESTILIZAÇÃO DO BOTÃO DE FECHAR (X)
+   ============================================================ */
+
+/* 1. O Botão (Aumentamos o Alpha para 0.18 para dar corpo ao botão) */
+.workspace-container .tab-close-button {
+    /* Fundo sutil mas visível (18% de opacidade) */
+    -fx-background-color: rgba(0, 0, 0, 0.18);
+    -fx-background-radius: 3;
+
+    /* Área de clique facilitada */
+    -fx-padding: 5 8 5 8;
+
+    -fx-cursor: hand;
+    -fx-background-insets: 0;
+}
+
+/* 2. O Ícone "X" (Estado Normal - Agora bem nítido) */
+.workspace-container .tab-close-button .tab-close-button-icon {
+    /* Cor sólida para o X não parecer "lavado" */
+    -fx-background-color: #222222;
+}
+
+/* 3. O Botão no Hover (Fundo Vermelho Vibrante) */
+.workspace-container .tab-close-button:hover {
+    -fx-background-color: #e81123 !important;
+}
+
+/* 4. O Ícone "X" no Hover (Branco para contraste) */
+.workspace-container .tab-close-button:hover .tab-close-button-icon {
+    -fx-background-color: white !important;
+}
+
+/* 5. Feedback de aumento no hover */
+.workspace-container .tab-close-button:hover {
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
 }

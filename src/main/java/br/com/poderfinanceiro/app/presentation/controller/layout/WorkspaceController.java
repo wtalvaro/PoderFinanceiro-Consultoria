@@ -315,7 +315,7 @@ public class WorkspaceController {
         }, hub.getLeadController().getViewModel().nomeProperty()));
 
         Label icone = new Label("👤");
-        icone.setStyle("-fx-font-size: 14px;");
+        icone.setStyle("-fx-font-size: 14px; -fx-padding: 0 0 0 5;"); // Adicionado padding aqui
         aba.setGraphic(icone);
     }
 
