@@ -19,11 +19,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
+ * <h1>GeminiService</h1>
+ * <p>
  * Serviço Orquestrador de Inteligência Artificial para o ERP Poder Financeiro.
- * Implementa Arquitetura Limpa através da delegação de responsabilidades para
- * componentes especializados.
+ * Implementa lógica de comunicação multimodal, OCR e análise cognitiva.
+ * Otimizado para Java 25 (Project Loom) com cache thread-safe e logs rigorosos.
+ * </p>
  */
 @Service
 public class GeminiService {
@@ -39,19 +43,29 @@ public class GeminiService {
     private final PlaybookResolver playbookResolver;
     private final ObjectMapper objectMapper;
 
-    @Value("${gemini.api.url}") private String baseUrl;
+    @Value("${gemini.api.url}")
+    private String baseUrl;
 
-    public GeminiService(GeminiClient geminiClient, GeminiPromptFactory promptFactory,
-            GeminiRequestFactory requestFactory, GeminiResponseHandler responseHandler, GeminiMediaMapper mediaMapper,
-            PlaybookResolver playbookResolver) {
+    // Cache thread-safe para Virtual Threads (Project Loom)
+    private final List<String> cacheModelos = new CopyOnWriteArrayList<>();
+    private volatile boolean cacheCarregado = false;
+
+    public GeminiService(GeminiClient geminiClient,
+            GeminiPromptFactory promptFactory,
+            GeminiRequestFactory requestFactory,
+            GeminiResponseHandler responseHandler,
+            GeminiMediaMapper mediaMapper,
+            PlaybookResolver playbookResolver,
+            ObjectMapper objectMapper) {
         this.geminiClient = geminiClient;
         this.promptFactory = promptFactory;
         this.requestFactory = requestFactory;
         this.responseHandler = responseHandler;
         this.mediaMapper = mediaMapper;
         this.playbookResolver = playbookResolver;
-        this.objectMapper = new ObjectMapper();
-        log.info("{} [SISTEMA] Orquestrador de IA instanciado com sucesso.", LOG_PREFIX);
+        this.objectMapper = objectMapper;
+        log.info("{} [SISTEMA] Orquestrador de IA inicializado com suporte a Virtual Threads e Jackson Injetado.",
+                LOG_PREFIX);
     }
 
     /**
@@ -61,7 +75,7 @@ public class GeminiService {
         log.info("{} [TELEMETRIA] Iniciando geração de texto simples. Modelo: {}", LOG_PREFIX, modeloEscolhido);
 
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("{} [NEGOCIO] Tentativa de perguntarTexto sem API Key.", LOG_PREFIX);
+            log.warn("{} [NEGOCIO] Tentativa de consulta abortada: API Key não configurada.", LOG_PREFIX);
             return "⚠️ API Key não configurada.";
         }
 
@@ -72,10 +86,10 @@ public class GeminiService {
             GeminiResponse response = geminiClient.post(url, payload, GeminiResponse.class, "TEXTO_SIMPLES");
             String resultado = responseHandler.extrairTexto(response);
 
-            log.info("{} [AUDITORIA] Texto simples gerado com sucesso.", LOG_PREFIX);
+            log.info("{} [AUDITORIA] Resposta de texto gerada com sucesso.", LOG_PREFIX);
             return resultado;
         } catch (Exception e) {
-            log.error("{} [SISTEMA] Erro ao processar perguntarTexto: {}", LOG_PREFIX, e.getMessage());
+            log.error("{} [SISTEMA] Erro ao processar consulta de texto: {}", LOG_PREFIX, e.getMessage());
             return "⚠️ Erro na consulta: " + e.getMessage();
         }
     }
@@ -85,20 +99,19 @@ public class GeminiService {
      */
     public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, File arquivoAnexo,
             String jsonClienteAtivo, String jsonTabelasJuros, String jsonLinksUteis, String jsonComissoes) {
-        log.debug("{} [TELEMETRIA] Chamada de compatibilidade do assistente iniciada.", LOG_PREFIX);
-        return perguntarAoAssistente(perguntaUsuario, apiKeyDoConsultor, "gemini-2.5-flash", arquivoAnexo,
+        log.debug("{} [TELEMETRIA] Chamada de compatibilidade do assistente invocada.", LOG_PREFIX);
+        return perguntarAoAssistente(perguntaUsuario, apiKeyDoConsultor, "gemini-1.5-flash", arquivoAnexo,
                 jsonClienteAtivo, jsonTabelasJuros, jsonLinksUteis, jsonComissoes, List.of());
     }
 
     /**
-     * Orquestra a consulta complexa ao Assistente Cognitivo (Analista de
-     * Crédito).
+     * Orquestra a consulta complexa ao Assistente Cognitivo (Analista de Crédito).
      */
     public String perguntarAoAssistente(String perguntaUsuario, String apiKeyDoConsultor, String modeloEscolhido,
             File arquivoAnexo, String jsonClienteAtivo, String jsonTabelasJuros, String jsonLinksUteis,
             String jsonComissoes, List<GeminiRequest.Content> historico) {
 
-        log.info("{} [TELEMETRIA] Orquestrando consulta cognitiva. Modelo: {}", LOG_PREFIX, modeloEscolhido);
+        log.info("{} [TELEMETRIA] Orquestrando consulta cognitiva multimodal. Modelo: {}", LOG_PREFIX, modeloEscolhido);
 
         if (apiKeyDoConsultor == null || apiKeyDoConsultor.isBlank()) {
             log.warn("{} [NEGOCIO] API Key ausente na orquestração do assistente.", LOG_PREFIX);
@@ -114,6 +127,8 @@ public class GeminiService {
             // 2. Mapear Mídia se existir
             GeminiRequest.Part anexoPart = null;
             if (arquivoAnexo != null && arquivoAnexo.exists()) {
+                log.debug("{} [SISTEMA] Anexo detectado: {}. Iniciando mapeamento de mídia.", LOG_PREFIX,
+                        arquivoAnexo.getName());
                 anexoPart = mediaMapper.toPart(arquivoAnexo);
             }
 
@@ -128,7 +143,7 @@ public class GeminiService {
             // 5. Tratar Resposta via Handler
             String resultado = responseHandler.extrairTexto(response);
 
-            log.info("{} [AUDITORIA] Resposta do assistente orquestrada com sucesso.", LOG_PREFIX);
+            log.info("{} [AUDITORIA] Resposta cognitiva orquestrada com sucesso.", LOG_PREFIX);
             return resultado;
 
         } catch (Exception e) {
@@ -141,31 +156,25 @@ public class GeminiService {
      * Orquestra a extração de tabelas financeiras via OCR.
      */
     public String extrairTabelasEmLote(File arquivoAnexo, String apiKey, String modeloEscolhido) {
-        log.info("{} [TELEMETRIA] Iniciando orquestração de OCR em lote. Arquivo: {}", LOG_PREFIX,
-                arquivoAnexo.getName());
+        log.info("{} [TELEMETRIA] Iniciando processo de OCR em lote. Arquivo: {}", LOG_PREFIX, arquivoAnexo.getName());
 
         if (apiKey == null || apiKey.isBlank()) {
-            log.error("{} [NEGOCIO] Falha no OCR: API Key ausente.", LOG_PREFIX);
+            log.error("{} [NEGOCIO] Falha no OCR: API Key não configurada.", LOG_PREFIX);
             throw new IllegalArgumentException("API Key não configurada.");
         }
 
         try {
-            // 1. Preparar Mídia e Prompt
             GeminiRequest.Part arquivoPart = mediaMapper.toPart(arquivoAnexo);
             String promptOcr = promptFactory.getOcrTabelasPrompt();
 
-            // 2. Criar Payload
             GeminiRequest payload = requestFactory.criarRequestOcr(promptOcr, arquivoPart);
 
-            // 3. Executar Chamada (Retorno String para parse manual de JSON
-            // bruto)
             String url = montarUrl(modeloEscolhido, apiKey);
             String rawJson = geminiClient.post(url, payload, String.class, "OCR_TABELAS");
 
-            // 4. Extrair e Limpar JSON via Handler
             String resultado = responseHandler.extrairTextoDeJsonBruto(rawJson);
 
-            log.info("{} [AUDITORIA] OCR processado e extraído com sucesso.", LOG_PREFIX);
+            log.info("{} [AUDITORIA] OCR processado e dados extraídos com sucesso.", LOG_PREFIX);
             return resultado;
 
         } catch (Exception e) {
@@ -176,20 +185,26 @@ public class GeminiService {
 
     /**
      * Lista os modelos multimodais disponíveis na API do Google.
+     * Implementa cache thread-safe para otimização de performance.
      */
     public List<String> listarModelosMultimodais(String apiKey) {
-        log.info("{} [TELEMETRIA] Solicitando listagem de modelos multimodais.", LOG_PREFIX);
-        List<String> fallback = List.of("gemini-3.5-flash", "gemini-3.1-pro", "gemini-2.5-pro", "gemini-2.5-flash");
+        if (cacheCarregado && !cacheModelos.isEmpty()) {
+            log.trace("{} [SISTEMA] Retornando lista de modelos via cache em memória.", LOG_PREFIX);
+            return new ArrayList<>(cacheModelos);
+        }
+
+        log.info("{} [TELEMETRIA] Solicitando listagem de modelos multimodais à API externa.", LOG_PREFIX);
+        List<String> fallback = List.of("gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro");
 
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("{} [NEGOCIO] API Key ausente para listagem. Usando fallback.", LOG_PREFIX);
+            log.warn("{} [NEGOCIO] API Key ausente para listagem. Utilizando modelos de fallback.", LOG_PREFIX);
             return fallback;
         }
 
         try {
             String url = baseUrl + "?key=" + apiKey;
             String respostaJson = geminiClient.get(url, "LISTAR_MODELOS");
-            List<String> modelos = new ArrayList<>();
+            List<String> modelosEncontrados = new ArrayList<>();
 
             if (respostaJson != null) {
                 JsonNode rootNode = objectMapper.readTree(respostaJson);
@@ -197,35 +212,56 @@ public class GeminiService {
                     for (JsonNode node : rootNode.get("models")) {
                         String cleanName = node.get("name").asText().replace("models/", "");
                         if (isModeloValido(cleanName)) {
-                            modelos.add(cleanName);
+                            modelosEncontrados.add(cleanName);
                         }
                     }
                 }
             }
 
-            modelos.sort(Comparator.reverseOrder());
-            log.info("{} [AUDITORIA] {} modelos carregados com sucesso.", LOG_PREFIX, modelos.size());
-            return modelos.isEmpty() ? fallback : modelos;
+            modelosEncontrados.sort(Comparator.reverseOrder());
+
+            if (!modelosEncontrados.isEmpty()) {
+                cacheModelos.clear();
+                cacheModelos.addAll(modelosEncontrados);
+                cacheCarregado = true;
+                log.info("{} [AUDITORIA] {} modelos carregados e sincronizados no cache.", LOG_PREFIX,
+                        modelosEncontrados.size());
+                return new ArrayList<>(cacheModelos);
+            }
+
+            return fallback;
 
         } catch (Exception e) {
-            log.error("{} [SISTEMA] Erro ao listar modelos: {}. Usando fallback.", LOG_PREFIX, e.getMessage());
+            log.error("{} [SISTEMA] Erro ao listar modelos: {}. Aplicando fallback.", LOG_PREFIX, e.getMessage());
             return fallback;
         }
     }
 
     /**
-     * Valida se o modelo atende aos requisitos de versão e estabilidade.
+     * Invalida o cache de modelos (útil em caso de troca de API Key).
+     */
+    public void limparCache() {
+        log.info("{} [SISTEMA] Solicitando invalidação do cache de modelos IA.", LOG_PREFIX);
+        this.cacheModelos.clear();
+        this.cacheCarregado = false;
+    }
+
+    /**
+     * Valida se o modelo atende aos requisitos de versão e estabilidade do ERP.
      */
     private boolean isModeloValido(String name) {
+        // Filtra modelos experimentais, previews ou versões legadas abaixo da 1.5
         if (!name.startsWith("gemini-") || name.contains("preview") || name.contains("exp")
                 || name.contains("latest")) {
             return false;
         }
+
         try {
             String[] parts = name.split("-");
             if (parts.length > 1) {
+                // Aceita apenas modelos da família 1.5 ou superior
                 double versao = Double.parseDouble(parts[1]);
-                return versao >= 2.5;
+                return versao >= 1.5;
             }
             return false;
         } catch (Exception e) {
@@ -234,7 +270,7 @@ public class GeminiService {
     }
 
     /**
-     * Helper para construção da URL da API.
+     * Helper para construção da URL da API com injeção de parâmetros.
      */
     private String montarUrl(String modelo, String apiKey) {
         return String.format("%s/%s:generateContent?key=%s", baseUrl, modelo, apiKey);

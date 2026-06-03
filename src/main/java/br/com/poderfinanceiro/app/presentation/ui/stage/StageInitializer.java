@@ -1,93 +1,120 @@
 package br.com.poderfinanceiro.app.presentation.ui.stage;
 
+import br.com.poderfinanceiro.app.presentation.controller.layout.MainController;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import br.com.poderfinanceiro.app.presentation.controller.layout.MainController;
-
 import java.io.IOException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.InputStream;
 
 /**
- * Initializer refinado. Não escuta mais eventos automáticos do Spring.
- * Agora é comandado ativamente pelo JavafxApplication após o carregamento
- * assíncrono.
+ * <h1>StageInitializer</h1>
+ * <p>
+ * Responsável pela configuração e exibição do Stage principal da aplicação.
+ * Realiza a transição da Splash Screen para o layout mestre (MainView) e
+ * orquestra a navegação inicial para o fluxo de autenticação.
+ * </p>
  */
 @Component
 public class StageInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(StageInitializer.class);
+    private static final String LOG_PREFIX = "[StageInitializer]";
 
     private final ApplicationContext applicationContext;
     private Stage primaryStage;
 
     public StageInitializer(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
-        log.debug("[STAGE_INITIALIZER] Construtor: Inicializado com ApplicationContext");
+        log.info("{} [SISTEMA] Inicializador de Stage instanciado com sucesso.", LOG_PREFIX);
     }
 
+    /**
+     * Define o Stage principal fornecido pelo ciclo de vida do JavaFX.
+     * 
+     * @param primaryStage O Stage raiz da aplicação.
+     */
     public void setPrimaryStage(Stage primaryStage) {
-        log.debug("[STAGE_INITIALIZER] setPrimaryStage: Recebendo Stage principal");
+        log.debug("{} [SISTEMA] Stage principal vinculado ao inicializador.", LOG_PREFIX);
         this.primaryStage = primaryStage;
     }
 
     /**
-     * Método público que realiza o carregamento final do FXML Wide
-     * após a Splash Screen finalizar.
+     * Realiza o carregamento do FXML mestre, configura a cena principal
+     * e dispara a navegação para a tela de login.
      */
     public void loadMainView() {
-        log.info("[STAGE_INITIALIZER] loadMainView: Iniciando carregamento da view principal");
+        log.info("{} [TELEMETRIA] Iniciando montagem da View principal (MainView).", LOG_PREFIX);
+
         try {
+            // Configuração do Loader integrado ao Spring
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main.fxml"));
             loader.setControllerFactory(applicationContext::getBean);
             Parent root = loader.load();
-            log.debug("[STAGE_INITIALIZER] FXML /fxml/main.fxml carregado com sucesso");
+            log.debug("{} [SISTEMA] FXML mestre carregado e controladores injetados.", LOG_PREFIX);
 
-            javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+            // Cálculo de dimensões responsivas baseadas no monitor principal
+            Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
             double width = Math.min(1280, bounds.getWidth() * 0.9);
             double height = Math.min(720, bounds.getHeight() * 0.9);
-            log.trace("[STAGE_INITIALIZER] Dimensões da cena: width={}, height={}", width, height);
 
             Scene scene = new Scene(root, width, height);
             primaryStage.setScene(scene);
 
-            try {
-                var iconStream = getClass().getResourceAsStream("/icons/app.png");
-                if (iconStream != null) {
-                    primaryStage.getIcons().add(new javafx.scene.image.Image(iconStream));
-                    log.debug("[STAGE_INITIALIZER] Ícone da aplicação carregado");
-                } else {
-                    log.warn("[STAGE_INITIALIZER] Ícone /icons/app.png não encontrado");
-                }
-            } catch (Exception e) {
-                log.error("[STAGE_INITIALIZER] Não foi possível carregar o ícone: {}", e.getMessage(), e);
-            }
+            // Configuração de Identidade Visual (Ícone)
+            configurarIconeAplicacao();
 
+            // Propriedades da Janela
             primaryStage.setMinWidth(1024);
             primaryStage.setMinHeight(700);
             primaryStage.setTitle("Poder Financeiro ERP");
             primaryStage.setMaximized(true);
+
+            log.info("{} [SISTEMA] Exibindo janela principal maximizada.", LOG_PREFIX);
             primaryStage.show();
             primaryStage.centerOnScreen();
-            log.info("[STAGE_INITIALIZER] Janela principal exibida e maximizada");
 
+            // Disparo da navegação inicial para o Login
+            log.info("{} [TELEMETRIA] Redirecionando para o fluxo de autenticação.", LOG_PREFIX);
             MainController mainController = applicationContext.getBean(MainController.class);
             mainController.navegarPara("/fxml/login.fxml", false);
-            log.debug("[STAGE_INITIALIZER] Navegação para tela de login solicitada");
 
         } catch (IOException e) {
-            log.error("[STAGE_INITIALIZER] Falha ao inicializar o layout mestre após o boot", e);
+            log.error("{} [SISTEMA] Erro fatal ao inicializar o layout mestre: {}", LOG_PREFIX, e.getMessage(), e);
             throw new RuntimeException("Falha ao inicializar o layout mestre após o boot.", e);
         }
     }
 
+    /**
+     * Tenta carregar o ícone oficial da aplicação para o Stage.
+     */
+    private void configurarIconeAplicacao() {
+        try (InputStream iconStream = getClass().getResourceAsStream("/icons/app.png")) {
+            if (iconStream != null) {
+                primaryStage.getIcons().add(new Image(iconStream));
+                log.debug("{} [SISTEMA] Ícone da aplicação carregado com sucesso.", LOG_PREFIX);
+            } else {
+                log.warn("{} [SISTEMA] Recurso de ícone '/icons/app.png' não localizado.", LOG_PREFIX);
+            }
+        } catch (Exception e) {
+            log.error("{} [SISTEMA] Falha ao processar o ícone da aplicação: {}", LOG_PREFIX, e.getMessage());
+        }
+    }
+
+    /**
+     * Inicia o fluxo visual de encerramento de sessão.
+     */
     public void logout() {
-        log.info("[STAGE_INITIALIZER] logout: Usuário solicitou logout");
+        log.info("{} [TELEMETRIA] Solicitação de logout detectada. Invocando overlay de saída.", LOG_PREFIX);
         MainController mainController = applicationContext.getBean(MainController.class);
         mainController.mostrarOverlaySair();
     }

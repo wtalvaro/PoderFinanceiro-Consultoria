@@ -2,8 +2,10 @@ package br.com.poderfinanceiro.app.presentation.controller.suporte;
 
 import br.com.poderfinanceiro.app.application.facade.IPlaybookFacade;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
+import br.com.poderfinanceiro.app.common.util.Disposable;
+import br.com.poderfinanceiro.app.common.util.ValidationUtils;
 import br.com.poderfinanceiro.app.domain.model.PlaybookItemModel;
-
+import br.com.poderfinanceiro.app.presentation.ui.state.IAModelRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -16,7 +18,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.net.URL;
 import java.util.*;
@@ -25,49 +28,61 @@ import java.util.stream.Collectors;
 /**
  * <h1>PlaybookController</h1>
  * <p>
- * Controlador de Interface (UI) responsável pelo Playbook de Vendas. Implementa
- * o padrão <b>Humble Object</b>, delegando a persistência, filtros e
- * estruturação via IA para a {@link IPlaybookFacade}.
+ * Controlador de Interface (UI) responsável pelo Playbook de Vendas.
+ * Implementa o padrão <b>Humble Object</b>, utilizando o IAModelRegistry para
+ * padronização
+ * de modelos e AsyncUtils para orquestração de I/O em Virtual Threads (Java
+ * 25).
  * </p>
  */
-@Controller
-public class PlaybookController implements Initializable {
+@Component
+@Scope("prototype")
+public class PlaybookController implements Initializable, Disposable {
 
     // ==========================================================================================
     // MÓDULO 1: CONSTANTES E TELEMETRIA
     // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(PlaybookController.class);
     private static final String LOG_PREFIX = "[PlaybookController]";
-
-    private static final String MODELO_PADRAO = "gemini-3.5-flash";
     private static final String NOME_CONSULTOR_PLACEHOLDER = "%CONSULTOR%";
 
     // ==========================================================================================
     // MÓDULO 2: DEPENDÊNCIAS (DIP)
     // ==========================================================================================
     private final IPlaybookFacade playbookFacade;
+    private final IAModelRegistry modelRegistry;
 
     // ==========================================================================================
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
-    @FXML private TextField txtBusca;
-    @FXML private TreeView<String> treeViewScripts;
-
-    @FXML private TextField txtTitulo;
-    @FXML private TextField txtCategoria;
-    @FXML private TextArea txtConteudo;
-
-    @FXML private StackPane stackDica;
-    @FXML private Label lblDica;
-    @FXML private TextArea txtDica;
-
-    @FXML private Button btnCopiar, btnEditar, btnExcluir;
-    @FXML private HBox boxAcoesTopo, boxAcoesEdicao;
-
-    @FXML private VBox overlayIA;
-    @FXML private TextArea txtInputIA;
-    @FXML private Button btnProcessarIA;
-    @FXML private ComboBox<String> cmbModeloIA;
+    @FXML
+    private TextField txtBusca;
+    @FXML
+    private TreeView<String> treeViewScripts;
+    @FXML
+    private TextField txtTitulo;
+    @FXML
+    private TextField txtCategoria;
+    @FXML
+    private TextArea txtConteudo;
+    @FXML
+    private StackPane stackDica;
+    @FXML
+    private Label lblDica;
+    @FXML
+    private TextArea txtDica;
+    @FXML
+    private Button btnCopiar, btnEditar, btnExcluir;
+    @FXML
+    private HBox boxAcoesTopo, boxAcoesEdicao;
+    @FXML
+    private VBox overlayIA;
+    @FXML
+    private TextArea txtInputIA;
+    @FXML
+    private Button btnProcessarIA;
+    @FXML
+    private ComboBox<String> cmbModeloIA;
 
     // ==========================================================================================
     // MÓDULO 4: ESTADO INTERNO DA TELA
@@ -76,51 +91,70 @@ public class PlaybookController implements Initializable {
     private PlaybookItemModel itemSelecionadoAtual;
     private boolean modoEdicao = false;
     private boolean criandoNovo = false;
-    private boolean modelosCarregados = false;
 
-    public PlaybookController(IPlaybookFacade playbookFacade) {
+    public PlaybookController(IPlaybookFacade playbookFacade, IAModelRegistry modelRegistry) {
         this.playbookFacade = playbookFacade;
-        log.debug("{} [SISTEMA] Controlador instanciado via Spring.", LOG_PREFIX);
+        this.modelRegistry = modelRegistry;
+        log.info("{} [SISTEMA] Controlador do Playbook instanciado com suporte a Registry Global.", LOG_PREFIX);
     }
 
     // ==========================================================================================
     // MÓDULO 5: INICIALIZAÇÃO E CICLO DE VIDA
     // ==========================================================================================
-    @Override public void initialize(URL location, ResourceBundle resources) {
-        log.info("{} [TELEMETRIA] Inicializando interface do Playbook...", LOG_PREFIX);
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        log.info("{} [SISTEMA] Inicializando interface do Playbook Cognitivo.", LOG_PREFIX);
 
-        AsyncUtils.executarTaskAsync(playbookFacade::listarTodosOsScripts, itens -> {
-            this.todosOsItens = itens;
-            construirArvore(this.todosOsItens, false);
-            log.info("{} [TELEMETRIA] Playbook inicializado com {} itens.", LOG_PREFIX, itens.size());
-        }, erro -> log.error("{} [SISTEMA] Erro ao carregar playbook: {}", LOG_PREFIX, erro.getMessage()));
-
+        carregarDadosIniciais();
         configurarSelecaoNaArvore();
         configurarFiltroDeBusca();
+        configurarModelosIA();
         alternarModoVisualizacao(false);
 
-        if (cmbModeloIA != null) {
-            cmbModeloIA.getItems().add(MODELO_PADRAO);
-            cmbModeloIA.getSelectionModel().selectFirst();
-        }
-        log.debug("{} [LIFECYCLE] Inicialização concluída.", LOG_PREFIX);
+        log.debug("{} [SISTEMA] Inicialização concluída.", LOG_PREFIX);
+    }
+
+    @Override
+    public void dispose() {
+        log.info("{} [SISTEMA] Liberando recursos do Playbook.", LOG_PREFIX);
+        if (todosOsItens != null)
+            todosOsItens.clear();
+        itemSelecionadoAtual = null;
+    }
+
+    private void carregarDadosIniciais() {
+        log.info("{} [TELEMETRIA] Solicitando carga assíncrona de scripts.", LOG_PREFIX);
+        AsyncUtils.executarTaskAsync(
+                playbookFacade::listarTodosOsScripts,
+                itens -> {
+                    this.todosOsItens = new ArrayList<>(itens);
+                    construirArvore(this.todosOsItens, false);
+                    log.info("{} [AUDITORIA] Playbook carregado com {} scripts.", LOG_PREFIX, itens.size());
+                },
+                erro -> log.error("{} [SISTEMA] Falha ao carregar base de scripts: {}", LOG_PREFIX, erro.getMessage()));
+    }
+
+    private void configurarModelosIA() {
+        log.debug("{} [SISTEMA] Vinculando ComboBox ao Registro Global de Modelos.", LOG_PREFIX);
+        cmbModeloIA.setItems(modelRegistry.getModelosDisponiveis());
+        cmbModeloIA.getSelectionModel().select(modelRegistry.getModeloPadrao());
+        modelRegistry.carregarModelos();
     }
 
     // ==========================================================================================
     // MÓDULO 6: CONFIGURAÇÃO DA ÁRVORE E FILTROS
     // ==========================================================================================
     private void configurarFiltroDeBusca() {
-        log.trace("{} [UI] Configurando listener de busca reativa.", LOG_PREFIX);
         txtBusca.textProperty().addListener((obs, oldVal, newVal) -> {
-            log.debug("{} [UI] Termo de busca alterado: '{}'", LOG_PREFIX, newVal);
-            AsyncUtils.executarTaskAsync(() -> playbookFacade.filtrarScripts(newVal),
-                    itensFiltrados -> construirArvore(itensFiltrados, newVal != null && !newVal.trim().isEmpty()),
+            log.trace("{} [TELEMETRIA] Filtro de busca alterado: '{}'", LOG_PREFIX, newVal);
+            AsyncUtils.executarTaskAsync(
+                    () -> playbookFacade.filtrarScripts(newVal),
+                    itensFiltrados -> construirArvore(itensFiltrados, ValidationUtils.isPreenchido(newVal)),
                     erro -> log.error("{} [SISTEMA] Erro ao filtrar scripts: {}", LOG_PREFIX, erro.getMessage()));
         });
     }
 
     private void construirArvore(List<PlaybookItemModel> itensParaExibir, boolean expandirPastas) {
-        log.trace("{} [UI] Construindo árvore visual com {} itens.", LOG_PREFIX, itensParaExibir != null ? itensParaExibir.size() : 0);
         if (itensParaExibir == null || itensParaExibir.isEmpty()) {
             treeViewScripts.setRoot(new TreeItem<>("Nenhum resultado encontrado"));
             return;
@@ -148,13 +182,13 @@ public class PlaybookController implements Initializable {
     }
 
     private void configurarSelecaoNaArvore() {
-        log.trace("{} [UI] Configurando listener de seleção na árvore.", LOG_PREFIX);
         treeViewScripts.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (modoEdicao)
                 return;
 
-            if (newVal != null && newVal.isLeaf() && newVal.getParent() != null && newVal.getParent().getValue() != null) {
-                log.debug("{} [UI] Script selecionado: '{}'", LOG_PREFIX, newVal.getValue());
+            if (newVal != null && newVal.isLeaf() && newVal.getParent() != null
+                    && newVal.getParent().getValue() != null) {
+                log.debug("{} [TELEMETRIA] Script selecionado na árvore: '{}'", LOG_PREFIX, newVal.getValue());
                 exibirDetalhesDoScript(newVal.getValue(), newVal.getParent().getValue());
             } else {
                 limparPainelDeDetalhes();
@@ -163,10 +197,11 @@ public class PlaybookController implements Initializable {
     }
 
     private void exibirDetalhesDoScript(String titulo, String categoria) {
-        log.trace("{} [UI] Exibindo detalhes do script: {}", LOG_PREFIX, titulo);
         String nomeConsultor = playbookFacade.obterNomeConsultorLogado();
 
-        todosOsItens.stream().filter(i -> i.getTitulo().equals(titulo) && i.getCategoria().equals(categoria)).findFirst()
+        todosOsItens.stream()
+                .filter(i -> i.getTitulo().equals(titulo) && i.getCategoria().equals(categoria))
+                .findFirst()
                 .ifPresent(item -> {
                     this.itemSelecionadoAtual = item;
                     txtTitulo.setText(item.getTitulo());
@@ -183,12 +218,13 @@ public class PlaybookController implements Initializable {
     // ==========================================================================================
     // MÓDULO 7: AÇÕES DE CRUD E INTERFACE
     // ==========================================================================================
-    @FXML private void handleNovo() {
-        log.info("{} [TELEMETRIA] Usuário solicitou criação de novo script.", LOG_PREFIX);
+    @FXML
+    private void handleNovo() {
+        log.info("{} [TELEMETRIA] Iniciando criação de novo script manual.", LOG_PREFIX);
         this.itemSelecionadoAtual = new PlaybookItemModel();
         this.criandoNovo = true;
         txtTitulo.setText("");
-        txtCategoria.setText("Nova Categoria / Subcategoria");
+        txtCategoria.setText("Nova Categoria");
         txtConteudo.setText("Olá, me chamo " + NOME_CONSULTOR_PLACEHOLDER + "...");
         lblDica.setText("");
 
@@ -196,38 +232,46 @@ public class PlaybookController implements Initializable {
         txtTitulo.requestFocus();
     }
 
-    @FXML private void handleEditar() {
+    @FXML
+    private void handleEditar() {
         if (itemSelecionadoAtual == null)
             return;
-        log.info("{} [TELEMETRIA] Usuário solicitou edição do script: {}", LOG_PREFIX, itemSelecionadoAtual.getTitulo());
+        log.info("{} [TELEMETRIA] Editando script: {}", LOG_PREFIX, itemSelecionadoAtual.getTitulo());
         this.criandoNovo = false;
         txtConteudo.setText(itemSelecionadoAtual.getConteudo());
         alternarModoVisualizacao(true);
     }
 
-    @FXML private void handleExcluir() {
-        if (itemSelecionadoAtual != null) {
-            log.warn("{} [TELEMETRIA] Usuário solicitou exclusão do script: {}", LOG_PREFIX, itemSelecionadoAtual.getTitulo());
-            todosOsItens.remove(itemSelecionadoAtual);
+    @FXML
+    private void handleExcluir() {
+        if (itemSelecionadoAtual == null)
+            return;
 
-            AsyncUtils.executarTaskAsync(() -> {
-                playbookFacade.salvarTodosOsScripts(todosOsItens);
-                return null;
-            }, sucesso -> {
-                log.info("{} [AUDITORIA] Script excluído com sucesso.", LOG_PREFIX);
-                limparPainelDeDetalhes();
-                construirArvore(todosOsItens, false);
-            }, erro -> log.error("{} [AUDITORIA] Erro ao excluir script: {}", LOG_PREFIX, erro.getMessage()));
-        }
+        log.warn("{} [AUDITORIA] Solicitando exclusão do script: {}", LOG_PREFIX, itemSelecionadoAtual.getTitulo());
+        todosOsItens.remove(itemSelecionadoAtual);
+
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    playbookFacade.salvarTodosOsScripts(new ArrayList<>(todosOsItens));
+                    return null;
+                },
+                sucesso -> {
+                    log.info("{} [AUDITORIA] Script removido com sucesso.", LOG_PREFIX);
+                    limparPainelDeDetalhes();
+                    construirArvore(todosOsItens, false);
+                },
+                erro -> log.error("{} [SISTEMA] Falha ao excluir script: {}", LOG_PREFIX, erro.getMessage()));
     }
 
-    @FXML private void handleSalvar() {
-        if (txtTitulo.getText().trim().isEmpty() || txtCategoria.getText().trim().isEmpty()) {
-            log.warn("{} [NEGOCIO] Salvamento bloqueado: Título ou categoria vazios.", LOG_PREFIX);
+    @FXML
+    private void handleSalvar() {
+        if (!ValidationUtils.isPreenchido(txtTitulo.getText())
+                || !ValidationUtils.isPreenchido(txtCategoria.getText())) {
+            log.warn("{} [NEGOCIO] Salvamento abortado: Título ou Categoria ausentes.", LOG_PREFIX);
             return;
         }
 
-        log.info("{} [TELEMETRIA] Salvando script: {}", LOG_PREFIX, txtTitulo.getText());
+        log.info("{} [AUDITORIA] Iniciando persistência do script: {}", LOG_PREFIX, txtTitulo.getText());
         itemSelecionadoAtual.setTitulo(txtTitulo.getText().trim());
         itemSelecionadoAtual.setCategoria(txtCategoria.getText().trim());
         itemSelecionadoAtual.setConteudo(txtConteudo.getText().trim());
@@ -236,19 +280,23 @@ public class PlaybookController implements Initializable {
         if (criandoNovo)
             todosOsItens.add(itemSelecionadoAtual);
 
-        AsyncUtils.executarTaskAsync(() -> {
-            playbookFacade.salvarTodosOsScripts(todosOsItens);
-            return null;
-        }, sucesso -> {
-            log.info("{} [AUDITORIA] Script salvo com sucesso.", LOG_PREFIX);
-            construirArvore(todosOsItens, true);
-            alternarModoVisualizacao(false);
-            exibirDetalhesDoScript(itemSelecionadoAtual.getTitulo(), itemSelecionadoAtual.getCategoria());
-        }, erro -> log.error("{} [AUDITORIA] Erro ao salvar script: {}", LOG_PREFIX, erro.getMessage()));
+        AsyncUtils.executarTaskAsync(
+                () -> {
+                    playbookFacade.salvarTodosOsScripts(new ArrayList<>(todosOsItens));
+                    return null;
+                },
+                sucesso -> {
+                    log.info("{} [AUDITORIA] Script persistido com sucesso.", LOG_PREFIX);
+                    construirArvore(todosOsItens, true);
+                    alternarModoVisualizacao(false);
+                    exibirDetalhesDoScript(itemSelecionadoAtual.getTitulo(), itemSelecionadoAtual.getCategoria());
+                },
+                erro -> log.error("{} [SISTEMA] Erro ao salvar playbook: {}", LOG_PREFIX, erro.getMessage()));
     }
 
-    @FXML private void handleCancelar() {
-        log.trace("{} [UI] Edição cancelada pelo usuário.", LOG_PREFIX);
+    @FXML
+    private void handleCancelar() {
+        log.trace("{} [UI] Operação cancelada pelo usuário.", LOG_PREFIX);
         alternarModoVisualizacao(false);
         if (criandoNovo)
             limparPainelDeDetalhes();
@@ -295,80 +343,76 @@ public class PlaybookController implements Initializable {
         btnExcluir.setDisable(true);
     }
 
-    @FXML private void handleCopiar() {
+    @FXML
+    private void handleCopiar() {
         String textoParaCopiar = txtConteudo.getText();
-        if (textoParaCopiar != null && !textoParaCopiar.isEmpty()) {
-            log.info("{} [TELEMETRIA] Usuário copiou o conteúdo do script.", LOG_PREFIX);
+        if (ValidationUtils.isPreenchido(textoParaCopiar)) {
+            log.info("{} [TELEMETRIA] Script copiado para a área de transferência.", LOG_PREFIX);
             ClipboardContent content = new ClipboardContent();
             content.putString(textoParaCopiar);
             Clipboard.getSystemClipboard().setContent(content);
 
             String textoOriginal = btnCopiar.getText();
             btnCopiar.setText("Copiado! ✓");
-            btnCopiar.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
+            btnCopiar.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
 
-            new Timer().schedule(new TimerTask() {
-                @Override public void run() {
-                    Platform.runLater(() -> {
+            AsyncUtils.executarTaskAsync(() -> {
+                Thread.sleep(2000);
+                return null;
+            },
+                    s -> {
                         btnCopiar.setText(textoOriginal);
-                        btnCopiar.setStyle("-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
-                    });
-                }
-            }, 2000);
+                        btnCopiar.setStyle(
+                                "-fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold;");
+                    }, null);
         }
     }
 
     // ==========================================================================================
     // MÓDULO 8: INTELIGÊNCIA ARTIFICIAL (GEMINI)
     // ==========================================================================================
-    @FXML private void handleGerarComIA() {
-        log.info("{} [TELEMETRIA] Abrindo overlay de geração com IA.", LOG_PREFIX);
+    @FXML
+    private void handleGerarComIA() {
+        log.info("{} [TELEMETRIA] Abrindo overlay de Engenharia Cognitiva.", LOG_PREFIX);
         txtInputIA.clear();
         overlayIA.setVisible(true);
         txtInputIA.requestFocus();
-
-        if (!modelosCarregados && cmbModeloIA != null) {
-            AsyncUtils.executarTaskAsync(playbookFacade::listarModelosIADisponiveis, modelos -> {
-                if (!modelos.isEmpty()) {
-                    cmbModeloIA.getItems().setAll(modelos);
-                    cmbModeloIA.getSelectionModel().select(modelos.contains(MODELO_PADRAO) ? MODELO_PADRAO : modelos.get(0));
-                    modelosCarregados = true;
-                }
-            }, erro -> log.error("{} [SISTEMA] Erro ao carregar modelos Gemini: {}", LOG_PREFIX, erro.getMessage()));
-        }
     }
 
-    @FXML private void fecharOverlayIA() {
+    @FXML
+    private void fecharOverlayIA() {
         log.trace("{} [UI] Fechando overlay de IA.", LOG_PREFIX);
         overlayIA.setVisible(false);
     }
 
-    @FXML private void processarTextoComIA() {
+    @FXML
+    private void processarTextoComIA() {
         String textoBruto = txtInputIA.getText();
-        if (textoBruto == null || textoBruto.trim().isEmpty()) {
-            log.warn("{} [NEGOCIO] Processamento bloqueado: Texto de entrada vazio.", LOG_PREFIX);
+        if (!ValidationUtils.isPreenchido(textoBruto)) {
+            log.warn("{} [NEGOCIO] Processamento IA abortado: Texto bruto vazio.", LOG_PREFIX);
             return;
         }
 
-        String modelo = (cmbModeloIA != null && cmbModeloIA.getValue() != null) ? cmbModeloIA.getValue() : MODELO_PADRAO;
-        log.info("{} [TELEMETRIA] Enviando texto para estruturação via IA. Modelo: {}", LOG_PREFIX, modelo);
+        String modelo = cmbModeloIA.getValue();
+        log.info("{} [TELEMETRIA] Solicitando estruturação cognitiva. Modelo: {}", LOG_PREFIX, modelo);
 
         btnProcessarIA.setDisable(true);
         btnProcessarIA.setText("Processando...");
 
-        AsyncUtils.executarTaskAsync(() -> playbookFacade.estruturarTextoComIA(textoBruto, modelo), this::aplicarEstruturaIA,
+        AsyncUtils.executarTaskAsync(
+                () -> playbookFacade.estruturarTextoComIA(textoBruto, modelo),
+                this::aplicarEstruturaIA,
                 erro -> aplicarErroIA(erro, textoBruto));
     }
 
     private void aplicarEstruturaIA(JsonNode node) {
-        log.info("{} [AUDITORIA] Aplicando estrutura cognitiva. Node: {}", LOG_PREFIX, node.toString());
+        log.info("{} [AUDITORIA] Estrutura cognitiva recebida. Mapeando para o modelo.", LOG_PREFIX);
 
-        // PROTEÇÃO: Uso de path() e asText() com default para evitar
-        // MissingNode
         String categoria = node.path("categoria").asText("Geral");
         String titulo = node.path("titulo").asText("Script via IA");
         String conteudo = node.path("conteudo").asText("");
         String dica = node.path("dica").asText("Dica de Ouro");
+
         Platform.runLater(() -> {
             this.itemSelecionadoAtual = new PlaybookItemModel();
             this.criandoNovo = true;
@@ -380,12 +424,14 @@ public class PlaybookController implements Initializable {
             fecharOverlayIA();
             alternarModoVisualizacao(true);
             btnProcessarIA.setDisable(false);
+            btnProcessarIA.setText("✨ Estruturar com Gemini");
+            log.info("{} [AUDITORIA] Script estruturado aplicado à interface.", LOG_PREFIX);
         });
     }
 
     private void aplicarErroIA(Throwable erro, String textoBruto) {
-        log.error("{} [AUDITORIA] Falha na estruturação via IA: {}", LOG_PREFIX, erro.getMessage());
-        txtInputIA.setText("⚠️ Falha ao estruturar dados ou servidores ocupados. Tente outro modelo.\n\n" + textoBruto);
+        log.error("{} [AUDITORIA] Falha na estruturação cognitiva: {}", LOG_PREFIX, erro.getMessage());
+        txtInputIA.setText("⚠️ Falha ao estruturar dados. Tente outro modelo.\n\n" + textoBruto);
         btnProcessarIA.setDisable(false);
         btnProcessarIA.setText("✨ Estruturar com Gemini");
     }
