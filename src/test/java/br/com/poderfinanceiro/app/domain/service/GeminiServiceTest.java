@@ -8,6 +8,7 @@ import br.com.poderfinanceiro.app.infrastructure.factory.GeminiPromptFactory;
 import br.com.poderfinanceiro.app.infrastructure.factory.GeminiRequestFactory;
 import br.com.poderfinanceiro.app.infrastructure.handler.GeminiResponseHandler;
 import br.com.poderfinanceiro.app.infrastructure.mapper.GeminiMediaMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.*;
  * <p>
  * Testes de Unidade para o Orquestrador de IA.
  * Valida a integração entre Factories, Mappers, Handlers e o Cliente de Rede.
+ * Alinhado com a versão 2.2.5 (Project Loom + Jackson DI).
  * </p>
  */
 @ExtendWith(MockitoExtension.class)
@@ -51,22 +53,25 @@ class GeminiServiceTest {
     private GeminiMediaMapper mediaMapper;
     @Mock
     private PlaybookResolver playbookResolver;
+    @Mock
+    private ObjectMapper objectMapper;
 
     @TempDir
     Path tempDir;
 
     private final String API_KEY = "AIza_test_key";
-    private final String MODELO = "gemini-2.5-flash";
+    private final String MODELO = "gemini-1.5-flash";
 
     @BeforeEach
     void setUp() {
-        // Injeta a URL base que viria do application.properties
+        // Injeta a URL base que viria do application.properties via @Value
         ReflectionTestUtils.setField(service, "baseUrl", "https://generativelanguage.googleapis.com/v1beta/models");
     }
 
     @Test
     @DisplayName("Deve gerar texto simples orquestrando Factory, Client e Handler")
     void devePerguntarTextoComSucesso() {
+        // Cenário
         String prompt = "Olá IA";
         GeminiRequest mockRequest = mock(GeminiRequest.class);
         GeminiResponse mockResponse = mock(GeminiResponse.class);
@@ -76,8 +81,10 @@ class GeminiServiceTest {
                 .thenReturn(mockResponse);
         when(responseHandler.extrairTexto(mockResponse)).thenReturn("Resposta da IA");
 
+        // Execução
         String resultado = service.perguntarTexto(prompt, API_KEY, MODELO);
 
+        // Validação
         assertThat(resultado).isEqualTo("Resposta da IA");
         verify(geminiClient).post(contains(MODELO), eq(mockRequest), any(), eq("TEXTO_SIMPLES"));
     }
@@ -85,8 +92,10 @@ class GeminiServiceTest {
     @Test
     @DisplayName("Deve retornar aviso quando a API Key não for fornecida")
     void deveAvisarFaltaDeApiKey() {
+        // Execução
         String resultado = service.perguntarTexto("Prompt", null, MODELO);
 
+        // Validação
         assertThat(resultado).contains("API Key não configurada");
         verifyNoInteractions(geminiClient, requestFactory);
     }
@@ -99,7 +108,7 @@ class GeminiServiceTest {
         arquivoFisico.createNewFile();
 
         // 2. Mockar a cadeia de dependências
-        when(playbookResolver.carregarPlaybook()).thenReturn("{}");
+        when(playbookResolver.carregarPlaybook()).thenReturn("Playbook Content");
         when(promptFactory.getAnalistaCreditoPrompt(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn("Prompt Sistema");
 
@@ -129,6 +138,7 @@ class GeminiServiceTest {
     @Test
     @DisplayName("Deve orquestrar extração de tabelas via OCR")
     void deveExtrairTabelasComSucesso() throws Exception {
+        // Cenário
         File imagem = tempDir.resolve("tabela.png").toFile();
         imagem.createNewFile();
 
@@ -144,8 +154,10 @@ class GeminiServiceTest {
 
         when(responseHandler.extrairTextoDeJsonBruto(anyString())).thenReturn("[{\"banco\": \"ITAU\"}]");
 
+        // Execução
         String resultado = service.extrairTabelasEmLote(imagem, API_KEY, MODELO);
 
+        // Validação
         assertThat(resultado).contains("ITAU");
         verify(responseHandler).extrairTextoDeJsonBruto(anyString());
     }
@@ -153,9 +165,16 @@ class GeminiServiceTest {
     @Test
     @DisplayName("Deve retornar fallback de modelos quando a chave de API for nula")
     void deveRetornarFallbackDeModelos() {
+        // Execução
         List<String> modelos = service.listarModelosMultimodais(null);
 
-        assertThat(modelos).contains("gemini-2.5-flash");
+        // Validação: O fallback agora contém a família 1.5 e 1.0 conforme GeminiService
+        // v2.2.5
+        assertThat(modelos)
+                .isNotEmpty()
+                .contains("gemini-1.5-flash")
+                .doesNotContain("gemini-2.5-flash"); // O modelo 2.5 não faz parte do fallback estável
+
         verifyNoInteractions(geminiClient);
     }
 }
