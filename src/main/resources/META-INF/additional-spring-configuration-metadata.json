@@ -10,9 +10,9 @@
     "description": "A description for '.\napp.versi'"
   },
   {
-    "name": "7\napp.na",
+    "name": "@\napp.na",
     "type": "java.lang.String",
-    "description": "A description for '7\napp.na'"
+    "description": "A description for '@\napp.na'"
   },
   {
     "name": "a\napp.storage.ro",
@@ -23,10 +23,5 @@
     "name": "t\napp.playbook.pa",
     "type": "java.lang.String",
     "description": "A description for 't\napp.playbook.pa'"
-  },
-  {
-    "name": "@\napp.na",
-    "type": "java.lang.String",
-    "description": "A description for '@\napp.na'"
   }
 ]}
