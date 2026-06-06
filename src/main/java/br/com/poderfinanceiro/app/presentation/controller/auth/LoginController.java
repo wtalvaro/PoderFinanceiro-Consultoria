@@ -4,6 +4,7 @@ import br.com.poderfinanceiro.app.application.facade.IAuthFacade;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
 import br.com.poderfinanceiro.app.common.util.ValidationUtils;
 import br.com.poderfinanceiro.app.presentation.controller.layout.StatusBarController;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -16,9 +17,8 @@ import org.springframework.stereotype.Component;
  * <h1>LoginController</h1>
  * <p>
  * Controlador de Interface (UI) responsável pela tela de autenticação.
- * Implementa o padrão <b>Humble Object</b>, utilizando ValidationUtils para
- * triagem de inputs e AsyncUtils para orquestração de login via Virtual
- * Threads.
+ * Refatorado para utilizar o padrão Registry (AppRoute) via Navigator.
+ * Implementa o padrão <b>Humble Object</b> e orquestração via Virtual Threads.
  * </p>
  */
 @Component
@@ -34,9 +34,6 @@ public class LoginController {
     private static final String MSG_ERRO_CREDENCIAIS = "Nome de Usuário ou senha incorretos.";
     private static final String MSG_ERRO_CONEXAO = "Erro ao conectar ao banco de dados.";
 
-    private static final String ROTA_WORKSPACE = "/fxml/workspace.fxml";
-    private static final String ROTA_CADASTRO = "/fxml/cadastro.fxml";
-
     // ==========================================================================================
     // MÓDULO 2: DEPENDÊNCIAS (DIP)
     // ==========================================================================================
@@ -48,7 +45,7 @@ public class LoginController {
     // MÓDULO 3: COMPONENTES VISUAIS (FXML)
     // ==========================================================================================
     @FXML
-    private TextField txtEmail; // Representa o identificador (Username ou Email)
+    private TextField txtEmail;
     @FXML
     private PasswordField txtSenha;
     @FXML
@@ -71,7 +68,7 @@ public class LoginController {
         this.authFacade = authFacade;
         this.navigator = navigator;
         this.statusBarController = statusBarController;
-        log.info("{} [SISTEMA] Controlador de login instanciado com suporte a Virtual Threads.", LOG_PREFIX);
+        log.info("{} [SISTEMA] Controlador de login instanciado e sincronizado com Navigator Registry.", LOG_PREFIX);
     }
 
     // ==========================================================================================
@@ -120,8 +117,6 @@ public class LoginController {
             return false;
         }
 
-        // Uso do ValidationUtils para garantir que o identificador segue o padrão do
-        // sistema
         if (!ValidationUtils.isUsernameValido(identificador) && !ValidationUtils.isEmailValido(identificador)) {
             log.warn("{} [NEGOCIO] Login abortado: Identificador '{}' com formato inválido.", LOG_PREFIX,
                     identificador);
@@ -138,11 +133,11 @@ public class LoginController {
         if (Boolean.TRUE.equals(loginBemSucedido)) {
             log.info("{} [AUDITORIA] Autenticação bem-sucedida para: '{}'", LOG_PREFIX, txtEmail.getText());
 
-            // Atualiza o estado global da aplicação
             statusBarController.atualizarStatusUsuario();
             txtSenha.clear();
 
-            navigator.navegarPara(ROTA_WORKSPACE, true);
+            // CORREÇÃO: Utilizando AppRoute em vez de String/Boolean
+            navigator.navegarPara(AppRoute.WORKSPACE);
         } else {
             log.warn("{} [AUDITORIA] Falha na autenticação: Credenciais incorretas para: '{}'", LOG_PREFIX,
                     txtEmail.getText());
@@ -181,8 +176,9 @@ public class LoginController {
 
     @FXML
     private void handleIrParaCadastro() {
-        log.info("{} [TELEMETRIA] Redirecionando usuário para o fluxo de cadastro.", LOG_PREFIX);
-        navigator.navegarPara(ROTA_CADASTRO, false);
+        log.info("{} [TELEMETRIA] Redirecionando usuário para o fluxo de cadastro via Registry.", LOG_PREFIX);
+        // CORREÇÃO: Utilizando AppRoute em vez de String/Boolean
+        navigator.navegarPara(AppRoute.CADASTRO_USUARIO);
     }
 
     private void alternarEstadoCarregamento(boolean isCarregando) {

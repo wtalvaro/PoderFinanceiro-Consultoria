@@ -4,54 +4,48 @@ import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import javafx.scene.Node;
 
+/**
+ * <h1>Navigator</h1>
+ * <p>
+ * Interface de navegação unificada.
+ * Refatorada para utilizar AppRoute (Padrão Registry), eliminando a necessidade
+ * de métodos específicos para cada tela.
+ * </p>
+ */
 public interface Navigator {
-    // Navegação Principal
-    void navegarPara(String fxmlPath, boolean mostrarEstrutura);
 
-    void abrirDashboard();
+    // --- NAVEGAÇÃO GENÉRICA (Substitui todos os métodos 'irPara' e
+    // 'abrirDashboard/Clientes') ---
+    /**
+     * Navega para uma rota definida no Registry.
+     * O Navigator decidirá se abre na área principal ou como aba no Workspace.
+     */
+    void navegarPara(AppRoute rota);
 
-    void abrirClientes();
-
-    void abrirPlaybook();
-
-    // Detalhes e Workspace
-    void abrirPropostaNoWorkspace(PropostaModel proposta);
-
+    // --- NAVEGAÇÃO DE CONTEXTO (Exigem parâmetros de domínio) ---
     void abrirClienteNoWorkspace(ProponenteModel proponente);
 
-    // Atalhos de Menu (Os que estavam gerando erro)
-    void irParaNovoContato();
-
-    void irParaPropostas();
-
-    void irParaTabelaComissoes();
-
-    void irParaTabelasJuros();
-
-    void irParaImportadorTabelas();
-
-    void irParaBancosConvenios();
-
-    void irParaLinksUteis();
-
-    void limparCacheDeTelas();
+    void abrirPropostaNoWorkspace(PropostaModel proposta);
 
     void abrirCopilotoSimulacao(Node anchorNode);
 
-    // UI e Overlays
+    // --- AÇÕES GLOBAIS ---
     void alternarPainelIA();
 
     void mostrarOverlaySair();
 
+    void limparCacheDeTelas();
+
+    // --- OVERLAYS E FEEDBACK ---
     void mostrarLoading(String mensagem);
 
     void ocultarLoading();
 
-    // Notificações
     void notificarSucesso(String mensagem);
 
     void notificarAviso(String mensagem);
-    
-    // NOVO: Diálogo global de confirmação (Sim/Não)
-    void solicitarConfirmacao(String titulo, String mensagem, String textoBotaoConfirmar, String estiloBotao, Runnable acaoConfirmar);
+
+    /** Diálogo global de confirmação (Sim/Não) */
+    void solicitarConfirmacao(String titulo, String mensagem, String textoBotaoConfirmar, String estiloBotao,
+            Runnable acaoConfirmar);
 }

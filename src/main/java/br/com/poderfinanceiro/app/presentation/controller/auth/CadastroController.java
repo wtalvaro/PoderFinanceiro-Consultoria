@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.presentation.controller.auth;
 import br.com.poderfinanceiro.app.application.facade.IAuthFacade;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
 import br.com.poderfinanceiro.app.common.util.ValidationUtils;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -91,7 +92,8 @@ public class CadastroController {
                 },
                 sucesso -> {
                     log.info("{} [AUDITORIA] Usuário '{}' registrado com sucesso no PostgreSQL.", LOG_PREFIX, username);
-                    navigator.navegarPara("/fxml/login.fxml", false);
+                    // CORREÇÃO: Navegação tipada via AppRoute
+                    navigator.navegarPara(AppRoute.LOGIN);
                 },
                 erro -> {
                     log.error("{} [AUDITORIA] Falha crítica no cadastro do usuário '{}': {}", LOG_PREFIX, username,
@@ -153,7 +155,8 @@ public class CadastroController {
     @FXML
     private void handleVoltarLogin() {
         log.info("{} [TELEMETRIA] Retornando à tela de login por solicitação do usuário.", LOG_PREFIX);
-        navigator.navegarPara("/fxml/login.fxml", false);
+        // CORREÇÃO: Navegação tipada via AppRoute
+        navigator.navegarPara(AppRoute.LOGIN);
     }
 
     @FXML

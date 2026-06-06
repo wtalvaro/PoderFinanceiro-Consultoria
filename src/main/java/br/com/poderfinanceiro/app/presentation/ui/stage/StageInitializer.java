@@ -1,6 +1,7 @@
 package br.com.poderfinanceiro.app.presentation.ui.stage;
 
 import br.com.poderfinanceiro.app.presentation.controller.layout.MainController;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
@@ -21,15 +22,21 @@ import java.io.InputStream;
  * <p>
  * Responsável pela configuração e exibição do Stage principal da aplicação.
  * Realiza a transição da Splash Screen para o layout mestre (MainView) e
- * orquestra a navegação inicial para o fluxo de autenticação.
+ * orquestra a navegação inicial para o fluxo de autenticação via Registry.
  * </p>
  */
 @Component
 public class StageInitializer {
 
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(StageInitializer.class);
     private static final String LOG_PREFIX = "[StageInitializer]";
 
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
     private final ApplicationContext applicationContext;
     private Stage primaryStage;
 
@@ -50,7 +57,7 @@ public class StageInitializer {
 
     /**
      * Realiza o carregamento do FXML mestre, configura a cena principal
-     * e dispara a navegação para a tela de login.
+     * e dispara a navegação inicial utilizando o AppRoute Registry.
      */
     public void loadMainView() {
         log.info("{} [TELEMETRIA] Iniciando montagem da View principal (MainView).", LOG_PREFIX);
@@ -83,10 +90,12 @@ public class StageInitializer {
             primaryStage.show();
             primaryStage.centerOnScreen();
 
-            // Disparo da navegação inicial para o Login
-            log.info("{} [TELEMETRIA] Redirecionando para o fluxo de autenticação.", LOG_PREFIX);
+            // Disparo da navegação inicial para o Login via Registry
+            log.info("{} [TELEMETRIA] Redirecionando para o fluxo de autenticação via Registry.", LOG_PREFIX);
             MainController mainController = applicationContext.getBean(MainController.class);
-            mainController.navegarPara("/fxml/login.fxml", false);
+
+            // CORREÇÃO: Utilizando AppRoute em vez de String/Boolean
+            mainController.navegarPara(AppRoute.LOGIN);
 
         } catch (IOException e) {
             log.error("{} [SISTEMA] Erro fatal ao inicializar o layout mestre: {}", LOG_PREFIX, e.getMessage(), e);

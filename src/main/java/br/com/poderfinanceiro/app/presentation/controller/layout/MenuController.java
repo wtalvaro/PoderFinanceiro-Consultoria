@@ -3,6 +3,7 @@ package br.com.poderfinanceiro.app.presentation.controller.layout;
 import br.com.poderfinanceiro.app.application.dto.GitHubReleaseDTO;
 import br.com.poderfinanceiro.app.common.util.AsyncUtils;
 import br.com.poderfinanceiro.app.domain.service.UpdateService;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -15,7 +16,7 @@ import org.springframework.stereotype.Component;
  * <h1>MenuController</h1>
  * <p>
  * Controlador de Interface responsável pela barra de menus superior.
- * Gerencia a navegação e o fluxo de atualização manual assistida via navegador.
+ * Refatorado para utilizar o padrão Registry (AppRoute) via Navigator.
  * Implementa o padrão <b>Humble Object</b>.
  * </p>
  */
@@ -41,7 +42,7 @@ public class MenuController {
         this.navigator = navigator;
         this.updateService = updateService;
         this.hostServices = hostServices;
-        log.info("{} [SISTEMA] Controlador de Menu instanciado com suporte a HostServices.", LOG_PREFIX);
+        log.info("{} [SISTEMA] Controlador de Menu instanciado e sincronizado com Navigator Registry.", LOG_PREFIX);
     }
 
     // ==========================================================================================
@@ -50,13 +51,13 @@ public class MenuController {
     @FXML
     private void handleDashboard() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Dashboard.", LOG_PREFIX);
-        navigator.abrirDashboard();
+        navigator.navegarPara(AppRoute.DASHBOARD);
     }
 
     @FXML
     private void handleNovoContato() {
-        log.trace("{} [TELEMETRIA] Navegação solicitada: Novo Contato.", LOG_PREFIX);
-        navigator.irParaNovoContato();
+        log.trace("{} [TELEMETRIA] Navegação solicitada: Cadastro de Proponente.", LOG_PREFIX);
+        navigator.navegarPara(AppRoute.CADASTRO_PROPONENTE);
     }
 
     @FXML
@@ -78,13 +79,13 @@ public class MenuController {
     @FXML
     private void handleClientes() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Listagem de Clientes.", LOG_PREFIX);
-        navigator.abrirClientes();
+        navigator.navegarPara(AppRoute.CLIENTES);
     }
 
     @FXML
     private void handlePropostas() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Esteira de Propostas.", LOG_PREFIX);
-        navigator.irParaPropostas();
+        navigator.navegarPara(AppRoute.ESTEIRA_PROPOSTAS);
     }
 
     // ==========================================================================================
@@ -93,19 +94,19 @@ public class MenuController {
     @FXML
     private void handleComissoes() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Gestão de Comissões.", LOG_PREFIX);
-        navigator.irParaTabelaComissoes();
+        navigator.navegarPara(AppRoute.COMISSOES);
     }
 
     @FXML
     private void handleJuros() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Tabelas de Juros.", LOG_PREFIX);
-        navigator.irParaTabelasJuros();
+        navigator.navegarPara(AppRoute.TABELAS_JUROS);
     }
 
     @FXML
     private void handleImportarTabelas() {
-        log.trace("{} [TELEMETRIA] Navegação solicitada: Importador de Tabelas.", LOG_PREFIX);
-        navigator.irParaImportadorTabelas();
+        log.trace("{} [TELEMETRIA] Navegação solicitada: Importador de Tabelas IA.", LOG_PREFIX);
+        navigator.navegarPara(AppRoute.IMPORTADOR_TABELAS);
     }
 
     // ==========================================================================================
@@ -114,19 +115,19 @@ public class MenuController {
     @FXML
     private void handlePlaybook() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Playbook Cognitivo.", LOG_PREFIX);
-        navigator.abrirPlaybook();
+        navigator.navegarPara(AppRoute.PLAYBOOK);
     }
 
     @FXML
     private void handleBancos() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Mural de Bancos.", LOG_PREFIX);
-        navigator.irParaBancosConvenios();
+        navigator.navegarPara(AppRoute.BANCOS_CONVENIOS);
     }
 
     @FXML
     private void handleLinks() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Links Úteis.", LOG_PREFIX);
-        navigator.irParaLinksUteis();
+        navigator.navegarPara(AppRoute.LINKS_UTEIS);
     }
 
     @FXML
@@ -144,7 +145,7 @@ public class MenuController {
     @FXML
     private void handleAbrirCopiloto() {
         log.trace("{} [TELEMETRIA] Navegação solicitada: Copiloto de Simulação.", LOG_PREFIX);
-        navigator.abrirCopilotoSimulacao(null);
+        navigator.navegarPara(AppRoute.COPILOTO);
     }
 
     // ==========================================================================================
@@ -182,5 +183,4 @@ public class MenuController {
                     navigator.notificarAviso("Não foi possível checar atualizações.");
                 });
     }
-
 }
