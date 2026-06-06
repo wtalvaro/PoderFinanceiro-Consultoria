@@ -47,7 +47,8 @@ public class SimulacaoCopilotoService {
          * Processa uma simulação rápida baseada em rascunho, buscando tabelas
          * elegíveis e calculando projeções.
          */
-        @Transactional(readOnly = true) public List<ResultadoSimulacaoDTO> processarSimulacaoRapida(
+        @Transactional(readOnly = true)
+        public List<ResultadoSimulacaoDTO> processarSimulacaoRapida(
                         SimulacaoRascunhoDTO rascunho) {
                 log.info("{} [TELEMETRIA] Iniciando processamento de simulação rápida.", LOG_PREFIX);
                 log.info("{} [NEGOCIO] PROCESSANDO REGRA DE MATCH: {}", LOG_PREFIX, rascunho);
