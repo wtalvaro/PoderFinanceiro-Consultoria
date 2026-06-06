@@ -1,9 +1,9 @@
 package br.com.poderfinanceiro.app.application.facade.impl;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
-import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import br.com.poderfinanceiro.app.util.ProponenteModelBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,8 +32,8 @@ class WorkspaceFacadeTest {
     @DisplayName("Deve atualizar apenas o foco da tela ao navegar para Propostas (Preservando cliente)")
     void deveAtualizarContextoParaPropostas() {
         // GIVEN
-        // RotaAba.PROPOSTAS deve retornar TipoTelaFocada.ESTEIRA_PROPOSTAS
-        RotaAba rota = RotaAba.PROPOSTAS;
+        // AppRoute.PROPOSTAS deve retornar TipoTelaFocada.ESTEIRA_PROPOSTAS
+        AppRoute rota = AppRoute.ESTEIRA_PROPOSTAS;
 
         // WHEN
         facade.atualizarContextoParaRota(rota);
@@ -47,7 +47,7 @@ class WorkspaceFacadeTest {
     @DisplayName("Deve limpar o proponente ativo ao navegar para rotas que não sejam Propostas")
     void deveLimparProponenteEmOutrasRotas() {
         // GIVEN
-        RotaAba rota = RotaAba.BANCOS;
+        AppRoute rota = AppRoute.BANCOS_CONVENIOS;
         var tipoTelaEsperado = rota.getTipoTelaFocada(); // Agora não é mais null
 
         // WHEN
@@ -56,7 +56,7 @@ class WorkspaceFacadeTest {
         // THEN
         // O teste agora prova que o sistema limpa o cliente ao entrar em Bancos
         verify(contextoService, times(1)).atualizarFocoInterface(null, tipoTelaEsperado);
-        assertNotNull(tipoTelaEsperado, "A rota BANCOS deve possuir um foco de tela definido.");
+        assertNotNull(tipoTelaEsperado, "A rota BANCOS_CONVENIOS deve possuir um foco de tela definido.");
     }
 
     @Test

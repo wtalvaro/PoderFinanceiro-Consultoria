@@ -7,6 +7,7 @@ import br.com.poderfinanceiro.app.common.util.Disposable;
 import br.com.poderfinanceiro.app.common.util.DocumentoUtils;
 import br.com.poderfinanceiro.app.domain.event.ProponenteUIEventHub;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -23,21 +24,35 @@ import java.util.function.Supplier;
 
 /**
  * <h1>ProponenteListController</h1>
- * Controlador para gestão da listagem de clientes (CRM).
+ * <p>
+ * Controlador de Interface responsável pela gestão da listagem de clientes
+ * (CRM).
+ * Utiliza o Hub de Eventos para atualização reativa da tabela e navegação
+ * tipada.
+ * </p>
  */
 @Component
 public class ProponenteListController implements Disposable {
 
+    // ==========================================================================================
+    // MÓDULO 1: CONSTANTES E TELEMETRIA
+    // ==========================================================================================
     private static final Logger log = LoggerFactory.getLogger(ProponenteListController.class);
     private static final String LOG_PREFIX = "[ProponenteListController]";
 
     private static final String MSG_CARREGANDO_BASE = "Carregando base de clientes...";
     private static final String MSG_TRIAGEM_BUSCA = "Realizando triagem da busca...";
 
+    // ==========================================================================================
+    // MÓDULO 2: DEPENDÊNCIAS (DIP)
+    // ==========================================================================================
     private final IProponenteFacade proponenteFacade;
     private final Navigator navigator;
     private final ProponenteUIEventHub eventHub;
 
+    // ==========================================================================================
+    // MÓDULO 3: COMPONENTES VISUAIS (FXML)
+    // ==========================================================================================
     @FXML
     private TableView<ProponenteModel> tabelaClientes;
     @FXML
@@ -57,6 +72,9 @@ public class ProponenteListController implements Disposable {
         log.info("{} [SISTEMA] Controlador de listagem instanciado.", LOG_PREFIX);
     }
 
+    // ==========================================================================================
+    // MÓDULO 4: INICIALIZAÇÃO E EVENTOS
+    // ==========================================================================================
     @FXML
     public void initialize() {
         log.info("{} [SISTEMA] Inicializando interface de CRM.", LOG_PREFIX);
@@ -113,6 +131,9 @@ public class ProponenteListController implements Disposable {
         });
     }
 
+    // ==========================================================================================
+    // MÓDULO 5: LÓGICA DE NEGÓCIO E BUSCA
+    // ==========================================================================================
     public void carregarDados() {
         log.info("{} [TELEMETRIA] Iniciando carga assíncrona da carteira de clientes.", LOG_PREFIX);
         executarTarefaAssincrona(proponenteFacade::listarClientesCarteira, MSG_CARREGANDO_BASE);
@@ -130,12 +151,19 @@ public class ProponenteListController implements Disposable {
         }
     }
 
+    // ==========================================================================================
+    // MÓDULO 6: NAVEGAÇÃO
+    // ==========================================================================================
     @FXML
     private void handleNovoProponente() {
-        log.info("{} [TELEMETRIA] Redirecionando para criação de novo contato.", LOG_PREFIX);
-        navigator.irParaNovoContato();
+        log.info("{} [TELEMETRIA] Redirecionando para criação de novo contato via Registry.", LOG_PREFIX);
+        // CORREÇÃO: Uso da navegação tipada com AppRoute
+        navigator.navegarPara(AppRoute.CADASTRO_PROPONENTE);
     }
 
+    // ==========================================================================================
+    // MÓDULO 7: ORQUESTRAÇÃO ASSÍNCRONA
+    // ==========================================================================================
     private void executarTarefaAssincrona(Supplier<List<ProponenteModel>> acaoBusca, String mensagem) {
         navigator.mostrarLoading(mensagem);
 

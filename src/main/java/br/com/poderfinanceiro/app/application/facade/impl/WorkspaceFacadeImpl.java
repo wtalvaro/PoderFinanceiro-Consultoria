@@ -2,8 +2,9 @@ package br.com.poderfinanceiro.app.application.facade.impl;
 
 import br.com.poderfinanceiro.app.application.facade.IWorkspaceFacade;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
-import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ public class WorkspaceFacadeImpl implements IWorkspaceFacade {
     }
 
     @Override
-    public void atualizarContextoParaRota(RotaAba rota) {
+    public void atualizarContextoParaRota(AppRoute rota) {
         if (rota == null)
             return;
 
@@ -35,7 +36,7 @@ public class WorkspaceFacadeImpl implements IWorkspaceFacade {
 
         log.trace("{} [SISTEMA] Atualizando contexto global para a rota: {}", LOG_PREFIX, rota);
 
-        if (rota == RotaAba.PROPOSTAS) {
+        if (rota == AppRoute.ESTEIRA_PROPOSTAS) {
             contextoService.setTelaAtualFocada(rota.getTipoTelaFocada());
         } else {
             contextoService.atualizarFocoInterface(null, rota.getTipoTelaFocada());

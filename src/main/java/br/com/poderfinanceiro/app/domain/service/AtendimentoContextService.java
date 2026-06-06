@@ -28,6 +28,7 @@ public class AtendimentoContextService {
         DASHBOARD,
         LISTA_CLIENTES,
         CADASTRO_CLIENTE,
+        BANCOS,
         ESTEIRA_PROPOSTAS,
         TABELAS_JUROS,
         LINKS_UTEIS,

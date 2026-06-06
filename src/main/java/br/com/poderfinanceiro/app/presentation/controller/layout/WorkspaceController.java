@@ -5,9 +5,9 @@ import br.com.poderfinanceiro.app.common.util.Disposable;
 import br.com.poderfinanceiro.app.common.util.ValidationUtils;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
-import br.com.poderfinanceiro.app.domain.model.enums.RotaAba;
 import br.com.poderfinanceiro.app.presentation.controller.atendimento.AtendimentoHubController;
 import br.com.poderfinanceiro.app.presentation.controller.proposta.EsteiraPropostasController;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -90,16 +90,17 @@ public class WorkspaceController {
 
         Object userData = abaFocada.getUserData();
 
-        if (userData instanceof String idAba) {
-            RotaAba rota = RotaAba.fromId(idAba);
-            if (rota != null) {
-                log.trace("{} [NEGOCIO] Sincronizando contexto para rota estática: {}", LOG_PREFIX, rota);
-                workspaceFacade.atualizarContextoParaRota(rota);
-                return;
-            } else if (idAba.startsWith("ABA_")) {
-                workspaceFacade.resetarContextoParaDashboard();
-                return;
-            }
+        // Sincronização via AppRoute (Single Source of Truth)
+        if (userData instanceof String idRota) {
+            AppRoute.fromName(idRota).ifPresentOrElse(
+                    rota -> {
+                        log.trace("{} [NEGOCIO] Sincronizando contexto para rota estática: {}", LOG_PREFIX, rota);
+                        workspaceFacade.atualizarContextoParaRota(rota);
+                    },
+                    () -> {
+                        log.debug("{} [NEGOCIO] Aba com ID '{}' não mapeada como rota estática.", LOG_PREFIX, idRota);
+                    });
+            return;
         }
 
         Object controller = abaFocada.getProperties().get("controller");
@@ -116,14 +117,13 @@ public class WorkspaceController {
     // ==========================================================================================
     // MÓDULO 6: MOTOR DE ADMISSÃO DE ABAS
     // ==========================================================================================
-    public void admitirAbaSimples(RotaAba rota, String titulo, String fxmlPath) {
-        // Uso do ValidationUtils para blindagem de rota
+    public void admitirAbaSimples(AppRoute rota, String titulo, String fxmlPath) {
         if (!ValidationUtils.isPreenchido(fxmlPath) || !ValidationUtils.isPreenchido(titulo)) {
             log.error("{} [SISTEMA] Falha na admissão: Título ou FXML inválidos.", LOG_PREFIX);
             return;
         }
 
-        String id = rota.getId();
+        String id = rota.name();
         log.info("{} [TELEMETRIA] Solicitando abertura de aba: '{}' (Rota: {})", LOG_PREFIX, titulo, rota);
 
         for (Tab tab : tabPanePrincipal.getTabs()) {
@@ -165,10 +165,11 @@ public class WorkspaceController {
     public void abrirOuFocarAbaComPropostaEmMemoria(PropostaModel proposta) {
         log.info("{} [TELEMETRIA] Orquestrando abertura de proposta volátil (Copiloto).", LOG_PREFIX);
 
-        admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
+        admitirAbaSimples(AppRoute.ESTEIRA_PROPOSTAS, "📄 Esteira de Propostas",
+                AppRoute.ESTEIRA_PROPOSTAS.getFxmlPath());
 
         for (Tab tab : tabPanePrincipal.getTabs()) {
-            if (RotaAba.PROPOSTAS.getId().equals(tab.getUserData())) {
+            if (AppRoute.ESTEIRA_PROPOSTAS.name().equals(tab.getUserData())) {
                 Object controller = tab.getProperties().get("controller");
                 if (controller instanceof EsteiraPropostasController esteira) {
                     log.debug("{} [NEGOCIO] Injetando proposta em memória no controlador da esteira.", LOG_PREFIX);
@@ -183,40 +184,40 @@ public class WorkspaceController {
     // MÓDULO 7: ROTAS DIRETAS
     // ==========================================================================================
     public void abrirAbaDashboard() {
-        admitirAbaSimples(RotaAba.DASHBOARD, "📊 Visão Geral", "/fxml/dashboard.fxml");
+        admitirAbaSimples(AppRoute.DASHBOARD, "📊 Visão Geral", AppRoute.DASHBOARD.getFxmlPath());
     }
 
     public void abrirAbaClientes() {
-        admitirAbaSimples(RotaAba.CLIENTES, "👥 Clientes", "/fxml/proponente_list.fxml");
+        admitirAbaSimples(AppRoute.CLIENTES, "👥 Clientes", AppRoute.CLIENTES.getFxmlPath());
     }
 
     public void abrirAbaLinks() {
-        admitirAbaSimples(RotaAba.LINKS, "🔗 Links Úteis", "/fxml/links_uteis.fxml");
+        admitirAbaSimples(AppRoute.LINKS_UTEIS, "🔗 Links Úteis", AppRoute.LINKS_UTEIS.getFxmlPath());
     }
 
     public void abrirAbaTabelasJuros() {
-        admitirAbaSimples(RotaAba.JUROS, "📈 Tabelas de Juros", "/fxml/tabelas_juros.fxml");
+        admitirAbaSimples(AppRoute.TABELAS_JUROS, "📈 Tabelas de Juros", AppRoute.TABELAS_JUROS.getFxmlPath());
     }
 
     public void abrirAbaBancosConvenios() {
-        admitirAbaSimples(RotaAba.BANCOS, "🏦 Bancos e Convênios", "/fxml/bancos_convenios.fxml");
+        admitirAbaSimples(AppRoute.BANCOS_CONVENIOS, "🏦 Bancos e Convênios", AppRoute.BANCOS_CONVENIOS.getFxmlPath());
     }
 
     public void abrirAbaComissoes() {
-        admitirAbaSimples(RotaAba.COMISSOES, "💰 Gestão de Repasses (RV)", "/fxml/comissoes.fxml");
+        admitirAbaSimples(AppRoute.COMISSOES, "💰 Gestão de Repasses (RV)", AppRoute.COMISSOES.getFxmlPath());
     }
 
     public void abrirAbaImportadorTabelas() {
-        admitirAbaSimples(RotaAba.IMPORTADOR_TABELAS, "📥 Importador IA", "/fxml/importador_tabelas.fxml");
+        admitirAbaSimples(AppRoute.IMPORTADOR_TABELAS, "📥 Importador IA", AppRoute.IMPORTADOR_TABELAS.getFxmlPath());
     }
 
     public void abrirAbaPropostas(String filtroInicial) {
-        admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
+        admitirAbaSimples(AppRoute.ESTEIRA_PROPOSTAS, "📄 Esteira de Propostas",
+                AppRoute.ESTEIRA_PROPOSTAS.getFxmlPath());
     }
 
     public void abrirAbaPlaybook() {
-        RotaAba rota = (RotaAba.fromId("ABA_PLAYBOOK") != null) ? RotaAba.fromId("ABA_PLAYBOOK") : RotaAba.DASHBOARD;
-        admitirAbaSimples(rota, "📚 Playbook", "/fxml/playbook.fxml");
+        admitirAbaSimples(AppRoute.PLAYBOOK, "📚 Playbook", AppRoute.PLAYBOOK.getFxmlPath());
     }
 
     // ==========================================================================================
@@ -282,13 +283,13 @@ public class WorkspaceController {
         log.info("{} [TELEMETRIA] Roteando para proposta específica ID: {}", LOG_PREFIX, propostaIdAlvo);
 
         if (propostaIdAlvo != null) {
-            admitirAbaSimples(RotaAba.PROPOSTAS, "📄 Esteira de Propostas", "/fxml/esteira_propostas.fxml");
+            admitirAbaSimples(AppRoute.ESTEIRA_PROPOSTAS, "📄 Esteira de Propostas",
+                    AppRoute.ESTEIRA_PROPOSTAS.getFxmlPath());
 
             for (Tab tab : tabPanePrincipal.getTabs()) {
-                if (RotaAba.PROPOSTAS.getId().equals(tab.getUserData())) {
+                if (AppRoute.ESTEIRA_PROPOSTAS.name().equals(tab.getUserData())) {
                     Object controller = tab.getProperties().get("controller");
                     if (controller instanceof EsteiraPropostasController esteira) {
-                        // Uso de Platform.runLater para garantir que a UI carregou antes da seleção
                         Platform.runLater(() -> {
                             log.debug("{} [NEGOCIO] Selecionando proposta ID {} na esteira.", LOG_PREFIX,
                                     propostaIdAlvo);
@@ -315,7 +316,7 @@ public class WorkspaceController {
         }, hub.getLeadController().getViewModel().nomeProperty()));
 
         Label icone = new Label("👤");
-        icone.setStyle("-fx-font-size: 14px; -fx-padding: 0 0 0 5;"); // Adicionado padding aqui
+        icone.setStyle("-fx-font-size: 14px; -fx-padding: 0 0 0 5;");
         aba.setGraphic(icone);
     }
 
