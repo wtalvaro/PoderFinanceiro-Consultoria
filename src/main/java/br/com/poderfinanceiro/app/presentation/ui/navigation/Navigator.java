@@ -2,6 +2,7 @@ package br.com.poderfinanceiro.app.presentation.ui.navigation;
 
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.enums.AppRoute;
 import javafx.scene.Node;
 
 /**

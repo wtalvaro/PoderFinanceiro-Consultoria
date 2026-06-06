@@ -3,7 +3,7 @@ package br.com.poderfinanceiro.app.application.facade.impl;
 import br.com.poderfinanceiro.app.application.facade.IWorkspaceFacade;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
-import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.enums.AppRoute;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

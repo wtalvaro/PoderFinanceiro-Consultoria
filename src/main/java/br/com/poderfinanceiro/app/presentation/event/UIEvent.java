@@ -1,8 +1,9 @@
 package br.com.poderfinanceiro.app.presentation.event;
 
-import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
+
+import br.com.poderfinanceiro.app.presentation.ui.navigation.enums.AppRoute;
 
 /**
  * <h1>UIEvent</h1>

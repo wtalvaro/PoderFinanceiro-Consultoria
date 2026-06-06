@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.presentation.ui.stage;
 
 import br.com.poderfinanceiro.app.presentation.controller.layout.MainController;
-import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.enums.AppRoute;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;

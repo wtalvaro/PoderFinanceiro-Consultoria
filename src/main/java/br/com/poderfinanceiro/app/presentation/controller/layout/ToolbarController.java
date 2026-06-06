@@ -1,7 +1,7 @@
 package br.com.poderfinanceiro.app.presentation.controller.layout;
 
-import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
 import br.com.poderfinanceiro.app.presentation.ui.navigation.Navigator;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.enums.AppRoute;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;

@@ -1,4 +1,4 @@
-package br.com.poderfinanceiro.app.presentation.ui.navigation;
+package br.com.poderfinanceiro.app.presentation.ui.navigation.enums;
 
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
 import lombok.Getter;

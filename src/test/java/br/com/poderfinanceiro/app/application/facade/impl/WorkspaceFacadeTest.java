@@ -3,7 +3,7 @@ package br.com.poderfinanceiro.app.application.facade.impl;
 import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService;
 import br.com.poderfinanceiro.app.domain.service.AtendimentoContextService.TipoTelaFocada;
-import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.enums.AppRoute;
 import br.com.poderfinanceiro.app.util.ProponenteModelBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

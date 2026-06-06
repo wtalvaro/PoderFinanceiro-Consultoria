@@ -7,7 +7,7 @@ import br.com.poderfinanceiro.app.domain.model.ProponenteModel;
 import br.com.poderfinanceiro.app.domain.model.PropostaModel;
 import br.com.poderfinanceiro.app.presentation.controller.atendimento.AtendimentoHubController;
 import br.com.poderfinanceiro.app.presentation.controller.proposta.EsteiraPropostasController;
-import br.com.poderfinanceiro.app.presentation.ui.navigation.AppRoute;
+import br.com.poderfinanceiro.app.presentation.ui.navigation.enums.AppRoute;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
